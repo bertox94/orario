@@ -97,14 +97,30 @@ void print() {
 int main(void) {
     //genera orario
     unsigned int attempt = 0;
-    for (int cs = 0; cs < CLASSE_SEZIONE_SZ; cs++) {
-        for (int m = 0; m < MATERIA_SZ; m++) {
-            for (int it = 0; it < INSEGNANTE_TITOLARE_SZ; it++) {
-                for (int ic = 0; ic < INSEGNANTE_CODOC_SZ; ic++) {
-                    for (int is = 0; is < INSEGNANTE_SOSTEGNO_SZ; is++) {
-                        for (int a = 0; a < AULA_SZ; a++) {
-                            for (int gs = 0; gs < GIORNO_SETTIMANA_SZ; gs++) {
-                                for (int og = 0; og < ORA_GIORNALIERA_SZ; og++) {
+    for (int gs = 0; gs < GIORNO_SETTIMANA_SZ; gs++) {
+        for (int og = 0; og < ORA_GIORNALIERA_SZ; og++) {
+            for (/*materie di Albero Antonio*/;;) {
+                for (/*materie di B ...*/;;) {
+                    for (/*materie di C ...*/;;) {
+                        //...
+                    }
+                }
+            }
+
+            //giorno 0 ora 0:    albero Info 4A ps11; B Sistemi 3E ps12
+            //giorno 0 ora 0:    albero Info 4A ps11; B Sistemi 3E ps11
+            //giorno 0 ora 0:    albero Info 4A ps11; B Sistemi 3E ps10
+            //giorno 0 ora 0:    albero Info 4A ps11; B Sistemi 3F ps12
+            //giorno 0 ora 0:    albero Info 4A ps11; B Sistemi 3F ps12
+            //giorno 0 ora 0:    albero Info 4A ps11; ...
+            //giorno 0 ora 0:    albero Info 4A ps10; B Sistemi 3F ps12
+
+            for (int cs = 0; cs < CLASSE_SEZIONE_SZ; cs++) {
+                for (int m = 0; m < MATERIA_SZ; m++) {
+                    for (int it = 0; it < INSEGNANTE_TITOLARE_SZ; it++) {
+                        for (int ic = 0; ic < INSEGNANTE_CODOC_SZ; ic++) {
+                            for (int is = 0; is < INSEGNANTE_SOSTEGNO_SZ; is++) {
+                                for (int a = 0; a < AULA_SZ; a++) {
                                     /*orario[attempt] = (struct cell){
                                         gs, og,
                                         cs, m, it,
