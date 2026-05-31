@@ -94,47 +94,39 @@ void print() {
 
 
 int main(void) {
-    //genera orario
-    unsigned int attempt = 0;
-    char classi[2] = {'1', '2'};
-    char professori[2] = {'C', 'A'};
-    for (int og = 0; og < ORA_GIORNALIERA_SZ; og++)
-        printf(" %d", og);
-    printf("\n");
-    for (int og = 0; og < ORA_GIORNALIERA_SZ; og++)
-        for (int cl = 1; cl < 1 + CLASSE_SEZIONE_SZ; cl++) {
-            // un giorno/sett, 3 ore, 2 classi, m insegnati
-            printf("%d", cl);
-        }
-    printf("\n------\n");
+    char letters[] = {'A', 'B', 'C'};
+    int m = 5;
 
+    int idx[m];
+    for (int i = 0; i < m; i++)
+        idx[i] = 0;
 
-    char profs[] = {'A', 'B', 'C'};
-    int m = sizeof(profs) / sizeof(profs[0]);
-    int n = ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ; //num ore * num classi (un solo giorno di scuola a settimana)
+    while (1) {
+        /* print current word */
+        for (int i = 0; i < m; i++)
+            putchar(letters[idx[i]]);
+        putchar('\n');
 
+        /* increment the base-3 counter */
+        int pos = m - 1;
+        while (pos >= 0) {
+            idx[pos]++;
 
-    long totale = 1;
-    for (int i = 0; i < n; i++)
-        totale *= m; // m^n
+            if (idx[pos] < 3)  // no carry
+                break;
 
-    for (long num = 0; num < totale; num++) {
-        long x = num;
-        char parola[n + 1];
-
-        for (int pos = n - 1; pos >= 0; pos--) {
-            parola[pos] = profs[x % m];
-            x /= m;
+            idx[pos] = 0;      // carry
+            pos--;
         }
 
-        parola[n] = '\0';
-        printf("%s\n", parola);
+        /* overflow: we've generated all words */
+        if (pos < 0)
+            break;
     }
-
     return 0;
 
 
-    return 0;
+   int attempt = 0;
     //giorno 0 ora 0:    albero Info 4A ps11; B Sistemi 3E ps12
     //giorno 0 ora 0:    albero Info 4A ps11; B Sistemi 3E ps11
     //giorno 0 ora 0:    albero Info 4A ps11; B Sistemi 3E ps10
