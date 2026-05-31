@@ -5,10 +5,10 @@
 #define GIORNO_SETTIMANA_SZ 5
 #define GIORNO_SETTIMANA_ITEM_SZ 4
 
-#define ORA_GIORNALIERA_SZ 6
+#define ORA_GIORNALIERA_SZ 3
 #define ORA_GIORNALIERA_ITEM_SZ 2
 
-#define CLASSE_SEZIONE_SZ 3
+#define CLASSE_SEZIONE_SZ 2
 #define CLASSE_SEZIONE_ITEM_SZ 3
 
 #define MATERIA_SZ 2
@@ -85,8 +85,7 @@ int verifica() {
 void print() {
     printf("Found one! --------------------\n");
     for (int i = 0; i < 36; i++) {
-        printf("%d) %d %d %d %d %d %d %d %d\n", i, orario[i].giorno_settimana,
-               orario[i].ora_giornaliera, orario[i].classe_sezione,
+        printf("%d) %d %d %d %d %d %d \n", i, orario[i].classe_sezione,
                orario[i].materia, orario[i].insegnante_titolare,
                orario[i].insegnante_codoc, orario[i].insegnante_sostegno,
                orario[i].aula);
@@ -97,42 +96,69 @@ void print() {
 int main(void) {
     //genera orario
     unsigned int attempt = 0;
-    for (int gs = 0; gs < GIORNO_SETTIMANA_SZ; gs++) {
-        for (int og = 0; og < ORA_GIORNALIERA_SZ; og++) {
-            for (/*materie di Albero Antonio*/;;) {
-                for (/*materie di B ...*/;;) {
-                    for (/*materie di C ...*/;;) {
-                        //...
-                    }
-                }
-            }
+    char classi[2] = {'1', '2'};
+    char professori[2] = {'C', 'A'};
+    for (int og = 0; og < ORA_GIORNALIERA_SZ; og++)
+        printf(" %d", og);
+    printf("\n");
+    for (int og = 0; og < ORA_GIORNALIERA_SZ; og++)
+        for (int cl = 1; cl < 1 + CLASSE_SEZIONE_SZ; cl++) {
+            // un giorno/sett, 3 ore, 2 classi, m insegnati
+            printf("%d", cl);
+        }
+    printf("\n------\n");
 
-            //giorno 0 ora 0:    albero Info 4A ps11; B Sistemi 3E ps12
-            //giorno 0 ora 0:    albero Info 4A ps11; B Sistemi 3E ps11
-            //giorno 0 ora 0:    albero Info 4A ps11; B Sistemi 3E ps10
-            //giorno 0 ora 0:    albero Info 4A ps11; B Sistemi 3F ps12
-            //giorno 0 ora 0:    albero Info 4A ps11; B Sistemi 3F ps12
-            //giorno 0 ora 0:    albero Info 4A ps11; ...
-            //giorno 0 ora 0:    albero Info 4A ps10; B Sistemi 3F ps12
 
-            for (int cs = 0; cs < CLASSE_SEZIONE_SZ; cs++) {
-                for (int m = 0; m < MATERIA_SZ; m++) {
-                    for (int it = 0; it < INSEGNANTE_TITOLARE_SZ; it++) {
-                        for (int ic = 0; ic < INSEGNANTE_CODOC_SZ; ic++) {
-                            for (int is = 0; is < INSEGNANTE_SOSTEGNO_SZ; is++) {
-                                for (int a = 0; a < AULA_SZ; a++) {
-                                    /*orario[attempt] = (struct cell){
-                                        gs, og,
-                                        cs, m, it,
-                                        ic, is, a
-                                    };
-                                    if (verifica()) {
-                                        print();
-                                    }*/
-                                    printf("Giorno:\t%d, Ora:\t%d, Classe:\t%d\n", gs, og, cs);
-                                    attempt++;
-                                }
-                            }
+    char profs[] = {'A', 'B', 'C'};
+    int m = sizeof(profs) / sizeof(profs[0]);
+    int n = ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ; //num ore * num classi (un solo giorno di scuola a settimana)
+
+
+    long totale = 1;
+    for (int i = 0; i < n; i++)
+        totale *= m; // m^n
+
+    for (long num = 0; num < totale; num++) {
+        long x = num;
+        char parola[n + 1];
+
+        for (int pos = n - 1; pos >= 0; pos--) {
+            parola[pos] = profs[x % m];
+            x /= m;
+        }
+
+        parola[n] = '\0';
+        printf("%s\n", parola);
+    }
+
+    return 0;
+
+
+    return 0;
+    //giorno 0 ora 0:    albero Info 4A ps11; B Sistemi 3E ps12
+    //giorno 0 ora 0:    albero Info 4A ps11; B Sistemi 3E ps11
+    //giorno 0 ora 0:    albero Info 4A ps11; B Sistemi 3E ps10
+    //giorno 0 ora 0:    albero Info 4A ps11; B Sistemi 3F ps12
+    //giorno 0 ora 0:    albero Info 4A ps11; B Sistemi 3F ps12
+    //giorno 0 ora 0:    albero Info 4A ps11; ...
+    //giorno 0 ora 0:    albero Info 4A ps10; B Sistemi 3F ps12
+
+    for (int cs = 0; cs < CLASSE_SEZIONE_SZ; cs++) {
+        for (int m = 0; m < MATERIA_SZ; m++) {
+            for (int it = 0; it < INSEGNANTE_TITOLARE_SZ; it++) {
+                for (int ic = 0; ic < INSEGNANTE_CODOC_SZ; ic++) {
+                    for (int is = 0; is < INSEGNANTE_SOSTEGNO_SZ; is++) {
+                        for (int a = 0; a < AULA_SZ; a++) {
+                            /*orario[attempt] = (struct cell){
+                                gs, og,
+                                cs, m, it,
+                                ic, is, a
+                            };
+                            if (verifica()) {
+                                print();
+                            }*/
+                            printf("Giorno:\t%d, Ora:\n", cs);
+                            attempt++;
                         }
                     }
                 }
