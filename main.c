@@ -107,7 +107,21 @@ void genera(const int tot) {
         }
 
         //una aula per classe ogni ora ogni giorno:
-        for (int j =tot-1; j >= 0; j--){}
+        for (int j = 0; j < tot; j++) {
+            //in ogni intervallo di 27 char, se ci sono caratteri, devono essere tutti o tra 0 e 8, o tra 9 e 17 o tra 18 e 26
+            int k = 0, first = 0, second = 0, third = 0;
+            for (k = 0; k < 27; k++) {
+                if (attempt[j + k] == '1') {
+                    if (k < 9)
+                        first++;
+                    else if (k < 18)
+                        second++;
+                    else
+                        third++;
+                }
+            }
+            j = k;
+        }
 
         if (i < 0) // overflow: finite le combinazioni
             break;
@@ -167,7 +181,7 @@ int main(void) {
     printf("\n");
 
     int tot = GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * AULA_SZ * MATERIA_SZ *
-                                 INSEGNANTE_SZ;
+              INSEGNANTE_SZ;
     tot = 4;
     //printf("String length: %u\n", tot);
 
