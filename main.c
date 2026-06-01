@@ -9,13 +9,13 @@
 #define ORA_GIORNALIERA_SZ 3
 #define ORA_GIORNALIERA_ITEM_SZ 2
 
-#define CLASSE_SEZIONE_SZ 3
+#define CLASSE_SEZIONE_SZ 2
 #define CLASSE_SEZIONE_ITEM_SZ 3
 
-#define AULA_SZ 3
+#define AULA_SZ 2
 #define AULA_ITEM_SZ 15
 
-#define MATERIA_SZ 3
+#define MATERIA_SZ 2
 #define MATERIA_ITEM_SZ 15
 
 #define INSEGNANTE_SZ 3
@@ -35,9 +35,9 @@ struct cell {
 
 char giorni_settimana[GIORNO_SETTIMANA_SZ][GIORNO_SETTIMANA_ITEM_SZ] = {"Lun"};
 char ora_giornaliera[ORA_GIORNALIERA_SZ][ORA_GIORNALIERA_ITEM_SZ] = {"08", "09"};
-char classe_sezione[CLASSE_SEZIONE_SZ][CLASSE_SEZIONE_ITEM_SZ] = {"3H", "3E", "3F"};
-char aula[AULA_SZ][AULA_ITEM_SZ] = {"P1", "P2", "L2"};
-char materia[MATERIA_SZ][MATERIA_ITEM_SZ] = {"Sistemi e Reti", "Informatica", "Italiano"};
+char classe_sezione[CLASSE_SEZIONE_SZ][CLASSE_SEZIONE_ITEM_SZ] = {"3H", "3F"};
+char aula[AULA_SZ][AULA_ITEM_SZ] = {"P1", "P2"};
+char materia[MATERIA_SZ][MATERIA_ITEM_SZ] = {"Sistemi e Reti", "Informatica"};
 char insegnante_titolare[INSEGNANTE_SZ][INSEGNANTE_ITEM_SZ] = {"Ricciardi", "Rizzi", "Negrioli"};
 
 struct cell orario[36];
@@ -93,17 +93,17 @@ void print() {
 void gen(char *s, int pos, int tot, int active_group) {
     if (pos == tot) {
         s[pos] = '\0';
-        printf("%s\n", s);
+        printf("            %s\n", s);
         return;
     }
 
-    int p = pos % (AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ); // una classe in ogni aula
+    int p = pos % (AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ); // una classe in ogni aula  range = 12
 
     // nuovo blocco da 27
     if (p == 0)
         active_group = -1;
 
-    int group = p / (MATERIA_SZ * INSEGNANTE_SZ); // 0, 1, 2
+    int group = p / (MATERIA_SZ * INSEGNANTE_SZ); // 0, 1, 2 block = 6
 
     // prova 0
     s[pos] = '0';
@@ -116,44 +116,66 @@ void gen(char *s, int pos, int tot, int active_group) {
     }
 }
 
+void pre_post_spaces(char pre[], char post[], int n) {
+    memset(pre, ' ', n/2);
+    memset(post, ' ', n-n / 2-1);
+    pre[n / 2] = '\0';
+    post[n - n / 2 - 1] = '\0';
+}
+
 void print_intestazioni() {
-        printf("Giorno:     ");
+    int n = ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ;
+    char space_g1[n / 2 + 1];
+    char space_g2[n - n / 2];
+    pre_post_spaces(space_g1, space_g2, n);
+    printf("Giorno:     ");
     for (int gs = 0; gs < GIORNO_SETTIMANA_SZ; gs++)
-        printf(
-            "                                                                                                                         %d"
-            "                                                                                                                         ",
-            gs);
+        printf("%s%d%s", space_g1, gs, space_g2);
     printf("\n");
 
     printf("Ora:\t\t");
+    n = CLASSE_SEZIONE_SZ * AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ;
+    char space_o1[n / 2 + 1];
+    char space_o2[n - n / 2];
+    pre_post_spaces(space_o1, space_o2, n);
     for (int gs = 0; gs < GIORNO_SETTIMANA_SZ; gs++)
         for (int og = 0; og < ORA_GIORNALIERA_SZ; og++)
-            printf("                                        %d                                        ", og);
+            printf("%s%d%s", space_o1, og, space_o2);
     printf("\n");
 
     printf("Classe:\t\t");
+    n = AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ;
+    char space_s1[n / 2 + 1];
+    char space_s2[n - n / 2];
+    pre_post_spaces(space_s1, space_s2, n);
     for (int gs = 0; gs < GIORNO_SETTIMANA_SZ; gs++)
         for (int og = 0; og < ORA_GIORNALIERA_SZ; og++)
             for (int cs = 0; cs < CLASSE_SEZIONE_SZ; cs++)
-                printf("             %d             ", cs);
+                printf("%s%d%s", space_s1, cs, space_s2);
     printf("\n");
 
     printf("Aula:\t\t");
+    n = MATERIA_SZ * INSEGNANTE_SZ;
+    char space_a1[n / 2 + 1];
+    char space_a2[n - n / 2];
+    pre_post_spaces(space_a1, space_a2, n);
     for (int gs = 0; gs < GIORNO_SETTIMANA_SZ; gs++)
         for (int og = 0; og < ORA_GIORNALIERA_SZ; og++)
             for (int cs = 0; cs < CLASSE_SEZIONE_SZ; cs++)
                 for (int a = 0; a < AULA_SZ; a++)
-                    printf("    %d    ", a);
+                    printf("%s%d%s", space_a1, a, space_a2);
     printf("\n");
 
     printf("Materia:    ");
-    char space_materia[]
+    char space_m1[INSEGNANTE_SZ / 2 + 1];
+    char space_m2[INSEGNANTE_SZ - INSEGNANTE_SZ / 2];
+    pre_post_spaces(space_m1, space_m2, INSEGNANTE_SZ);
     for (int gs = 0; gs < GIORNO_SETTIMANA_SZ; gs++)
         for (int og = 0; og < ORA_GIORNALIERA_SZ; og++)
             for (int cs = 0; cs < CLASSE_SEZIONE_SZ; cs++)
                 for (int a = 0; a < AULA_SZ; a++)
                     for (int m = 0; m < MATERIA_SZ; m++)
-                        printf(" %d ", m);
+                        printf("%s%d%s", space_m1, m, space_m2);
     printf("\n");
 
     printf("Insegnante: ");
@@ -168,11 +190,11 @@ void print_intestazioni() {
 }
 
 int main(void) {
-
+    print_intestazioni();
 
     int tot = GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * AULA_SZ * MATERIA_SZ *
               INSEGNANTE_SZ;
-    tot = 28;
+    //tot = 28;
     //printf("String length: %u\n", tot);
 
     char *s = malloc(tot + 1);
