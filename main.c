@@ -97,13 +97,13 @@ void gen(char *s, int pos, int tot, int active_group) {
         return;
     }
 
-    int p = pos % (AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ); // una classe in ogni aula  range = 12
-
+    int p = pos % (AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ); // una classe in ogni aula, una materia ogni aula
+ //TODO: MAX 2 prof ogni materia attiva
     // nuovo blocco da 27
     if (p == 0)
         active_group = -1;
 
-    int group = p / (MATERIA_SZ * INSEGNANTE_SZ); // 0, 1, 2 block = 6
+    int group = p / (INSEGNANTE_SZ); // 0, 1, 2 block = 6
 
     // prova 0
     s[pos] = '0';
@@ -194,7 +194,7 @@ int main(void) {
 
     int tot = GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * AULA_SZ * MATERIA_SZ *
               INSEGNANTE_SZ;
-    tot = 8;
+    tot = tot/GIORNO_SETTIMANA_SZ/ORA_GIORNALIERA_SZ;
     //printf("String length: %u\n", tot);
 
     char *s = malloc(tot + 1);
