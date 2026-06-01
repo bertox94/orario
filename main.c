@@ -116,8 +116,8 @@ void gen(char *s, int pos, int tot, int active_group) {
     }
 }
 
-int main(void) {
-    printf("Giorno:     ");
+void print_intestazioni() {
+        printf("Giorno:     ");
     for (int gs = 0; gs < GIORNO_SETTIMANA_SZ; gs++)
         printf(
             "                                                                                                                         %d"
@@ -147,6 +147,7 @@ int main(void) {
     printf("\n");
 
     printf("Materia:    ");
+    char space_materia[]
     for (int gs = 0; gs < GIORNO_SETTIMANA_SZ; gs++)
         for (int og = 0; og < ORA_GIORNALIERA_SZ; og++)
             for (int cs = 0; cs < CLASSE_SEZIONE_SZ; cs++)
@@ -164,6 +165,10 @@ int main(void) {
                         for (int it = 0; it < INSEGNANTE_SZ; it++)
                             printf("%d", it);
     printf("\n");
+}
+
+int main(void) {
+
 
     int tot = GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * AULA_SZ * MATERIA_SZ *
               INSEGNANTE_SZ;
