@@ -23,6 +23,8 @@
 #define INSEGNANTE_ITEM_SZ 15
 
 #define MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT 2
+#define MAX_MATERIE_PER_INSEGNANTE 4
+#define MAX_INSEGNANTI_PER_INSEGNANTE 4
 
 struct cell {
     //int giorno_settimana;
@@ -38,15 +40,24 @@ struct cell {
 char giorni_settimana[GIORNO_SETTIMANA_SZ][GIORNO_SETTIMANA_ITEM_SZ] = {"Lun"};
 char ora_giornaliera[ORA_GIORNALIERA_SZ][ORA_GIORNALIERA_ITEM_SZ] = {"08", "09"};
 char classe_sezione[CLASSE_SEZIONE_SZ][CLASSE_SEZIONE_ITEM_SZ] = {"3H"};
-char aula[AULA_SZ][AULA_ITEM_SZ] = {"P1", "P2"};
-char materia[MATERIA_SZ][MATERIA_ITEM_SZ] = {"Sistemi e Reti", "Informatica"};
-char insegnante_titolare[INSEGNANTE_SZ][INSEGNANTE_ITEM_SZ] = {"Ricciardi", "Rizzi", "Negrioli"};
+char aule[AULA_SZ][AULA_ITEM_SZ] = {"P1", "P2"};
+char materie[MATERIA_SZ][MATERIA_ITEM_SZ] = {"Sistemi e Reti", "Informatica"};
+char insegnanti[INSEGNANTE_SZ][INSEGNANTE_ITEM_SZ] = {"Ricciardi", "Rizzi", "Negrioli"};
+
+//Associazioni
+char insegnanti_insegnanti[INSEGNANTE_SZ][MAX_INSEGNANTI_PER_INSEGNANTE] = {};
+/* for example if 1 works with 3,5 and 3 works with 1 and 4
+ * then we have:
+ * i_i[1] = [3,5,-1,-1]
+ * i_i[3] = [1, 4, -1, -1]
+ * */
+char insegnante_materie[INSEGNANTE_SZ][MAX_MATERIE_PER_INSEGNANTE] = {};
 
 struct cell orario[36];
 
 int p_materia(char mat[MATERIA_ITEM_SZ]) {
     for (int i = 0; i < MATERIA_SZ; i++) {
-        if (!strcmp(materia[i], mat))
+        if (!strcmp(materie[i], mat))
             return i;
     }
     return -1;
@@ -59,14 +70,14 @@ int p_classe_sezione(char cla[CLASSE_SEZIONE_ITEM_SZ]) {
     return -1;
 }
 
-unsigned int ore_materia_classe(char mat[], char cla[]) {
+int ore_materia_classe(char s[], char mat[], char cla[]) {
     int materia_pos = p_materia(mat);
     if (materia_pos == -1)
         assert(0);
     int classe_pos = p_classe_sezione(cla);
     if (classe_pos == -1)
         assert(0);
-    unsigned int sum = 0;
+    int sum = 0;
     for (int i = 0; i < 36; i++) {
         if (orario[i].materia == materia_pos
             && orario[i].classe_sezione == classe_pos)
@@ -75,9 +86,9 @@ unsigned int ore_materia_classe(char mat[], char cla[]) {
     return sum;
 }
 
-int verifica() {
+int verifica(char *s) {
     int res = 1;
-    res &= ore_materia_classe("Informatica", "3H") == 1;
+    res &= ore_materia_classe(s, "Informatica", "3H") == 0;
     //...
     return res;
 }
@@ -104,9 +115,12 @@ void gen(char *s, int pos, int tot, int active_group, int sum_prof) {
     s[pos] = '0';
     gen(s, pos + 1, tot, active_group, sum_prof);
 
+    int una_aula_ogni_classe_una_materia_ogni_aula = active_group == -1 || active_group == group;
+    int max_prof_in_same_class_room = sum_prof < MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
+
     // prova 1
-    if ((active_group == -1 || active_group == group)
-        && sum_prof < MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT) {
+    if (una_aula_ogni_classe_una_materia_ogni_aula
+        && max_prof_in_same_class_room) {
         s[pos] = '1';
         sum_prof++;
         gen(s, pos + 1, tot, group, sum_prof);
@@ -218,6 +232,7 @@ void test(int max) {
 
 
 int main(void) {
+    memset(insegnante_materie, -1, INSEGNANTE_SZ*MAX_MATERIE_PER_INSEGNANTE);
     print_intestazioni();
 
     int tot = GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * AULA_SZ * MATERIA_SZ *
