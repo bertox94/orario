@@ -97,7 +97,7 @@ int ore_materia_classe(const char s[], char mat[], char cla[]) {
     return sum;
 }
 
-int verifica_orario_completo(char *s) {
+int verifica_orario_completo(const char *s) {
     int res = 1;
     res &= ore_materia_classe(s, "Informatica", "3H") == 0;
     //...
@@ -110,7 +110,7 @@ int verifica_orario_parziale(char *s) {
     return 1;
 }
 
-int test_params(struct param *parameters) {
+int test_params(const struct param *parameters) {
     int res = 1;
     res &= parameters->active_group == -1 || parameters->active_group == parameters->current_group;
     res &= parameters->sum_prof < MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
