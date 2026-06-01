@@ -33,6 +33,14 @@ char aule[AULA_SZ][AULA_ITEM_SZ] = {"P1", "P2"};
 char materie[MATERIA_SZ][MATERIA_ITEM_SZ] = {"Sistemi e Reti", "Informatica"};
 char insegnanti[INSEGNANTE_SZ][INSEGNANTE_ITEM_SZ] = {"Ricciardi", "Rizzi", "Negrioli"};
 
+struct param {
+    int current_group;
+    int active_group;
+    int sum_prof;
+};
+
+unsigned long long int n_gen = 0;
+
 //Associazioni
 char insegnanti_insegnanti[INSEGNANTE_SZ][MAX_INSEGNANTI_PER_INSEGNANTE] = {};
 /* for example if 1 works with 3,5 and 3 works with 1 and 4
@@ -57,12 +65,19 @@ int p_classe_sezione(char cla[CLASSE_SEZIONE_ITEM_SZ]) {
     return -1;
 }
 
-int g_materia(int p) {
-    return p % MATERIA_SZ;
+int g_materia(const char s[], int p, int mat) {
+    return s[p] == '1' && p % MATERIA_SZ;
 }
 
-int g_classe(int p) {
-    return p % CLASSE_SEZIONE_SZ;
+int g_classe(const char s[], const int p, const int cla) {
+    return s[p] == '1'
+           && p >= AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ
+           && p < AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ + AULA_SZ * MATERIA_SZ;
+}
+
+int g_prof(const char s[], const int p, const int prof) {
+    return s[p] == '1'
+           && prof == p % INSEGNANTE_SZ;
 }
 
 int ore_materia_classe(const char s[], char mat[], char cla[]) {
@@ -75,52 +90,79 @@ int ore_materia_classe(const char s[], char mat[], char cla[]) {
     int sum = 0;
 
     for (int i = 0; s[i] != '\0'; i++) {
-        if (s[i] == '1'
-            && g_materia(i) == materia_pos
-            && g_classe(i) == classe_pos)
+        if (g_materia(s, i, materia_pos)
+            && g_classe(s, i, classe_pos))
             sum++;
     }
     return sum;
 }
 
-int verifica(char *s) {
+int verifica_orario_completo(char *s) {
     int res = 1;
     res &= ore_materia_classe(s, "Informatica", "3H") == 0;
     //...
+    return 1;
+}
+
+int verifica_orario_parziale(char *s) {
+    // ad es. numero ore materia per classe è possibile verificarlo alla fine,
+    // ma possiamo già escludere orari che superano tale valore
+    return 1;
+}
+
+int test_params(struct param *parameters) {
+    int res = 1;
+    res &= parameters->active_group == -1 || parameters->active_group == parameters->current_group;
+    res &= parameters->sum_prof < MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
     return res;
 }
 
-void gen(char *s, int pos, int tot, int active_group, int sum_prof) {
+void set_params(struct param *parameters, int pos) {
+    int p = pos % (AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ); // una classe in ogni aula, una materia ogni aula
+    // nuovo blocco
+    if (p == 0) {
+        parameters->active_group = -1;
+        parameters->sum_prof = 0;
+    }
+    parameters->current_group = p / INSEGNANTE_SZ;
+}
+
+void update_params_after_1(struct param *parameters) {
+    parameters->active_group = parameters->current_group;
+    parameters->sum_prof++;
+}
+
+void gen(char *s, int pos, int tot, struct param parameters) {
     if (pos == tot) {
         s[pos] = '\0';
-        if (verifica(s))
-            printf("            %s\n", s);
+        if (verifica_orario_completo(s)) {
+            int size_space = strlen("Insegnante: ");
+            char str[size_space + 1];
+            n_gen++;
+            sprintf(str, "%lld", n_gen);
+            const unsigned int size = strlen(str);
+            str[size] = ')';
+            for (unsigned int i = size + 1; i < size_space; i++) {
+                str[i] = ' ';
+            }
+            str[size_space] = '\0';
+            printf("%s%s\n", str, s);
+        }
+
         return;
     }
 
-    int p = pos % (AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ); // una classe in ogni aula, una materia ogni aula
-    // nuovo blocco da 27
-    if (p == 0)
-        active_group = -1;
-    int group = p / INSEGNANTE_SZ;
-
-    if (pos % INSEGNANTE_SZ == 0)
-        sum_prof = 0;
-
+    set_params(&parameters, pos);
 
     // prova 0
     s[pos] = '0';
-    gen(s, pos + 1, tot, active_group, sum_prof);
-
-    int una_aula_ogni_classe_una_materia_ogni_aula = active_group == -1 || active_group == group;
-    int max_prof_in_same_class_room = sum_prof < MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
+    gen(s, pos + 1, tot, parameters);
 
     // prova 1
-    if (una_aula_ogni_classe_una_materia_ogni_aula
-        && max_prof_in_same_class_room) {
+    if (test_params(&parameters)) {
         s[pos] = '1';
-        sum_prof++;
-        gen(s, pos + 1, tot, group, sum_prof);
+        update_params_after_1(&parameters);
+        gen(s, pos + 1, tot, parameters);
     }
 }
 
@@ -197,51 +239,43 @@ void print_intestazioni() {
     printf("\n");
 }
 
-
-void test(int max) {
-    struct timeval t1, t2;
-
-    int tot = 70;
-
+char *string_allocation(unsigned long max) {
     char *s = malloc(max + 1);
     if (s == NULL) {
         perror("malloc");
         exit(EXIT_FAILURE);
     }
+    return s;
+}
 
-    for (; tot < max; tot++) {
+void test(int max) {
+    struct timeval t1, t2;
+    char *s = string_allocation(max + 1);
+
+    for (int tot = 75; tot < max; tot++) {
         // Start timer
         gettimeofday(&t1, NULL);
-
-        gen(s, 0, tot, -1, 0);
+        struct param parameters = {0, -1, 0};
+        gen(s, 0, tot, parameters);
 
         // Stop timer
         gettimeofday(&t2, NULL);
-
-        // Compute and print the elapsed time in milliseconds:
-
-        double elapsedTime = t2.tv_sec - t1.tv_sec;
-
-        printf("len: %d, %.2f s.\n", tot, elapsedTime);
+        const unsigned long elapsedTime = t2.tv_sec - t1.tv_sec;
+        printf("len: %d, %lu s.\n", tot, elapsedTime);
     }
+    free(s);
 }
 
 
 int main(void) {
     memset(insegnante_materie, -1, INSEGNANTE_SZ*MAX_MATERIE_PER_INSEGNANTE);
+    //test(100);
     print_intestazioni();
-
     int tot = GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * AULA_SZ * MATERIA_SZ *
               INSEGNANTE_SZ;
-    //printf("String length: %u\n", tot);
-
-    char *s = malloc(tot + 1);
-    if (s == NULL) {
-        perror("malloc");
-        exit(EXIT_FAILURE);
-    }
-
-    gen(s, 0, tot, -1, 0);
+    char *s = string_allocation(tot + 1);
+    struct param parameters = {0, -1, 0};
+    gen(s, 0, tot, parameters);
 
     free(s);
     return 0;
