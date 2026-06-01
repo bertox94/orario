@@ -2,14 +2,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/time.h>
 
-#define GIORNO_SETTIMANA_SZ 2
+#define GIORNO_SETTIMANA_SZ 1
 #define GIORNO_SETTIMANA_ITEM_SZ 4
 
-#define ORA_GIORNALIERA_SZ 3
+#define ORA_GIORNALIERA_SZ 2
 #define ORA_GIORNALIERA_ITEM_SZ 2
 
-#define CLASSE_SEZIONE_SZ 2
+#define CLASSE_SEZIONE_SZ 1
 #define CLASSE_SEZIONE_ITEM_SZ 3
 
 #define AULA_SZ 2
@@ -21,6 +22,7 @@
 #define INSEGNANTE_SZ 3
 #define INSEGNANTE_ITEM_SZ 15
 
+#define MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT 2
 
 struct cell {
     //int giorno_settimana;
@@ -35,7 +37,7 @@ struct cell {
 
 char giorni_settimana[GIORNO_SETTIMANA_SZ][GIORNO_SETTIMANA_ITEM_SZ] = {"Lun"};
 char ora_giornaliera[ORA_GIORNALIERA_SZ][ORA_GIORNALIERA_ITEM_SZ] = {"08", "09"};
-char classe_sezione[CLASSE_SEZIONE_SZ][CLASSE_SEZIONE_ITEM_SZ] = {"3H", "3F"};
+char classe_sezione[CLASSE_SEZIONE_SZ][CLASSE_SEZIONE_ITEM_SZ] = {"3H"};
 char aula[AULA_SZ][AULA_ITEM_SZ] = {"P1", "P2"};
 char materia[MATERIA_SZ][MATERIA_ITEM_SZ] = {"Sistemi e Reti", "Informatica"};
 char insegnante_titolare[INSEGNANTE_SZ][INSEGNANTE_ITEM_SZ] = {"Ricciardi", "Rizzi", "Negrioli"};
@@ -80,39 +82,34 @@ int verifica() {
     return res;
 }
 
-void print() {
-    printf("Found one! --------------------\n");
-    for (int i = 0; i < 36; i++) {
-        printf("%d) %d %d %d %d %d %d \n", i, orario[i].classe_sezione,
-               orario[i].materia, orario[i].insegnante_titolare,
-               orario[i].insegnante_codoc, orario[i].insegnante_sostegno,
-               orario[i].aula);
-    }
-}
-
-void gen(char *s, int pos, int tot, int active_group) {
+void gen(char *s, int pos, int tot, int active_group, int sum_prof) {
     if (pos == tot) {
         s[pos] = '\0';
-        printf("            %s\n", s);
+        if (verifica(s))
+            printf("            %s\n", s);
         return;
     }
 
     int p = pos % (AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ); // una classe in ogni aula, una materia ogni aula
- //TODO: MAX 2 prof ogni materia attiva
     // nuovo blocco da 27
     if (p == 0)
         active_group = -1;
+    int group = p / INSEGNANTE_SZ;
 
-    int group = p / (INSEGNANTE_SZ); // 0, 1, 2 block = 6
+    if (pos % INSEGNANTE_SZ == 0)
+        sum_prof = 0;
+
 
     // prova 0
     s[pos] = '0';
-    gen(s, pos + 1, tot, active_group);
+    gen(s, pos + 1, tot, active_group, sum_prof);
 
     // prova 1
-    if (active_group == -1 || active_group == group) {
+    if ((active_group == -1 || active_group == group)
+        && sum_prof < MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT) {
         s[pos] = '1';
-        gen(s, pos + 1, tot, group);
+        sum_prof++;
+        gen(s, pos + 1, tot, group, sum_prof);
     }
 }
 
@@ -189,12 +186,42 @@ void print_intestazioni() {
     printf("\n");
 }
 
+
+void test(int max) {
+    struct timeval t1, t2;
+    double elapsedTime;
+
+    int tot = 70;
+
+    char *s = malloc(max + 1);
+    if (s == NULL) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+
+    for (; tot < max; tot++) {
+        // Start timer
+        gettimeofday(&t1, NULL);
+
+        gen(s, 0, tot, -1, 0);
+
+        // Stop timer
+        gettimeofday(&t2, NULL);
+
+        // Compute and print the elapsed time in milliseconds:
+
+        elapsedTime = t2.tv_sec - t1.tv_sec;
+
+        printf("len: %d, %.2f s.\n", tot, elapsedTime);
+    }
+}
+
+
 int main(void) {
     print_intestazioni();
 
     int tot = GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * AULA_SZ * MATERIA_SZ *
               INSEGNANTE_SZ;
-    tot = tot/GIORNO_SETTIMANA_SZ/ORA_GIORNALIERA_SZ;
     //printf("String length: %u\n", tot);
 
     char *s = malloc(tot + 1);
@@ -203,7 +230,7 @@ int main(void) {
         exit(EXIT_FAILURE);
     }
 
-    gen(s, 0, tot, -1);
+    gen(s, 0, tot, -1, 0);
 
     free(s);
     return 0;
