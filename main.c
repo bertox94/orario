@@ -118,7 +118,7 @@ int test_params(struct param *parameters) {
 }
 
 void set_params(struct param *parameters, int pos) {
-    int p = pos % (AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ); // una classe in ogni aula, una materia ogni aula
+    int p = pos % (AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ); // una classe in ogni aula, una materia ogni aula, un prof ogni materia
     // nuovo blocco
     if (p == 0) {
         parameters->active_group = -1;
