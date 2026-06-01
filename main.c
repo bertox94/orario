@@ -26,17 +26,6 @@
 #define MAX_MATERIE_PER_INSEGNANTE 4
 #define MAX_INSEGNANTI_PER_INSEGNANTE 4
 
-struct cell {
-    //int giorno_settimana;
-    //int ora_giornaliera;
-    int classe_sezione;
-    int materia;
-    int insegnante_titolare;
-    int insegnante_codoc;
-    int insegnante_sostegno;
-    int aula;
-};
-
 char giorni_settimana[GIORNO_SETTIMANA_SZ][GIORNO_SETTIMANA_ITEM_SZ] = {"Lun"};
 char ora_giornaliera[ORA_GIORNALIERA_SZ][ORA_GIORNALIERA_ITEM_SZ] = {"08", "09"};
 char classe_sezione[CLASSE_SEZIONE_SZ][CLASSE_SEZIONE_ITEM_SZ] = {"3H"};
@@ -53,8 +42,6 @@ char insegnanti_insegnanti[INSEGNANTE_SZ][MAX_INSEGNANTI_PER_INSEGNANTE] = {};
  * */
 char insegnante_materie[INSEGNANTE_SZ][MAX_MATERIE_PER_INSEGNANTE] = {};
 
-struct cell orario[36];
-
 int p_materia(char mat[MATERIA_ITEM_SZ]) {
     for (int i = 0; i < MATERIA_SZ; i++) {
         if (!strcmp(materie[i], mat))
@@ -70,7 +57,15 @@ int p_classe_sezione(char cla[CLASSE_SEZIONE_ITEM_SZ]) {
     return -1;
 }
 
-int ore_materia_classe(char s[], char mat[], char cla[]) {
+int g_materia(int p) {
+    return p % MATERIA_SZ;
+}
+
+int g_classe(int p) {
+    return p % CLASSE_SEZIONE_SZ;
+}
+
+int ore_materia_classe(const char s[], char mat[], char cla[]) {
     int materia_pos = p_materia(mat);
     if (materia_pos == -1)
         assert(0);
@@ -78,9 +73,11 @@ int ore_materia_classe(char s[], char mat[], char cla[]) {
     if (classe_pos == -1)
         assert(0);
     int sum = 0;
-    for (int i = 0; i < 36; i++) {
-        if (orario[i].materia == materia_pos
-            && orario[i].classe_sezione == classe_pos)
+
+    for (int i = 0; s[i] != '\0'; i++) {
+        if (s[i] == '1'
+            && g_materia(i) == materia_pos
+            && g_classe(i) == classe_pos)
             sum++;
     }
     return sum;
@@ -203,7 +200,6 @@ void print_intestazioni() {
 
 void test(int max) {
     struct timeval t1, t2;
-    double elapsedTime;
 
     int tot = 70;
 
@@ -224,7 +220,7 @@ void test(int max) {
 
         // Compute and print the elapsed time in milliseconds:
 
-        elapsedTime = t2.tv_sec - t1.tv_sec;
+        double elapsedTime = t2.tv_sec - t1.tv_sec;
 
         printf("len: %d, %.2f s.\n", tot, elapsedTime);
     }
