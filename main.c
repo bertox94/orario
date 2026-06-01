@@ -136,19 +136,9 @@ void gen(char *s, int pos, int tot, struct param parameters) {
     if (pos == tot) {
         s[pos] = '\0';
         if (verifica_orario_completo(s)) {
-            int size_space = strlen("Insegnante: ");
-            char str[size_space + 1];
             n_gen++;
-            sprintf(str, "%lld", n_gen);
-            const unsigned int size = strlen(str);
-            str[size] = ')';
-            for (unsigned int i = size + 1; i < size_space; i++) {
-                str[i] = ' ';
-            }
-            str[size_space] = '\0';
-            printf("%s%s\n", str, s);
+            printf("            %s\n", s);
         }
-
         return;
     }
 
@@ -276,6 +266,7 @@ int main(void) {
     char *s = string_allocation(tot + 1);
     struct param parameters = {0, -1, 0};
     gen(s, 0, tot, parameters);
+    printf("Totale generati: %llu\n", n_gen);
 
     free(s);
     return 0;
