@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define GIORNO_SETTIMANA_SZ 2
@@ -89,47 +90,31 @@ void print() {
     }
 }
 
-void genera(const int tot) {
-    char attempt[tot + 1];
+void gen(char *s, int pos, int tot, int active_group) {
+    if (pos == tot) {
+        s[pos] = '\0';
+        printf("%s\n", s);
+        return;
+    }
 
-    for (int i = 0; i < tot; i++)
-        attempt[i] = '0';
-    attempt[tot] = '\0';
+    int p = pos % (AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ); // una classe in ogni aula
 
-    while (1) {
-        printf("            %s\n", attempt);
+    // nuovo blocco da 27
+    if (p == 0)
+        active_group = -1;
 
-        // incrementa il numero binario
-        int i = tot - 1;
-        while (i >= 0 && attempt[i] == '1') {
-            attempt[i] = '0';
-            i--;
-        }
+    int group = p / (MATERIA_SZ * INSEGNANTE_SZ); // 0, 1, 2
 
-        //una aula per classe ogni ora ogni giorno:
-        for (int j = 0; j < tot; j++) {
-            //in ogni intervallo di 27 char, se ci sono caratteri, devono essere tutti o tra 0 e 8, o tra 9 e 17 o tra 18 e 26
-            int k = 0, first = 0, second = 0, third = 0;
-            for (k = 0; k < 27; k++) {
-                if (attempt[j + k] == '1') {
-                    if (k < 9)
-                        first++;
-                    else if (k < 18)
-                        second++;
-                    else
-                        third++;
-                }
-            }
-            j = k;
-        }
+    // prova 0
+    s[pos] = '0';
+    gen(s, pos + 1, tot, active_group);
 
-        if (i < 0) // overflow: finite le combinazioni
-            break;
-
-        attempt[i] = '1';
+    // prova 1
+    if (active_group == -1 || active_group == group) {
+        s[pos] = '1';
+        gen(s, pos + 1, tot, group);
     }
 }
-
 
 int main(void) {
     printf("Giorno:     ");
@@ -182,8 +167,17 @@ int main(void) {
 
     int tot = GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * AULA_SZ * MATERIA_SZ *
               INSEGNANTE_SZ;
-    tot = 4;
+    tot = 28;
     //printf("String length: %u\n", tot);
 
-    genera(tot);
+    char *s = malloc(tot + 1);
+    if (s == NULL) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+
+    gen(s, 0, tot, -1);
+
+    free(s);
+    return 0;
 }
