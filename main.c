@@ -133,7 +133,7 @@ void print_intestazioni() {
         printf("%s%d%s", space_g1, gs, space_g2);
     printf("\n");
 
-    printf("Ora:\t\t");
+    printf("Ora:        ");
     n = CLASSE_SEZIONE_SZ * AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ;
     char space_o1[n / 2 + 1];
     char space_o2[n - n / 2];
@@ -143,7 +143,7 @@ void print_intestazioni() {
             printf("%s%d%s", space_o1, og, space_o2);
     printf("\n");
 
-    printf("Classe:\t\t");
+    printf("Classe:     ");
     n = AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ;
     char space_s1[n / 2 + 1];
     char space_s2[n - n / 2];
@@ -154,7 +154,7 @@ void print_intestazioni() {
                 printf("%s%d%s", space_s1, cs, space_s2);
     printf("\n");
 
-    printf("Aula:\t\t");
+    printf("Aula:       ");
     n = MATERIA_SZ * INSEGNANTE_SZ;
     char space_a1[n / 2 + 1];
     char space_a2[n - n / 2];
@@ -194,7 +194,7 @@ int main(void) {
 
     int tot = GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * AULA_SZ * MATERIA_SZ *
               INSEGNANTE_SZ;
-    //tot = 28;
+    tot = 8;
     //printf("String length: %u\n", tot);
 
     char *s = malloc(tot + 1);
