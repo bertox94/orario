@@ -70,54 +70,6 @@ void symmetric_closure_insegnanti() {
     }
 }
 
-int p_materia(char mat[MATERIA_ITEM_SZ]) {
-    for (int i = 0; i < MATERIA_SZ; i++) {
-        //        if (!strcmp(materie[i], mat))
-        //            return i;
-    }
-    return -1;
-}
-
-int p_classe_sezione(char cla[CLASSE_SEZIONE_ITEM_SZ]) {
-    for (int i = 0; i < CLASSE_SEZIONE_SZ; i++) {
-        //        if (!strcmp(classe_sezione[i], cla))
-        //            return i;
-    }
-    return -1;
-}
-
-int g_materia(const char s[], int p, int mat) {
-    return s[p] == '1' && p % MATERIA_SZ;
-}
-
-int g_classe(const char s[], const int p, const int cla) {
-    return s[p] == '1'
-           && p >= AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ
-           && p < AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ + AULA_SZ * MATERIA_SZ;
-}
-
-int g_prof(const char s[], const int p, const int prof) {
-    return s[p] == '1'
-           && prof == p % INSEGNANTE_SZ;
-}
-
-int ore_materia_classe(const char s[], char mat[], char cla[]) {
-    int materia_pos = p_materia(mat);
-    //    if (materia_pos == -1)
-    //        assert(0);
-    int classe_pos = p_classe_sezione(cla);
-    //    if (classe_pos == -1)
-    //        assert(0);
-    int sum = 0;
-
-    for (int i = 0; s[i] != '\0'; i++) {
-        if (g_materia(s, i, materia_pos)
-            && g_classe(s, i, classe_pos))
-            sum++;
-    }
-    return sum;
-}
-
 void generate_header_rows(char title[], int elems, int space_n, char space_1[], char space_2[]) {
     if (space_n > 0) {
         memset(space_1, ' ', space_n/2);
@@ -160,12 +112,61 @@ char *string_allocation(unsigned long max) {
     return s;
 }
 
+int p_materia(char mat[MATERIA_ITEM_SZ]) {
+    for (int i = 0; i < MATERIA_SZ; i++) {
+        //        if (!strcmp(materie[i], mat))
+        //            return i;
+    }
+    return -1;
+}
+
+int p_classe_sezione(char cla[CLASSE_SEZIONE_ITEM_SZ]) {
+    for (int i = 0; i < CLASSE_SEZIONE_SZ; i++) {
+        //        if (!strcmp(classe_sezione[i], cla))
+        //            return i;
+    }
+    return -1;
+}
+
+unsigned int g_prof(const unsigned int p) {
+    return p % INSEGNANTE_SZ;
+}
+
+unsigned int g_materia(const unsigned int p) {
+    return (p / INSEGNANTE_SZ) % MATERIA_SZ;
+}
+
+unsigned int g_aula(const unsigned int p) {
+    return (p / MATERIA_SZ / INSEGNANTE_SZ) % AULA_SZ;
+}
+
+unsigned int g_classe(const unsigned int p) {
+    return (p / AULA_SZ / MATERIA_SZ / INSEGNANTE_SZ) % CLASSE_SEZIONE_SZ;
+}
+
+int ore_materia_classe(const char s[], char mat[], char cla[]) {
+    int materia_pos = p_materia(mat);
+    //    if (materia_pos == -1)
+    //        assert(0);
+    int classe_pos = p_classe_sezione(cla);
+    //    if (classe_pos == -1)
+    //        assert(0);
+    int sum = 0;
+
+    for (int i = 0; s[i] != '\0'; i++) {
+        if (g_materia(i) == materia_pos
+            && g_classe(i) == classe_pos)
+            sum++;
+    }
+    return sum;
+}
+
 int insegnante_materia_adeguata(const unsigned int pos) {
     for (int i = 0; insegnante_materie[pos % INSEGNANTE_SZ][i] != -1 && i < MAX_MATERIE_PER_INSEGNANTE; i++) {
-        if (insegnante_materie[pos % INSEGNANTE_SZ][i]/* == ottieni materia da posizione?*/)
+        if (insegnante_materie[g_prof(pos)][i] == g_materia(pos))
             return 1;
     }
-    return 0;
+    return 1;
 }
 
 // testa solo l'intervallo considerato che precede pos (o contiene?)
@@ -259,6 +260,7 @@ int main(void) {
 
     memset(codocenti, 0, INSEGNANTE_SZ);
     codocenti[0] = 1; // insegnante 0 non può fare lezione da solo (verifica ogni Giorno-Ora-Classe)
+    //NB: evita scansioni, aggiorna i parametri ogni chiamata
 
     memset(insegnante_materie, -1, INSEGNANTE_SZ*MAX_MATERIE_PER_INSEGNANTE);
 
