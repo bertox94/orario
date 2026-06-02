@@ -233,7 +233,7 @@ void gen(char *s, const unsigned int pos, const unsigned int tot, struct param p
     }
 }
 
-void simmetric_closure_insegnanti() {
+void symmetric_closure_insegnanti() {
     for (int i = 0; i < INSEGNANTE_SZ; i++) {
         for (int j = 0; j < INSEGNANTE_SZ; j++) {
             if (insegnanti_insegnanti[i][j])
@@ -260,11 +260,10 @@ void test(int max) {
     free(s);
 }
 
-
 int main(void) {
     memset(insegnanti_insegnanti, 0, INSEGNANTE_SZ*INSEGNANTE_SZ);
-    insegnanti_insegnanti[0][2] = 1; // teacher 0 can work with teacher 2
-    simmetric_closure_insegnanti();
+    insegnanti_insegnanti[0][2] = 1; // teacher 0 can work with teacher 2, all the others must work alone
+    symmetric_closure_insegnanti();
 
     memset(codocenti, 0, INSEGNANTE_SZ);
     codocenti[0] = 1; // insegnante 0 non può fare lezione da solo (verifica ogni Giorno-Ora-Classe)
