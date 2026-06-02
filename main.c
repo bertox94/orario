@@ -39,15 +39,19 @@ struct param {
     int is_active_group;
     unsigned int active_group;
     int sum_prof;
+
+    /* per verificare compresenze */
+    int is_active_prof;
+    unsigned int active_prof;
 };
 
 unsigned long long int n_gen = 0;
-unsigned long long int n_gen_ok = 100;
+unsigned long long int n_gen_ok = 99;
 unsigned int orario_len = GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * AULA_SZ * MATERIA_SZ *
                           INSEGNANTE_SZ;
-
+int codocenti[INSEGNANTE_SZ]; //non possono avere lezione da soli
 //Associazioni
-char insegnanti_insegnanti[INSEGNANTE_SZ][MAX_INSEGNANTI_PER_INSEGNANTE] = {};
+char insegnanti_insegnanti[INSEGNANTE_SZ][INSEGNANTE_SZ] = {};
 /* for example if 1 works with 3,5 and 3 works with 1 and 4
  * then we have:
  * i_i[1] = [3,5,-1,-1]
@@ -104,69 +108,6 @@ int ore_materia_classe(const char s[], char mat[], char cla[]) {
     return sum;
 }
 
-int verifica_orario_completo(const char *s) {
-    int res = 1;
-    res &= ore_materia_classe(s, "Informatica", "3H") == 0;
-    //...
-    return 1;
-}
-
-int verifica_orario_parziale(char *s) {
-    // ad es. numero ore materia per classe è possibile verificarlo alla fine,
-    // ma possiamo già escludere orari che superano tale valore
-    return 1;
-}
-
-void reset_params(struct param *parameters, const unsigned int pos) {
-    unsigned int p = pos % (AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ);
-    // una classe in ogni aula, una materia ogni aula, un prof ogni materia
-    // nuovo blocco
-    if (p == 0) {
-        parameters->is_active_group = 0;
-        parameters->sum_prof = 0;
-    }
-    parameters->current_group = p / INSEGNANTE_SZ;
-}
-
-void set_params(struct param *parameters) {
-    parameters->is_active_group = 1;
-    parameters->active_group = parameters->current_group;
-
-    parameters->sum_prof++;
-}
-
-int test_params(const struct param *parameters) {
-    int res = 1;
-    res &= !parameters->is_active_group || parameters->active_group == parameters->current_group;
-    res &= parameters->sum_prof < MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
-    return res;
-}
-
-void gen(char *s, unsigned int pos, unsigned int tot, struct param parameters) {
-    if (pos == tot) {
-        s[pos] = '\0';
-        if (n_gen < n_gen_ok
-            && verifica_orario_completo(s)) {
-            n_gen++;
-            printf("            %s\n", s);
-        }
-        return;
-    }
-
-    reset_params(&parameters, pos);
-
-    // prova 0
-    s[pos] = '0';
-    gen(s, pos + 1, tot, parameters);
-
-    // prova 1
-    if (test_params(&parameters)) {
-        s[pos] = '1';
-        set_params(&parameters);
-        gen(s, pos + 1, tot, parameters);
-    }
-}
-
 void generate_header_rows(char title[], int elems, int space_n, char space_1[], char space_2[]) {
     if (space_n > 0) {
         memset(space_1, ' ', space_n/2);
@@ -209,6 +150,95 @@ char *string_allocation(unsigned long max) {
     return s;
 }
 
+int verifica_orario_completo(const char *s) {
+    int res = 1;
+    res &= ore_materia_classe(s, "Informatica", "3H") == 0;
+    //...
+    return 1;
+}
+
+void reset_params(struct param *parameters, const unsigned int pos) {
+    unsigned int p = pos % (AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ);
+    // una classe in ogni aula, una materia ogni aula, un prof ogni materia
+    // nuovo blocco
+    if (p == 0) {
+        parameters->is_active_group = 0;
+        parameters->sum_prof = 0;
+        parameters->is_active_prof = 0;
+    }
+    parameters->current_group = p / INSEGNANTE_SZ;
+}
+
+void set_params(const unsigned int pos, struct param *parameters) {
+    parameters->is_active_group = 1;
+    parameters->active_group = parameters->current_group;
+    parameters->is_active_prof = 1;
+    parameters->active_prof = pos % INSEGNANTE_SZ;
+    parameters->sum_prof++;
+}
+
+int is_related_prof(const unsigned int pos, const struct param *param) {
+    if (!param->is_active_prof) return 1;
+    return insegnanti_insegnanti[param->active_prof][pos % INSEGNANTE_SZ] != 0;
+}
+
+int test_giorno_ora_classe(const char *s, const unsigned int pos) {
+    if (pos % (AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ) > 0) return 1;
+    return 1;
+}
+
+int test_giorno(const char *s, const unsigned int pos) {
+    if (pos % (ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ) > 0) return 1;
+    return 1;
+}
+
+int test_params(unsigned int pos, const struct param *parameters) {
+    int res = 1;
+    res &= !parameters->is_active_group || parameters->active_group == parameters->current_group;
+    res &= parameters->sum_prof < MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
+    res &= is_related_prof(pos, parameters);
+    return res;
+}
+
+// Do not pass s as parameter, the last part might form the previous calls.
+// Draw the recursion tree to analyze the problem
+void gen(char *s, unsigned int pos, unsigned int tot, struct param parameters) {
+    if (n_gen_ok < n_gen) return;
+
+    if (!test_giorno_ora_classe(s, pos)) return;
+
+    if (!test_giorno(s, pos)) return;
+
+    if (pos == tot) {
+        n_gen++;
+        printf("            %s\n", s);
+        return;
+    }
+
+    reset_params(&parameters, pos);
+
+
+    // prova 0
+    s[pos] = '0';
+    gen(s, pos + 1, tot, parameters);
+
+    // prova 1
+    if (test_params(pos, &parameters)) {
+        s[pos] = '1';
+        set_params(pos, &parameters);
+        gen(s, pos + 1, tot, parameters);
+    }
+}
+
+void simmetric_closure_insegnanti() {
+    for (int i = 0; i < INSEGNANTE_SZ; i++) {
+        for (int j = 0; j < INSEGNANTE_SZ; j++) {
+            if (insegnanti_insegnanti[i][j])
+                insegnanti_insegnanti[j][i] = insegnanti_insegnanti[i][j];
+        }
+    }
+}
+
 void test(int max) {
     struct timeval t1, t2;
     char *s = string_allocation(max + 1);
@@ -229,13 +259,23 @@ void test(int max) {
 
 
 int main(void) {
+    memset(insegnanti_insegnanti, 0, INSEGNANTE_SZ*INSEGNANTE_SZ);
+    insegnanti_insegnanti[0][2] = 1; // teacher 0 can work with teacher 2
+    simmetric_closure_insegnanti();
+
+    memset(codocenti, 0, INSEGNANTE_SZ);
+    codocenti[0] = 1; // insegnante 0 non può fare lezione da solo (verifica ogni Giorno-Ora-Classe)
+
     memset(insegnante_materie, -1, INSEGNANTE_SZ*MAX_MATERIE_PER_INSEGNANTE);
+
     //test(100);
     print_intestazioni();
     char *s = string_allocation(orario_len + 1);
+    s[orario_len] = '\0';
     struct param parameters = {0, -1, 0};
     gen(s, 0, orario_len, parameters);
     printf("Totale generati: %llu\n", n_gen);
+    fflush(stdout);
 
     free(s);
     return 0;
