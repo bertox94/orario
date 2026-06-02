@@ -61,6 +61,15 @@ char insegnanti_insegnanti[INSEGNANTE_SZ][INSEGNANTE_SZ] = {};
 char insegnante_materie[INSEGNANTE_SZ][MAX_MATERIE_PER_INSEGNANTE] = {};
 
 
+void symmetric_closure_insegnanti() {
+    for (int i = 0; i < INSEGNANTE_SZ; i++) {
+        for (int j = 0; j < INSEGNANTE_SZ; j++) {
+            if (insegnanti_insegnanti[i][j])
+                insegnanti_insegnanti[j][i] = insegnanti_insegnanti[i][j];
+        }
+    }
+}
+
 int p_materia(char mat[MATERIA_ITEM_SZ]) {
     for (int i = 0; i < MATERIA_SZ; i++) {
         //        if (!strcmp(materie[i], mat))
@@ -151,6 +160,14 @@ char *string_allocation(unsigned long max) {
     return s;
 }
 
+int insegnante_materia_adeguata(const unsigned int pos) {
+    for (int i = 0; insegnante_materie[pos % INSEGNANTE_SZ][i] != -1 && i < MAX_MATERIE_PER_INSEGNANTE; i++) {
+        if (insegnante_materie[pos % INSEGNANTE_SZ][i]/* == ottieni materia da posizione?*/)
+            return 1;
+    }
+    return 0;
+}
+
 // testa solo l'intervallo considerato che precede pos (o contiene?)
 int test_giorno_ora_classe(const char *s, const unsigned int pos) {
     if (pos % (AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ) > 0) return 1;
@@ -199,7 +216,9 @@ int can_place_one(unsigned int pos, const struct param *parameters) {
            /*In the same class room and subject there can be at most MAX_PROF... at the same time*/
            && parameters->sum_prof < MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT
            /*You can place a teacher only if it is the only one, or it can join the other prof already present */
-           && is_related_prof(pos, parameters);
+           && is_related_prof(pos, parameters)
+           // un insegnante può insegnare solo un range di materie
+           && insegnante_materia_adeguata(pos);
 }
 
 // Do not pass s as parameter, the last part might form the previous calls.
@@ -220,7 +239,6 @@ void gen(char *s, const unsigned int pos, const unsigned int tot, struct param p
 
     reset_params(&parameters, pos);
 
-
     // prova 0
     s[pos] = '0';
     gen(s, pos + 1, tot, parameters);
@@ -233,32 +251,6 @@ void gen(char *s, const unsigned int pos, const unsigned int tot, struct param p
     }
 }
 
-void symmetric_closure_insegnanti() {
-    for (int i = 0; i < INSEGNANTE_SZ; i++) {
-        for (int j = 0; j < INSEGNANTE_SZ; j++) {
-            if (insegnanti_insegnanti[i][j])
-                insegnanti_insegnanti[j][i] = insegnanti_insegnanti[i][j];
-        }
-    }
-}
-
-void test(int max) {
-    struct timeval t1, t2;
-    char *s = string_allocation(max + 1);
-
-    for (int tot = 75; tot < max; tot++) {
-        // Start timer
-        gettimeofday(&t1, NULL);
-        struct param parameters = {0, -1, 0};
-        gen(s, 0, tot, parameters);
-
-        // Stop timer
-        gettimeofday(&t2, NULL);
-        const unsigned long elapsedTime = t2.tv_sec - t1.tv_sec;
-        printf("len: %d, %lu s.\n", tot, elapsedTime);
-    }
-    free(s);
-}
 
 int main(void) {
     memset(insegnanti_insegnanti, 0, INSEGNANTE_SZ*INSEGNANTE_SZ);
