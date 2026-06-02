@@ -46,7 +46,7 @@ struct param {
 };
 
 unsigned long long int n_gen = 0;
-unsigned long long int n_gen_ok = 99;
+unsigned long long int n_gen_ok = -1;
 unsigned int orario_len = GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * AULA_SZ * MATERIA_SZ *
                           INSEGNANTE_SZ;
 int codocenti[INSEGNANTE_SZ]; //non possono avere lezione da soli
@@ -150,10 +150,20 @@ char *string_allocation(unsigned long max) {
     return s;
 }
 
-int verifica_orario_completo(const char *s) {
-    int res = 1;
-    res &= ore_materia_classe(s, "Informatica", "3H") == 0;
-    //...
+// testa solo l'intervallo considerato che precede pos (o contiene?)
+int test_giorno_ora_classe(const char *s, const unsigned int pos) {
+    if (pos % (AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ) > 0) return 1;
+
+    return 1;
+}
+
+int test_giorno(const char *s, const unsigned int pos) {
+    if (pos % (ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ) > 0) return 1;
+    return 1;
+}
+
+int test_orario(const char *s, const unsigned int pos) {
+    if (pos % orario_len > 0) return 1;
     return 1;
 }
 
@@ -182,37 +192,29 @@ int is_related_prof(const unsigned int pos, const struct param *param) {
     return insegnanti_insegnanti[param->active_prof][pos % INSEGNANTE_SZ] != 0;
 }
 
-int test_giorno_ora_classe(const char *s, const unsigned int pos) {
-    if (pos % (AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ) > 0) return 1;
-    return 1;
-}
-
-int test_giorno(const char *s, const unsigned int pos) {
-    if (pos % (ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ) > 0) return 1;
-    return 1;
-}
-
-int test_params(unsigned int pos, const struct param *parameters) {
-    int res = 1;
-    res &= !parameters->is_active_group || parameters->active_group == parameters->current_group;
-    res &= parameters->sum_prof < MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
-    res &= is_related_prof(pos, parameters);
-    return res;
+int can_place_one(unsigned int pos, const struct param *parameters) {
+    /*Each day and hour, teachers can be only in a class, room and subject*/
+    return (!parameters->is_active_group || parameters->active_group == parameters->current_group)
+           /*In the same class room and subject there can be at most MAX_PROF... at the same time*/
+           && parameters->sum_prof < MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT
+           /*You can place a teacher only if it is the only one, or the other prof already present can be together */
+           && is_related_prof(pos, parameters);
 }
 
 // Do not pass s as parameter, the last part might form the previous calls.
 // Draw the recursion tree to analyze the problem
 void gen(char *s, unsigned int pos, unsigned int tot, struct param parameters) {
-    if (n_gen_ok < n_gen) return;
+    if (n_gen_ok != -1 && n_gen_ok <= n_gen) return;
 
+    /* i seguenti test scorrono la stringa per l'intervallo considerato, non usano i parametri*/
     if (!test_giorno_ora_classe(s, pos)) return;
-
     if (!test_giorno(s, pos)) return;
-
     if (pos == tot) {
-        n_gen++;
-        printf("            %s\n", s);
-        return;
+        if (test_orario(s, pos)) {
+            n_gen++;
+            printf("            %s\n", s);
+            return;
+        }
     }
 
     reset_params(&parameters, pos);
@@ -223,7 +225,7 @@ void gen(char *s, unsigned int pos, unsigned int tot, struct param parameters) {
     gen(s, pos + 1, tot, parameters);
 
     // prova 1
-    if (test_params(pos, &parameters)) {
+    if (can_place_one(pos, &parameters)) {
         s[pos] = '1';
         set_params(pos, &parameters);
         gen(s, pos + 1, tot, parameters);
