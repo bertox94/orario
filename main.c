@@ -42,6 +42,7 @@ struct param {
 };
 
 unsigned long long int n_gen = 0;
+unsigned long long int n_gen_ok = 100;
 unsigned int orario_len = GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * AULA_SZ * MATERIA_SZ *
                           INSEGNANTE_SZ;
 
@@ -144,7 +145,8 @@ int test_params(const struct param *parameters) {
 void gen(char *s, unsigned int pos, unsigned int tot, struct param parameters) {
     if (pos == tot) {
         s[pos] = '\0';
-        if (verifica_orario_completo(s)) {
+        if (n_gen < n_gen_ok
+            && verifica_orario_completo(s)) {
             n_gen++;
             printf("            %s\n", s);
         }
