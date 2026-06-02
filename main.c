@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
+#include "orario.h"
 
 #define GIORNO_SETTIMANA_SZ 1
 #define GIORNO_SETTIMANA_ITEM_SZ 4
@@ -46,7 +47,7 @@ struct param {
 };
 
 unsigned long long int n_gen = 0;
-unsigned long long int n_gen_ok = -1;
+unsigned long long int n_gen_ok = 20;
 unsigned int orario_len = GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * AULA_SZ * MATERIA_SZ *
                           INSEGNANTE_SZ;
 int codocenti[INSEGNANTE_SZ]; //non possono avere lezione da soli
@@ -164,7 +165,7 @@ int test_giorno(const char *s, const unsigned int pos) {
 
 int test_orario(const char *s, const unsigned int pos) {
     if (pos % orario_len > 0) return 1;
-    return 1;
+    return ore_totali(s, pos) >= 0;
 }
 
 void reset_params(struct param *parameters, const unsigned int pos) {
@@ -197,24 +198,24 @@ int can_place_one(unsigned int pos, const struct param *parameters) {
     return (!parameters->is_active_group || parameters->active_group == parameters->current_group)
            /*In the same class room and subject there can be at most MAX_PROF... at the same time*/
            && parameters->sum_prof < MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT
-           /*You can place a teacher only if it is the only one, or the other prof already present can be together */
+           /*You can place a teacher only if it is the only one, or it can join the other prof already present */
            && is_related_prof(pos, parameters);
 }
 
 // Do not pass s as parameter, the last part might form the previous calls.
 // Draw the recursion tree to analyze the problem
-void gen(char *s, unsigned int pos, unsigned int tot, struct param parameters) {
+void gen(char *s, const unsigned int pos, const unsigned int tot, struct param parameters) {
     if (n_gen_ok != -1 && n_gen_ok <= n_gen) return;
 
-    /* i seguenti test scorrono la stringa per l'intervallo considerato, non usano i parametri*/
+    /* i seguenti test scorrono la stringa per l'intervallo considerato (deve essere concluso), non usano i parametri*/
     if (!test_giorno_ora_classe(s, pos)) return;
     if (!test_giorno(s, pos)) return;
     if (pos == tot) {
         if (test_orario(s, pos)) {
             n_gen++;
             printf("            %s\n", s);
-            return;
         }
+        return;
     }
 
     reset_params(&parameters, pos);
