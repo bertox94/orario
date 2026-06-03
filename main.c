@@ -48,6 +48,9 @@ struct param {
     int is_active_group;
     unsigned int active_group;
     int sum_prof;
+
+    // to be set with all zero at beginning
+    int ore_materia_classe[CLASSE_SEZIONE_SZ][MATERIA_SZ];
 };
 
 unsigned long long int n_gen = 0;
@@ -63,6 +66,7 @@ char insegnanti_insegnanti[INSEGNANTE_SZ][INSEGNANTE_SZ];
  * i_i[3] = [1, 4, -1, -1]
  * */
 char insegnante_materie[INSEGNANTE_SZ][MAX_MATERIE_PER_INSEGNANTE] = {};
+int ore_materia_classe[CLASSE_SEZIONE_SZ][MATERIA_SZ] = {};
 
 
 void symmetric_closure_insegnanti() {
@@ -132,10 +136,10 @@ int p_materia(char mat[]) {
     assert(0);
 }
 
-int p_classe_sezione(char cla[CLASSE_SEZIONE_ITEM_SZ]) {
-    for (int i = 0; i < CLASSE_SEZIONE_SZ; i++) {
-        //        if (!strcmp(classe_sezione[i], cla))
-        //            return i;
+int p_classe_sezione(char cla[]) {
+    for (int i = 0; i < actual_classi_sezione; i++) {
+        if (!strcmp(classe_sezione[i], cla))
+            return i;
     }
     assert(0);
 }
@@ -279,21 +283,19 @@ void inizializza_insegnanti_materie() {
     insegnante_materie[p_insegnante("Rizzi")][p_materia("Sistemi e Reti")] = 1;
 }
 
-int ore_materia_classe(const char s[], char mat[], char cla[]) {
-    int materia_pos = p_materia(mat);
-    //    if (materia_pos == -1)
-    //        assert(0);
-    int classe_pos = p_classe_sezione(cla);
-    //    if (classe_pos == -1)
-    //        assert(0);
-    int sum = 0;
+void inizializza_ore_materie_classe() {
+    memset(ore_materia_classe, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ);
+    ore_materia_classe[p_classe_sezione("3H")][p_materia("Sistemi e Reti")] = 2;
+}
 
-    for (int i = 0; s[i] != '\0'; i++) {
-        if (g_materia(i) == materia_pos
-            && g_classe(i) == classe_pos)
-            sum++;
+int verifica_ore_materia_classe(const unsigned int pos, const struct param *param) {
+    for (int i = 0; i < actual_classi_sezione; i++) {
+        for (int j = 0; j < actual_materie; j++) {
+            if (ore_materia_classe[i][j] != param->ore_materia_classe[i][j])
+                return 0;
+        }
     }
-    return sum;
+    return 1;
 }
 
 int insegnante_materia_adeguata(const unsigned int pos) {
@@ -321,6 +323,8 @@ void set_params(const unsigned int pos, struct param *parameters) {
     parameters->is_active_group = 1;
     parameters->active_group = parameters->current_group;
     parameters->sum_prof++;
+
+    //update the hours of a subject for a class
 }
 
 int can_place_one(unsigned int pos, const struct param *parameters) {
@@ -337,11 +341,13 @@ int can_place_one(unsigned int pos, const struct param *parameters) {
 // Do not pass s as parameter, the last part might form the previous calls.
 // Draw the recursion tree to analyze the problem
 void gen(char *s, const unsigned int pos, const unsigned int tot, struct param parameters) {
-    if (n_gen_ok != -1 && n_gen_ok <= n_gen) return;
+    if (n_gen_ok <= n_gen) return;
 
     if (pos == tot) {
-        n_gen++;
-        printf("            %s\n", s);
+        if (verifica_ore_materia_classe(pos, &parameters)) {
+            n_gen++;
+            printf("            %s\n", s);
+        }
         return;
     }
 
@@ -370,12 +376,14 @@ int main(void) {
     inizializza_insegnanti();
     initializza_codocenti();
     inizializza_insegnanti_materie();
+    inizializza_ore_materie_classe();
 
     //test(100);
     print_intestazioni();
     char *s = string_allocation(orario_len + 1);
     s[orario_len] = '\0';
     struct param parameters = {0, -1, 0};
+    memset(parameters.ore_materia_classe, 0, actual_classi_sezione*actual_materie*sizeof(int));
     gen(s, 0, orario_len, parameters);
     printf("Totale generati: %llu\n", n_gen);
     fflush(stdout);
