@@ -51,7 +51,7 @@ struct param {
 };
 
 unsigned long long int n_gen = 0;
-unsigned long long int n_gen_ok = 100;
+unsigned long long int n_gen_ok = -1;
 unsigned int orario_len = GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * AULA_SZ * MATERIA_SZ *
                           INSEGNANTE_SZ;
 
@@ -148,6 +148,24 @@ int p_insegnante(char in[]) {
     assert(0);
 }
 
+
+unsigned int g_prof(const unsigned int p) {
+    return p % INSEGNANTE_SZ;
+}
+
+unsigned int g_materia(const unsigned int p) {
+    return (p / INSEGNANTE_SZ) % MATERIA_SZ;
+}
+
+unsigned int g_aula(const unsigned int p) {
+    return (p / MATERIA_SZ / INSEGNANTE_SZ) % AULA_SZ;
+}
+
+unsigned int g_classe(const unsigned int p) {
+    return (p / AULA_SZ / MATERIA_SZ / INSEGNANTE_SZ) % CLASSE_SEZIONE_SZ;
+}
+
+
 void set_insegnante_codocente(char in[], char co[]) {
     insegnanti_insegnanti[p_insegnante(in)][p_insegnante(co)] =
             insegnanti_insegnanti[p_insegnante(in)][p_insegnante(co)] = 1;
@@ -189,9 +207,9 @@ void inizializza_classi() {
 
 void inizializza_aule() {
     int pos = 0;
-    strcpy(aule[pos++], "INFO0");
-    strcpy(aule[pos++], "INFO1");
-    strcpy(aule[pos++], "PS16");
+    strcpy(aule[pos++], "PS16"); //0
+    strcpy(aule[pos++], "INFO0"); //1
+    strcpy(aule[pos++], "INFO1"); //2
     /*
        strcpy(aule[pos++], "INFO2");
        strcpy(aule[pos++], "INFO3");
@@ -222,10 +240,10 @@ void inizializza_materie() {
 void inizializza_insegnanti() {
     int pos = 0;
     strcpy(insegnanti[pos++], "Ricciardi"); //1
-    strcpy(insegnanti[pos++], "Rizzi"); //2
-    strcpy(insegnanti[pos++], "Tiraboschi"); //3
+    strcpy(insegnanti[pos++], "Tiraboschi"); //2
+    strcpy(insegnanti[pos++], "Gatti"); //3
     strcpy(insegnanti[pos++], "Barosi"); //4
-    strcpy(insegnanti[pos++], "Gatti"); //5
+    strcpy(insegnanti[pos++], "Rizzi"); //5
     /*
        strcpy(insegnanti[pos++], "Gagliano");
        strcpy(insegnanti[pos++], "Paghera");
@@ -259,22 +277,6 @@ void inizializza_insegnanti_materie() {
     insegnante_materie[p_insegnante("Gatti")][p_materia("Informatica")] = 1;
     insegnante_materie[p_insegnante("Barosi")][p_materia("Informatica")] = 1;
     insegnante_materie[p_insegnante("Rizzi")][p_materia("Sistemi e Reti")] = 1;
-}
-
-unsigned int g_prof(const unsigned int p) {
-    return p % INSEGNANTE_SZ;
-}
-
-unsigned int g_materia(const unsigned int p) {
-    return (p / INSEGNANTE_SZ) % MATERIA_SZ;
-}
-
-unsigned int g_aula(const unsigned int p) {
-    return (p / MATERIA_SZ / INSEGNANTE_SZ) % AULA_SZ;
-}
-
-unsigned int g_classe(const unsigned int p) {
-    return (p / AULA_SZ / MATERIA_SZ / INSEGNANTE_SZ) % CLASSE_SEZIONE_SZ;
 }
 
 int ore_materia_classe(const char s[], char mat[], char cla[]) {
@@ -328,6 +330,7 @@ int can_place_one(unsigned int pos, const struct param *parameters) {
            && parameters->sum_prof < MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT
            // un insegnante può insegnare solo un range di materie
            && insegnante_materia_adeguata(pos)
+           // il codocente può essere assegnato soltanto a un lab
            && codocente_deve_essere_in_lab_no_aula(pos);
 }
 
