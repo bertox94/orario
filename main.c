@@ -11,48 +11,53 @@
 #define ORA_GIORNALIERA_SZ 2
 #define ORA_GIORNALIERA_ITEM_SZ 2
 
-#define CLASSE_SEZIONE_SZ 2
+#define CLASSE_SEZIONE_SZ 3
 #define CLASSE_SEZIONE_ITEM_SZ 3
 
-#define AULA_SZ 2
+#define AULA_SZ 3
 #define AULA_ITEM_SZ 15
 
 #define MATERIA_SZ 2
 #define MATERIA_ITEM_SZ 15
 
-#define INSEGNANTE_SZ 3
+#define INSEGNANTE_SZ 5
 #define INSEGNANTE_ITEM_SZ 15
 
 #define MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT 2
 #define MAX_MATERIE_PER_INSEGNANTE 4
 #define MAX_INSEGNANTI_PER_INSEGNANTE 4
 
-/*
-char giorni_settimana[GIORNO_SETTIMANA_SZ][GIORNO_SETTIMANA_ITEM_SZ] = {"Lun", "Mar", "Mer", "Gio", "Ven"};
-char ora_giornaliera[ORA_GIORNALIERA_SZ][ORA_GIORNALIERA_ITEM_SZ] = {"08", "09", "10", "11", "12", "13"};
-char classe_sezione[CLASSE_SEZIONE_SZ][CLASSE_SEZIONE_ITEM_SZ] = {"3H", "3F", "3E"};
-char aule[AULA_SZ][AULA_ITEM_SZ] = {"P1", "P2"};
-char materie[MATERIA_SZ][MATERIA_ITEM_SZ] = {"Sistemi e Reti", "Informatica"};
-char insegnanti[INSEGNANTE_SZ][INSEGNANTE_ITEM_SZ] = {"Ricciardi", "Rizzi", "Negrioli"};
-*/
+
+char giorni_settimana[GIORNO_SETTIMANA_SZ][GIORNO_SETTIMANA_ITEM_SZ];
+int actual_giorni_settimana;
+char ora_giornaliera[ORA_GIORNALIERA_SZ][ORA_GIORNALIERA_ITEM_SZ];
+int actual_ore_giornaliere;
+char classe_sezione[CLASSE_SEZIONE_SZ][CLASSE_SEZIONE_ITEM_SZ];
+int actual_classi_sezione;
+char aule[AULA_SZ][AULA_ITEM_SZ];
+int actual_aula;
+char laboratori[AULA_SZ][AULA_ITEM_SZ];
+int actual_laboratori;
+char materie[MATERIA_SZ][MATERIA_ITEM_SZ];
+int actual_materie;
+char insegnanti[INSEGNANTE_SZ][INSEGNANTE_ITEM_SZ];
+int actual_insegnanti;
+int codocenti[INSEGNANTE_SZ]; //non possono avere lezione da soli
+
 struct param {
     unsigned int current_group;
     int is_active_group;
     unsigned int active_group;
     int sum_prof;
-
-    /* per verificare compresenze */
-    int is_active_prof;
-    unsigned int active_prof;
 };
 
 unsigned long long int n_gen = 0;
-unsigned long long int n_gen_ok = 20;
+unsigned long long int n_gen_ok = 100;
 unsigned int orario_len = GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * AULA_SZ * MATERIA_SZ *
                           INSEGNANTE_SZ;
-int codocenti[INSEGNANTE_SZ]; //non possono avere lezione da soli
+
 //Associazioni
-char insegnanti_insegnanti[INSEGNANTE_SZ][INSEGNANTE_SZ] = {};
+char insegnanti_insegnanti[INSEGNANTE_SZ][INSEGNANTE_SZ];
 /* for example if 1 works with 3,5 and 3 works with 1 and 4
  * then we have:
  * i_i[1] = [3,5,-1,-1]
@@ -112,12 +117,12 @@ char *string_allocation(unsigned long max) {
     return s;
 }
 
-int p_materia(char mat[MATERIA_ITEM_SZ]) {
-    for (int i = 0; i < MATERIA_SZ; i++) {
-        //        if (!strcmp(materie[i], mat))
-        //            return i;
+int p_materia(char mat[]) {
+    for (int i = 0; i < actual_materie; i++) {
+        if (!strcmp(materie[i], mat))
+            return i;
     }
-    assert(0);;
+    assert(0);
 }
 
 int p_classe_sezione(char cla[CLASSE_SEZIONE_ITEM_SZ]) {
@@ -125,7 +130,126 @@ int p_classe_sezione(char cla[CLASSE_SEZIONE_ITEM_SZ]) {
         //        if (!strcmp(classe_sezione[i], cla))
         //            return i;
     }
-    return -1;
+    assert(0);
+}
+
+int p_insegnante(char in[]) {
+    for (int i = 0; i < INSEGNANTE_SZ; i++) {
+        if (!strcmp(insegnanti[i], in))
+            return i;
+    }
+    assert(0);
+}
+
+void set_insegnante_codocente(char in[], char co[]) {
+    insegnanti_insegnanti[p_insegnante(in)][p_insegnante(co)] =
+            insegnanti_insegnanti[p_insegnante(in)][p_insegnante(co)] = 1;
+}
+
+void inizializza_giorni() {
+    int pos = 0;
+    strcpy(giorni_settimana[pos++], "Lun");
+    /*
+    strcpy(giorni_settimana[pos++], "Mar");
+    strcpy(giorni_settimana[pos++], "Mer");
+    strcpy(giorni_settimana[pos++], "Gio");
+    strcpy(giorni_settimana[pos++], "Ven");
+    strcpy(giorni_settimana[pos++], "Sab");
+    */
+    actual_giorni_settimana = pos;
+}
+
+void inizializza_ore() {
+    int pos = 0;
+    strcpy(ora_giornaliera[pos++], "08");
+    strcpy(ora_giornaliera[pos++], "09");
+    /*
+    strcpy(ora_giornaliera[pos++], "10");
+    strcpy(ora_giornaliera[pos++], "11");
+    strcpy(ora_giornaliera[pos++], "12");
+    strcpy(ora_giornaliera[pos++], "13");
+    */
+    actual_ore_giornaliere = pos;
+}
+
+void inizializza_classi() {
+    int pos = 0;
+    strcpy(classe_sezione[pos++], "3H");
+    strcpy(classe_sezione[pos++], "3E");
+    strcpy(classe_sezione[pos++], "3F");
+    actual_classi_sezione = pos;
+}
+
+void inizializza_aule() {
+    int pos = 0;
+    strcpy(aule[pos++], "INFO0");
+    strcpy(aule[pos++], "INFO1");
+    strcpy(aule[pos++], "PS16");
+    /*
+       strcpy(aule[pos++], "INFO2");
+       strcpy(aule[pos++], "INFO3");
+       strcpy(aule[pos++], "PS15");
+    */
+    actual_aula = pos;
+}
+
+void inizializza_laboratori() {
+    int pos = 0;
+    strcpy(laboratori[pos++], "INFO0");
+    strcpy(laboratori[pos++], "INFO1");
+    /*
+     strcpy(laboratori[pos++], "INFO2");
+     strcpy(laboratori[pos++], "INFO3");
+     */
+    actual_laboratori = pos;
+}
+
+void inizializza_materie() {
+    int pos = 0;
+    strcpy(materie[pos++], "Sistemi e Reti");
+    strcpy(materie[pos++], "Informatica");
+    //strcpy(materie[pos++], "TPS");
+    actual_materie = pos;
+}
+
+void inizializza_insegnanti() {
+    int pos = 0;
+    strcpy(insegnanti[pos++], "Ricciardi");
+    strcpy(insegnanti[pos++], "Rizzi");
+    strcpy(insegnanti[pos++], "Tiraboschi");
+    strcpy(insegnanti[pos++], "Barosi");
+    strcpy(insegnanti[pos++], "Gatti");
+    /*
+       strcpy(insegnanti[pos++], "Gagliano");
+       strcpy(insegnanti[pos++], "Paghera");
+       strcpy(insegnanti[pos++], "Manganelli");
+       strcpy(insegnanti[pos++], "Di Chio");
+       strcpy(insegnanti[pos++], "Benedetto");
+       strcpy(insegnanti[pos++], "Moretti");
+       strcpy(insegnanti[pos++], "Masetti");
+       strcpy(insegnanti[pos++], "Sciambarella");
+       */
+    actual_insegnanti = pos;
+}
+
+void initializza_codocenti() {
+    memset(codocenti, 0, INSEGNANTE_SZ);
+    codocenti[p_insegnante("Rizzi")] = 1;
+    codocenti[p_insegnante("Barosi")] = 1;
+    /*
+     codocenti[p_insegnante("Gagliano")] = 1;
+     codocenti[p_insegnante("Paghera")] = 1;
+     codocenti[p_insegnante("Moretti")] = 1;
+     codocenti[p_insegnante("Benedetto")] = 1;
+     */
+}
+
+void inizializza_insegnanti_materie() {
+    memset(insegnante_materie, 0, INSEGNANTE_SZ*MATERIA_SZ);
+    insegnante_materie[p_insegnante("Ricciardi")][p_materia("Sistemi e Reti")] = 1;
+    insegnante_materie[p_insegnante("Tiraboschi")][p_materia("Sistemi e Reti")] = 1;
+    insegnante_materie[p_insegnante("Tiraboschi")][p_materia("Informatica")] = 1;
+    insegnante_materie[p_insegnante("Gatti")][p_materia("Informatica")] = 1;
 }
 
 unsigned int g_prof(const unsigned int p) {
@@ -183,7 +307,7 @@ int test_giorno(const char *s, const unsigned int pos) {
 
 int test_orario(const char *s, const unsigned int pos) {
     if (pos % orario_len > 0) return 1;
-    return ore_totali(s, pos) >= 0;
+    return 1;
 }
 
 void reset_params(struct param *parameters, const unsigned int pos) {
@@ -193,7 +317,6 @@ void reset_params(struct param *parameters, const unsigned int pos) {
     if (p == 0) {
         parameters->is_active_group = 0;
         parameters->sum_prof = 0;
-        parameters->is_active_prof = 0;
     }
     parameters->current_group = p / INSEGNANTE_SZ;
 }
@@ -201,23 +324,14 @@ void reset_params(struct param *parameters, const unsigned int pos) {
 void set_params(const unsigned int pos, struct param *parameters) {
     parameters->is_active_group = 1;
     parameters->active_group = parameters->current_group;
-    parameters->is_active_prof = 1;
-    parameters->active_prof = pos % INSEGNANTE_SZ;
     parameters->sum_prof++;
-}
-
-int is_related_prof(const unsigned int pos, const struct param *param) {
-    if (!param->is_active_prof) return 1;
-    return insegnanti_insegnanti[param->active_prof][pos % INSEGNANTE_SZ] != 0;
 }
 
 int can_place_one(unsigned int pos, const struct param *parameters) {
     /*Each day and hour, teachers can be only in a class, room and subject*/
     return (!parameters->is_active_group || parameters->active_group == parameters->current_group)
-           /*In the same class room and subject there can be at most MAX_PROF... at the same time*/
+           /*In the same classroom and subject there can be at most MAX_PROF... at the same time*/
            && parameters->sum_prof < MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT
-           /*You can place a teacher only if it is the only one, or it can join the other prof already present */
-           && is_related_prof(pos, parameters)
            // un insegnante può insegnare solo un range di materie
            && insegnante_materia_adeguata(pos);
 }
@@ -254,15 +368,15 @@ void gen(char *s, const unsigned int pos, const unsigned int tot, struct param p
 
 
 int main(void) {
-    memset(insegnanti_insegnanti, 0, INSEGNANTE_SZ*INSEGNANTE_SZ);
-    insegnanti_insegnanti[0][2] = 1; // teacher 0 can work with teacher 2, all the others must work alone
-    symmetric_closure_insegnanti();
-
-    memset(codocenti, 0, INSEGNANTE_SZ);
-    codocenti[0] = 1; // insegnante 0 non può fare lezione da solo (verifica ogni Giorno-Ora-Classe)
-    //NB: evita scansioni, aggiorna i parametri ogni chiamata
-
-    memset(insegnante_materie, -1, INSEGNANTE_SZ*MAX_MATERIE_PER_INSEGNANTE);
+    inizializza_giorni();
+    inizializza_ore();
+    inizializza_classi();
+    inizializza_aule();
+    inizializza_laboratori();
+    inizializza_materie();
+    inizializza_insegnanti();
+    initializza_codocenti();
+    inizializza_insegnanti_materie();
 
     //test(100);
     print_intestazioni();
