@@ -57,7 +57,7 @@ struct param {
 unsigned long long int n_gen = 0;
 unsigned long long int n_gen_ok = 100;
 unsigned int orario_len;
-
+unsigned int giorno_ora_classe_sz;
 //Associazioni
 char insegnanti_insegnanti[INSEGNANTE_SZ][INSEGNANTE_SZ];
 /* for example if 1 works with 3,5 and 3 works with 1 and 4
@@ -304,13 +304,20 @@ int codocente_deve_essere_in_lab_no_aula(const unsigned int pos) {
     return 1;
 }
 
-int se_docente_allora_codocente(const unsigned int pos, const struct param *param) {
+int codocente_non_puo_essere_da_solo(const unsigned int pos, const struct param *param) {
+    return param->n_docenti > 0 || param->n_codocenti == 0;
+}
+
+int se_ce_docente_allora_solo_codocente(const unsigned int pos, const struct param *param) {
     if (param->n_docenti > 0)
         return codocenti[g_prof(pos)];
     return 1;
 }
 
-int se_codocente_allora_docente(const unsigned int pos, const struct param *param) {
+int se_ce_codocente_allora_solo_docente(const unsigned int pos, const struct param *param) {
+    if (param->n_codocenti > 0)
+        return !codocenti[g_prof(pos)];
+    return 1;
 }
 
 void reset_params(struct param *parameters, const unsigned int pos) {
@@ -347,20 +354,26 @@ int can_place_one(unsigned int pos, const struct param *parameters) {
            // il codocente può essere assegnato soltanto a un lab
            && codocente_deve_essere_in_lab_no_aula(pos)
            //se è già presente un docente allora può esserci solo un codocente (va fatto comunque il controllo sul blocco giorno ora classe)
-           && se_docente_allora_codocente(pos, parameters)
+           && se_ce_docente_allora_solo_codocente(pos, parameters)
            //se è già presente un codocente allora può esserci solo un docente
-           && se_codocente_allora_docente(pos, parameters)
-           // le ore totali non hanno superato le ore classe e materia per la settimana
-           && parameters->ore_materia_classe[g_classe(pos)][g_materia(pos)] < ore_materia_classe[g_classe(pos)][
-               g_materia(pos)];
+           && se_ce_codocente_allora_solo_docente(pos, parameters);
+    // le ore totali non hanno superato le ore classe e materia per la settimana
+    //&& parameters->ore_materia_classe[g_classe(pos)][g_materia(pos)] < ore_materia_classe[g_classe(pos)][
+    //    g_materia(pos)];
 }
 
 // Do not pass s as parameter, the last part might form the previous calls.
 // Draw the recursion tree to analyze the problem
 void gen(char *s, const unsigned int pos, const unsigned int tot, struct param parameters) {
     if (n_gen_ok <= n_gen) return;
+
+    // Controlli a fine blocco giorno ora classe
+    if (pos % giorno_ora_classe_sz == 0)
+        if (!codocente_non_puo_essere_da_solo(pos, &parameters))
+            return;
+
     if (pos == tot) {
-        if (verifica_ore_materia_classe(pos, &parameters)) {
+        if (/*verifica_ore_materia_classe(pos, &parameters)*/1) {
             n_gen++;
             printf("            %s\n", s);
         }
@@ -393,6 +406,7 @@ int main(void) {
 
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione * actual_aula * actual_materie
                  * actual_insegnanti;
+    giorno_ora_classe_sz = actual_aula * actual_materie * actual_insegnanti;
     //test(100);
     print_intestazioni();
     char *s = string_allocation(orario_len + 1);
