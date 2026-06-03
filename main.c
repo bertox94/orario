@@ -3,12 +3,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
-#include "orario.h"
 
 #define GIORNO_SETTIMANA_SZ 1
 #define GIORNO_SETTIMANA_ITEM_SZ 4
 
-#define ORA_GIORNALIERA_SZ 2
+#define ORA_GIORNALIERA_SZ 1
 #define ORA_GIORNALIERA_ITEM_SZ 2
 
 #define CLASSE_SEZIONE_SZ 3
@@ -36,7 +35,7 @@ char classe_sezione[CLASSE_SEZIONE_SZ][CLASSE_SEZIONE_ITEM_SZ];
 int actual_classi_sezione;
 char aule[AULA_SZ][AULA_ITEM_SZ];
 int actual_aula;
-char laboratori[AULA_SZ][AULA_ITEM_SZ];
+int laboratori[AULA_SZ];
 int actual_laboratori;
 char materie[MATERIA_SZ][MATERIA_ITEM_SZ];
 int actual_materie;
@@ -117,6 +116,14 @@ char *string_allocation(unsigned long max) {
     return s;
 }
 
+int p_aula(char a[]) {
+    for (int i = 0; i < actual_aula; i++) {
+        if (!strcmp(aule[i], a))
+            return i;
+    }
+    assert(0);
+}
+
 int p_materia(char mat[]) {
     for (int i = 0; i < actual_materie; i++) {
         if (!strcmp(materie[i], mat))
@@ -162,13 +169,13 @@ void inizializza_giorni() {
 void inizializza_ore() {
     int pos = 0;
     strcpy(ora_giornaliera[pos++], "08");
-    strcpy(ora_giornaliera[pos++], "09");
     /*
-    strcpy(ora_giornaliera[pos++], "10");
-    strcpy(ora_giornaliera[pos++], "11");
-    strcpy(ora_giornaliera[pos++], "12");
-    strcpy(ora_giornaliera[pos++], "13");
-    */
+   strcpy(ora_giornaliera[pos++], "09")
+   strcpy(ora_giornaliera[pos++], "10");
+   strcpy(ora_giornaliera[pos++], "11");
+   strcpy(ora_giornaliera[pos++], "12");
+   strcpy(ora_giornaliera[pos++], "13");
+   */
     actual_ore_giornaliere = pos;
 }
 
@@ -195,8 +202,8 @@ void inizializza_aule() {
 
 void inizializza_laboratori() {
     int pos = 0;
-    strcpy(laboratori[pos++], "INFO0");
-    strcpy(laboratori[pos++], "INFO1");
+    laboratori[p_aula("INFO0")] = 1;
+    laboratori[p_aula("INFO1")] = 1;
     /*
      strcpy(laboratori[pos++], "INFO2");
      strcpy(laboratori[pos++], "INFO3");
@@ -214,11 +221,11 @@ void inizializza_materie() {
 
 void inizializza_insegnanti() {
     int pos = 0;
-    strcpy(insegnanti[pos++], "Ricciardi");
-    strcpy(insegnanti[pos++], "Rizzi");
-    strcpy(insegnanti[pos++], "Tiraboschi");
-    strcpy(insegnanti[pos++], "Barosi");
-    strcpy(insegnanti[pos++], "Gatti");
+    strcpy(insegnanti[pos++], "Ricciardi"); //1
+    strcpy(insegnanti[pos++], "Rizzi"); //2
+    strcpy(insegnanti[pos++], "Tiraboschi"); //3
+    strcpy(insegnanti[pos++], "Barosi"); //4
+    strcpy(insegnanti[pos++], "Gatti"); //5
     /*
        strcpy(insegnanti[pos++], "Gagliano");
        strcpy(insegnanti[pos++], "Paghera");
@@ -250,6 +257,8 @@ void inizializza_insegnanti_materie() {
     insegnante_materie[p_insegnante("Tiraboschi")][p_materia("Sistemi e Reti")] = 1;
     insegnante_materie[p_insegnante("Tiraboschi")][p_materia("Informatica")] = 1;
     insegnante_materie[p_insegnante("Gatti")][p_materia("Informatica")] = 1;
+    insegnante_materie[p_insegnante("Barosi")][p_materia("Informatica")] = 1;
+    insegnante_materie[p_insegnante("Rizzi")][p_materia("Sistemi e Reti")] = 1;
 }
 
 unsigned int g_prof(const unsigned int p) {
@@ -286,27 +295,12 @@ int ore_materia_classe(const char s[], char mat[], char cla[]) {
 }
 
 int insegnante_materia_adeguata(const unsigned int pos) {
-    for (int i = 0; insegnante_materie[pos % INSEGNANTE_SZ][i] != -1 && i < MAX_MATERIE_PER_INSEGNANTE; i++) {
-        if (insegnante_materie[g_prof(pos)][i] == g_materia(pos))
-            return 1;
-    }
-    return 1;
+    return insegnante_materie[g_prof(pos)][g_materia(pos)];
 }
 
-// testa solo l'intervallo considerato che precede pos (o contiene?)
-int test_giorno_ora_classe(const char *s, const unsigned int pos) {
-    if (pos % (AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ) > 0) return 1;
-
-    return 1;
-}
-
-int test_giorno(const char *s, const unsigned int pos) {
-    if (pos % (ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * AULA_SZ * MATERIA_SZ * INSEGNANTE_SZ) > 0) return 1;
-    return 1;
-}
-
-int test_orario(const char *s, const unsigned int pos) {
-    if (pos % orario_len > 0) return 1;
+int codocente_deve_essere_in_lab_no_aula(const unsigned int pos) {
+    if (codocenti[g_prof(pos)])
+        return laboratori[g_aula(pos)];
     return 1;
 }
 
@@ -333,7 +327,8 @@ int can_place_one(unsigned int pos, const struct param *parameters) {
            /*In the same classroom and subject there can be at most MAX_PROF... at the same time*/
            && parameters->sum_prof < MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT
            // un insegnante può insegnare solo un range di materie
-           && insegnante_materia_adeguata(pos);
+           && insegnante_materia_adeguata(pos)
+           && codocente_deve_essere_in_lab_no_aula(pos);
 }
 
 // Do not pass s as parameter, the last part might form the previous calls.
@@ -341,14 +336,9 @@ int can_place_one(unsigned int pos, const struct param *parameters) {
 void gen(char *s, const unsigned int pos, const unsigned int tot, struct param parameters) {
     if (n_gen_ok != -1 && n_gen_ok <= n_gen) return;
 
-    /* i seguenti test scorrono la stringa per l'intervallo considerato (deve essere concluso), non usano i parametri*/
-    if (!test_giorno_ora_classe(s, pos)) return;
-    if (!test_giorno(s, pos)) return;
     if (pos == tot) {
-        if (test_orario(s, pos)) {
-            n_gen++;
-            printf("            %s\n", s);
-        }
+        n_gen++;
+        printf("            %s\n", s);
         return;
     }
 
