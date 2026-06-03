@@ -230,8 +230,8 @@ void inizializza_laboratori() {
 
 void inizializza_materie() {
     int pos = 0;
-    strcpy(materie[pos++], "Informatica");
-    strcpy(materie[pos++], "Sistemi e Reti");
+    strcpy(materie[pos++], "Informatica"); //0
+    strcpy(materie[pos++], "Sistemi e Reti"); //1
     //strcpy(materie[pos++], "TPS");
     actual_materie = pos;
 }
