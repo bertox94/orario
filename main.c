@@ -324,7 +324,8 @@ void set_params(const unsigned int pos, struct param *parameters) {
     parameters->active_group = parameters->current_group;
     parameters->sum_prof++;
 
-    //update the hours of a subject for a class
+    //update the total hours of a subject for a class
+    parameters->ore_materia_classe[g_classe(pos)][g_materia(pos)]++;
 }
 
 int can_place_one(unsigned int pos, const struct param *parameters) {
@@ -335,7 +336,10 @@ int can_place_one(unsigned int pos, const struct param *parameters) {
            // un insegnante può insegnare solo un range di materie
            && insegnante_materia_adeguata(pos)
            // il codocente può essere assegnato soltanto a un lab
-           && codocente_deve_essere_in_lab_no_aula(pos);
+           && codocente_deve_essere_in_lab_no_aula(pos)
+           //le ore totali non hanno superato le ore classe e materia per la settimana
+           && parameters->ore_materia_classe[g_classe(pos)][g_materia(pos)] <= ore_materia_classe[g_classe(pos)][
+               g_materia(pos)];
 }
 
 // Do not pass s as parameter, the last part might form the previous calls.
