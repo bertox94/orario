@@ -338,7 +338,7 @@ int can_place_one(unsigned int pos, const struct param *parameters) {
            // il codocente può essere assegnato soltanto a un lab
            && codocente_deve_essere_in_lab_no_aula(pos)
            //le ore totali non hanno superato le ore classe e materia per la settimana
-           && parameters->ore_materia_classe[g_classe(pos)][g_materia(pos)] <= ore_materia_classe[g_classe(pos)][
+           && parameters->ore_materia_classe[g_classe(pos)][g_materia(pos)] < ore_materia_classe[g_classe(pos)][
                g_materia(pos)];
 }
 
