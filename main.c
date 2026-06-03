@@ -117,7 +117,7 @@ int p_materia(char mat[MATERIA_ITEM_SZ]) {
         //        if (!strcmp(materie[i], mat))
         //            return i;
     }
-    return -1;
+    assert(0);;
 }
 
 int p_classe_sezione(char cla[CLASSE_SEZIONE_ITEM_SZ]) {
