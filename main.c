@@ -122,6 +122,15 @@ char *string_allocation(unsigned long max) {
     return s;
 }
 
+unsigned char *char_allocation(const unsigned long max) {
+    unsigned char *chars = malloc(max);
+    if (chars == NULL) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+    return chars;
+}
+
 int p_aula(char a[]) {
     for (int i = 0; i < actual_aula; i++) {
         if (!strcmp(aule[i], a))
@@ -364,7 +373,7 @@ int can_place_one(unsigned int pos, const struct param *parameters) {
 
 // Do not pass s as parameter, the last part might form the previous calls.
 // Draw the recursion tree to analyze the problem
-void gen(char *s, const unsigned int pos, const unsigned int tot, struct param parameters) {
+void gen(unsigned char *s, const unsigned int pos, const unsigned int tot, struct param parameters) {
     if (n_gen_ok <= n_gen) return;
 
     // Controlli a fine blocco giorno ora classe
@@ -381,11 +390,11 @@ void gen(char *s, const unsigned int pos, const unsigned int tot, struct param p
     }
     reset_params(&parameters, pos);
     // prova 0
-    s[pos] = '0';
+    s[pos] = 0;
     gen(s, pos + 1, tot, parameters);
     // prova 1
     if (can_place_one(pos, &parameters)) {
-        s[pos] = '1';
+        s[pos] = 0;
         set_params(pos, &parameters);
         gen(s, pos + 1, tot, parameters);
     }
@@ -409,14 +418,15 @@ int main(void) {
     giorno_ora_classe_sz = actual_aula * actual_materie * actual_insegnanti;
     //test(100);
     print_intestazioni();
-    char *s = string_allocation(orario_len + 1);
-    s[orario_len] = '\0';
-    struct param parameters = {0, -1, 0};
+    // total number of profs should be below 255
+    unsigned char *orario = char_allocation(orario_len);
+    memset(orario, 0, orario_len); // the first descent set the array eith all zeros
+    struct param parameters = {0, 0, 0, 0, 0};
     memset(parameters.ore_materia_classe, 0, actual_classi_sezione*actual_materie*sizeof(int));
-    gen(s, 0, orario_len, parameters);
+    gen(orario, 0, orario_len, parameters);
     printf("Totale generati: %llu\n", n_gen);
     fflush(stdout);
 
-    free(s);
+    free(orario);
     return 0;
 }
