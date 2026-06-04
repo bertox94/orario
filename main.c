@@ -44,7 +44,6 @@ char actual_insegnanti;
 int codocenti[INSEGNANTE_SZ]; //non possono avere lezione da soli
 
 struct param {
-    unsigned int current_group;
     int is_active_group;
     unsigned int active_group;
     int n_docenti;
@@ -362,21 +361,10 @@ int se_ce_codocente_allora_solo_docente(const unsigned int pos, const struct par
     return 1;
 }
 
-void reset_params(struct param *parameters, const unsigned int pos) {
-    unsigned int p = pos % (actual_aula * actual_materie * MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT);
-    // una classe in ogni aula, una materia ogni aula, un prof ogni materia
-    // nuovo blocco
-    if (p == 0) {
-        parameters->is_active_group = 0;
-        parameters->n_docenti = 0;
-        parameters->n_codocenti = 0;
-    }
-    parameters->current_group = p / actual_insegnanti;
-}
-
 void set_params(const unsigned int pos, struct param *parameters) {
     parameters->is_active_group = 1;
-    parameters->active_group = parameters->current_group;
+    parameters->active_group = pos / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
+
     parameters->n_docenti += !codocenti[g_prof(pos)];
     parameters->n_codocenti += codocenti[g_prof(pos)];
 
@@ -388,7 +376,7 @@ void set_params(const unsigned int pos, struct param *parameters) {
 
 int can_place(unsigned int pos, char prof, const struct param *parameters) {
     /*Each day and hour, teachers can be only in a class, room and subject*/
-    return (!parameters->is_active_group || parameters->active_group == parameters->current_group);
+    return !parameters->is_active_group || parameters->active_group == pos / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
     //insegnante insegna la propria materia
     //&& insegnante_materia_adeguata(pos)
     /*In the same classroom and subject at the same time the must be at most MAX_PROF, other conditions on prof e codoc can be cecked only partially*/
@@ -426,15 +414,19 @@ void gen(char *orario, const unsigned int pos, const unsigned int tot, struct pa
         return;
     }
 
-    if (pos % giorno_ora_classe_sz == 0)
+    // reset params every giorno_ora_classe
+    if (pos % giorno_ora_classe_sz == 0) {
         parameters.is_active_group = 0;
+        parameters.n_docenti = 0;
+        parameters.n_codocenti = 0;
+    }
+
 
     orario[pos] = -1;
     gen(orario, pos + 1, tot, parameters);
     for (char i = 0; i < actual_insegnanti; i++) {
-        if (!parameters.is_active_group || parameters.active_group == pos / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT) {
-            parameters.is_active_group = 1;
-            parameters.active_group = pos / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
+        if (can_place(pos, i, &parameters)) {
+            set_params(pos, &parameters);
             orario[pos] = i;
             gen(orario, pos + 1, tot, parameters);
         }
