@@ -55,16 +55,11 @@ struct param {
 };
 
 unsigned long long int n_gen = 0;
-unsigned long long int n_gen_ok = 10;
+unsigned long long int n_gen_ok = -300;
 unsigned int orario_len;
 unsigned int giorno_ora_classe_sz;
 //Associazioni
 char insegnanti_insegnanti[INSEGNANTE_SZ][INSEGNANTE_SZ];
-/* for example if 1 works with 3,5 and 3 works with 1 and 4
- * then we have:
- * i_i[1] = [3,5,-1,-1]
- * i_i[3] = [1, 4, -1, -1]
- * */
 char insegnante_materie[INSEGNANTE_SZ][MAX_MATERIE_PER_INSEGNANTE] = {};
 int ore_materia_classe[CLASSE_SEZIONE_SZ][MATERIA_SZ] = {};
 
@@ -393,17 +388,17 @@ void set_params(const unsigned int pos, struct param *parameters) {
 
 int can_place(unsigned int pos, char prof, const struct param *parameters) {
     /*Each day and hour, teachers can be only in a class, room and subject*/
-    return (!parameters->is_active_group || parameters->active_group == parameters->current_group)
-           //insegnante insegna la propria materia
-           && insegnante_materia_adeguata(pos)
-           /*In the same classroom and subject at the same time the must be at most MAX_PROF, other conditions on prof e codoc can be cecked only partially*/
-           && parameters->n_docenti + parameters->n_codocenti < MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT
-           // il codocente può essere assegnato soltanto a un lab
-           && codocente_deve_essere_in_lab_no_aula(pos)
-           //se è già presente un docente allora può esserci solo un codocente (va fatto comunque il controllo sul blocco giorno ora classe)
-           && se_ce_docente_allora_solo_codocente(pos, parameters)
-           //se è già presente un codocente allora può esserci solo un docente
-           && se_ce_codocente_allora_solo_docente(pos, parameters);
+    return (!parameters->is_active_group || parameters->active_group == parameters->current_group);
+    //insegnante insegna la propria materia
+    //&& insegnante_materia_adeguata(pos)
+    /*In the same classroom and subject at the same time the must be at most MAX_PROF, other conditions on prof e codoc can be cecked only partially*/
+    //&& parameters->n_docenti + parameters->n_codocenti < MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT
+    // il codocente può essere assegnato soltanto a un lab
+    //&& codocente_deve_essere_in_lab_no_aula(pos)
+    //se è già presente un docente allora può esserci solo un codocente (va fatto comunque il controllo sul blocco giorno ora classe)
+    //&& se_ce_docente_allora_solo_codocente(pos, parameters)
+    //se è già presente un codocente allora può esserci solo un docente
+    //&& se_ce_codocente_allora_solo_docente(pos, parameters);
     // le ore totali non hanno superato le ore classe e materia per la settimana
     //&& parameters->ore_materia_classe[g_classe(pos)][g_materia(pos)] < ore_materia_classe[g_classe(pos)][
     //    g_materia(pos)];
@@ -413,6 +408,12 @@ int can_place(unsigned int pos, char prof, const struct param *parameters) {
 // Draw the recursion tree to analyze the problem
 void gen(char *orario, const unsigned int pos, const unsigned int tot, struct param parameters) {
     if (n_gen_ok <= n_gen) return;
+
+    // Controlli a fine blocco giorno ora classe
+    if (pos % giorno_ora_classe_sz == 0)
+        if (/*!codocente_non_puo_essere_da_solo(pos, &parameters)*/ 0)
+            return;
+
     if (pos == tot) {
         n_gen++;
         printf("            ");
@@ -425,14 +426,16 @@ void gen(char *orario, const unsigned int pos, const unsigned int tot, struct pa
         return;
     }
 
-    reset_params(&parameters, pos);
+    if (pos % giorno_ora_classe_sz == 0)
+        parameters.is_active_group = 0;
 
     orario[pos] = -1;
     gen(orario, pos + 1, tot, parameters);
     for (char i = 0; i < actual_insegnanti; i++) {
-        if (can_place(pos, i, &parameters)) {
+        if (!parameters.is_active_group || parameters.active_group == pos / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT) {
+            parameters.is_active_group = 1;
+            parameters.active_group = pos / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
             orario[pos] = i;
-            set_params(pos, &parameters);
             gen(orario, pos + 1, tot, parameters);
         }
     }
@@ -453,7 +456,7 @@ int main(void) {
 
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione * actual_aula * actual_materie
                  * MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
-    giorno_ora_classe_sz = actual_aula * actual_materie * actual_insegnanti;
+    giorno_ora_classe_sz = actual_aula * actual_materie * MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
     //test(100);
     print_intestazioni();
     // total number of profs should be below 255
