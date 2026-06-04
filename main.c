@@ -55,7 +55,7 @@ struct param {
 };
 
 unsigned long long int n_gen = 0;
-unsigned long long int n_gen_ok = 100;
+unsigned long long int n_gen_ok = 10;
 unsigned int orario_len;
 unsigned int giorno_ora_classe_sz;
 //Associazioni
@@ -99,18 +99,56 @@ void generate_header_rows(char title[], int elems, int space_n, char space_1[], 
 void print_intestazioni() {
     char space_1[orario_len + 1];
     char space_2[orario_len + 1];
+    /*
+        generate_header_rows("Giorno:     ", actual_giorni_settimana,
+                             actual_ore_giornaliere * actual_classi_sezione * actual_materie * actual_aula *
+                             actual_insegnanti, space_1, space_2);
+        generate_header_rows("Ora:        ", actual_ore_giornaliere,
+                             actual_classi_sezione * actual_materie * actual_aula * actual_insegnanti,
+                             space_1, space_2);
+                             */
+    printf("Giorno:     ");
+    for (int i = 0; i < orario_len / actual_ore_giornaliere / actual_classi_sezione / actual_aula / actual_materie /
+                    MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; i++)
+        for (int j = 0; j < actual_ore_giornaliere * actual_classi_sezione * actual_aula * actual_materie *
+                        MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; j++)
+            printf("  %d", i % actual_giorni_settimana);
+    printf("\n");
 
-    generate_header_rows("Giorno:     ", actual_giorni_settimana,
-                         actual_ore_giornaliere * actual_classi_sezione * actual_materie * actual_aula *
-                         actual_insegnanti, space_1, space_2);
-    generate_header_rows("Ora:        ", actual_ore_giornaliere,
-                         actual_classi_sezione * actual_materie * actual_aula * actual_insegnanti,
-                         space_1, space_2);
-    generate_header_rows("Classe:     ", actual_classi_sezione, actual_aula * actual_materie * actual_insegnanti,
-                         space_1, space_2);
-    generate_header_rows("Aula:       ", actual_aula, actual_materie * actual_insegnanti, space_1, space_2);
-    generate_header_rows("Materia:    ", actual_materie, actual_insegnanti, space_1, space_2);
-    generate_header_rows("Insegnante: ", actual_insegnanti, 1, space_1, space_2);
+    printf("Ora:        ");
+    for (int i = 0; i < orario_len / actual_classi_sezione / actual_aula / actual_materie /
+                    MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; i++)
+        for (int j = 0; j < actual_classi_sezione * actual_aula * actual_materie * MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
+             j++)
+            printf("  %d", i % actual_ore_giornaliere);
+    printf("\n");
+
+
+    printf("Classe:     ");
+    for (int i = 0; i < orario_len / actual_aula / actual_materie / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; i++)
+        for (int j = 0; j < actual_aula * actual_materie * MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; j++)
+            printf("  %d", i % actual_classi_sezione);
+    printf("\n");
+
+    //generate_header_rows("Aula:       ", actual_aula, actual_materie * actual_insegnanti, space_1, space_2);
+
+    printf("Aula:       ");
+    for (int i = 0; i < orario_len / actual_materie / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; i++)
+        for (int j = 0; j < actual_materie * MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; j++)
+            printf("  %d", i % actual_aula);
+    printf("\n");
+
+    printf("Materia:    ");
+    for (int i = 0; i < orario_len / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; i++)
+        for (int j = 0; j < MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; j++)
+            printf("  %d", i % actual_materie);
+    printf("\n");
+
+    printf("Insegnante: ");
+    for (int i = 0; i < orario_len; i++)
+        printf("  %d", i % 2);
+    printf("\n");
+    //generate_header_rows("Insegnante: ", actual_insegnanti, 1, space_1, space_2);
 }
 
 char *string_allocation(unsigned long max) {
@@ -122,8 +160,8 @@ char *string_allocation(unsigned long max) {
     return s;
 }
 
-unsigned char *char_allocation(const unsigned long max) {
-    unsigned char *chars = malloc(max);
+char *char_allocation(const unsigned long max) {
+    char *chars = malloc(max);
     if (chars == NULL) {
         perror("malloc");
         exit(EXIT_FAILURE);
@@ -196,7 +234,7 @@ void inizializza_giorni() {
 void inizializza_ore() {
     int pos = 0;
     strcpy(ora_giornaliera[pos++], "08");
-    strcpy(ora_giornaliera[pos++], "09");
+    //strcpy(ora_giornaliera[pos++], "09");
     //strcpy(ora_giornaliera[pos++], "10");
     //strcpy(ora_giornaliera[pos++], "11");
     //strcpy(ora_giornaliera[pos++], "12");
@@ -353,7 +391,7 @@ void set_params(const unsigned int pos, struct param *parameters) {
         parameters->ore_materia_classe[g_classe(pos)][g_materia(pos)]++;
 }
 
-int can_place_one(unsigned int pos, const struct param *parameters) {
+int can_place_one(unsigned int pos, char prof, const struct param *parameters) {
     /*Each day and hour, teachers can be only in a class, room and subject*/
     return (!parameters->is_active_group || parameters->active_group == parameters->current_group)
            //insegnante insegna la propria materia
@@ -373,30 +411,24 @@ int can_place_one(unsigned int pos, const struct param *parameters) {
 
 // Do not pass s as parameter, the last part might form the previous calls.
 // Draw the recursion tree to analyze the problem
-void gen(unsigned char *s, const unsigned int pos, const unsigned int tot, struct param parameters) {
+void gen(char *orario, const unsigned int pos, const unsigned int tot, struct param parameters) {
     if (n_gen_ok <= n_gen) return;
-
-    // Controlli a fine blocco giorno ora classe
-    if (pos % giorno_ora_classe_sz == 0)
-        if (!codocente_non_puo_essere_da_solo(pos, &parameters))
-            return;
-
     if (pos == tot) {
-        if (/*verifica_ore_materia_classe(pos, &parameters)*/1) {
-            n_gen++;
-            printf("            %s\n", s);
-        }
+        n_gen++;
+        printf("            ");
+        for (int i = 0; i < tot; i++)
+            if (orario[i] == -1)
+                printf(" - ");
+            else
+                printf("  %d", orario[i]);
+        printf("\n");
         return;
     }
-    reset_params(&parameters, pos);
-    // prova 0
-    s[pos] = 0;
-    gen(s, pos + 1, tot, parameters);
-    // prova 1
-    if (can_place_one(pos, &parameters)) {
-        s[pos] = 0;
-        set_params(pos, &parameters);
-        gen(s, pos + 1, tot, parameters);
+
+    for (char i = -1; i < actual_insegnanti; i++) {
+        orario[pos] = i;
+        if (can_place_one(pos, i, &parameters))
+            gen(orario, pos + 1, tot, parameters);
     }
 }
 
@@ -414,12 +446,12 @@ int main(void) {
     inizializza_ore_materie_classe();
 
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione * actual_aula * actual_materie
-                 * actual_insegnanti;
+                 * MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
     giorno_ora_classe_sz = actual_aula * actual_materie * actual_insegnanti;
     //test(100);
     print_intestazioni();
     // total number of profs should be below 255
-    unsigned char *orario = char_allocation(orario_len);
+    char *orario = char_allocation(orario_len);
     memset(orario, 0, orario_len); // the first descent set the array eith all zeros
     struct param parameters = {0, 0, 0, 0, 0};
     memset(parameters.ore_materia_classe, 0, actual_classi_sezione*actual_materie*sizeof(int));
