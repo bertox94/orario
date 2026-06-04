@@ -54,7 +54,7 @@ struct param {
 };
 
 unsigned long long int n_gen = 0;
-unsigned long long int n_gen_ok = -300;
+unsigned long long int n_gen_ok = 300;
 unsigned int orario_len;
 unsigned int giorno_ora_classe_sz;
 //Associazioni
@@ -228,7 +228,7 @@ void inizializza_giorni() {
 void inizializza_ore() {
     int pos = 0;
     strcpy(ora_giornaliera[pos++], "08");
-    strcpy(ora_giornaliera[pos++], "09");
+    //strcpy(ora_giornaliera[pos++], "09");
     //strcpy(ora_giornaliera[pos++], "10");
     //strcpy(ora_giornaliera[pos++], "11");
     //strcpy(ora_giornaliera[pos++], "12");
@@ -361,7 +361,7 @@ int se_ce_codocente_allora_solo_docente(const unsigned int pos, const struct par
     return 1;
 }
 
-void set_params(const unsigned int pos, struct param *parameters) {
+void set_params(const unsigned int pos, int prof, struct param *parameters) {
     parameters->is_active_group = 1;
     parameters->active_group = pos / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
 
@@ -376,7 +376,7 @@ void set_params(const unsigned int pos, struct param *parameters) {
 
 int can_place(unsigned int pos, char prof, const struct param *parameters) {
     /*Each day and hour, teachers can be only in a class, room and subject*/
-    return !parameters->is_active_group || parameters->active_group == pos / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
+    return (!parameters->is_active_group || parameters->active_group == pos / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT);
     //insegnante insegna la propria materia
     //&& insegnante_materia_adeguata(pos)
     /*In the same classroom and subject at the same time the must be at most MAX_PROF, other conditions on prof e codoc can be cecked only partially*/
@@ -426,7 +426,7 @@ void gen(char *orario, const unsigned int pos, const unsigned int tot, struct pa
     gen(orario, pos + 1, tot, parameters);
     for (char i = 0; i < actual_insegnanti; i++) {
         if (can_place(pos, i, &parameters)) {
-            set_params(pos, &parameters);
+            set_params(pos, i, &parameters);
             orario[pos] = i;
             gen(orario, pos + 1, tot, parameters);
         }
