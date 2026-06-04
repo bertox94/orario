@@ -40,28 +40,17 @@ int actual_laboratori;
 char materie[MATERIA_SZ][MATERIA_ITEM_SZ];
 int actual_materie;
 char insegnanti[INSEGNANTE_SZ][INSEGNANTE_ITEM_SZ];
-char actual_insegnanti;
+int actual_insegnanti;
 int codocenti[INSEGNANTE_SZ]; //non possono avere lezione da soli
-
-struct param {
-    int is_active_group;
-    unsigned int active_group;
-    int n_docenti;
-    int n_codocenti;
-
-    // to be set with all zero at beginning
-    int ore_materia_classe[CLASSE_SEZIONE_SZ][MATERIA_SZ];
-};
 
 unsigned long long int n_gen = 0;
 unsigned long long int n_gen_ok = 300;
 unsigned int orario_len;
 unsigned int giorno_ora_classe_sz;
 //Associazioni
-char insegnanti_insegnanti[INSEGNANTE_SZ][INSEGNANTE_SZ];
-char insegnante_materie[INSEGNANTE_SZ][MAX_MATERIE_PER_INSEGNANTE] = {};
+int insegnanti_insegnanti[INSEGNANTE_SZ][INSEGNANTE_SZ];
+int insegnante_materie[INSEGNANTE_SZ][MAX_MATERIE_PER_INSEGNANTE] = {};
 int ore_materia_classe[CLASSE_SEZIONE_SZ][MATERIA_SZ] = {};
-
 
 void symmetric_closure_insegnanti() {
     for (int i = 0; i < actual_insegnanti; i++) {
@@ -145,22 +134,13 @@ void print_intestazioni() {
     //generate_header_rows("Insegnante: ", actual_insegnanti, 1, space_1, space_2);
 }
 
-char *string_allocation(unsigned long max) {
-    char *s = malloc(max + 1);
-    if (s == NULL) {
+int *int_allocation(const unsigned long max) {
+    int *arr = malloc(max * sizeof(int));
+    if (arr == NULL) {
         perror("malloc");
         exit(EXIT_FAILURE);
     }
-    return s;
-}
-
-char *char_allocation(const unsigned long max) {
-    char *chars = malloc(max);
-    if (chars == NULL) {
-        perror("malloc");
-        exit(EXIT_FAILURE);
-    }
-    return chars;
+    return arr;
 }
 
 int p_aula(char a[]) {
@@ -325,6 +305,7 @@ void inizializza_ore_materie_classe() {
     ore_materia_classe[p_classe_sezione("3H")][p_materia("Informatica")] = 2;
 }
 
+/*
 int verifica_ore_materia_classe(const unsigned int pos, const struct param *param) {
     for (int i = 0; i < actual_classi_sezione; i++) {
         for (int j = 0; j < actual_materie; j++) {
@@ -333,7 +314,7 @@ int verifica_ore_materia_classe(const unsigned int pos, const struct param *para
         }
     }
     return 1;
-}
+}*/
 
 int insegnante_materia_adeguata(const unsigned int pos) {
     return insegnante_materie[g_prof(pos)][g_materia(pos)];
@@ -345,6 +326,7 @@ int codocente_deve_essere_in_lab_no_aula(const unsigned int pos) {
     return 1;
 }
 
+/*
 int codocente_non_puo_essere_da_solo(const unsigned int pos, const struct param *param) {
     return param->n_docenti > 0 || param->n_codocenti == 0;
 }
@@ -359,24 +341,12 @@ int se_ce_codocente_allora_solo_docente(const unsigned int pos, const struct par
     if (param->n_codocenti > 0)
         return !codocenti[g_prof(pos)];
     return 1;
-}
+}*/
 
-void set_params(const unsigned int pos, int prof, struct param *parameters) {
-    parameters->is_active_group = 1;
-    parameters->active_group = pos / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
-
-    parameters->n_docenti += !codocenti[g_prof(pos)];
-    parameters->n_codocenti += codocenti[g_prof(pos)];
-
-    //update the total hours of a subject for a class
-    //considera solo se è docente, altrimenti conteresti due volte
-    if (!codocenti[g_prof(pos)])
-        parameters->ore_materia_classe[g_classe(pos)][g_materia(pos)]++;
-}
-
-int can_place(unsigned int pos, char prof, unsigned int last_prof, const struct param *parameters) {
+int can_place(unsigned int pos, int prof, int has_active_group, unsigned int active_group, unsigned int current_group,
+              unsigned int last_prof) {
     /*Each day and hour, teachers can be only in a class, room and subject*/
-    return (!parameters->is_active_group || parameters->active_group == pos / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT)
+    return (!has_active_group || active_group == current_group)
            //avoid repeating same prof twice in the same hour
            && (pos % 2 == 0 || prof != last_prof);
     //insegnante insegna la propria materia
@@ -396,8 +366,8 @@ int can_place(unsigned int pos, char prof, unsigned int last_prof, const struct 
 
 // Do not pass s as parameter, the last part might form the previous calls.
 // Draw the recursion tree to analyze the problem
-void gen(char *orario, const unsigned int pos, int is_group_active, unsigned int active_group, const unsigned int tot,
-         struct param parameters, unsigned int last_prof) {
+void gen(int *orario, const unsigned int pos, int has_active_group, unsigned int active_group,
+         unsigned int current_group, const unsigned int tot, const int last_prof) {
     if (n_gen_ok <= n_gen) return;
 
     // Controlli a fine blocco giorno ora classe
@@ -418,20 +388,18 @@ void gen(char *orario, const unsigned int pos, int is_group_active, unsigned int
     }
 
     // reset params every giorno_ora_classe
-    if (pos % giorno_ora_classe_sz == 0) {
-        parameters.is_active_group = 0;
-        parameters.n_docenti = 0;
-        parameters.n_codocenti = 0;
-    }
+    if (pos % giorno_ora_classe_sz == 0)
+        has_active_group = 0;
 
+    if (pos % MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT == 0)
+        current_group = pos / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
 
     orario[pos] = -1;
-    gen(orario, pos + 1, is_group_active, active_group, tot, parameters, -1);
-    for (char i = 0; i < actual_insegnanti; i++) {
-        if (can_place(pos, i, last_prof, &parameters)) {
-            set_params(pos, i, &parameters);
+    gen(orario, pos + 1, has_active_group, active_group, current_group, tot, -1);
+    for (int i = last_prof + 1; i < actual_insegnanti; i++) {
+        if (can_place(pos, i, has_active_group, active_group, current_group, last_prof)) {
             orario[pos] = i;
-            gen(orario, pos + 1, is_group_active, active_group, tot, parameters, i);
+            gen(orario, pos + 1, 1, current_group, current_group, tot, i);
         }
     }
 }
@@ -455,11 +423,9 @@ int main(void) {
     //test(100);
     print_intestazioni();
     // total number of profs should be below 255
-    char *orario = char_allocation(orario_len);
-    memset(orario, 0, orario_len); // the first descent set the array eith all zeros
-    struct param parameters = {0, 0, 0, 0, -1};
-    memset(parameters.ore_materia_classe, 0, actual_classi_sezione*actual_materie*sizeof(int));
-    gen(orario, 0, 0, 0, orario_len, parameters, -1);
+    int *orario = int_allocation(orario_len);
+    memset(orario, 0, orario_len*sizeof(int)); // the first descent set the array eith all zeros
+    gen(orario, 0, 0, 0, 0, orario_len, -1);
     printf("Totale generati: %llu\n", n_gen);
     fflush(stdout);
 
