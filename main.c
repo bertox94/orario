@@ -40,7 +40,7 @@ int actual_laboratori;
 char materie[MATERIA_SZ][MATERIA_ITEM_SZ];
 int actual_materie;
 char insegnanti[INSEGNANTE_SZ][INSEGNANTE_ITEM_SZ];
-int actual_insegnanti;
+char actual_insegnanti;
 int codocenti[INSEGNANTE_SZ]; //non possono avere lezione da soli
 
 struct param {
@@ -234,7 +234,7 @@ void inizializza_giorni() {
 void inizializza_ore() {
     int pos = 0;
     strcpy(ora_giornaliera[pos++], "08");
-    //strcpy(ora_giornaliera[pos++], "09");
+    strcpy(ora_giornaliera[pos++], "09");
     //strcpy(ora_giornaliera[pos++], "10");
     //strcpy(ora_giornaliera[pos++], "11");
     //strcpy(ora_giornaliera[pos++], "12");
@@ -368,7 +368,7 @@ int se_ce_codocente_allora_solo_docente(const unsigned int pos, const struct par
 }
 
 void reset_params(struct param *parameters, const unsigned int pos) {
-    unsigned int p = pos % (actual_aula * actual_materie * actual_insegnanti);
+    unsigned int p = pos % (actual_aula * actual_materie * MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT);
     // una classe in ogni aula, una materia ogni aula, un prof ogni materia
     // nuovo blocco
     if (p == 0) {
@@ -391,7 +391,7 @@ void set_params(const unsigned int pos, struct param *parameters) {
         parameters->ore_materia_classe[g_classe(pos)][g_materia(pos)]++;
 }
 
-int can_place_one(unsigned int pos, char prof, const struct param *parameters) {
+int can_place(unsigned int pos, char prof, const struct param *parameters) {
     /*Each day and hour, teachers can be only in a class, room and subject*/
     return (!parameters->is_active_group || parameters->active_group == parameters->current_group)
            //insegnante insegna la propria materia
@@ -418,17 +418,23 @@ void gen(char *orario, const unsigned int pos, const unsigned int tot, struct pa
         printf("            ");
         for (int i = 0; i < tot; i++)
             if (orario[i] == -1)
-                printf(" - ");
+                printf("  -");
             else
                 printf("  %d", orario[i]);
         printf("\n");
         return;
     }
 
-    for (char i = -1; i < actual_insegnanti; i++) {
-        orario[pos] = i;
-        if (can_place_one(pos, i, &parameters))
+    reset_params(&parameters, pos);
+
+    orario[pos] = -1;
+    gen(orario, pos + 1, tot, parameters);
+    for (char i = 0; i < actual_insegnanti; i++) {
+        if (can_place(pos, i, &parameters)) {
+            orario[pos] = i;
+            set_params(pos, &parameters);
             gen(orario, pos + 1, tot, parameters);
+        }
     }
 }
 
