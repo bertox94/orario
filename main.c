@@ -135,15 +135,15 @@ int p_insegnante(char in[]) {
 }
 
 unsigned int g_materia(const unsigned int p) {
-    return (p / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT) % actual_materie;
+    return p / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT % actual_materie;
 }
 
 unsigned int g_aula(const unsigned int p) {
-    return (p / actual_materie / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT) % actual_aula;
+    return p / actual_materie / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT % actual_aula;
 }
 
 unsigned int g_classe(const unsigned int p) {
-    return (p / actual_aula / actual_materie / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT) % actual_classi_sezione;
+    return p / actual_aula / actual_materie / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT % actual_classi_sezione;
 }
 
 void inizializza_giorni() {
