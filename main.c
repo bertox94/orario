@@ -292,21 +292,8 @@ int codocente_non_puo_essere_da_solo(const int orario[], const unsigned int pos)
     return !(n_docenti == 0 && n_codocenti == 1);
 }
 
-/*
-int se_ce_docente_allora_solo_codocente(const unsigned int pos, const struct param *param) {
-    if (param->n_docenti > 0)
-        return codocenti[g_prof(pos)];
-    return 1;
-}
-
-int se_ce_codocente_allora_solo_docente(const unsigned int pos, const struct param *param) {
-    if (param->n_codocenti > 0)
-        return !codocenti[g_prof(pos)];
-    return 1;
-}*/
-
 int can_place(unsigned int pos, int prof, int has_active_group, unsigned int active_group, unsigned int current_group,
-              unsigned int last_prof) {
+              int last_prof) {
     /*Each day and hour, teachers can be only in a class, room and subject*/
     return (!has_active_group || active_group == current_group)
            //insegnante insegna la propria materia
