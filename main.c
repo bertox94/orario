@@ -44,7 +44,7 @@ int actual_insegnanti;
 int codocenti[INSEGNANTE_SZ]; //non possono avere lezione da soli
 
 unsigned long long int n_gen = 0;
-unsigned long long int n_gen_ok = -300;
+unsigned long long int n_gen_ok = 300;
 unsigned int orario_len;
 unsigned int giorno_ora_classe_sz;
 //Associazioni
@@ -315,13 +315,11 @@ int insegnante_materia_adeguata(const unsigned int pos, int prof) {
     return insegnante_materie[prof][g_materia(pos)];
 }
 
-/*
-int codocente_deve_essere_in_lab_no_aula(const unsigned int pos) {
-    if (codocenti[g_prof(pos)])
+int codocente_deve_essere_in_lab_no_aula(const unsigned int pos, int prof) {
+    if (codocenti[prof])
         return laboratori[g_aula(pos)];
     return 1;
 }
-*/
 
 /*
 int codocente_non_puo_essere_da_solo(const unsigned int pos, const struct param *param) {
@@ -345,11 +343,9 @@ int can_place(unsigned int pos, int prof, int has_active_group, unsigned int act
     /*Each day and hour, teachers can be only in a class, room and subject*/
     return (!has_active_group || active_group == current_group)
            //insegnante insegna la propria materia
-           && insegnante_materia_adeguata(pos, prof);
-    /*In the same classroom and subject at the same time the must be at most MAX_PROF, other conditions on prof e codoc can be cecked only partially*/
-    //&& parameters->n_docenti + parameters->n_codocenti < MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT
-    // il codocente può essere assegnato soltanto a un lab
-    //&& codocente_deve_essere_in_lab_no_aula(pos)
+           && insegnante_materia_adeguata(pos, prof)
+           // il codocente può essere assegnato soltanto a un lab
+           && codocente_deve_essere_in_lab_no_aula(pos, prof);
     //se è già presente un docente allora può esserci solo un codocente (va fatto comunque il controllo sul blocco giorno ora classe)
     //&& se_ce_docente_allora_solo_codocente(pos, parameters)
     //se è già presente un codocente allora può esserci solo un docente
