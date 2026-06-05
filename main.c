@@ -320,7 +320,7 @@ void gen(int *orario, const unsigned int pos, int has_active_group, unsigned int
     }
 
     if (pos % MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT == 0)
-        if (!codocente_non_puo_essere_da_solo(orario, pos)) //TODO: not working ?
+        if (!codocente_non_puo_essere_da_solo(orario, pos))
             return;
 
     if (pos == tot) {
