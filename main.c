@@ -44,7 +44,7 @@ int actual_insegnanti;
 int codocenti[INSEGNANTE_SZ]; //non possono avere lezione da soli
 
 unsigned long long int n_gen = 0;
-unsigned long long int n_gen_ok = 300;
+unsigned long long int n_gen_ok = -300;
 unsigned int orario_len;
 unsigned int giorno_ora_classe_sz;
 //Associazioni
@@ -175,21 +175,16 @@ int p_insegnante(char in[]) {
     assert(0);
 }
 
-
-unsigned int g_prof(const unsigned int p) {
-    return p % actual_insegnanti;
-}
-
 unsigned int g_materia(const unsigned int p) {
-    return (p / actual_insegnanti) % actual_materie;
+    return (p / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT) % actual_materie;
 }
 
 unsigned int g_aula(const unsigned int p) {
-    return (p / actual_materie / actual_insegnanti) % actual_aula;
+    return (p / actual_materie / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT) % actual_aula;
 }
 
 unsigned int g_classe(const unsigned int p) {
-    return (p / actual_aula / actual_materie / actual_insegnanti) % actual_classi_sezione;
+    return (p / actual_aula / actual_materie / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT) % actual_classi_sezione;
 }
 
 void inizializza_giorni() {
@@ -316,15 +311,17 @@ int verifica_ore_materia_classe(const unsigned int pos, const struct param *para
     return 1;
 }*/
 
-int insegnante_materia_adeguata(const unsigned int pos) {
-    return insegnante_materie[g_prof(pos)][g_materia(pos)];
+int insegnante_materia_adeguata(const unsigned int pos, int prof) {
+    return insegnante_materie[prof][g_materia(pos)];
 }
 
+/*
 int codocente_deve_essere_in_lab_no_aula(const unsigned int pos) {
     if (codocenti[g_prof(pos)])
         return laboratori[g_aula(pos)];
     return 1;
 }
+*/
 
 /*
 int codocente_non_puo_essere_da_solo(const unsigned int pos, const struct param *param) {
@@ -347,10 +344,8 @@ int can_place(unsigned int pos, int prof, int has_active_group, unsigned int act
               unsigned int last_prof) {
     /*Each day and hour, teachers can be only in a class, room and subject*/
     return (!has_active_group || active_group == current_group)
-           //avoid repeating same prof twice in the same hour
-           && (pos % 2 == 0 || prof != last_prof);
-    //insegnante insegna la propria materia
-    //&& insegnante_materia_adeguata(pos)
+           //insegnante insegna la propria materia
+           && insegnante_materia_adeguata(pos, prof);
     /*In the same classroom and subject at the same time the must be at most MAX_PROF, other conditions on prof e codoc can be cecked only partially*/
     //&& parameters->n_docenti + parameters->n_codocenti < MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT
     // il codocente può essere assegnato soltanto a un lab
