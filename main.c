@@ -375,12 +375,16 @@ void gen(int *orario, const int pos, int has_active_group, int active_group,
             return;
         }
         n_gen++;
-        printf("            ");
-        for (int i = 0; i < tot; i++)
-            if (orario[i] == -1)
-                printf("  -");
-            else
-                printf("  %d", orario[i]);
+        int rowlen = tot / actual_giorni_settimana;
+        for (int j = 0; j < actual_giorni_settimana; j++) {
+            printf("Giorno: %d   ", j + 1);
+            for (int i = j * rowlen; i < (j + 1) * rowlen; i++)
+                if (orario[i] == -1)
+                    printf("  -");
+                else
+                    printf("  %d", orario[i]);
+            printf("\n");
+        }
         printf("\n");
         return;
     }
