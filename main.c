@@ -147,23 +147,33 @@ unsigned int g_classe(const unsigned int p) {
     return p / actual_aula / actual_materie / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT % actual_classi_sezione;
 }
 
+int is_docente(const int p) {
+    return p != -1 && !codocenti[p];
+}
+
+int is_codocente(const int p) {
+    return p != -1 && codocenti[p];
+}
+
+int is_vuoto(const int p) {
+    return p == -1;
+}
+
 void inizializza_giorni() {
     int pos = 0;
     strcpy(giorni_settimana[pos++], "Lun");
-    /*
-    strcpy(giorni_settimana[pos++], "Mar");
-    strcpy(giorni_settimana[pos++], "Mer");
-    strcpy(giorni_settimana[pos++], "Gio");
-    strcpy(giorni_settimana[pos++], "Ven");
-    strcpy(giorni_settimana[pos++], "Sab");
-    */
+    //strcpy(giorni_settimana[pos++], "Mar");
+    //strcpy(giorni_settimana[pos++], "Mer");
+    //strcpy(giorni_settimana[pos++], "Gio");
+    //strcpy(giorni_settimana[pos++], "Ven");
+    //strcpy(giorni_settimana[pos++], "Sab");
     actual_giorni_settimana = pos;
 }
 
 void inizializza_ore() {
     int pos = 0;
     strcpy(ora_giornaliera[pos++], "08");
-    //strcpy(ora_giornaliera[pos++], "09");
+    strcpy(ora_giornaliera[pos++], "09");
     //strcpy(ora_giornaliera[pos++], "10");
     //strcpy(ora_giornaliera[pos++], "11");
     //strcpy(ora_giornaliera[pos++], "12");
@@ -255,21 +265,27 @@ void inizializza_insegnanti_materie() {
 }
 
 void inizializza_ore_materie_classe() {
-    memset(ore_materia_classe, 0, actual_classi_sezione*actual_materie);
+    memset(ore_materia_classe, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
     ore_materia_classe[p_classe_sezione("3H")][p_materia("Sistemi e Reti")] = 1;
-    ore_materia_classe[p_classe_sezione("3H")][p_materia("Informatica")] = 2;
+    ore_materia_classe[p_classe_sezione("3H")][p_materia("Informatica")] = 1;
 }
 
-/*
-int verifica_ore_materia_classe(const unsigned int pos, const struct param *param) {
-    for (int i = 0; i < actual_classi_sezione; i++) {
-        for (int j = 0; j < actual_materie; j++) {
-            if (ore_materia_classe[i][j] != param->ore_materia_classe[i][j])
+int verifica_ore_materia_classe(const unsigned int pos, int orario[]) {
+    int ore_materia_classe_curr[CLASSE_SEZIONE_SZ][MATERIA_SZ];
+    memset(ore_materia_classe_curr, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
+    for (int i = 0; i < pos - 1; i += 2) {
+        if (!is_vuoto(orario[i]) || !is_vuoto(orario[i + 1]))
+            ore_materia_classe_curr[g_classe(i)][g_materia(i)]++;
+    }
+    // verifica con le materie e le classi impostate
+    for (int i = 0; i < CLASSE_SEZIONE_SZ; i++) {
+        for (int j = 0; j < MATERIA_SZ; j++) {
+            if (ore_materia_classe[i][j] != ore_materia_classe_curr[i][j])
                 return 0;
         }
     }
     return 1;
-}*/
+}
 
 int insegnante_materia_adeguata(const unsigned int pos, int prof) {
     return insegnante_materie[prof][g_materia(pos)];
@@ -283,17 +299,25 @@ int codocente_deve_essere_in_lab_no_aula(const unsigned int pos, int prof) {
 
 int se_ce_docente_allora_solo_o_codocente(const unsigned int pos, const int prof, const int last_prof) {
     if (pos % MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT == 0) return 1;
-    if (last_prof == -1) return 1;
-    if (!codocenti[last_prof])
-        return codocenti[prof] || prof == -1;
+    if (is_docente(last_prof)) {
+        return is_codocente(prof) || is_vuoto(prof);
+    }
     return 1;
 }
 
 int se_ce_codocente_allora_docente(const unsigned int pos, const int prof, const int last_prof) {
     if (pos % MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT == 0) return 1;
-    if (last_prof == -1) return 1;
-    if (codocenti[last_prof])
-        return !codocenti[prof];
+    if (is_codocente(last_prof)) {
+        return is_docente(prof);
+    }
+    return 1;
+}
+
+int se_vuoto_allora_vuoto_o_docente(const unsigned int pos, const int prof, const int last_prof) {
+    if (pos % MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT == 0) return 1;
+    if (is_vuoto(last_prof)) {
+        return is_vuoto(prof) || is_docente(prof);
+    }
     return 1;
 }
 
@@ -324,6 +348,8 @@ int can_place(const unsigned int pos, const int prof, const int has_active_group
            && se_ce_docente_allora_solo_o_codocente(pos, prof, last_prof)
            //se è già presente un codocente allora può esserci solo un docente
            && se_ce_codocente_allora_docente(pos, prof, last_prof)
+           //se vuoto allora slot vuoto oppure docente
+           && se_vuoto_allora_vuoto_o_docente(pos, prof, last_prof)
            // le ore totali non hanno superato le ore classe e materia per la settimana
            //&& parameters->ore_materia_classe[g_classe(pos)][g_materia(pos)] < ore_materia_classe[g_classe(pos)][
            //    g_materia(pos)];
@@ -345,6 +371,9 @@ void gen(int *orario, const unsigned int pos, int has_active_group, unsigned int
             return;
 
     if (pos == tot) {
+        if (!verifica_ore_materia_classe(pos, orario)) {
+            return;
+        }
         n_gen++;
         printf("            ");
         for (int i = 0; i < tot; i++)
