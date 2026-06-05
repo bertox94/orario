@@ -48,18 +48,8 @@ unsigned long long int n_gen_ok = 300;
 unsigned int orario_len;
 unsigned int giorno_ora_classe_sz;
 //Associazioni
-int insegnanti_insegnanti[INSEGNANTE_SZ][INSEGNANTE_SZ];
 int insegnante_materie[INSEGNANTE_SZ][MAX_MATERIE_PER_INSEGNANTE] = {};
 int ore_materia_classe[CLASSE_SEZIONE_SZ][MATERIA_SZ] = {};
-
-void symmetric_closure_insegnanti() {
-    for (int i = 0; i < actual_insegnanti; i++) {
-        for (int j = 0; j < actual_insegnanti; j++) {
-            if (insegnanti_insegnanti[i][j])
-                insegnanti_insegnanti[j][i] = insegnanti_insegnanti[i][j];
-        }
-    }
-}
 
 void print_intestazioni() {
     printf("Giorno:     ");
