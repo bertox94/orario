@@ -61,35 +61,7 @@ void symmetric_closure_insegnanti() {
     }
 }
 
-void generate_header_rows(char title[], int elems, int space_n, char space_1[], char space_2[]) {
-    if (space_n > 0) {
-        memset(space_1, ' ', space_n/2);
-        memset(space_2, ' ', space_n-space_n / 2-1);
-        space_1[space_n / 2] = '\0';
-        space_2[space_n - space_n / 2 - 1] = '\0';
-    } else {
-        space_1[0] = '\0';
-        space_2[0] = '\0';
-    }
-    printf("%s", title);
-    for (int i = 0; i < orario_len / elems / space_n;
-         i++)
-        for (int gs = 0; gs < elems; gs++)
-            printf("%s%d%s", space_1, gs, space_2);
-    printf("\n");
-}
-
 void print_intestazioni() {
-    char space_1[orario_len + 1];
-    char space_2[orario_len + 1];
-    /*
-        generate_header_rows("Giorno:     ", actual_giorni_settimana,
-                             actual_ore_giornaliere * actual_classi_sezione * actual_materie * actual_aula *
-                             actual_insegnanti, space_1, space_2);
-        generate_header_rows("Ora:        ", actual_ore_giornaliere,
-                             actual_classi_sezione * actual_materie * actual_aula * actual_insegnanti,
-                             space_1, space_2);
-                             */
     printf("Giorno:     ");
     for (int i = 0; i < orario_len / actual_ore_giornaliere / actual_classi_sezione / actual_aula / actual_materie /
                     MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; i++)
@@ -113,8 +85,6 @@ void print_intestazioni() {
             printf("  %d", i % actual_classi_sezione);
     printf("\n");
 
-    //generate_header_rows("Aula:       ", actual_aula, actual_materie * actual_insegnanti, space_1, space_2);
-
     printf("Aula:       ");
     for (int i = 0; i < orario_len / actual_materie / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; i++)
         for (int j = 0; j < actual_materie * MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; j++)
@@ -131,7 +101,6 @@ void print_intestazioni() {
     for (int i = 0; i < orario_len; i++)
         printf("  %d", i % 2);
     printf("\n");
-    //generate_header_rows("Insegnante: ", actual_insegnanti, 1, space_1, space_2);
 }
 
 int *int_allocation(const unsigned long max) {
