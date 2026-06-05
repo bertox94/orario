@@ -284,15 +284,12 @@ int codocente_deve_essere_in_lab_no_aula(const unsigned int pos, int prof) {
 
 int codocente_non_puo_essere_da_solo(const int orario[], const unsigned int pos) {
     int n_docenti = 0, n_codocenti = 0;
-    for (int i = pos - 2; i < actual_insegnanti && i > 0; i++) {
+    if (pos == 0) return 1;
+    for (unsigned int i = pos - 2; i < pos; i++) {
         if (orario[i] == -1) continue;
-        if (codocenti[orario[i]])
-            n_codocenti++;
-        else
-            n_docenti++;
+        codocenti[orario[i]] ? n_codocenti++ : n_docenti++;
     }
-    if (n_docenti == 0 && n_codocenti == 1) return 0;
-    return 1;
+    return !(n_docenti == 0 && n_codocenti == 1);
 }
 
 /*
