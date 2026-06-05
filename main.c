@@ -45,7 +45,7 @@ int actual_materie;
 int actual_insegnanti;
 
 unsigned long long int n_gen = 0;
-unsigned long long int n_gen_ok = 300;
+unsigned long long int n_gen_ok = -300;
 unsigned int orario_len;
 unsigned int giorno_ora_classe_sz;
 //Associazioni
@@ -281,32 +281,53 @@ int codocente_deve_essere_in_lab_no_aula(const unsigned int pos, int prof) {
     return 1;
 }
 
+int se_ce_docente_allora_solo_o_codocente(const unsigned int pos, const int prof, const int last_prof) {
+    if (pos % MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT == 0) return 1;
+    if (last_prof == -1) return 1;
+    if (!codocenti[last_prof])
+        return codocenti[prof] || prof == -1;
+    return 1;
+}
 
-int codocente_non_puo_essere_da_solo(const int orario[], const unsigned int pos) {
+int se_ce_codocente_allora_docente(const unsigned int pos, const int prof, const int last_prof) {
+    if (pos % MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT == 0) return 1;
+    if (last_prof == -1) return 1;
+    if (codocenti[last_prof])
+        return !codocenti[prof];
+    return 1;
+}
+
+int controllo_prof_insieme(const int orario[], const unsigned int pos) {
     int n_docenti = 0, n_codocenti = 0;
     if (pos == 0) return 1;
     for (unsigned int i = pos - 2; i < pos; i++) {
         if (orario[i] == -1) continue;
         codocenti[orario[i]] ? n_codocenti++ : n_docenti++;
     }
-    return !(n_docenti == 0 && n_codocenti == 1);
+    // docente e codocente
+    return (n_docenti == 1 && n_codocenti == 1)
+           // docente solo
+           || (n_docenti == 1 && n_codocenti == 0)
+           //ora buca
+           || (n_docenti == 0 && n_codocenti == 0);
 }
 
-int can_place(unsigned int pos, int prof, int has_active_group, unsigned int active_group, unsigned int current_group,
-              int last_prof) {
+int can_place(const unsigned int pos, const int prof, const int has_active_group, const unsigned int active_group,
+              const unsigned int current_group, const int last_prof) {
     /*Each day and hour, teachers can be only in a class, room and subject*/
     return (!has_active_group || active_group == current_group)
            //insegnante insegna la propria materia
            && insegnante_materia_adeguata(pos, prof)
            // il codocente può essere assegnato soltanto a un lab
-           && codocente_deve_essere_in_lab_no_aula(pos, prof);
-    //se è già presente un docente allora può esserci solo un codocente (va fatto comunque il controllo sul blocco giorno ora classe)
-    //&& se_ce_docente_allora_solo_codocente(pos, parameters)
-    //se è già presente un codocente allora può esserci solo un docente
-    //&& se_ce_codocente_allora_solo_docente(pos, parameters);
-    // le ore totali non hanno superato le ore classe e materia per la settimana
-    //&& parameters->ore_materia_classe[g_classe(pos)][g_materia(pos)] < ore_materia_classe[g_classe(pos)][
-    //    g_materia(pos)];
+           && codocente_deve_essere_in_lab_no_aula(pos, prof)
+           //se è già presente un docente nel gruppo corrente allora può essere solo o con un codocente
+           && se_ce_docente_allora_solo_o_codocente(pos, prof, last_prof)
+           //se è già presente un codocente allora può esserci solo un docente
+           && se_ce_codocente_allora_docente(pos, prof, last_prof)
+           // le ore totali non hanno superato le ore classe e materia per la settimana
+           //&& parameters->ore_materia_classe[g_classe(pos)][g_materia(pos)] < ore_materia_classe[g_classe(pos)][
+           //    g_materia(pos)];
+           && 1;
 }
 
 // Do not pass s as parameter, the last part might form the previous calls.
@@ -320,7 +341,7 @@ void gen(int *orario, const unsigned int pos, int has_active_group, unsigned int
     }
 
     if (pos % MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT == 0)
-        if (!codocente_non_puo_essere_da_solo(orario, pos))
+        if (!controllo_prof_insieme(orario, pos))
             return;
 
     if (pos == tot) {
