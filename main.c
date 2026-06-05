@@ -28,20 +28,21 @@
 
 
 char giorni_settimana[GIORNO_SETTIMANA_SZ][GIORNO_SETTIMANA_ITEM_SZ];
-int actual_giorni_settimana;
 char ora_giornaliera[ORA_GIORNALIERA_SZ][ORA_GIORNALIERA_ITEM_SZ];
-int actual_ore_giornaliere;
 char classe_sezione[CLASSE_SEZIONE_SZ][CLASSE_SEZIONE_ITEM_SZ];
-int actual_classi_sezione;
 char aule[AULA_SZ][AULA_ITEM_SZ];
-int actual_aula;
-int laboratori[AULA_SZ];
-int actual_laboratori;
 char materie[MATERIA_SZ][MATERIA_ITEM_SZ];
-int actual_materie;
 char insegnanti[INSEGNANTE_SZ][INSEGNANTE_ITEM_SZ];
-int actual_insegnanti;
+int laboratori[AULA_SZ];
 int codocenti[INSEGNANTE_SZ]; //non possono avere lezione da soli
+
+int actual_giorni_settimana;
+int actual_ore_giornaliere;
+int actual_classi_sezione;
+int actual_aula;
+int actual_laboratori;
+int actual_materie;
+int actual_insegnanti;
 
 unsigned long long int n_gen = 0;
 unsigned long long int n_gen_ok = 300;
@@ -280,11 +281,21 @@ int codocente_deve_essere_in_lab_no_aula(const unsigned int pos, int prof) {
     return 1;
 }
 
-/*
-int codocente_non_puo_essere_da_solo(const unsigned int pos, const struct param *param) {
-    return param->n_docenti > 0 || param->n_codocenti == 0;
+
+int codocente_non_puo_essere_da_solo(const int orario[], const unsigned int pos) {
+    int n_docenti = 0, n_codocenti = 0;
+    for (int i = pos - 2; i < actual_insegnanti && i > 0; i++) {
+        if (orario[i] == -1) continue;
+        if (codocenti[orario[i]])
+            n_codocenti++;
+        else
+            n_docenti++;
+    }
+    if (n_docenti == 0 && n_codocenti == 1) return 0;
+    return 1;
 }
 
+/*
 int se_ce_docente_allora_solo_codocente(const unsigned int pos, const struct param *param) {
     if (param->n_docenti > 0)
         return codocenti[g_prof(pos)];
@@ -321,8 +332,11 @@ void gen(int *orario, const unsigned int pos, int has_active_group, unsigned int
     if (n_gen_ok <= n_gen) return;
 
     // Controlli a fine blocco giorno ora classe
-    if (pos % giorno_ora_classe_sz == 0)
-        if (/*!codocente_non_puo_essere_da_solo(pos, &parameters)*/ 0)
+    if (pos % giorno_ora_classe_sz == 0) {
+    }
+
+    if (pos % MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT == 0)
+        if (!codocente_non_puo_essere_da_solo(orario, pos)) //TODO: not working ?
             return;
 
     if (pos == tot) {
