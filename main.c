@@ -44,10 +44,10 @@ int actual_laboratori;
 int actual_materie;
 int actual_insegnanti;
 
-unsigned long long int n_gen = 0;
-unsigned long long int n_gen_ok = -300;
-unsigned int orario_len;
-unsigned int giorno_ora_classe_sz;
+long long int n_gen = 0;
+long long int n_gen_ok = 300000000;
+int orario_len;
+int giorno_ora_classe_sz;
 //Associazioni
 int insegnante_materie[INSEGNANTE_SZ][MAX_MATERIE_PER_INSEGNANTE] = {};
 int ore_materia_classe[CLASSE_SEZIONE_SZ][MATERIA_SZ] = {};
@@ -94,8 +94,8 @@ void print_intestazioni() {
     printf("\n");
 }
 
-int *int_allocation(const unsigned long max) {
-    int *arr = malloc(max * sizeof(int));
+int *int_allocation(const long max) {
+    int *arr = malloc(max * (long) sizeof(int));
     if (arr == NULL) {
         perror("malloc");
         exit(EXIT_FAILURE);
@@ -135,15 +135,15 @@ int p_insegnante(char in[]) {
     assert(0);
 }
 
-unsigned int g_materia(const unsigned int p) {
+int g_materia(const int p) {
     return p / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT % actual_materie;
 }
 
-unsigned int g_aula(const unsigned int p) {
+int g_aula(const int p) {
     return p / actual_materie / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT % actual_aula;
 }
 
-unsigned int g_classe(const unsigned int p) {
+int g_classe(const int p) {
     return p / actual_aula / actual_materie / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT % actual_classi_sezione;
 }
 
@@ -174,10 +174,10 @@ void inizializza_ore() {
     int pos = 0;
     strcpy(ora_giornaliera[pos++], "08");
     strcpy(ora_giornaliera[pos++], "09");
-    //strcpy(ora_giornaliera[pos++], "10");
-    //strcpy(ora_giornaliera[pos++], "11");
-    //strcpy(ora_giornaliera[pos++], "12");
-    //strcpy(ora_giornaliera[pos++], "13");
+    strcpy(ora_giornaliera[pos++], "10");
+    strcpy(ora_giornaliera[pos++], "11");
+    strcpy(ora_giornaliera[pos++], "12");
+    strcpy(ora_giornaliera[pos++], "13");
 
     actual_ore_giornaliere = pos;
 }
@@ -270,7 +270,7 @@ void inizializza_ore_materie_classe() {
     ore_materia_classe[p_classe_sezione("3H")][p_materia("Informatica")] = 1;
 }
 
-int verifica_ore_materia_classe(const unsigned int pos, int orario[]) {
+int verifica_ore_materia_classe(const int pos, int orario[]) {
     int ore_materia_classe_curr[CLASSE_SEZIONE_SZ][MATERIA_SZ];
     memset(ore_materia_classe_curr, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
     for (int i = 0; i < pos - 1; i += 2) {
@@ -287,17 +287,17 @@ int verifica_ore_materia_classe(const unsigned int pos, int orario[]) {
     return 1;
 }
 
-int insegnante_materia_adeguata(const unsigned int pos, int prof) {
+int insegnante_materia_adeguata(const int pos, int prof) {
     return insegnante_materie[prof][g_materia(pos)];
 }
 
-int codocente_deve_essere_in_lab_no_aula(const unsigned int pos, int prof) {
+int codocente_deve_essere_in_lab_no_aula(const int pos, int prof) {
     if (codocenti[prof])
         return laboratori[g_aula(pos)];
     return 1;
 }
 
-int se_ce_docente_allora_solo_o_codocente(const unsigned int pos, const int prof, const int last_prof) {
+int se_ce_docente_allora_solo_o_codocente(const int pos, const int prof, const int last_prof) {
     if (pos % MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT == 0) return 1;
     if (is_docente(last_prof)) {
         return is_codocente(prof) || is_vuoto(prof);
@@ -305,7 +305,7 @@ int se_ce_docente_allora_solo_o_codocente(const unsigned int pos, const int prof
     return 1;
 }
 
-int se_ce_codocente_allora_docente(const unsigned int pos, const int prof, const int last_prof) {
+int se_ce_codocente_allora_docente(const int pos, const int prof, const int last_prof) {
     if (pos % MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT == 0) return 1;
     if (is_codocente(last_prof)) {
         return is_docente(prof);
@@ -313,7 +313,7 @@ int se_ce_codocente_allora_docente(const unsigned int pos, const int prof, const
     return 1;
 }
 
-int se_vuoto_allora_vuoto_o_docente(const unsigned int pos, const int prof, const int last_prof) {
+int se_vuoto_allora_vuoto_o_docente(const int pos, const int prof, const int last_prof) {
     if (pos % MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT == 0) return 1;
     if (is_vuoto(last_prof)) {
         return is_vuoto(prof) || is_docente(prof);
@@ -321,10 +321,10 @@ int se_vuoto_allora_vuoto_o_docente(const unsigned int pos, const int prof, cons
     return 1;
 }
 
-int controllo_prof_insieme(const int orario[], const unsigned int pos) {
+int controllo_prof_insieme(const int orario[], const int pos) {
     int n_docenti = 0, n_codocenti = 0;
     if (pos == 0) return 1;
-    for (unsigned int i = pos - 2; i < pos; i++) {
+    for (int i = pos - 2; i < pos; i++) {
         if (orario[i] == -1) continue;
         codocenti[orario[i]] ? n_codocenti++ : n_docenti++;
     }
@@ -336,8 +336,8 @@ int controllo_prof_insieme(const int orario[], const unsigned int pos) {
            || (n_docenti == 0 && n_codocenti == 0);
 }
 
-int can_place(const unsigned int pos, const int prof, const int has_active_group, const unsigned int active_group,
-              const unsigned int current_group, const int last_prof) {
+int can_place(const int pos, const int prof, const int has_active_group, const int active_group,
+              const int current_group, const int last_prof) {
     /*Each day and hour, teachers can be only in a class, room and subject*/
     return (!has_active_group || active_group == current_group)
            //insegnante insegna la propria materia
@@ -358,8 +358,8 @@ int can_place(const unsigned int pos, const int prof, const int has_active_group
 
 // Do not pass s as parameter, the last part might form the previous calls.
 // Draw the recursion tree to analyze the problem
-void gen(int *orario, const unsigned int pos, int has_active_group, unsigned int active_group,
-         unsigned int current_group, const unsigned int tot, const int last_prof) {
+void gen(int *orario, const int pos, int has_active_group, int active_group,
+         int current_group, const int tot, const int last_prof) {
     if (n_gen_ok <= n_gen) return;
 
     // Controlli a fine blocco giorno ora classe
