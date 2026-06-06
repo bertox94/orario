@@ -35,6 +35,8 @@ char materie[MATERIA_SZ][MATERIA_ITEM_SZ];
 char insegnanti[INSEGNANTE_SZ][INSEGNANTE_ITEM_SZ];
 int laboratori[AULA_SZ];
 int codocenti[INSEGNANTE_SZ]; //non possono avere lezione da soli
+int giorno_libero_prof[INSEGNANTE_SZ];
+int ore_settimana_prof[INSEGNANTE_SZ];
 
 int actual_giorni_settimana;
 int actual_ore_giornaliere;
