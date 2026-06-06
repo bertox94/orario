@@ -1,3 +1,14 @@
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/time.h>
+
+#define GIORNO_SETTIMANA_SZ 1
+#define GIORNO_SETTIMANA_ITEM_SZ 4
+#define ORA_GIORNALIERA_SZ 6
+#define ORA_GIORNALIERA_ITEM_SZ 2
+
 #define CLASSE_SEZIONE_SZ 3
 #define CLASSE_SEZIONE_ITEM_SZ 3
 
