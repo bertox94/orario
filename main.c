@@ -270,17 +270,18 @@ void inizializza_ore_materie_classe() {
     ore_materia_classe[p_classe_sezione("3H")][p_materia("Informatica")] = 1;
 }
 
-int verifica_ore_materia_classe(const int pos, int orario[]) {
-    int ore_materia_classe_curr[CLASSE_SEZIONE_SZ][MATERIA_SZ];
+int verifica_ore_materia_classe(const int pos, int ore_materie_per_classe[][MATERIA_SZ]) {
+    /*int ore_materia_classe_curr[CLASSE_SEZIONE_SZ][MATERIA_SZ];
     memset(ore_materia_classe_curr, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
     for (int i = 0; i < pos - 1; i += 2) {
         if (!is_vuoto(orario[i]) || !is_vuoto(orario[i + 1]))
             ore_materia_classe_curr[g_classe(i)][g_materia(i)]++;
     }
+    */
     // verifica con le materie e le classi impostate
     for (int i = 0; i < CLASSE_SEZIONE_SZ; i++) {
         for (int j = 0; j < MATERIA_SZ; j++) {
-            if (ore_materia_classe[i][j] != ore_materia_classe_curr[i][j])
+            if (ore_materia_classe[i][j] != ore_materia_per_classe[i][j])
                 return 0;
         }
     }
@@ -337,7 +338,7 @@ int controllo_prof_insieme(const int orario[], const int pos) {
 }
 
 int can_place(const int pos, const int prof, const int has_active_group, const int active_group,
-              const int current_group, const int last_prof) {
+              const int current_group, const int last_prof, int ore_materie_per_classe[][MATERIA_SZ]) {
     /*Each day and hour, teachers can be only in a class, room and subject*/
     return (!has_active_group || active_group == current_group)
            //insegnante insegna la propria materia
@@ -351,15 +352,15 @@ int can_place(const int pos, const int prof, const int has_active_group, const i
            //se vuoto allora slot vuoto oppure docente
            && se_vuoto_allora_vuoto_o_docente(pos, prof, last_prof)
            // le ore totali non hanno superato le ore classe e materia per la settimana
-           //&& parameters->ore_materia_classe[g_classe(pos)][g_materia(pos)] < ore_materia_classe[g_classe(pos)][
-           //    g_materia(pos)];
+           && ore_materia_per_classe[g_classe(pos)][g_materia(pos)] < ore_materia_classe[g_classe(pos)][
+               g_materia(pos)]
            && 1;
 }
 
 // Do not pass s as parameter, the last part might form the previous calls.
 // Draw the recursion tree to analyze the problem
 void gen(int *orario, const int pos, int has_active_group, int active_group,
-         int current_group, const int tot, const int last_prof) {
+         int current_group, const int tot, const int last_prof, int ore_materie_per_classe[][MATERIA_SZ]) {
     if (n_gen_ok <= n_gen) return;
 
     // Controlli a fine blocco giorno ora classe
@@ -399,8 +400,11 @@ void gen(int *orario, const int pos, int has_active_group, int active_group,
     orario[pos] = -1;
     gen(orario, pos + 1, has_active_group, active_group, current_group, tot, -1);
     for (int i = last_prof + 1; i < actual_insegnanti; i++) {
-        if (can_place(pos, i, has_active_group, active_group, current_group, last_prof)) {
+        if (can_place(pos, i, has_active_group, active_group, current_group, last_prof, ore_materie_per_classe)) {
+            int ore_materie_per_classe_new[CLASSE_SEZIONE_SZ][MATERIA_SZ];
             orario[pos] = i;
+            memcpy(ore_materie_per_classe_new, ore_materie_per_classe, CLASSE_SEZIONE_SZ*MATERIA_SZ);
+            ore_materie_per_classe_new[g_classe(pos)][g_materia(pos)]++;
             gen(orario, pos + 1, 1, current_group, current_group, tot, i);
         }
     }
