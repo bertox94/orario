@@ -47,7 +47,7 @@ int actual_materie;
 int actual_insegnanti;
 
 long long int n_gen = 0;
-long long int n_gen_ok = 300000000;
+long long int n_gen_ok = 30;
 int orario_len;
 int giorno_ora_classe_sz;
 //Associazioni
@@ -269,23 +269,30 @@ void inizializza_insegnanti_materie() {
 
 void inizializza_ore_materie_classe() {
     memset(ore_materia_classe, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
-    ore_materia_classe[p_classe_sezione("3H")][p_materia("Sistemi e Reti")] = 1;
-    ore_materia_classe[p_classe_sezione("3H")][p_materia("Informatica")] = 1;
+    ore_materia_classe[p_classe_sezione("3H")][p_materia("Sistemi e Reti")] = 3;
+    ore_materia_classe[p_classe_sezione("3H")][p_materia("Informatica")] = 3;
 }
 
 void inizializza_ore_docenti() {
     memset(ore_settimana_prof, 0, actual_insegnanti*sizeof(int));
     for (int i = 0; i < INSEGNANTE_SZ; i++) {
-        if (!strcmp(insegnanti[i], ""))
+        if (strcmp(insegnanti[i], "") != 0)
             ore_settimana_prof[i] = 3;
     }
 }
 
-int verifica_ore_materia_classe(const int pos, int ore_materie_per_classe[][MATERIA_SZ]) {
+int verifica_ore_materia_classe(int ore_materie_per_classe[][MATERIA_SZ]) {
     for (int i = 0; i < CLASSE_SEZIONE_SZ; i++)
         for (int j = 0; j < MATERIA_SZ; j++)
             if (ore_materia_classe[i][j] != ore_materie_per_classe[i][j])
                 return 0;
+    return 1;
+}
+
+int verifica_ore_settimana_prof(const int ore_per_settimana_prof[]) {
+    for (int i = 0; i < INSEGNANTE_SZ; i++)
+        if (ore_per_settimana_prof[i] != ore_settimana_prof[i])
+            return 0;
     return 1;
 }
 
@@ -366,8 +373,8 @@ void gen(int *orario, const int pos, int has_active_group, int active_group,
             return;
 
     if (pos == tot) {
-        if (!verifica_ore_materia_classe(pos, ore_materie_per_classe)
-            /*&& verifica ore settimanali che siano uguali*/) {
+        if (!verifica_ore_materia_classe(ore_materie_per_classe)
+            || !verifica_ore_settimana_prof(ore_per_settimana_prof)) {
             return;
         }
         n_gen++;
@@ -402,10 +409,11 @@ void gen(int *orario, const int pos, int has_active_group, int active_group,
             int ore_per_settimana_prof_new[INSEGNANTE_SZ];
             orario[pos] = i;
             memcpy(ore_materie_per_classe_new, ore_materie_per_classe, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
-            memcpy(ore_per_settimana_prof, ore_per_settimana_prof, INSEGNANTE_SZ*sizeof(int));
+            memcpy(ore_per_settimana_prof_new, ore_per_settimana_prof, INSEGNANTE_SZ*sizeof(int));
             ore_materie_per_classe_new[g_classe(pos)][g_materia(pos)]++;
+            ore_per_settimana_prof_new[i]++;
             gen(orario, pos + 1, 1, current_group, current_group, tot, i, ore_materie_per_classe_new,
-                ore_per_settimana_prof);
+                ore_per_settimana_prof_new);
         }
     }
 }
@@ -422,6 +430,7 @@ int main(void) {
     initializza_codocenti();
     inizializza_insegnanti_materie();
     inizializza_ore_materie_classe();
+    inizializza_ore_docenti();
 
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione * actual_aula * actual_materie
                  * MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
@@ -431,9 +440,11 @@ int main(void) {
     // total number of profs should be below 255
     int *orario = int_allocation(orario_len);
     int ore_materie_per_classe[CLASSE_SEZIONE_SZ][MATERIA_SZ];
+    int ore_per_settimana_prof[INSEGNANTE_SZ];
     memset(orario, 0, orario_len*sizeof(int)); // the first descent set the array eith all zeros
     memset(ore_materie_per_classe, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
-    gen(orario, 0, 0, 0, 0, orario_len, -1, ore_materie_per_classe);
+    memset(ore_per_settimana_prof, 0, INSEGNANTE_SZ*sizeof(int));
+    gen(orario, 0, 0, 0, 0, orario_len, -1, ore_materie_per_classe, ore_per_settimana_prof);
     printf("Totale generati: %llu\n", n_gen);
     fflush(stdout);
 
