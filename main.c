@@ -1,15 +1,3 @@
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/time.h>
-
-#define GIORNO_SETTIMANA_SZ 1
-#define GIORNO_SETTIMANA_ITEM_SZ 4
-
-#define ORA_GIORNALIERA_SZ 6
-#define ORA_GIORNALIERA_ITEM_SZ 2
-
 #define CLASSE_SEZIONE_SZ 3
 #define CLASSE_SEZIONE_ITEM_SZ 3
 
@@ -283,7 +271,7 @@ int verifica_ore_materia_classe(const int pos, int ore_materie_per_classe[][MATE
     // verifica con le materie e le classi impostate
     for (int i = 0; i < CLASSE_SEZIONE_SZ; i++) {
         for (int j = 0; j < MATERIA_SZ; j++) {
-            if (ore_materia_classe[i][j] != ore_materia_per_classe[i][j])
+            if (ore_materia_classe[i][j] != ore_materie_per_classe[i][j])
                 return 0;
         }
     }
@@ -354,7 +342,7 @@ int can_place(const int pos, const int prof, const int has_active_group, const i
            //se vuoto allora slot vuoto oppure docente
            && se_vuoto_allora_vuoto_o_docente(pos, prof, last_prof)
            // le ore totali non hanno superato le ore classe e materia per la settimana
-           && ore_materia_per_classe[g_classe(pos)][g_materia(pos)] < ore_materia_classe[g_classe(pos)][
+           && ore_materie_per_classe[g_classe(pos)][g_materia(pos)] < ore_materia_classe[g_classe(pos)][
                g_materia(pos)]
            && 1;
 }
@@ -374,7 +362,7 @@ void gen(int *orario, const int pos, int has_active_group, int active_group,
             return;
 
     if (pos == tot) {
-        if (!verifica_ore_materia_classe(pos, orario)) {
+        if (!verifica_ore_materia_classe(pos, ore_materie_per_classe)) {
             return;
         }
         n_gen++;
@@ -400,14 +388,14 @@ void gen(int *orario, const int pos, int has_active_group, int active_group,
         current_group = pos / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
 
     orario[pos] = -1;
-    gen(orario, pos + 1, has_active_group, active_group, current_group, tot, -1);
+    gen(orario, pos + 1, has_active_group, active_group, current_group, tot, -1,ore_materie_per_classe);
     for (int i = last_prof + 1; i < actual_insegnanti; i++) {
         if (can_place(pos, i, has_active_group, active_group, current_group, last_prof, ore_materie_per_classe)) {
             int ore_materie_per_classe_new[CLASSE_SEZIONE_SZ][MATERIA_SZ];
             orario[pos] = i;
             memcpy(ore_materie_per_classe_new, ore_materie_per_classe, CLASSE_SEZIONE_SZ*MATERIA_SZ);
             ore_materie_per_classe_new[g_classe(pos)][g_materia(pos)]++;
-            gen(orario, pos + 1, 1, current_group, current_group, tot, i);
+            gen(orario, pos + 1, 1, current_group, current_group, tot, i,ore_materie_per_classe);
         }
     }
 }
@@ -432,11 +420,14 @@ int main(void) {
     print_intestazioni();
     // total number of profs should be below 255
     int *orario = int_allocation(orario_len);
+     int ore_materie_per_classe[CLASSE_SEZIONE_SZ][MATERIA_SZ];
     memset(orario, 0, orario_len*sizeof(int)); // the first descent set the array eith all zeros
-    gen(orario, 0, 0, 0, 0, orario_len, -1);
+    memset(ore_materie_per_classe,0,CLASSE_SEZIONE_SZ*MATERIA_SZ);
+    gen(orario, 0, 0, 0, 0, orario_len, -1,ore_materie_per_classe);
     printf("Totale generati: %llu\n", n_gen);
     fflush(stdout);
-
+    
     free(orario);
     return 0;
-}
+    
+    }
