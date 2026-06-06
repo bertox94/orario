@@ -273,6 +273,14 @@ void inizializza_ore_materie_classe() {
     ore_materia_classe[p_classe_sezione("3H")][p_materia("Informatica")] = 1;
 }
 
+void inizializza_ore_docenti() {
+    memset(ore_settimana_prof, 0, actual_insegnanti*sizeof(int));
+    for (int i = 0; i < INSEGNANTE_SZ; i++) {
+        if (!strcmp(insegnanti[i], ""))
+            ore_settimana_prof[i] = 3;
+    }
+}
+
 int verifica_ore_materia_classe(const int pos, int ore_materie_per_classe[][MATERIA_SZ]) {
     for (int i = 0; i < CLASSE_SEZIONE_SZ; i++)
         for (int j = 0; j < MATERIA_SZ; j++)
@@ -320,7 +328,8 @@ int controllo_prof_insieme(const int orario[], const int pos) {
 }
 
 int can_place(const int pos, const int prof, const int has_active_group, const int active_group,
-              const int current_group, const int last_prof, int ore_materie_per_classe[][MATERIA_SZ]) {
+              const int current_group, const int last_prof, int ore_materie_per_classe[][MATERIA_SZ],
+              const int ore_per_settimana_prof[]) {
     /*Each day and hour, teachers can be only in a class, room and subject*/
     return (!has_active_group || active_group == current_group)
            //insegnante insegna la propria materia
@@ -336,13 +345,16 @@ int can_place(const int pos, const int prof, const int has_active_group, const i
            // le ore totali non hanno superato le ore classe e materia per la settimana
            && ore_materie_per_classe[g_classe(pos)][g_materia(pos)] < ore_materia_classe[g_classe(pos)][
                g_materia(pos)]
+           // le ore totali di un docente doveno essere inferiori alle ore settimanale
+           && ore_per_settimana_prof[prof] < ore_settimana_prof[prof]
            && 1;
 }
 
 // Do not pass s as parameter, the last part might form the previous calls.
 // Draw the recursion tree to analyze the problem
 void gen(int *orario, const int pos, int has_active_group, int active_group,
-         int current_group, const int tot, const int last_prof, int ore_materie_per_classe[][MATERIA_SZ]) {
+         int current_group, const int tot, const int last_prof, int ore_materie_per_classe[][MATERIA_SZ],
+         int ore_per_settimana_prof[]) {
     if (n_gen_ok <= n_gen) return;
 
     // Controlli a fine blocco giorno ora classe
@@ -354,7 +366,8 @@ void gen(int *orario, const int pos, int has_active_group, int active_group,
             return;
 
     if (pos == tot) {
-        if (!verifica_ore_materia_classe(pos, ore_materie_per_classe)) {
+        if (!verifica_ore_materia_classe(pos, ore_materie_per_classe)
+            /*&& verifica ore settimanali che siano uguali*/) {
             return;
         }
         n_gen++;
@@ -380,14 +393,19 @@ void gen(int *orario, const int pos, int has_active_group, int active_group,
         current_group = pos / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
 
     orario[pos] = -1;
-    gen(orario, pos + 1, has_active_group, active_group, current_group, tot, -1, ore_materie_per_classe);
+    gen(orario, pos + 1, has_active_group, active_group, current_group, tot, -1, ore_materie_per_classe,
+        ore_per_settimana_prof);
     for (int i = last_prof + 1; i < actual_insegnanti; i++) {
-        if (can_place(pos, i, has_active_group, active_group, current_group, last_prof, ore_materie_per_classe)) {
+        if (can_place(pos, i, has_active_group, active_group, current_group, last_prof, ore_materie_per_classe,
+                      ore_per_settimana_prof)) {
             int ore_materie_per_classe_new[CLASSE_SEZIONE_SZ][MATERIA_SZ];
+            int ore_per_settimana_prof_new[INSEGNANTE_SZ];
             orario[pos] = i;
             memcpy(ore_materie_per_classe_new, ore_materie_per_classe, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
+            memcpy(ore_per_settimana_prof, ore_per_settimana_prof, INSEGNANTE_SZ*sizeof(int));
             ore_materie_per_classe_new[g_classe(pos)][g_materia(pos)]++;
-            gen(orario, pos + 1, 1, current_group, current_group, tot, i, ore_materie_per_classe_new);
+            gen(orario, pos + 1, 1, current_group, current_group, tot, i, ore_materie_per_classe_new,
+                ore_per_settimana_prof);
         }
     }
 }
