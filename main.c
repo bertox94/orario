@@ -4,7 +4,7 @@
 #include <string.h>
 #include <sys/time.h>
 
-#define GIORNO_SETTIMANA_SZ 1
+#define GIORNO_SETTIMANA_SZ 6
 #define GIORNO_SETTIMANA_ITEM_SZ 4
 
 #define ORA_GIORNALIERA_SZ 6
@@ -13,7 +13,7 @@
 #define CLASSE_SEZIONE_SZ 3
 #define CLASSE_SEZIONE_ITEM_SZ 3
 
-#define AULA_SZ 3
+#define AULA_SZ 10
 #define AULA_ITEM_SZ 15
 
 #define MATERIA_SZ 2
@@ -96,13 +96,55 @@ void print_intestazioni() {
     printf("\n");
 }
 
-int *int_allocation(const long max) {
+int *allocate_int_array(const long max) {
     int *arr = malloc(max * (long) sizeof(int));
     if (arr == NULL) {
         perror("malloc");
         exit(EXIT_FAILURE);
     }
     return arr;
+}
+
+int **allocate_int_matrix(const long righe, const long colonne) {
+    // 1. Allocazione dell'array di puntatori alle righe
+    int **matrice = (int **) malloc(righe * sizeof(int *));
+    if (matrice == NULL) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+
+    // 2. Allocazione degli elementi per ogni riga
+    for (int i = 0; i < righe; i++) {
+        matrice[i] = (int *) malloc(colonne * sizeof(int));
+        if (matrice[i] == NULL) {
+            perror("malloc");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    return matrice;
+}
+
+void free_int_matrix(int **matrix, const long righe) {
+    for (int i = 0; i < righe; i++) {
+        free(matrix[i]);
+    }
+    free(matrix);
+}
+
+void memset_int_matrix(int **matrix, const int val, const long righe, const long colonne) {
+    for (int i = 0; i < righe; i++) {
+        memset(matrix[i], val, colonne * sizeof(int));
+    }
+}
+
+void memset_string_matrix(char **matrix, const char val[], const long righe, const long colonne) {
+    for (int i = 0; i < righe; i++) {
+        if (strlen(val) < colonne)
+            strcpy(matrix[i], val);
+        else
+            assert(0);
+    }
 }
 
 int p_aula(char a[]) {
@@ -161,123 +203,10 @@ int is_codocente(const int p) {
     return !is_vuoto(p) && codocenti[p];
 }
 
-
-void inizializza_giorni() {
-    int pos = 0;
-    strcpy(giorni_settimana[pos++], "Lun");
-    //strcpy(giorni_settimana[pos++], "Mar");
-    //strcpy(giorni_settimana[pos++], "Mer");
-    //strcpy(giorni_settimana[pos++], "Gio");
-    //strcpy(giorni_settimana[pos++], "Ven");
-    //strcpy(giorni_settimana[pos++], "Sab");
-    actual_giorni_settimana = pos;
-}
-
-void inizializza_ore() {
-    int pos = 0;
-    strcpy(ora_giornaliera[pos++], "08");
-    strcpy(ora_giornaliera[pos++], "09");
-    strcpy(ora_giornaliera[pos++], "10");
-    strcpy(ora_giornaliera[pos++], "11");
-    strcpy(ora_giornaliera[pos++], "12");
-    strcpy(ora_giornaliera[pos++], "13");
-
-    actual_ore_giornaliere = pos;
-}
-
-void inizializza_classi() {
-    int pos = 0;
-    strcpy(classe_sezione[pos++], "3H");
-    strcpy(classe_sezione[pos++], "3E");
-    strcpy(classe_sezione[pos++], "3F");
-    actual_classi_sezione = pos;
-}
-
-void inizializza_aule() {
-    int pos = 0;
-    strcpy(aule[pos++], "PS16"); //0
-    strcpy(aule[pos++], "INFO0"); //1
-    strcpy(aule[pos++], "INFO1"); //2
-    /*
-       strcpy(aule[pos++], "INFO2");
-       strcpy(aule[pos++], "INFO3");
-       strcpy(aule[pos++], "PS15");
-    */
-    actual_aula = pos;
-}
-
-void inizializza_laboratori() {
-    int pos = 0;
-    laboratori[p_aula("INFO0")] = 1;
-    laboratori[p_aula("INFO1")] = 1;
-    /*
-     strcpy(laboratori[pos++], "INFO2");
-     strcpy(laboratori[pos++], "INFO3");
-     */
-    actual_laboratori = pos;
-}
-
-void inizializza_materie() {
-    int pos = 0;
-    strcpy(materie[pos++], "Informatica"); //0
-    strcpy(materie[pos++], "Sistemi e Reti"); //1
-    //strcpy(materie[pos++], "TPS");
-    actual_materie = pos;
-}
-
-void inizializza_insegnanti() {
-    int pos = 0;
-    strcpy(insegnanti[pos++], "Ricciardi"); //0
-    strcpy(insegnanti[pos++], "Tiraboschi"); //1
-    strcpy(insegnanti[pos++], "Gatti"); //2
-    strcpy(insegnanti[pos++], "Barosi"); //3
-    strcpy(insegnanti[pos++], "Rizzi"); //4
-    /*
-       strcpy(insegnanti[pos++], "Gagliano");
-       strcpy(insegnanti[pos++], "Paghera");
-       strcpy(insegnanti[pos++], "Manganelli");
-       strcpy(insegnanti[pos++], "Di Chio");
-       strcpy(insegnanti[pos++], "Benedetto");
-       strcpy(insegnanti[pos++], "Moretti");
-       strcpy(insegnanti[pos++], "Masetti");
-       strcpy(insegnanti[pos++], "Sciambarella");
-       */
-    actual_insegnanti = pos;
-}
-
-void initializza_codocenti() {
-    memset(codocenti, 0, actual_insegnanti*sizeof(int));
-    codocenti[p_insegnante("Rizzi")] = 1;
-    codocenti[p_insegnante("Barosi")] = 1;
-    /*
-     codocenti[p_insegnante("Gagliano")] = 1;
-     codocenti[p_insegnante("Paghera")] = 1;
-     codocenti[p_insegnante("Moretti")] = 1;
-     codocenti[p_insegnante("Benedetto")] = 1;
-     */
-}
-
-void inizializza_insegnanti_materie() {
-    memset(insegnante_materie, 0, actual_insegnanti*actual_materie);
-    insegnante_materie[p_insegnante("Ricciardi")][p_materia("Sistemi e Reti")] = 1;
-    insegnante_materie[p_insegnante("Tiraboschi")][p_materia("Sistemi e Reti")] = 1;
-    insegnante_materie[p_insegnante("Tiraboschi")][p_materia("Informatica")] = 1;
-    insegnante_materie[p_insegnante("Gatti")][p_materia("Informatica")] = 1;
-    insegnante_materie[p_insegnante("Barosi")][p_materia("Informatica")] = 1;
-    insegnante_materie[p_insegnante("Rizzi")][p_materia("Sistemi e Reti")] = 1;
-}
-
-void inizializza_ore_materie_classe() {
-    memset(ore_materia_classe, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
-    ore_materia_classe[p_classe_sezione("3H")][p_materia("Sistemi e Reti")] = 3;
-    ore_materia_classe[p_classe_sezione("3H")][p_materia("Informatica")] = 3;
-}
-
 void inizializza_ore_docenti() {
-    memset(ore_settimana_prof, 0, actual_insegnanti*sizeof(int));
     for (int i = 0; i < INSEGNANTE_SZ; i++) {
         if (strcmp(insegnanti[i], "") != 0)
-            ore_settimana_prof[i] = 3;
+            ore_settimana_prof[i] = 2;
     }
 }
 
@@ -359,9 +288,8 @@ int can_place(const int pos, const int prof, const int has_active_group, const i
 
 // Do not pass s as parameter, the last part might form the previous calls.
 // Draw the recursion tree to analyze the problem
-void gen(int *orario, const int pos, int has_active_group, int active_group,
-         int current_group, const int tot, const int last_prof, int ore_materie_per_classe[][MATERIA_SZ],
-         int ore_per_settimana_prof[]) {
+void gen(int orario[], const int pos, int has_active_group, const int active_group, int current_group, const int tot,
+         const int last_prof, int ore_materie_per_classe[][MATERIA_SZ], const int ore_per_settimana_prof[]) {
     if (n_gen_ok <= n_gen) return;
 
     // Controlli a fine blocco giorno ora classe
@@ -407,9 +335,9 @@ void gen(int *orario, const int pos, int has_active_group, int active_group,
                       ore_per_settimana_prof)) {
             int ore_materie_per_classe_new[CLASSE_SEZIONE_SZ][MATERIA_SZ];
             int ore_per_settimana_prof_new[INSEGNANTE_SZ];
-            orario[pos] = i;
             memcpy(ore_materie_per_classe_new, ore_materie_per_classe, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
             memcpy(ore_per_settimana_prof_new, ore_per_settimana_prof, INSEGNANTE_SZ*sizeof(int));
+            orario[pos] = i;
             ore_materie_per_classe_new[g_classe(pos)][g_materia(pos)]++;
             ore_per_settimana_prof_new[i]++;
             gen(orario, pos + 1, 1, current_group, current_group, tot, i, ore_materie_per_classe_new,
@@ -418,36 +346,170 @@ void gen(int *orario, const int pos, int has_active_group, int active_group,
     }
 }
 
+void set_giorno_settimana(char giorno[], int pos) {
+    assert(pos < GIORNO_SETTIMANA_SZ);
+    assert(strlen(giorno) < GIORNO_SETTIMANA_ITEM_SZ);
+    strcpy(giorni_settimana[pos], giorno);
+}
+
+void set_ora_giornaliera(char ora[], int pos) {
+    assert(pos < ORA_GIORNALIERA_SZ);
+    assert(strlen(ora) < ORA_GIORNALIERA_ITEM_SZ);
+    strcpy(ora_giornaliera[pos], ora);
+}
+
+void set_classe_sezione(char cla[], int pos) {
+    assert(pos < CLASSE_SEZIONE_SZ);
+    assert(strlen(cla) < CLASSE_SEZIONE_ITEM_SZ);
+    strcpy(classe_sezione[pos], cla);
+}
+
+void set_aula(char aul[], int pos) {
+    assert(pos < AULA_SZ);
+    assert(strlen(aul) < AULA_ITEM_SZ);
+    strcpy(aule[pos], aul);
+}
+
+void set_materia(char mat[], int pos) {
+    assert(pos < MATERIA_SZ);
+    assert(strlen(mat) < MATERIA_ITEM_SZ);
+    strcpy(materie[pos], mat);
+}
+
+void set_insegnante(char in[], int pos) {
+    assert(pos < INSEGNANTE_SZ);
+    assert(strlen(in) < INSEGNANTE_ITEM_SZ);
+    strcpy(insegnanti[pos], in);
+}
+
+void inizializza_dati() {
+    int pos = 0;
+    assert(GIORNO_SETTIMANA_ITEM_SZ>0);
+    for (int i = 0; i < GIORNO_SETTIMANA_SZ; i++) {
+        strcpy(giorni_settimana[i], "");
+    }
+    set_giorno_settimana("Lun", pos++);
+    assert(pos <= GIORNO_SETTIMANA_SZ);
+    actual_giorni_settimana = pos;
+
+    pos = 0;
+    assert(ORA_GIORNALIERA_ITEM_SZ>0);
+    for (int i = 0; i < ORA_GIORNALIERA_SZ; i++) {
+        strcpy(ora_giornaliera[i], "");
+    }
+    set_ora_giornaliera("08", pos++);
+    set_giorno_settimana("09", pos++);
+    set_giorno_settimana("10", pos++);
+    set_giorno_settimana("11", pos++);
+    set_giorno_settimana("12", pos++);
+    set_giorno_settimana("13", pos++);
+    assert(pos <= ORA_GIORNALIERA_SZ);
+    actual_ore_giornaliere = pos;
+
+    pos = 0;
+    assert(CLASSE_SEZIONE_ITEM_SZ>0);
+    for (int i = 0; i < CLASSE_SEZIONE_SZ; i++) {
+        strcpy(classe_sezione[i], "");
+    }
+    set_classe_sezione("3H", pos++);
+    set_classe_sezione("3E", pos++);
+    set_classe_sezione("3F", pos++);
+    assert(pos <= CLASSE_SEZIONE_SZ);
+    actual_classi_sezione = pos;
+
+    pos = 0;
+    assert(AULA_ITEM_SZ>0);
+    for (int i = 0; i < AULA_SZ; i++) {
+        strcpy(aule[i], "");
+    }
+    set_aula("PS16", pos++);
+    set_aula("INFO1", pos++);
+    set_aula("INFO0", pos++);
+    assert(pos <= AULA_SZ);
+    actual_aula = pos;
+
+    pos = 0;
+    assert(MATERIA_ITEM_SZ>0);
+    for (int i = 0; i < MATERIA_SZ; i++) {
+        strcpy(materie[i], "");
+    }
+    set_materia("Informatica", pos++);
+    set_materia("Sistemi e Reti", pos++);
+    assert(pos <= MATERIA_SZ);
+    actual_materie = pos;
+
+    pos = 0;
+    assert(INSEGNANTE_ITEM_SZ>0);
+    for (int i = 0; i < INSEGNANTE_SZ; i++) {
+        strcpy(insegnanti[i], "");
+    }
+    set_insegnante("Ricciardi", pos++);
+    set_insegnante("Tiraboschi", pos++);
+    set_insegnante("Gatti", pos++);
+    set_insegnante("Barosi", pos++);
+    set_insegnante("Rizzi", pos++);
+    assert(pos <= INSEGNANTE_SZ);
+    actual_insegnanti = pos;
+}
+
+void set_laboratorio(char lab[]) {
+    laboratori[p_aula(lab)] = 1;
+}
+
+void set_codocente(char cod[]) {
+    codocenti[p_insegnante(cod)] = 1;
+}
+
+void set_insegnante_materia(char in[], char mat[]) {
+    insegnante_materie[p_insegnante(in)][p_materia(mat)] = 1;
+}
+
+void set_ore_materia_classe(char cla[], char mat[], int ore) {
+    ore_materia_classe[p_classe_sezione(cla)][p_materia(mat)] = ore;
+}
+
+void inizializza_vincoli() {
+    memset(laboratori, 0, AULA_SZ*sizeof(int));
+    set_laboratorio("INFO0");
+    set_laboratorio("INFO1");
+
+    memset(codocenti, 0, INSEGNANTE_SZ*sizeof(int));
+    set_codocente("Rizzi");
+    set_codocente("Barosi");
+
+    memset(insegnante_materie, 0, INSEGNANTE_SZ*MATERIA_SZ*sizeof(int));
+    set_insegnante_materia("Ricciardi", "Sistemi e Reti");
+    set_insegnante_materia("Tiraboschi", "Sistemi e Reti");
+    set_insegnante_materia("Tiraboschi", "Informatica");
+    set_insegnante_materia("Gatti", "Informatica");
+    set_insegnante_materia("Barosi", "Informatica");
+    set_insegnante_materia("Rizzi", "Sistemi e Reti");
+
+    memset(ore_materia_classe, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
+    set_ore_materia_classe("3H", "Sistemi e Reti", 1);
+    set_ore_materia_classe("3H", "Informatica", 1);
+
+    memset(ore_settimana_prof, 0, INSEGNANTE_SZ*sizeof(int));
+    ore_settimana_prof[p_insegnante("Ricciardi")] = 2;
+}
+
 
 int main(void) {
-    inizializza_giorni();
-    inizializza_ore();
-    inizializza_classi();
-    inizializza_aule();
-    inizializza_laboratori();
-    inizializza_materie();
-    inizializza_insegnanti();
-    initializza_codocenti();
-    inizializza_insegnanti_materie();
-    inizializza_ore_materie_classe();
-    inizializza_ore_docenti();
-
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione * actual_aula * actual_materie
                  * MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
-    giorno_ora_classe_sz = actual_aula * actual_materie * MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
+    inizializza_dati();
+    inizializza_vincoli();
     //test(100);
     print_intestazioni();
-    // total number of profs should be below 255
-    int *orario = int_allocation(orario_len);
+    int orario[orario_len];
     int ore_materie_per_classe[CLASSE_SEZIONE_SZ][MATERIA_SZ];
     int ore_per_settimana_prof[INSEGNANTE_SZ];
-    memset(orario, 0, orario_len*sizeof(int)); // the first descent set the array eith all zeros
-    memset(ore_materie_per_classe, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
+    memset(orario, 0, orario_len*sizeof(int));
+    memset_int_matrix(ore_materie_per_classe, 0, CLASSE_SEZIONE_SZ, MATERIA_SZ);
     memset(ore_per_settimana_prof, 0, INSEGNANTE_SZ*sizeof(int));
     gen(orario, 0, 0, 0, 0, orario_len, -1, ore_materie_per_classe, ore_per_settimana_prof);
     printf("Totale generati: %llu\n", n_gen);
     fflush(stdout);
 
-    free(orario);
     return 0;
 }
