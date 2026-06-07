@@ -54,6 +54,7 @@ int giorno_ora_classe_sz;
 int insegnante_materie[INSEGNANTE_SZ * MAX_MATERIE_PER_INSEGNANTE] = {};
 int ore_classe_materia[CLASSE_SEZIONE_SZ * MATERIA_SZ] = {};
 
+
 int p_aula(char a[]) {
     for (int i = 0; i < actual_aula; i++) {
         if (!strcmp(aule[i], a))
@@ -414,9 +415,13 @@ void gen(int orario[], const int pos, int has_active_group, const int active_gro
     // reset params every giorno_ora_classe
     reset_params(pos, &has_active_group, &current_group);
 
+    if (pos % MAX_INSEGNANTI_PER_INSEGNANTE) {
+    }
+
     orario[pos] = -1;
     gen(orario, pos + 1, has_active_group, active_group, current_group, tot, -1, ore_materie_per_classe,
         ore_per_settimana_prof);
+    // one hour can be free, or all the teachers that belong in that subject and class, codocente, and docente
     for (int i = last_prof + 1; i < actual_insegnanti; i++) {
         if ((!has_active_group || active_group == current_group)
             && (1 || can_place(pos, i, last_prof, ore_materie_per_classe, ore_per_settimana_prof))) {
@@ -435,12 +440,44 @@ void gen(int orario[], const int pos, int has_active_group, const int active_gro
     }
 }
 
+void print_orario(int orario[][MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT], const int pos, const int tot) {
+    if (pos == tot) {
+        for (int i = 0; i < tot; i++) {
+            printf("\t%d\t%d", orario[i][0], orario[i][1]);
+        }
+        printf("\n");
+        return;
+    }
+
+    orario[pos][0] = -1;
+    orario[pos][1] = -1;
+    print_orario(orario, pos + 1, tot);
+
+    for (int i = -1; i < actual_insegnanti; i++) {
+        for (int j = i + 1; j < actual_insegnanti; j++) {
+            orario[pos][0] = i;
+            orario[pos][1] = j;
+            print_orario(orario, pos + 1, tot);
+        }
+    }
+}
+
 int main(void) {
     inizializza_dati();
     inizializza_vincoli();
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione * actual_aula * actual_materie
                  * MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
     giorno_ora_classe_sz = actual_aula * actual_materie * MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
+
+    int len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione * actual_aula * actual_materie;
+    int n_orario[len][MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT];
+
+    print_orario(n_orario, 0, len);
+
+    int cnt = 2;
+
+    return 0;
+
     //test(100);
     print_intestazioni();
     int orario[orario_len];
