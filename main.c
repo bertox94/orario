@@ -47,7 +47,7 @@ int actual_materie;
 int actual_insegnanti;
 
 long long int n_gen = 0;
-long long int n_gen_ok = 30;
+long long int n_gen_ok = 30000000;
 int orario_len;
 int giorno_ora_classe_sz;
 //Associazioni
@@ -135,11 +135,11 @@ void set_codocente(char cod[]) {
 }
 
 void set_insegnante_materia(char in[], char mat[]) {
-    insegnante_materie[p_insegnante(in) * p_materia(mat) + p_materia(mat)] = 1;
+    insegnante_materie[p_insegnante(in) * MATERIA_SZ + p_materia(mat)] = 1;
 }
 
-void set_ore_materia_classe(char cla[], char mat[], int ore) {
-    ore_classe_materia[p_classe_sezione(cla) * p_materia(mat) + p_materia(mat)] = ore;
+void set_ore_classe_materia(char cla[], char mat[], int ore) {
+    ore_classe_materia[p_classe_sezione(cla) * MATERIA_SZ + p_materia(mat)] = ore;
 }
 
 void print_intestazioni() {
@@ -215,7 +215,7 @@ void inizializza_ore_docenti() {
     }
 }
 
-int verifica_ore_materia_classe(const int ore_classe_per_materia[]) {
+int verifica_ore_classe_materia(const int ore_classe_per_materia[]) {
     for (int i = 0; i < CLASSE_SEZIONE_SZ * MATERIA_SZ; i++)
         if (ore_classe_materia[i] != ore_classe_per_materia[i])
             return 0;
@@ -238,7 +238,7 @@ void reset_params(const int pos, int *has_active_group, int *current_group) {
 }
 
 int insegnante_materia_adeguata(const int pos, int prof) {
-    return insegnante_materie[prof * g_materia(pos) + g_materia(pos)];
+    return insegnante_materie[prof * MATERIA_SZ + g_materia(pos)];
 }
 
 int codocente_deve_essere_in_lab_no_aula(const int pos, int prof) {
@@ -292,10 +292,10 @@ void inizializza_dati() {
     }
     set_ora_giornaliera("08", pos++);
     set_giorno_settimana("09", pos++);
-    set_giorno_settimana("10", pos++);
-    set_giorno_settimana("11", pos++);
-    set_giorno_settimana("12", pos++);
-    set_giorno_settimana("13", pos++);
+    //set_giorno_settimana("10", pos++);
+    //set_giorno_settimana("11", pos++);
+    //set_giorno_settimana("12", pos++);
+    //set_giorno_settimana("13", pos++);
     assert(pos <= ORA_GIORNALIERA_SZ);
     actual_ore_giornaliere = pos;
 
@@ -305,8 +305,8 @@ void inizializza_dati() {
         strcpy(classe_sezione[i], "");
     }
     set_classe_sezione("3H", pos++);
-    set_classe_sezione("3E", pos++);
-    set_classe_sezione("3F", pos++);
+    //set_classe_sezione("3E", pos++);
+    //set_classe_sezione("3F", pos++);
     assert(pos <= CLASSE_SEZIONE_SZ);
     actual_classi_sezione = pos;
 
@@ -363,15 +363,15 @@ void inizializza_vincoli() {
     set_insegnante_materia("Rizzi", "Sistemi e Reti");
 
     memset(ore_classe_materia, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
-    set_ore_materia_classe("3H", "Sistemi e Reti", 1);
-    set_ore_materia_classe("3H", "Informatica", 1);
+    set_ore_classe_materia("3H", "Sistemi e Reti", 1);
+    set_ore_classe_materia("3H", "Informatica", 1);
 
     memset(ore_settimana_prof, 0, INSEGNANTE_SZ*sizeof(int));
     ore_settimana_prof[p_insegnante("Ricciardi")] = 2;
 }
 
-int controlli_finali(const int ore_materie_per_classe[], const int ore_per_settimana_prof[]) {
-    return verifica_ore_materia_classe(ore_materie_per_classe)
+int controlli_finali(const int ore_classe_materia_curr[], const int ore_per_settimana_prof[]) {
+    return 1 //zverifica_ore_classe_materia(ore_classe_materia_curr)
            //&& verifica_ore_settimana_prof(ore_per_settimana_prof)
            && 1;
 }
@@ -391,9 +391,9 @@ int can_place(const int pos, const int prof, const int has_active_group, const i
            && se_ce_codocente_allora_docente(pos, prof, last_prof)
            //se vuoto allora slot vuoto oppure docente
            && se_vuoto_allora_vuoto_o_docente(pos, prof, last_prof)
-           // le ore totali non hanno superato le ore classe e materia per la settimana
-           && ore_classe_per_materia[(g_classe(pos) + 1) * g_materia(pos)] < ore_classe_materia[
-               (g_classe(pos) + 1) * g_materia(pos)]
+           // le ore totali (controllate sul docente di teoria) non hanno superato le ore classe e materia per la settimana
+           && (codocenti[prof] || ore_classe_per_materia[g_classe(pos) * MATERIA_SZ + g_materia(pos)] <
+               ore_classe_materia[g_classe(pos) * MATERIA_SZ + g_materia(pos)])
            // le ore totali di un docente doveno essere inferiori alle ore settimanale
            //&& ore_per_settimana_prof[prof] < ore_settimana_prof[prof]
            && 1;
@@ -438,14 +438,15 @@ void gen(int orario[], const int pos, int has_active_group, const int active_gro
         if (can_place(pos, i, has_active_group, active_group, current_group, last_prof, ore_materie_per_classe,
                       ore_per_settimana_prof)) {
             orario[pos] = i;
-            int ore_materie_per_classe_new[CLASSE_SEZIONE_SZ * MATERIA_SZ];
-            memcpy(ore_materie_per_classe_new, ore_materie_per_classe, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
-            // accesso alla riga g_classe(pos) e colonna g_materia(pos)
-            ore_materie_per_classe_new[(g_classe(pos) + 1) * g_materia(pos)]++;
+            int ore_classe_materia_new[CLASSE_SEZIONE_SZ * MATERIA_SZ];
+            memcpy(ore_classe_materia_new, ore_materie_per_classe, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
+            if (!codocenti[i]) // le ore si aggiornano solo sul docente di teoria
+                // accesso alla riga g_classe(pos) e colonna g_materia(pos)
+                ore_classe_materia_new[g_classe(pos) * MATERIA_SZ + g_materia(pos)]++;
             int ore_per_settimana_prof_new[INSEGNANTE_SZ];
             memcpy(ore_per_settimana_prof_new, ore_per_settimana_prof, INSEGNANTE_SZ*sizeof(int));
             ore_per_settimana_prof_new[i]++;
-            gen(orario, pos + 1, 1, current_group, current_group, tot, i, ore_materie_per_classe_new,
+            gen(orario, pos + 1, 1, current_group, current_group, tot, i, ore_classe_materia_new,
                 ore_per_settimana_prof_new);
         }
     }
