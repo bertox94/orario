@@ -51,101 +51,8 @@ long long int n_gen_ok = 30;
 int orario_len;
 int giorno_ora_classe_sz;
 //Associazioni
-int insegnante_materie[INSEGNANTE_SZ][MAX_MATERIE_PER_INSEGNANTE] = {};
-int ore_materia_classe[CLASSE_SEZIONE_SZ][MATERIA_SZ] = {};
-
-void print_intestazioni() {
-    printf("Giorno:     ");
-    for (int i = 0; i < orario_len / actual_ore_giornaliere / actual_classi_sezione / actual_aula / actual_materie /
-                    MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; i++)
-        for (int j = 0; j < actual_ore_giornaliere * actual_classi_sezione * actual_aula * actual_materie *
-                        MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; j++)
-            printf("  %d", i % actual_giorni_settimana);
-    printf("\n");
-
-    printf("Ora:        ");
-    for (int i = 0; i < orario_len / actual_classi_sezione / actual_aula / actual_materie /
-                    MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; i++)
-        for (int j = 0; j < actual_classi_sezione * actual_aula * actual_materie * MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
-             j++)
-            printf("  %d", i % actual_ore_giornaliere);
-    printf("\n");
-
-
-    printf("Classe:     ");
-    for (int i = 0; i < orario_len / actual_aula / actual_materie / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; i++)
-        for (int j = 0; j < actual_aula * actual_materie * MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; j++)
-            printf("  %d", i % actual_classi_sezione);
-    printf("\n");
-
-    printf("Aula:       ");
-    for (int i = 0; i < orario_len / actual_materie / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; i++)
-        for (int j = 0; j < actual_materie * MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; j++)
-            printf("  %d", i % actual_aula);
-    printf("\n");
-
-    printf("Materia:    ");
-    for (int i = 0; i < orario_len / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; i++)
-        for (int j = 0; j < MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; j++)
-            printf("  %d", i % actual_materie);
-    printf("\n");
-
-    printf("Insegnante: ");
-    for (int i = 0; i < orario_len; i++)
-        printf("  %d", i % 2);
-    printf("\n");
-}
-
-int *allocate_int_array(const long max) {
-    int *arr = malloc(max * (long) sizeof(int));
-    if (arr == NULL) {
-        perror("malloc");
-        exit(EXIT_FAILURE);
-    }
-    return arr;
-}
-
-int **allocate_int_matrix(const long righe, const long colonne) {
-    // 1. Allocazione dell'array di puntatori alle righe
-    int **matrice = (int **) malloc(righe * sizeof(int *));
-    if (matrice == NULL) {
-        perror("malloc");
-        exit(EXIT_FAILURE);
-    }
-
-    // 2. Allocazione degli elementi per ogni riga
-    for (int i = 0; i < righe; i++) {
-        matrice[i] = (int *) malloc(colonne * sizeof(int));
-        if (matrice[i] == NULL) {
-            perror("malloc");
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    return matrice;
-}
-
-void free_int_matrix(int **matrix, const long righe) {
-    for (int i = 0; i < righe; i++) {
-        free(matrix[i]);
-    }
-    free(matrix);
-}
-
-void memset_int_matrix(int **matrix, const int val, const long righe, const long colonne) {
-    for (int i = 0; i < righe; i++) {
-        memset(matrix[i], val, colonne * sizeof(int));
-    }
-}
-
-void memset_string_matrix(char **matrix, const char val[], const long righe, const long colonne) {
-    for (int i = 0; i < righe; i++) {
-        if (strlen(val) < colonne)
-            strcpy(matrix[i], val);
-        else
-            assert(0);
-    }
-}
+int insegnante_materie[INSEGNANTE_SZ * MAX_MATERIE_PER_INSEGNANTE] = {};
+int ore_classe_materia[CLASSE_SEZIONE_SZ * MATERIA_SZ] = {};
 
 int p_aula(char a[]) {
     for (int i = 0; i < actual_aula; i++) {
@@ -153,6 +60,7 @@ int p_aula(char a[]) {
             return i;
     }
     assert(0);
+    return -1;
 }
 
 int p_materia(char mat[]) {
@@ -161,6 +69,7 @@ int p_materia(char mat[]) {
             return i;
     }
     assert(0);
+    return -1;
 }
 
 int p_classe_sezione(char cla[]) {
@@ -169,6 +78,7 @@ int p_classe_sezione(char cla[]) {
             return i;
     }
     assert(0);
+    return -1;
 }
 
 int p_insegnante(char in[]) {
@@ -177,206 +87,40 @@ int p_insegnante(char in[]) {
             return i;
     }
     assert(0);
+    return -1;
 }
 
-int g_materia(const int p) {
-    return p / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT % actual_materie;
-}
-
-int g_aula(const int p) {
-    return p / actual_materie / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT % actual_aula;
-}
-
-int g_classe(const int p) {
-    return p / actual_aula / actual_materie / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT % actual_classi_sezione;
-}
-
-int is_vuoto(const int p) {
-    return p == -1;
-}
-
-int is_docente(const int p) {
-    return !is_vuoto(p) && !codocenti[p];
-}
-
-int is_codocente(const int p) {
-    return !is_vuoto(p) && codocenti[p];
-}
-
-void inizializza_ore_docenti() {
-    for (int i = 0; i < INSEGNANTE_SZ; i++) {
-        if (strcmp(insegnanti[i], "") != 0)
-            ore_settimana_prof[i] = 2;
-    }
-}
-
-int verifica_ore_materia_classe(int ore_materie_per_classe[][MATERIA_SZ]) {
-    for (int i = 0; i < CLASSE_SEZIONE_SZ; i++)
-        for (int j = 0; j < MATERIA_SZ; j++)
-            if (ore_materia_classe[i][j] != ore_materie_per_classe[i][j])
-                return 0;
-    return 1;
-}
-
-int verifica_ore_settimana_prof(const int ore_per_settimana_prof[]) {
-    for (int i = 0; i < INSEGNANTE_SZ; i++)
-        if (ore_per_settimana_prof[i] != ore_settimana_prof[i])
-            return 0;
-    return 1;
-}
-
-int insegnante_materia_adeguata(const int pos, int prof) {
-    return insegnante_materie[prof][g_materia(pos)];
-}
-
-int codocente_deve_essere_in_lab_no_aula(const int pos, int prof) {
-    return !codocenti[prof] || laboratori[g_aula(pos)];
-}
-
-int se_ce_docente_allora_solo_o_codocente(const int pos, const int prof, const int last_prof) {
-    if (pos % MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT == 0) return 1;
-    return !is_docente(last_prof) || is_codocente(prof) || is_vuoto(prof);
-}
-
-int se_ce_codocente_allora_docente(const int pos, const int prof, const int last_prof) {
-    if (pos % MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT == 0) return 1;
-    return !is_codocente(last_prof) || is_docente(prof);
-}
-
-int se_vuoto_allora_vuoto_o_docente(const int pos, const int prof, const int last_prof) {
-    if (pos % MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT == 0) return 1;
-    return !is_vuoto(last_prof) || is_vuoto(prof) || is_docente(prof);
-}
-
-int controllo_prof_insieme(const int orario[], const int pos) {
-    int n_docenti = 0, n_codocenti = 0;
-    if (pos == 0) return 1;
-    for (int i = pos - 2; i < pos; i++) {
-        if (orario[i] == -1) continue;
-        codocenti[orario[i]] ? n_codocenti++ : n_docenti++;
-    }
-    // docente e codocente
-    return (n_docenti == 1 && n_codocenti == 1)
-           // docente solo
-           || (n_docenti == 1 && n_codocenti == 0)
-           //ora buca
-           || (n_docenti == 0 && n_codocenti == 0);
-}
-
-int can_place(const int pos, const int prof, const int has_active_group, const int active_group,
-              const int current_group, const int last_prof, int ore_materie_per_classe[][MATERIA_SZ],
-              const int ore_per_settimana_prof[]) {
-    /*Each day and hour, teachers can be only in a class, room and subject*/
-    return (!has_active_group || active_group == current_group)
-           //insegnante insegna la propria materia
-           && insegnante_materia_adeguata(pos, prof)
-           // il codocente può essere assegnato soltanto a un lab
-           && codocente_deve_essere_in_lab_no_aula(pos, prof)
-           //se è già presente un docente nel gruppo corrente allora può essere solo o con un codocente
-           && se_ce_docente_allora_solo_o_codocente(pos, prof, last_prof)
-           //se è già presente un codocente allora può esserci solo un docente
-           && se_ce_codocente_allora_docente(pos, prof, last_prof)
-           //se vuoto allora slot vuoto oppure docente
-           && se_vuoto_allora_vuoto_o_docente(pos, prof, last_prof)
-           // le ore totali non hanno superato le ore classe e materia per la settimana
-           && ore_materie_per_classe[g_classe(pos)][g_materia(pos)] < ore_materia_classe[g_classe(pos)][
-               g_materia(pos)]
-           // le ore totali di un docente doveno essere inferiori alle ore settimanale
-           && ore_per_settimana_prof[prof] < ore_settimana_prof[prof]
-           && 1;
-}
-
-// Do not pass s as parameter, the last part might form the previous calls.
-// Draw the recursion tree to analyze the problem
-void gen(int orario[], const int pos, int has_active_group, const int active_group, int current_group, const int tot,
-         const int last_prof, int ore_materie_per_classe[][MATERIA_SZ], const int ore_per_settimana_prof[]) {
-    if (n_gen_ok <= n_gen) return;
-
-    // Controlli a fine blocco giorno ora classe
-    if (pos % giorno_ora_classe_sz == 0) {
-    }
-
-    if (pos % MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT == 0)
-        if (!controllo_prof_insieme(orario, pos))
-            return;
-
-    if (pos == tot) {
-        if (!verifica_ore_materia_classe(ore_materie_per_classe)
-            || !verifica_ore_settimana_prof(ore_per_settimana_prof)) {
-            return;
-        }
-        n_gen++;
-        int rowlen = tot / actual_giorni_settimana;
-        for (int j = 0; j < actual_giorni_settimana; j++) {
-            printf("Giorno: %d   ", j + 1);
-            for (int i = j * rowlen; i < (j + 1) * rowlen; i++)
-                if (orario[i] == -1)
-                    printf("  -");
-                else
-                    printf("  %d", orario[i]);
-            printf("\n");
-        }
-        printf("\n");
-        return;
-    }
-
-    // reset params every giorno_ora_classe
-    if (pos % giorno_ora_classe_sz == 0)
-        has_active_group = 0;
-
-    if (pos % MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT == 0)
-        current_group = pos / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
-
-    orario[pos] = -1;
-    gen(orario, pos + 1, has_active_group, active_group, current_group, tot, -1, ore_materie_per_classe,
-        ore_per_settimana_prof);
-    for (int i = last_prof + 1; i < actual_insegnanti; i++) {
-        if (can_place(pos, i, has_active_group, active_group, current_group, last_prof, ore_materie_per_classe,
-                      ore_per_settimana_prof)) {
-            int ore_materie_per_classe_new[CLASSE_SEZIONE_SZ][MATERIA_SZ];
-            int ore_per_settimana_prof_new[INSEGNANTE_SZ];
-            memcpy(ore_materie_per_classe_new, ore_materie_per_classe, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
-            memcpy(ore_per_settimana_prof_new, ore_per_settimana_prof, INSEGNANTE_SZ*sizeof(int));
-            orario[pos] = i;
-            ore_materie_per_classe_new[g_classe(pos)][g_materia(pos)]++;
-            ore_per_settimana_prof_new[i]++;
-            gen(orario, pos + 1, 1, current_group, current_group, tot, i, ore_materie_per_classe_new,
-                ore_per_settimana_prof_new);
-        }
-    }
-}
-
-void set_giorno_settimana(char giorno[], int pos) {
+void set_giorno_settimana(char giorno[], const int pos) {
     assert(pos < GIORNO_SETTIMANA_SZ);
     assert(strlen(giorno) < GIORNO_SETTIMANA_ITEM_SZ);
     strcpy(giorni_settimana[pos], giorno);
 }
 
-void set_ora_giornaliera(char ora[], int pos) {
+void set_ora_giornaliera(char ora[], const int pos) {
     assert(pos < ORA_GIORNALIERA_SZ);
     assert(strlen(ora) < ORA_GIORNALIERA_ITEM_SZ);
     strcpy(ora_giornaliera[pos], ora);
 }
 
-void set_classe_sezione(char cla[], int pos) {
+void set_classe_sezione(char cla[], const int pos) {
     assert(pos < CLASSE_SEZIONE_SZ);
     assert(strlen(cla) < CLASSE_SEZIONE_ITEM_SZ);
     strcpy(classe_sezione[pos], cla);
 }
 
-void set_aula(char aul[], int pos) {
+void set_aula(char aul[], const int pos) {
     assert(pos < AULA_SZ);
     assert(strlen(aul) < AULA_ITEM_SZ);
     strcpy(aule[pos], aul);
 }
 
-void set_materia(char mat[], int pos) {
+void set_materia(char mat[], const int pos) {
     assert(pos < MATERIA_SZ);
     assert(strlen(mat) < MATERIA_ITEM_SZ);
     strcpy(materie[pos], mat);
 }
 
-void set_insegnante(char in[], int pos) {
+void set_insegnante(char in[], const int pos) {
     assert(pos < INSEGNANTE_SZ);
     assert(strlen(in) < INSEGNANTE_ITEM_SZ);
     strcpy(insegnanti[pos], in);
@@ -461,11 +205,11 @@ void set_codocente(char cod[]) {
 }
 
 void set_insegnante_materia(char in[], char mat[]) {
-    insegnante_materie[p_insegnante(in)][p_materia(mat)] = 1;
+    insegnante_materie[p_insegnante(in) * p_materia(mat) + p_materia(mat)] = 1;
 }
 
 void set_ore_materia_classe(char cla[], char mat[], int ore) {
-    ore_materia_classe[p_classe_sezione(cla)][p_materia(mat)] = ore;
+    ore_classe_materia[p_classe_sezione(cla) * p_materia(mat) + p_materia(mat)] = ore;
 }
 
 void inizializza_vincoli() {
@@ -485,7 +229,7 @@ void inizializza_vincoli() {
     set_insegnante_materia("Barosi", "Informatica");
     set_insegnante_materia("Rizzi", "Sistemi e Reti");
 
-    memset(ore_materia_classe, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
+    memset(ore_classe_materia, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
     set_ore_materia_classe("3H", "Sistemi e Reti", 1);
     set_ore_materia_classe("3H", "Informatica", 1);
 
@@ -493,6 +237,214 @@ void inizializza_vincoli() {
     ore_settimana_prof[p_insegnante("Ricciardi")] = 2;
 }
 
+
+void print_intestazioni() {
+    printf("Giorno:     ");
+    for (int i = 0; i < orario_len / actual_ore_giornaliere / actual_classi_sezione / actual_aula / actual_materie /
+                    MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; i++)
+        for (int j = 0; j < actual_ore_giornaliere * actual_classi_sezione * actual_aula * actual_materie *
+                        MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; j++)
+            printf("  %d", i % actual_giorni_settimana);
+    printf("\n");
+
+    printf("Ora:        ");
+    for (int i = 0; i < orario_len / actual_classi_sezione / actual_aula / actual_materie /
+                    MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; i++)
+        for (int j = 0; j < actual_classi_sezione * actual_aula * actual_materie * MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
+             j++)
+            printf("  %d", i % actual_ore_giornaliere);
+    printf("\n");
+
+
+    printf("Classe:     ");
+    for (int i = 0; i < orario_len / actual_aula / actual_materie / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; i++)
+        for (int j = 0; j < actual_aula * actual_materie * MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; j++)
+            printf("  %d", i % actual_classi_sezione);
+    printf("\n");
+
+    printf("Aula:       ");
+    for (int i = 0; i < orario_len / actual_materie / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; i++)
+        for (int j = 0; j < actual_materie * MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; j++)
+            printf("  %d", i % actual_aula);
+    printf("\n");
+
+    printf("Materia:    ");
+    for (int i = 0; i < orario_len / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; i++)
+        for (int j = 0; j < MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT; j++)
+            printf("  %d", i % actual_materie);
+    printf("\n");
+
+    printf("Insegnante: ");
+    for (int i = 0; i < orario_len; i++)
+        printf("  %d", i % 2);
+    printf("\n");
+}
+
+int g_materia(const int p) {
+    return p / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT % actual_materie;
+}
+
+int g_aula(const int p) {
+    return p / actual_materie / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT % actual_aula;
+}
+
+int g_classe(const int p) {
+    return p / actual_aula / actual_materie / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT % actual_classi_sezione;
+}
+
+int is_vuoto(const int p) {
+    return p == -1;
+}
+
+int is_docente(const int p) {
+    return !is_vuoto(p) && !codocenti[p];
+}
+
+int is_codocente(const int p) {
+    return !is_vuoto(p) && codocenti[p];
+}
+
+void inizializza_ore_docenti() {
+    for (int i = 0; i < INSEGNANTE_SZ; i++) {
+        if (strcmp(insegnanti[i], "") != 0)
+            ore_settimana_prof[i] = 2;
+    }
+}
+
+int verifica_ore_materia_classe(const int ore_classe_per_materia[]) {
+    for (int i = 0; i < CLASSE_SEZIONE_SZ * MATERIA_SZ; i++)
+        if (ore_classe_materia[i] != ore_classe_per_materia[i])
+            return 0;
+    return 1;
+}
+
+int verifica_ore_settimana_prof(const int ore_per_settimana_prof[]) {
+    for (int i = 0; i < INSEGNANTE_SZ; i++)
+        if (ore_per_settimana_prof[i] != ore_settimana_prof[i])
+            return 0;
+    return 1;
+}
+
+int insegnante_materia_adeguata(const int pos, int prof) {
+    return insegnante_materie[prof * g_materia(pos) + g_materia(pos)];
+}
+
+int codocente_deve_essere_in_lab_no_aula(const int pos, int prof) {
+    return !codocenti[prof] || laboratori[g_aula(pos)];
+}
+
+int se_ce_docente_allora_solo_o_codocente(const int pos, const int prof, const int last_prof) {
+    if (pos % MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT == 0) return 1;
+    return !is_docente(last_prof) || is_codocente(prof) || is_vuoto(prof);
+}
+
+int se_ce_codocente_allora_docente(const int pos, const int prof, const int last_prof) {
+    if (pos % MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT == 0) return 1;
+    return !is_codocente(last_prof) || is_docente(prof);
+}
+
+int se_vuoto_allora_vuoto_o_docente(const int pos, const int prof, const int last_prof) {
+    if (pos % MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT == 0) return 1;
+    return !is_vuoto(last_prof) || is_vuoto(prof) || is_docente(prof);
+}
+
+int controllo_prof_insieme(const int orario[], const int pos) {
+    int n_docenti = 0, n_codocenti = 0;
+    if (pos == 0) return 1;
+    for (int i = pos - 2; i < pos; i++) {
+        if (orario[i] == -1) continue;
+        codocenti[orario[i]] ? n_codocenti++ : n_docenti++;
+    }
+    // docente e codocente
+    return (n_docenti == 1 && n_codocenti == 1)
+           // docente solo
+           || (n_docenti == 1 && n_codocenti == 0)
+           //ora buca
+           || (n_docenti == 0 && n_codocenti == 0);
+}
+
+int can_place(const int pos, const int prof, const int has_active_group, const int active_group,
+              const int current_group, const int last_prof, const int ore_materie_per_classe[],
+              const int ore_per_settimana_prof[]) {
+    /*Each day and hour, teachers can be only in a class, room and subject*/
+    return (!has_active_group || active_group == current_group)
+           //insegnante insegna la propria materia
+           && insegnante_materia_adeguata(pos, prof)
+           // il codocente può essere assegnato soltanto a un lab
+           && codocente_deve_essere_in_lab_no_aula(pos, prof)
+           //se è già presente un docente nel gruppo corrente allora può essere solo o con un codocente
+           && se_ce_docente_allora_solo_o_codocente(pos, prof, last_prof)
+           //se è già presente un codocente allora può esserci solo un docente
+           && se_ce_codocente_allora_docente(pos, prof, last_prof)
+           //se vuoto allora slot vuoto oppure docente
+           && se_vuoto_allora_vuoto_o_docente(pos, prof, last_prof)
+           // le ore totali non hanno superato le ore classe e materia per la settimana
+           && ore_materie_per_classe[g_classe(pos) * g_materia(pos) + g_materia(pos)] < ore_classe_materia[
+               g_classe(pos) * g_materia(pos) + g_materia(pos)]
+           // le ore totali di un docente doveno essere inferiori alle ore settimanale
+           && ore_per_settimana_prof[prof] < ore_settimana_prof[prof]
+           && 1;
+}
+
+// Do not pass s as parameter, the last part might form the previous calls.
+// Draw the recursion tree to analyze the problem
+void gen(int orario[], const int pos, int has_active_group, const int active_group, int current_group, const int tot,
+         const int last_prof, int ore_materie_per_classe[], const int ore_per_settimana_prof[]) {
+    if (n_gen_ok <= n_gen) return;
+
+    // Controlli a fine blocco giorno ora classe
+    if (pos % giorno_ora_classe_sz == 0) {
+    }
+
+    if (pos % MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT == 0)
+        if (!controllo_prof_insieme(orario, pos))
+            return;
+
+    if (pos == tot) {
+        if (!verifica_ore_materia_classe(ore_materie_per_classe)
+            || !verifica_ore_settimana_prof(ore_per_settimana_prof)) {
+            return;
+        }
+        n_gen++;
+        int rowlen = tot / actual_giorni_settimana;
+        for (int j = 0; j < actual_giorni_settimana; j++) {
+            printf("Giorno: %d   ", j + 1);
+            for (int i = j * rowlen; i < (j + 1) * rowlen; i++)
+                if (orario[i] == -1)
+                    printf("  -");
+                else
+                    printf("  %d", orario[i]);
+            printf("\n");
+        }
+        printf("\n");
+        return;
+    }
+
+    // reset params every giorno_ora_classe
+    if (pos % giorno_ora_classe_sz == 0)
+        has_active_group = 0;
+
+    if (pos % MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT == 0)
+        current_group = pos / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
+
+    orario[pos] = -1;
+    gen(orario, pos + 1, has_active_group, active_group, current_group, tot, -1, ore_materie_per_classe,
+        ore_per_settimana_prof);
+    for (int i = last_prof + 1; i < actual_insegnanti; i++) {
+        if (can_place(pos, i, has_active_group, active_group, current_group, last_prof, ore_materie_per_classe,
+                      ore_per_settimana_prof)) {
+            int ore_materie_per_classe_new[CLASSE_SEZIONE_SZ * MATERIA_SZ];
+            int ore_per_settimana_prof_new[INSEGNANTE_SZ];
+            memcpy(ore_materie_per_classe_new, ore_materie_per_classe, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
+            memcpy(ore_per_settimana_prof_new, ore_per_settimana_prof, INSEGNANTE_SZ*sizeof(int));
+            orario[pos] = i;
+            ore_materie_per_classe_new[g_classe(pos) * g_materia(pos) + g_materia(pos)]++;
+            ore_per_settimana_prof_new[i]++;
+            gen(orario, pos + 1, 1, current_group, current_group, tot, i, ore_materie_per_classe_new,
+                ore_per_settimana_prof_new);
+        }
+    }
+}
 
 int main(void) {
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione * actual_aula * actual_materie
@@ -502,10 +454,10 @@ int main(void) {
     //test(100);
     print_intestazioni();
     int orario[orario_len];
-    int ore_materie_per_classe[CLASSE_SEZIONE_SZ][MATERIA_SZ];
+    int ore_materie_per_classe[CLASSE_SEZIONE_SZ * MATERIA_SZ];
     int ore_per_settimana_prof[INSEGNANTE_SZ];
     memset(orario, 0, orario_len*sizeof(int));
-    memset_int_matrix(ore_materie_per_classe, 0, CLASSE_SEZIONE_SZ, MATERIA_SZ);
+    memset(ore_materie_per_classe, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
     memset(ore_per_settimana_prof, 0, INSEGNANTE_SZ*sizeof(int));
     gen(orario, 0, 0, 0, 0, orario_len, -1, ore_materie_per_classe, ore_per_settimana_prof);
     printf("Totale generati: %llu\n", n_gen);
