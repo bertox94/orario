@@ -360,27 +360,24 @@ int controlli_finali(const int ore_classe_materia_curr[], const int ore_per_sett
            && 1;
 }
 
-int can_place(const int pos, const int prof, const int has_active_group, const int active_group,
-              const int current_group, const int last_prof, const int ore_classe_per_materia[],
+int can_place(const int pos, const int prof, const int last_prof, const int ore_classe_per_materia[],
               const int ore_per_settimana_prof[]) {
-    /*Each day and hour, teachers can be only in a class, room and subject*/
-    return (!has_active_group || active_group == current_group)
-           //insegnante insegna la propria materia
-           && insegnante_materia_adeguata(pos, prof)
-           // il codocente può essere assegnato soltanto a un lab
-           && codocente_deve_essere_in_lab_no_aula(pos, prof)
-           //se è già presente un docente nel gruppo corrente allora può essere solo o con un codocente
-           && se_ce_docente_allora_solo_o_codocente(pos, prof, last_prof)
-           //se è già presente un codocente allora può esserci solo un docente
-           && se_ce_codocente_allora_docente(pos, prof, last_prof)
-           //se vuoto allora slot vuoto oppure docente
-           && se_vuoto_allora_vuoto_o_docente(pos, prof, last_prof)
-           // le ore totali (controllate sul docente di teoria) non hanno superato le ore classe e materia per la settimana
-           && (codocenti[prof] || ore_classe_per_materia[g_classe(pos) * MATERIA_SZ + g_materia(pos)] <
-               ore_classe_materia[g_classe(pos) * MATERIA_SZ + g_materia(pos)])
-           // le ore totali di un docente doveno essere inferiori alle ore settimanale
-           && ore_per_settimana_prof[prof] < ore_settimana_prof[prof]
-           && 1;
+    return //insegnante insegna la propria materia
+            insegnante_materia_adeguata(pos, prof)
+            // il codocente può essere assegnato soltanto a un lab
+            && codocente_deve_essere_in_lab_no_aula(pos, prof)
+            //se è già presente un docente nel gruppo corrente allora può essere solo o con un codocente
+            && se_ce_docente_allora_solo_o_codocente(pos, prof, last_prof)
+            //se è già presente un codocente allora può esserci solo un docente
+            && se_ce_codocente_allora_docente(pos, prof, last_prof)
+            //se vuoto allora slot vuoto oppure docente
+            && se_vuoto_allora_vuoto_o_docente(pos, prof, last_prof)
+            // le ore totali (controllate sul docente di teoria) non hanno superato le ore classe e materia per la settimana
+            && (codocenti[prof] || ore_classe_per_materia[g_classe(pos) * MATERIA_SZ + g_materia(pos)] <
+                ore_classe_materia[g_classe(pos) * MATERIA_SZ + g_materia(pos)])
+            // le ore totali di un docente doveno essere inferiori alle ore settimanale
+            && ore_per_settimana_prof[prof] < ore_settimana_prof[prof]
+            && 1;
 }
 
 // Do not pass s as parameter, the last part might form the previous calls.
@@ -421,9 +418,8 @@ void gen(int orario[], const int pos, int has_active_group, const int active_gro
     gen(orario, pos + 1, has_active_group, active_group, current_group, tot, -1, ore_materie_per_classe,
         ore_per_settimana_prof);
     for (int i = last_prof + 1; i < actual_insegnanti; i++) {
-        if (1
-            || can_place(pos, i, has_active_group, active_group, current_group, last_prof, ore_materie_per_classe,
-                         ore_per_settimana_prof)) {
+        if ((!has_active_group || active_group == current_group)
+            && (1 || can_place(pos, i, last_prof, ore_materie_per_classe, ore_per_settimana_prof))) {
             orario[pos] = i;
             int ore_classe_materia_new[CLASSE_SEZIONE_SZ * MATERIA_SZ];
             memcpy(ore_classe_materia_new, ore_materie_per_classe, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
