@@ -363,6 +363,11 @@ int controllo_prof_insieme(const int orario[], const int pos) {
            || (n_docenti == 0 && n_codocenti == 0);
 }
 
+int controlli_finali(int ore_materie_per_classe[], int ore_per_settimana_prof[]) {
+    return verifica_ore_materia_classe(ore_materie_per_classe)
+           && verifica_ore_settimana_prof(ore_per_settimana_prof);
+}
+
 int can_place(const int pos, const int prof, const int has_active_group, const int active_group,
               const int current_group, const int last_prof, const int ore_materie_per_classe[],
               const int ore_per_settimana_prof[]) {
@@ -393,30 +398,25 @@ void gen(int orario[], const int pos, int has_active_group, const int active_gro
     if (n_gen_ok <= n_gen) return;
 
     // Controlli a fine blocco giorno ora classe
-    if (pos % giorno_ora_classe_sz == 0) {
-    }
-
-    if (pos % MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT == 0)
-        if (!controllo_prof_insieme(orario, pos))
-            return;
+    if (pos % MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT == 0
+        && !controllo_prof_insieme(orario, pos))
+        return;
 
     if (pos == tot) {
-        if (!verifica_ore_materia_classe(ore_materie_per_classe)
-            || !verifica_ore_settimana_prof(ore_per_settimana_prof)) {
-            return;
-        }
-        n_gen++;
-        int rowlen = tot / actual_giorni_settimana;
-        for (int j = 0; j < actual_giorni_settimana; j++) {
-            printf("Giorno: %d   ", j + 1);
-            for (int i = j * rowlen; i < (j + 1) * rowlen; i++)
-                if (orario[i] == -1)
-                    printf("  -");
-                else
-                    printf("  %d", orario[i]);
+        if (controlli_finali(ore_materie_per_classe, ore_per_settimana_prof)) {
+            n_gen++;
+            int rowlen = tot / actual_giorni_settimana;
+            for (int j = 0; j < actual_giorni_settimana; j++) {
+                printf("Giorno: %d   ", j + 1);
+                for (int i = j * rowlen; i < (j + 1) * rowlen; i++)
+                    if (orario[i] == -1)
+                        printf("  -");
+                    else
+                        printf("  %d", orario[i]);
+                printf("\n");
+            }
             printf("\n");
         }
-        printf("\n");
         return;
     }
 
@@ -433,12 +433,12 @@ void gen(int orario[], const int pos, int has_active_group, const int active_gro
     for (int i = last_prof + 1; i < actual_insegnanti; i++) {
         if (can_place(pos, i, has_active_group, active_group, current_group, last_prof, ore_materie_per_classe,
                       ore_per_settimana_prof)) {
-            int ore_materie_per_classe_new[CLASSE_SEZIONE_SZ * MATERIA_SZ];
-            int ore_per_settimana_prof_new[INSEGNANTE_SZ];
-            memcpy(ore_materie_per_classe_new, ore_materie_per_classe, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
-            memcpy(ore_per_settimana_prof_new, ore_per_settimana_prof, INSEGNANTE_SZ*sizeof(int));
             orario[pos] = i;
+            int ore_materie_per_classe_new[CLASSE_SEZIONE_SZ * MATERIA_SZ];
+            memcpy(ore_materie_per_classe_new, ore_materie_per_classe, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
             ore_materie_per_classe_new[g_classe(pos) * g_materia(pos) + g_materia(pos)]++;
+            int ore_per_settimana_prof_new[INSEGNANTE_SZ];
+            memcpy(ore_per_settimana_prof_new, ore_per_settimana_prof, INSEGNANTE_SZ*sizeof(int));
             ore_per_settimana_prof_new[i]++;
             gen(orario, pos + 1, 1, current_group, current_group, tot, i, ore_materie_per_classe_new,
                 ore_per_settimana_prof_new);
@@ -447,10 +447,10 @@ void gen(int orario[], const int pos, int has_active_group, const int active_gro
 }
 
 int main(void) {
-    orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione * actual_aula * actual_materie
-                 * MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
     inizializza_dati();
     inizializza_vincoli();
+    orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione * actual_aula * actual_materie
+                 * MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT;
     //test(100);
     print_intestazioni();
     int orario[orario_len];
