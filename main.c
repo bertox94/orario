@@ -451,8 +451,14 @@ void print_orario(elem orario[], const int pos, int has_active_group, const int 
 
     reset_params(pos, &has_active_group, &current_group);
 
-    //aula == -1 means there is no lesson, so skip materie and insegnanti
-    for (int h = -1; h < actual_aula; h++) {
+    orario[pos].aula = -1;
+    orario[pos].materia = -1;
+    orario[pos].insegnante1 = -1;
+    orario[pos].insegnante2 = -1;
+    print_orario(orario, pos + 1, 1, current_group, current_group, tot, ore_classe_materia,
+                 ore_per_settimana_prof_curr);
+
+    for (int h = 0; h < actual_aula; h++) {
         for (int m = 0; m < actual_materie; m++) {
             //ci può essere un solo insegnante perciò parte da -1
             for (int i = -1; i < actual_insegnanti; i++) {
