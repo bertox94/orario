@@ -480,9 +480,8 @@ void print_orario(int orario[][MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT], const int p
                     ore_classe_materia_new[g_classe(pos) * MATERIA_SZ + g_materia(pos)]++;
 
                     int ore_per_settimana_prof_new[INSEGNANTE_SZ];
-                    //why this modifies orario??
                     memcpy(ore_per_settimana_prof_new, ore_per_settimana_prof_curr, INSEGNANTE_SZ*sizeof(int));
-                    ore_per_settimana_prof_new[i]++;
+                    i == -1 ? : ore_per_settimana_prof_new[i]++;
                     ore_per_settimana_prof_new[j]++;
 
                     print_orario(orario, pos + 1, 1, current_group, current_group, tot, ore_classe_materia_new,
