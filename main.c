@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <iso646.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -66,13 +67,19 @@ int ore_classe_materia[CLASSE_SEZIONE_SZ * MATERIA_SZ] = {};
 void print_orario_form(const elem orario[], const int tot) {
     printf("Aula:       ");
     for (int i = 0; i < tot; i++) {
-        printf("  -");
+        if (orario[i].aula == -1)
+            printf("  -");
+        else
+            printf("  %d", orario[i].aula);
     }
     printf("\n");
 
     printf("Materia:    ");
     for (int i = 0; i < tot; i++) {
-        printf("  -");
+        if (orario[i].materia == -1)
+            printf("  -");
+        else
+            printf("  %d", orario[i].materia);
     }
     printf("\n");
 
@@ -310,7 +317,7 @@ void inizializza_dati() {
 
     pos = 0;
     set_classe_sezione("3H", pos++);
-    //set_classe_sezione("3E", pos++);
+    set_classe_sezione("3E", pos++);
     //set_classe_sezione("3F", pos++);
     for (int i = pos; i < CLASSE_SEZIONE_SZ; i++)
         set_classe_sezione("", i);
@@ -435,10 +442,10 @@ void print_orario(elem orario[], const int pos, int has_active_group, const int 
     if (n_gen_ok <= n_gen) return;
 
     if (pos == tot) {
-        if (controlli_finali(ore_classe_materia_curr, ore_per_settimana_prof_curr)) {
-            n_gen++;
-            print_orario_form(orario, tot);
-        }
+        //if (controlli_finali(ore_classe_materia_curr, ore_per_settimana_prof_curr)) {
+        n_gen++;
+        print_orario_form(orario, tot);
+        //}
         return;
     }
 
@@ -446,34 +453,17 @@ void print_orario(elem orario[], const int pos, int has_active_group, const int 
 
     //aula == -1 means there is no lesson, so skip materie and insegnanti
     for (int h = -1; h < actual_aula; h++) {
-        orario[pos].aula = h;
         for (int m = 0; m < actual_materie; m++) {
-            orario[pos].materia = m;
-            if (check_active_group_condition(has_active_group, active_group, current_group)) {
-                for (int i = 0; i < actual_insegnanti; i++) {
-                    for (int j = i + 1; j < actual_insegnanti; j++) {
-                        if (insegnante_materia_adeguata(pos, i, j)
-                            && codocente_deve_essere_in_lab_no_aula(pos, i, j)
-                            && controllo_prof_insieme(i, j)
-                            && ore_classe_materia_curr[g_classe(pos) * MATERIA_SZ + g_materia(pos)] <
-                            ore_classe_materia[g_classe(pos) * MATERIA_SZ + g_materia(pos)]
-                            && ore_per_settimana_prof_curr[i] < ore_settimana_prof[i]) {
-                            orario[pos].insegnante1 = i;
-                            orario[pos].insegnante2 = j;
-                            int ore_classe_materia_new[CLASSE_SEZIONE_SZ * MATERIA_SZ];
-                            memcpy(ore_classe_materia_new, ore_classe_materia_curr,
-                                   CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
-                            ore_classe_materia_new[g_classe(pos) * MATERIA_SZ + g_materia(pos)]++;
+            //ci può essere un solo insegnante perciò parte da -1
+            for (int i = -1; i < actual_insegnanti; i++) {
+                for (int j = i + 1; j < actual_insegnanti; j++) {
+                    orario[pos].aula = h;
+                    orario[pos].materia = m;
+                    orario[pos].insegnante1 = i;
+                    orario[pos].insegnante2 = j;
 
-                            int ore_per_settimana_prof_new[INSEGNANTE_SZ];
-                            memcpy(ore_per_settimana_prof_new, ore_per_settimana_prof_curr, INSEGNANTE_SZ*sizeof(int));
-                            i == -1 ? : ore_per_settimana_prof_new[i]++;
-                            ore_per_settimana_prof_new[j]++;
-
-                            print_orario(orario, pos + 1, 1, current_group, current_group, tot, ore_classe_materia_new,
-                                         ore_per_settimana_prof_new);
-                        }
-                    }
+                    print_orario(orario, pos + 1, 1, current_group, current_group, tot, ore_classe_materia,
+                                 ore_per_settimana_prof_curr);
                 }
             }
         }
