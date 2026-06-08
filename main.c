@@ -48,31 +48,50 @@ int actual_laboratori;
 int actual_materie;
 int actual_insegnanti;
 
+typedef struct {
+    int aula;
+    int materia;
+    int insegnante1;
+    int insegnante2;
+} elem;
+
 long long int n_gen = 0;
-long long int n_gen_ok = 30000000;
+long long int n_gen_ok = 30;
 int orario_len;
 int giorno_ora_classe_sz;
 //Associazioni
 int insegnante_materie[INSEGNANTE_SZ * MAX_MATERIE_PER_INSEGNANTE] = {};
 int ore_classe_materia[CLASSE_SEZIONE_SZ * MATERIA_SZ] = {};
 
-void print_orario_form(const int (*orario)[AULA_SZ][MATERIA_SZ][MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT], const int tot) {
-    printf("            ");
+void print_orario_form(const elem orario[], const int tot) {
+    printf("Aula:       ");
     for (int i = 0; i < tot; i++) {
-        if (orario[i][0] == -1)
-            printf("  -");
-        else
-            printf("  %d", orario[i][0]);
+        printf("  -");
     }
     printf("\n");
-    printf("            ");
+
+    printf("Materia:    ");
     for (int i = 0; i < tot; i++) {
-        if (orario[i][1] == -1)
+        printf("  -");
+    }
+    printf("\n");
+
+    printf("Prof:       ");
+    for (int i = 0; i < tot; i++) {
+        if (orario[i].insegnante1 == -1)
             printf("  -");
         else
-            printf("  %d", orario[i][1]);
+            printf("  %d", orario[i].insegnante1);
     }
-    printf("\n              ");
+    printf("\n");
+    printf("Prof:       ");
+    for (int i = 0; i < tot; i++) {
+        if (orario[i].insegnante2 == -1)
+            printf("  -");
+        else
+            printf("  %d", orario[i].insegnante2);
+    }
+    printf("\n            ");
     for (int i = 0; i < tot; i++) {
         printf("---");
     }
@@ -360,9 +379,8 @@ int check_active_group_condition(int has_active_group, const int active_group, i
     return !has_active_group || active_group == current_group;
 }
 
-void print_orario(int orario[][AULA_SZ][MATERIA_SZ][MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT], const int pos,
-                  int has_active_group, const int active_group, int current_group, const int tot,
-                  int ore_classe_materia_curr[], const int ore_per_settimana_prof_curr[]) {
+void print_orario_old(elem orario[], const int pos, int has_active_group, const int active_group, int current_group,
+                      const int tot, int ore_classe_materia_curr[], const int ore_per_settimana_prof_curr[]) {
     if (n_gen_ok <= n_gen) return;
 
     if (pos == tot) {
@@ -375,31 +393,87 @@ void print_orario(int orario[][AULA_SZ][MATERIA_SZ][MAX_PROF_IN_SAME_CLASS_ROOM_
 
     reset_params(pos, &has_active_group, &current_group);
 
-    SET_PAIR(orario, pos, -1, -1);
-    print_orario(orario, pos + 1, has_active_group, active_group, current_group, tot, ore_classe_materia_curr,
-                 ore_per_settimana_prof_curr);
+    //aula == -1 means there is no lesson, so skip materie and insegnanti
+    for (int h = -1; h < actual_aula; h++) {
+        orario[pos].aula = h;
+        for (int m = 0; m < actual_materie; m++) {
+            orario[pos].materia = m;
+            if (check_active_group_condition(has_active_group, active_group, current_group)) {
+                for (int i = 0; i < actual_insegnanti; i++) {
+                    for (int j = i + 1; j < actual_insegnanti; j++) {
+                        if (insegnante_materia_adeguata(pos, i, j)
+                            && codocente_deve_essere_in_lab_no_aula(pos, i, j)
+                            && controllo_prof_insieme(i, j)
+                            && ore_classe_materia_curr[g_classe(pos) * MATERIA_SZ + g_materia(pos)] <
+                            ore_classe_materia[g_classe(pos) * MATERIA_SZ + g_materia(pos)]
+                            && ore_per_settimana_prof_curr[i] < ore_settimana_prof[i]) {
+                            orario[pos].insegnante1 = i;
+                            orario[pos].insegnante2 = j;
+                            int ore_classe_materia_new[CLASSE_SEZIONE_SZ * MATERIA_SZ];
+                            memcpy(ore_classe_materia_new, ore_classe_materia_curr,
+                                   CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
+                            ore_classe_materia_new[g_classe(pos) * MATERIA_SZ + g_materia(pos)]++;
 
-    if (check_active_group_condition(has_active_group, active_group, current_group)) {
-        for (int i = -1; i < actual_insegnanti; i++) {
-            for (int j = i + 1; j < actual_insegnanti; j++) {
-                if (insegnante_materia_adeguata(pos, i, j)
-                    && codocente_deve_essere_in_lab_no_aula(pos, i, j)
-                    && controllo_prof_insieme(i, j)
-                    && ore_classe_materia_curr[g_classe(pos) * MATERIA_SZ + g_materia(pos)] <
-                    ore_classe_materia[g_classe(pos) * MATERIA_SZ + g_materia(pos)]
-                    && ore_per_settimana_prof_curr[i] < ore_settimana_prof[i]) {
-                    SET_PAIR(orario, pos, i, j);
-                    int ore_classe_materia_new[CLASSE_SEZIONE_SZ * MATERIA_SZ];
-                    memcpy(ore_classe_materia_new, ore_classe_materia_curr, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
-                    ore_classe_materia_new[g_classe(pos) * MATERIA_SZ + g_materia(pos)]++;
+                            int ore_per_settimana_prof_new[INSEGNANTE_SZ];
+                            memcpy(ore_per_settimana_prof_new, ore_per_settimana_prof_curr, INSEGNANTE_SZ*sizeof(int));
+                            i == -1 ? : ore_per_settimana_prof_new[i]++;
+                            ore_per_settimana_prof_new[j]++;
 
-                    int ore_per_settimana_prof_new[INSEGNANTE_SZ];
-                    memcpy(ore_per_settimana_prof_new, ore_per_settimana_prof_curr, INSEGNANTE_SZ*sizeof(int));
-                    i == -1 ? : ore_per_settimana_prof_new[i]++;
-                    ore_per_settimana_prof_new[j]++;
+                            print_orario_old(orario, pos + 1, 1, current_group, current_group, tot,
+                                             ore_classe_materia_new,
+                                             ore_per_settimana_prof_new);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
-                    print_orario(orario, pos + 1, 1, current_group, current_group, tot, ore_classe_materia_new,
-                                 ore_per_settimana_prof_new);
+void print_orario(elem orario[], const int pos, int has_active_group, const int active_group, int current_group,
+                  const int tot, int ore_classe_materia_curr[], const int ore_per_settimana_prof_curr[]) {
+    if (n_gen_ok <= n_gen) return;
+
+    if (pos == tot) {
+        if (controlli_finali(ore_classe_materia_curr, ore_per_settimana_prof_curr)) {
+            n_gen++;
+            print_orario_form(orario, tot);
+        }
+        return;
+    }
+
+    reset_params(pos, &has_active_group, &current_group);
+
+    //aula == -1 means there is no lesson, so skip materie and insegnanti
+    for (int h = -1; h < actual_aula; h++) {
+        orario[pos].aula = h;
+        for (int m = 0; m < actual_materie; m++) {
+            orario[pos].materia = m;
+            if (check_active_group_condition(has_active_group, active_group, current_group)) {
+                for (int i = 0; i < actual_insegnanti; i++) {
+                    for (int j = i + 1; j < actual_insegnanti; j++) {
+                        if (insegnante_materia_adeguata(pos, i, j)
+                            && codocente_deve_essere_in_lab_no_aula(pos, i, j)
+                            && controllo_prof_insieme(i, j)
+                            && ore_classe_materia_curr[g_classe(pos) * MATERIA_SZ + g_materia(pos)] <
+                            ore_classe_materia[g_classe(pos) * MATERIA_SZ + g_materia(pos)]
+                            && ore_per_settimana_prof_curr[i] < ore_settimana_prof[i]) {
+                            orario[pos].insegnante1 = i;
+                            orario[pos].insegnante2 = j;
+                            int ore_classe_materia_new[CLASSE_SEZIONE_SZ * MATERIA_SZ];
+                            memcpy(ore_classe_materia_new, ore_classe_materia_curr,
+                                   CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
+                            ore_classe_materia_new[g_classe(pos) * MATERIA_SZ + g_materia(pos)]++;
+
+                            int ore_per_settimana_prof_new[INSEGNANTE_SZ];
+                            memcpy(ore_per_settimana_prof_new, ore_per_settimana_prof_curr, INSEGNANTE_SZ*sizeof(int));
+                            i == -1 ? : ore_per_settimana_prof_new[i]++;
+                            ore_per_settimana_prof_new[j]++;
+
+                            print_orario(orario, pos + 1, 1, current_group, current_group, tot, ore_classe_materia_new,
+                                         ore_per_settimana_prof_new);
+                        }
+                    }
                 }
             }
         }
@@ -414,7 +488,7 @@ int main(void) {
     //test(100);
 
     print_intestazioni(orario_len);
-    int orario[orario_len][AULA_SZ][MATERIA_SZ][MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT];
+    elem orario[orario_len];
     int ore_materie_per_classe[CLASSE_SEZIONE_SZ * MATERIA_SZ];
     int ore_per_settimana_prof[INSEGNANTE_SZ];
     memset(orario, 0, orario_len*sizeof(int));
