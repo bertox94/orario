@@ -252,9 +252,9 @@ int insegnante_materia_adeguata(const int pos, int prof1, int prof2) {
            && insegnante_materie[prof2 * MATERIA_SZ + g_materia(pos)];
 }
 
-int codocente_deve_essere_in_lab_no_aula(const int pos, int prof) {
-    if (prof == -1) return 1;
-    return !codocenti[prof] || laboratori[g_aula(pos)];
+int codocente_deve_essere_in_lab_no_aula(const int pos, int prof1, int prof2) {
+    return (prof1 == -1 || !codocenti[prof1] || laboratori[g_aula(pos)])
+           && (!codocenti[prof2] || laboratori[g_aula(pos)]);
 }
 
 int se_ce_docente_allora_solo_o_codocente(const int pos, const int prof, const int last_prof) {
@@ -377,9 +377,9 @@ int can_place(const int pos, const int prof, const int last_prof, const int ore_
     return //insegnante insegna la propria materia
             //insegnante_materia_adeguata(pos, prof)
             // il codocente può essere assegnato soltanto a un lab
-            codocente_deve_essere_in_lab_no_aula(pos, prof)
+            //codocente_deve_essere_in_lab_no_aula(pos, prof)
             //se è già presente un docente nel gruppo corrente allora può essere solo o con un codocente
-            && se_ce_docente_allora_solo_o_codocente(pos, prof, last_prof)
+            se_ce_docente_allora_solo_o_codocente(pos, prof, last_prof)
             //se è già presente un codocente allora può esserci solo un docente
             && se_ce_codocente_allora_docente(pos, prof, last_prof)
             //se vuoto allora slot vuoto oppure docente
@@ -472,7 +472,8 @@ void print_orario(int orario[][MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT], const int p
     if (check_active_group_condition(has_active_group, active_group, current_group)) {
         for (int i = -1; i < actual_insegnanti; i++) {
             for (int j = i + 1; j < actual_insegnanti; j++) {
-                if (insegnante_materia_adeguata(pos, i, j)) {
+                if (insegnante_materia_adeguata(pos, i, j)
+                    && codocente_deve_essere_in_lab_no_aula(pos, i, j)) {
                     orario[pos][0] = i;
                     orario[pos][1] = j;
                     print_orario(orario, pos + 1, 1, current_group, current_group, tot, ore_materie_per_classe,
