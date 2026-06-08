@@ -247,11 +247,13 @@ void reset_params(const int pos, int *has_active_group, int *current_group) {
     *current_group = pos;
 }
 
-int insegnante_materia_adeguata(const int pos, int prof) {
-    return prof == -1 || insegnante_materie[prof * MATERIA_SZ + g_materia(pos)];
+int insegnante_materia_adeguata(const int pos, int prof1, int prof2) {
+    return (prof1 == -1 || insegnante_materie[prof1 * MATERIA_SZ + g_materia(pos)])
+           && insegnante_materie[prof2 * MATERIA_SZ + g_materia(pos)];
 }
 
 int codocente_deve_essere_in_lab_no_aula(const int pos, int prof) {
+    if (prof == -1) return 1;
     return !codocenti[prof] || laboratori[g_aula(pos)];
 }
 
@@ -373,9 +375,9 @@ int controlli_finali(const int ore_classe_materia_curr[], const int ore_per_sett
 int can_place(const int pos, const int prof, const int last_prof, const int ore_classe_per_materia[],
               const int ore_per_settimana_prof[]) {
     return //insegnante insegna la propria materia
-            insegnante_materia_adeguata(pos, prof)
+            //insegnante_materia_adeguata(pos, prof)
             // il codocente può essere assegnato soltanto a un lab
-            && codocente_deve_essere_in_lab_no_aula(pos, prof)
+            codocente_deve_essere_in_lab_no_aula(pos, prof)
             //se è già presente un docente nel gruppo corrente allora può essere solo o con un codocente
             && se_ce_docente_allora_solo_o_codocente(pos, prof, last_prof)
             //se è già presente un codocente allora può esserci solo un docente
@@ -467,12 +469,11 @@ void print_orario(int orario[][MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT], const int p
     print_orario(orario, pos + 1, has_active_group, active_group, current_group, tot, ore_materie_per_classe,
                  ore_per_settimana_prof);
 
-    for (int i = -1; i < actual_insegnanti; i++) {
-        if (check_active_group_condition(has_active_group, active_group, current_group)
-            && insegnante_materia_adeguata(pos, i)) {
-            orario[pos][0] = i;
+    if (check_active_group_condition(has_active_group, active_group, current_group)) {
+        for (int i = -1; i < actual_insegnanti; i++) {
             for (int j = i + 1; j < actual_insegnanti; j++) {
-                if (insegnante_materia_adeguata(pos, j)) {
+                if (insegnante_materia_adeguata(pos, i, j)) {
+                    orario[pos][0] = i;
                     orario[pos][1] = j;
                     print_orario(orario, pos + 1, 1, current_group, current_group, tot, ore_materie_per_classe,
                                  ore_per_settimana_prof);
