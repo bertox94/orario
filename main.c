@@ -171,30 +171,30 @@ void print_intestazioni(const long len) {
     printf("Giorno:     ");
     for (int i = 0; i < len; i++)
         printf("  %d",
-               i / actual_ore_giornaliere / actual_classi_sezione / actual_aula / actual_materie %
-               actual_giorni_settimana);
+               i / actual_ore_giornaliere / actual_classi_sezione % actual_giorni_settimana);
     printf("\n");
 
     printf("Ora:        ");
     for (int i = 0; i < len; i++)
-        printf("  %d", i / actual_classi_sezione / actual_aula / actual_materie % actual_ore_giornaliere);
+        printf("  %d", i / actual_classi_sezione % actual_ore_giornaliere);
     printf("\n");
 
 
     printf("Classe:     ");
     for (int i = 0; i < len; i++)
-        printf("  %d", i / actual_aula / actual_materie % actual_classi_sezione);
+        printf("  %d", i % actual_classi_sezione);
     printf("\n");
+    /*
+        printf("Aula:       ");
+        for (int i = 0; i < len; i++)
+            printf("  %d", i / actual_materie % actual_aula);
+        printf("\n");
 
-    printf("Aula:       ");
-    for (int i = 0; i < len; i++)
-        printf("  %d", i / actual_materie % actual_aula);
-    printf("\n");
-
-    printf("Materia:    ");
-    for (int i = 0; i < len; i++)
-        printf("  %d", i % actual_materie);
-    printf("\n");
+        printf("Materia:    ");
+        for (int i = 0; i < len; i++)
+            printf("  %d", i % actual_materie);
+        printf("\n");
+        */
 }
 
 int g_materia(const int p) {
@@ -409,8 +409,7 @@ void print_orario(int orario[][MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT], const int p
 int main(void) {
     inizializza_dati();
     inizializza_vincoli();
-    orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione * actual_aula *
-                 actual_materie;
+    orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
     giorno_ora_classe_sz = actual_aula * actual_materie;
     //test(100);
 
