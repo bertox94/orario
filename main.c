@@ -352,81 +352,8 @@ void inizializza_vincoli() {
 
 int controlli_finali(const int ore_classe_materia_curr[], const int ore_per_settimana_prof[]) {
     return verifica_ore_classe_materia(ore_classe_materia_curr)
-           //&& verifica_ore_settimana_prof(ore_per_settimana_prof)
+           && verifica_ore_settimana_prof(ore_per_settimana_prof)
            && 1;
-}
-
-int can_place(const int pos, const int prof, const int last_prof, const int ore_classe_per_materia[],
-              const int ore_per_settimana_prof[]) {
-    return //insegnante insegna la propria materia
-            //insegnante_materia_adeguata(pos, prof)
-            // il codocente può essere assegnato soltanto a un lab
-            //codocente_deve_essere_in_lab_no_aula(pos, prof)
-            //se è già presente un docente nel gruppo corrente allora può essere solo o con un codocente
-            //se_ce_docente_allora_solo_o_codocente(pos, prof, last_prof)
-            //se è già presente un codocente allora può esserci solo un docente
-            //&& se_ce_codocente_allora_docente(pos, prof, last_prof)
-            //se vuoto allora slot vuoto oppure docente
-            //&& se_vuoto_allora_vuoto_o_docente(pos, prof, last_prof)
-            // le ore totali (controllate sul docente di teoria) non hanno superato le ore classe e materia per la settimana
-            // le ore totali di un docente doveno essere inferiori alle ore settimanale
-            ore_per_settimana_prof[prof] < ore_settimana_prof[prof]
-            && 1;
-}
-
-// Do not pass s as parameter, the last part might form the previous calls.
-// Draw the recursion tree to analyze the problem
-void gen(int orario[], const int pos, int has_active_group, const int active_group, int current_group, const int tot,
-         const int last_prof, int ore_materie_per_classe[], const int ore_per_settimana_prof[]) {
-    if (n_gen_ok <= n_gen) return;
-
-    // Controlli a fine blocco giorno ora classe
-    if (0 &&
-        pos % MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT == 0
-        /*&& !controllo_prof_insieme(orario, pos)*/)
-        return;
-
-    if (pos == tot) {
-        if (1
-            || controlli_finali(ore_materie_per_classe, ore_per_settimana_prof)) {
-            n_gen++;
-            int rowlen = tot / actual_giorni_settimana;
-            for (int j = 0; j < actual_giorni_settimana; j++) {
-                printf("Giorno: %d   ", j + 1);
-                for (int i = j * rowlen; i < (j + 1) * rowlen; i++)
-                    if (orario[i] == -1)
-                        printf("  -");
-                    else
-                        printf("  %d", orario[i]);
-                printf("\n");
-            }
-            printf("\n");
-        }
-        return;
-    }
-
-    // reset params every giorno_ora_classe
-    reset_params(pos, &has_active_group, &current_group);
-
-    orario[pos] = -1;
-    gen(orario, pos + 1, has_active_group, active_group, current_group, tot, -1, ore_materie_per_classe,
-        ore_per_settimana_prof);
-    for (int i = last_prof + 1; i < actual_insegnanti; i++) {
-        if ((!has_active_group || active_group == current_group)
-            && (1 || can_place(pos, i, last_prof, ore_materie_per_classe, ore_per_settimana_prof))) {
-            orario[pos] = i;
-            int ore_classe_materia_new[CLASSE_SEZIONE_SZ * MATERIA_SZ];
-            memcpy(ore_classe_materia_new, ore_materie_per_classe, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
-            if (!codocenti[i]) // le ore si aggiornano solo sul docente di teoria
-                // accesso alla riga g_classe(pos) e colonna g_materia(pos)
-                ore_classe_materia_new[g_classe(pos) * MATERIA_SZ + g_materia(pos)]++;
-            int ore_per_settimana_prof_new[INSEGNANTE_SZ];
-            memcpy(ore_per_settimana_prof_new, ore_per_settimana_prof, INSEGNANTE_SZ*sizeof(int));
-            ore_per_settimana_prof_new[i]++;
-            gen(orario, pos + 1, 1, current_group, current_group, tot, i, ore_classe_materia_new,
-                ore_per_settimana_prof_new);
-        }
-    }
 }
 
 int check_active_group_condition(int has_active_group, const int active_group, int current_group) {
@@ -459,7 +386,8 @@ void print_orario(int orario[][MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT], const int p
                     && codocente_deve_essere_in_lab_no_aula(pos, i, j)
                     && controllo_prof_insieme(i, j)
                     && ore_classe_materia_curr[g_classe(pos) * MATERIA_SZ + g_materia(pos)] <
-                    ore_classe_materia[g_classe(pos) * MATERIA_SZ + g_materia(pos)]) {
+                    ore_classe_materia[g_classe(pos) * MATERIA_SZ + g_materia(pos)]
+                    && ore_per_settimana_prof_curr[i] < ore_settimana_prof[i]) {
                     SET_PAIR(orario, pos, i, j);
                     int ore_classe_materia_new[CLASSE_SEZIONE_SZ * MATERIA_SZ];
                     memcpy(ore_classe_materia_new, ore_classe_materia_curr, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
