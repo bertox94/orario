@@ -56,7 +56,7 @@ int giorno_ora_classe_sz;
 int insegnante_materie[INSEGNANTE_SZ * MAX_MATERIE_PER_INSEGNANTE] = {};
 int ore_classe_materia[CLASSE_SEZIONE_SZ * MATERIA_SZ] = {};
 
-void print_orario_form(const int (*orario)[MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT], const int tot) {
+void print_orario_form(const int (*orario)[AULA_SZ][MATERIA_SZ][MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT], const int tot) {
     printf("            ");
     for (int i = 0; i < tot; i++) {
         if (orario[i][0] == -1)
@@ -360,9 +360,9 @@ int check_active_group_condition(int has_active_group, const int active_group, i
     return !has_active_group || active_group == current_group;
 }
 
-void print_orario(int orario[][MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT], const int pos, int has_active_group,
-                  const int active_group, int current_group, const int tot, int ore_classe_materia_curr[],
-                  const int ore_per_settimana_prof_curr[]) {
+void print_orario(int orario[][AULA_SZ][MATERIA_SZ][MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT], const int pos,
+                  int has_active_group, const int active_group, int current_group, const int tot,
+                  int ore_classe_materia_curr[], const int ore_per_settimana_prof_curr[]) {
     if (n_gen_ok <= n_gen) return;
 
     if (pos == tot) {
@@ -414,7 +414,7 @@ int main(void) {
     //test(100);
 
     print_intestazioni(orario_len);
-    int orario[orario_len][MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT];
+    int orario[orario_len][AULA_SZ][MATERIA_SZ][MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT];
     int ore_materie_per_classe[CLASSE_SEZIONE_SZ * MATERIA_SZ];
     int ore_per_settimana_prof[INSEGNANTE_SZ];
     memset(orario, 0, orario_len*sizeof(int));
