@@ -196,15 +196,15 @@ void print_intestazioni(const long len) {
 }
 
 int g_materia(const int p) {
-    return p / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT % actual_materie;
+    return p % actual_materie;
 }
 
 int g_aula(const int p) {
-    return p / actual_materie / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT % actual_aula;
+    return p / actual_materie % actual_aula;
 }
 
 int g_classe(const int p) {
-    return p / actual_aula / actual_materie / MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT % actual_classi_sezione;
+    return p / actual_aula / actual_materie % actual_classi_sezione;
 }
 
 int is_vuoto(const int p) {
@@ -248,7 +248,7 @@ void reset_params(const int pos, int *has_active_group, int *current_group) {
 }
 
 int insegnante_materia_adeguata(const int pos, int prof) {
-    return insegnante_materie[prof * MATERIA_SZ + g_materia(pos)];
+    return prof == -1 || insegnante_materie[prof * MATERIA_SZ + g_materia(pos)];
 }
 
 int codocente_deve_essere_in_lab_no_aula(const int pos, int prof) {
@@ -468,12 +468,15 @@ void print_orario(int orario[][MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT], const int p
                  ore_per_settimana_prof);
 
     for (int i = -1; i < actual_insegnanti; i++) {
-        if (check_active_group_condition(has_active_group, active_group, current_group)) {
+        if (check_active_group_condition(has_active_group, active_group, current_group)
+            && insegnante_materia_adeguata(pos, i)) {
             orario[pos][0] = i;
             for (int j = i + 1; j < actual_insegnanti; j++) {
-                orario[pos][1] = j;
-                print_orario(orario, pos + 1, 1, current_group, current_group, tot, ore_materie_per_classe,
-                             ore_per_settimana_prof);
+                if (insegnante_materia_adeguata(pos, j)) {
+                    orario[pos][1] = j;
+                    print_orario(orario, pos + 1, 1, current_group, current_group, tot, ore_materie_per_classe,
+                                 ore_per_settimana_prof);
+                }
             }
         }
     }
