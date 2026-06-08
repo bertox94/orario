@@ -259,24 +259,9 @@ int codocente_deve_essere_in_lab_no_aula(const int pos, int prof1, int prof2) {
            && (!codocenti[prof2] || laboratori[g_aula(pos)]);
 }
 
-int se_ce_docente_allora_solo_o_codocente(const int pos, const int prof, const int last_prof) {
-    if (pos % MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT == 0) return 1;
-    return !is_docente(last_prof) || is_codocente(prof) || is_vuoto(prof);
-}
-
-int se_ce_codocente_allora_docente(const int pos, const int prof, const int last_prof) {
-    if (pos % MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT == 0) return 1;
-    return !is_codocente(last_prof) || is_docente(prof);
-}
-
-int se_vuoto_allora_vuoto_o_docente(const int pos, const int prof, const int last_prof) {
-    if (pos % MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT == 0) return 1;
-    return !is_vuoto(last_prof) || is_vuoto(prof) || is_docente(prof);
-}
-
 int controllo_prof_insieme(const int prof1, const int prof2) {
-    int n_docenti = (prof1 == -1 ? 0 : !codocenti[prof1]) + (prof2 == -1 ? 0 : !codocenti[prof2]);
-    int n_codocenti = (prof1 == -1 ? 0 : codocenti[prof1]) + (prof2 == -1 ? 0 : codocenti[prof2]);
+    int n_docenti = is_docente(prof1) + is_docente(prof2);
+    int n_codocenti = is_codocente(prof1) + is_codocente(prof2);
     // docente e codocente
     return (n_docenti == 1 && n_codocenti == 1)
            // docente solo
@@ -288,6 +273,7 @@ int controllo_prof_insieme(const int prof1, const int prof2) {
 void inizializza_dati() {
     int pos = 0;
     set_giorno_settimana("Lun", pos++);
+    set_giorno_settimana("Mar", pos++);
     for (int i = pos; i < GIORNO_SETTIMANA_SZ; i++)
         set_giorno_settimana("", i);
     actual_giorni_settimana = pos;
@@ -295,10 +281,10 @@ void inizializza_dati() {
     pos = 0;
     set_ora_giornaliera("08", pos++);
     set_giorno_settimana("09", pos++);
-    //set_giorno_settimana("10", pos++);
-    //set_giorno_settimana("11", pos++);
-    //set_giorno_settimana("12", pos++);
-    //set_giorno_settimana("13", pos++);
+    set_giorno_settimana("10", pos++);
+    set_giorno_settimana("11", pos++);
+    set_giorno_settimana("12", pos++);
+    set_giorno_settimana("13", pos++);
     for (int i = pos; i < ORA_GIORNALIERA_SZ; i++)
         set_ora_giornaliera("", i);
     actual_ore_giornaliere = pos;
