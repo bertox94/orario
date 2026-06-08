@@ -474,14 +474,13 @@ void print_orario(int orario[][MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT], const int p
                     && controllo_prof_insieme(i, j)
                     && ore_classe_materia_curr[g_classe(pos) * MATERIA_SZ + g_materia(pos)] <
                     ore_classe_materia[g_classe(pos) * MATERIA_SZ + g_materia(pos)]) {
-                    //SET_PAIR(orario, pos, i, j);
-                    orario[pos][0] = i;
-                    orario[pos][1] = j;
+                    SET_PAIR(orario, pos, i, j);
                     int ore_classe_materia_new[CLASSE_SEZIONE_SZ * MATERIA_SZ];
                     memcpy(ore_classe_materia_new, ore_classe_materia_curr, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
                     ore_classe_materia_new[g_classe(pos) * MATERIA_SZ + g_materia(pos)]++;
 
                     int ore_per_settimana_prof_new[INSEGNANTE_SZ];
+                    //why this modifies orario??
                     memcpy(ore_per_settimana_prof_new, ore_per_settimana_prof_curr, INSEGNANTE_SZ*sizeof(int));
                     ore_per_settimana_prof_new[i]++;
                     ore_per_settimana_prof_new[j]++;
