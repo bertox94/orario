@@ -57,9 +57,9 @@ typedef struct {
 } elem;
 
 long long int n_gen = 0;
-long long int n_gen_ok = 799999999;
+long long int n_gen_ok = 30;
 int orario_len;
-int giorno_ora_classe_sz;
+int giorno_ora_classi_sz;
 //Associazioni
 int insegnante_materie[INSEGNANTE_SZ * MAX_MATERIE_PER_INSEGNANTE] = {};
 int ore_classe_materia[CLASSE_SEZIONE_SZ * MATERIA_SZ] = {};
@@ -344,18 +344,23 @@ void inizializza_vincoli() {
     set_insegnante_materia("Rizzi", "Sistemi e Reti");
 
     memset(ore_classe_materia, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
-    set_ore_classe_materia("3H", "Sistemi e Reti", 1);
+    set_ore_classe_materia("3H", "Sistemi e Reti", 2);
     set_ore_classe_materia("3H", "Informatica", 1);
+    set_ore_classe_materia("3E", "Sistemi e Reti", 2);
+    set_ore_classe_materia("3E", "Informatica", 1);
 
     memset(ore_settimana_prof, 0, INSEGNANTE_SZ*sizeof(int));
-    ore_settimana_prof[p_insegnante("Ricciardi")] = 1;
-    ore_settimana_prof[p_insegnante("Tiraboschi")] = 1;
+    ore_settimana_prof[p_insegnante("Ricciardi")] = 2;
+    ore_settimana_prof[p_insegnante("Gatti")] = 2;
+    ore_settimana_prof[p_insegnante("Tiraboschi")] = 2;
     ore_settimana_prof[p_insegnante("Barosi")] = 1;
+
+    //vincolo classi materia insegnanti
 }
 
 int controlli_finali(const int ore_classe_materia_curr[], const int ore_per_settimana_prof[]) {
-    return 1 //verifica_ore_classe_materia(ore_classe_materia_curr)
-           //&& verifica_ore_settimana_prof(ore_per_settimana_prof)
+    return verifica_ore_classe_materia(ore_classe_materia_curr)
+           && verifica_ore_settimana_prof(ore_per_settimana_prof)
            && 1;
 }
 
@@ -372,7 +377,7 @@ void print_orario(elem orario[], const int pos, const int tot, int prof_gia_in_c
         return;
     }
 
-    pos % giorno_ora_classe_sz != 0 ? : memset(prof_gia_in_classe_curr, 0, INSEGNANTE_SZ*sizeof(int));
+    pos % giorno_ora_classi_sz != 0 ? : memset(prof_gia_in_classe_curr, 0, INSEGNANTE_SZ*sizeof(int));
 
     orario[pos] = (elem){-1, -1, -1, -1};
     print_orario(orario, pos + 1, tot, prof_gia_in_classe_curr, ore_classe_materia_curr, ore_per_settimana_prof_curr);
@@ -421,7 +426,7 @@ int main(void) {
     inizializza_dati();
     inizializza_vincoli();
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
-    giorno_ora_classe_sz = actual_classi_sezione;
+    giorno_ora_classi_sz = actual_classi_sezione;
     //test(100);
 
     print_intestazioni(orario_len);
