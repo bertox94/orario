@@ -35,6 +35,7 @@ int codocenti[INSEGNANTE_SZ]; //non possono avere lezione da soli
 int giorno_libero_prof[INSEGNANTE_SZ];
 int ore_settimana_prof[INSEGNANTE_SZ];
 
+int ore_classe_materia[CLASSE_SEZIONE_SZ * MATERIA_SZ];
 int ore_insegnanti_classe_materia[CLASSE_SEZIONE_SZ * MATERIA_SZ * INSEGNANTE_SZ];
 
 int actual_giorni_settimana;
