@@ -4,7 +4,7 @@
 
 #ifndef UNTITLED_END_OF_BLOCK_CONSTRAINTS_H
 #define UNTITLED_END_OF_BLOCK_CONSTRAINTS_H
-#include "associations.h"
+
 
 int verifica_ore_classe_materia(const int ore_classe_per_materia[]) {
     /*for (int i = 0; i < CLASSE_SEZIONE_SZ * MATERIA_SZ; i++)

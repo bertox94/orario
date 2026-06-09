@@ -7,7 +7,7 @@
 
 int prof_in_classe(const int prof1, const int prof2, int prof_in_classe[]);
 
-int insegnanti_materia_adeguata(const int cla, const int mat, const int prof1, const int prof2);
+int insegnanti_ore_materia_adeguata(const int cla, const int mat, const int prof1, const int prof2);
 
 int codocente_deve_essere_in_lab_no_aula(const int aula, int prof1, int prof2);
 

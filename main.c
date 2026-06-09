@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
+
+#include "database_initializers.h"
 #include "printing.h"
 #include "progressive_constraints.h"
 #include "end_of_block_constraints.h"
@@ -41,7 +43,7 @@ void print_orario(elem orario[], const int pos, const int tot, int prof_gia_in_c
             for (int i = -1; i < actual_insegnanti; i++) {
                 for (int j = i + 1; j < actual_insegnanti; j++) {
                     if (prof_in_classe(i, j, prof_gia_in_classe_curr)
-                        && insegnanti_materia_adeguata(g_classe(pos), m, i, j)
+                        && insegnanti_ore_materia_adeguata(g_classe(pos), m, i, j)
                         && codocente_deve_essere_in_lab_no_aula(h, i, j)
                         && controllo_prof_insieme(i, j)
                         //&& ore_classe_materia_curr[g_classe(pos) * MATERIA_SZ + m] <

@@ -6,7 +6,6 @@
 
 #include "database_initializers.h"
 #include "professor_functions.h"
-#include "associations.h"
 
 int prof_in_classe(const int prof1, const int prof2, const int prof_in_classe[]) {
     assert(prof2 != -1);
@@ -14,7 +13,7 @@ int prof_in_classe(const int prof1, const int prof2, const int prof_in_classe[])
            && !prof_in_classe[prof2];
 }
 
-int insegnanti_materia_adeguata(const int cla, const int mat, const int prof1, const int prof2) {
+int insegnanti_ore_materia_adeguata(const int cla, const int mat, const int prof1, const int prof2) {
     assert(prof2 != -1);
     /*return (prof1 == -1 || ore_insegnanti_classe_materia[
                 cla * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ + prof1])

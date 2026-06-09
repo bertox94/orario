@@ -35,6 +35,8 @@ int codocenti[INSEGNANTE_SZ]; //non possono avere lezione da soli
 int giorno_libero_prof[INSEGNANTE_SZ];
 int ore_settimana_prof[INSEGNANTE_SZ];
 
+int ore_insegnanti_classe_materia[CLASSE_SEZIONE_SZ * MATERIA_SZ * INSEGNANTE_SZ];
+
 int actual_giorni_settimana;
 int actual_ore_giornaliere;
 int actual_classi_sezione;
@@ -71,4 +73,9 @@ void set_codocente(char cod[]);
 void inizializza_dati();
 
 void inizializza_vincoli();
+
+void set_classe_materia_ore_prof(char cla[], char mat[], const int ore, const char prof[]);
+
+void set_classe_materia_ore_prof_codocenza(char cla[], char mat[], const int ore, const char prof[], const int ore_cod,
+                                           const char cod[]);
 #endif //UNTITLED_CONSTANTS_H

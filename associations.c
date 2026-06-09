@@ -1,5 +1,3 @@
-#include "associations.h"
-
 #include "database_initializers.h"
 #include "find_positions.h"
 //

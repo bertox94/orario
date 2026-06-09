@@ -13,8 +13,6 @@
 #include <assert.h>
 #include <string.h>
 
-#include "associations.h"
-
 void set_giorno_settimana(char giorno[], const int pos) {
     assert(pos < GIORNO_SETTIMANA_SZ);
     assert(strlen(giorno) < GIORNO_SETTIMANA_ITEM_SZ);
@@ -57,6 +55,17 @@ void set_laboratorio(char lab[]) {
 
 void set_codocente(char cod[]) {
     codocenti[p_insegnante(cod)] = 1;
+}
+
+void set_classe_materia_ore_prof(char cla[], char mat[], const int ore, const char prof[]) {
+    ore_insegnanti_classe_materia[p_classe_sezione(cla) * MATERIA_SZ * INSEGNANTE_SZ + p_materia(mat) *
+                                  INSEGNANTE_SZ + p_insegnante(prof)] = ore;
+}
+
+void set_classe_materia_ore_prof_codocenza(char cla[], char mat[], const int ore, const char prof[], const int ore_cod,
+                                           const char cod[]) {
+    set_classe_materia_ore_prof(cla, mat, ore, prof);
+    set_classe_materia_ore_prof(cla, mat, ore_cod, cod);
 }
 
 void inizializza_dati() {
