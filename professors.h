@@ -9,4 +9,5 @@ char Tiraboschi[] = "Tiraboschi";
 char Gatti[] = "Gatti";
 char Barosi[] = "Barosi";
 char Rizzi[] = "Rizzi";
+
 #endif //UNTITLED_PROFESSORS_H

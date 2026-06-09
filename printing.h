@@ -1,0 +1,70 @@
+//
+// Created by Alberto Tiraboschi on 09/06/2026.
+//
+
+#ifndef UNTITLED_PRINTING_H
+#define UNTITLED_PRINTING_H
+
+#include "database_initializers.h"
+
+void print_orario_form(const elem orario[], const int tot) {
+    printf("Aula:       ");
+    for (int i = 0; i < tot; i++) {
+        if (orario[i].aula == -1)
+            printf("  -");
+        else
+            printf("  %d", orario[i].aula);
+    }
+    printf("\n");
+
+    printf("Materia:    ");
+    for (int i = 0; i < tot; i++) {
+        if (orario[i].materia == -1)
+            printf("  -");
+        else
+            printf("  %d", orario[i].materia);
+    }
+    printf("\n");
+
+    printf("Prof:       ");
+    for (int i = 0; i < tot; i++) {
+        if (orario[i].insegnante1 == -1)
+            printf("  -");
+        else
+            printf("  %d", orario[i].insegnante1);
+    }
+    printf("\n");
+    printf("Prof:       ");
+    for (int i = 0; i < tot; i++) {
+        if (orario[i].insegnante2 == -1)
+            printf("  -");
+        else
+            printf("  %d", orario[i].insegnante2);
+    }
+    printf("\n            ");
+    for (int i = 0; i < tot; i++) {
+        printf("---");
+    }
+    printf("\n");
+}
+
+
+void print_intestazioni(const long len) {
+    printf("Giorno:     ");
+    for (int i = 0; i < len; i++)
+        printf(" %c%c",
+               giorni_settimana[i / actual_ore_giornaliere / actual_classi_sezione % actual_giorni_settimana][0],
+               giorni_settimana[i / actual_ore_giornaliere / actual_classi_sezione % actual_giorni_settimana][1]);
+    printf("\n");
+
+    printf("Ora:        ");
+    for (int i = 0; i < len; i++)
+        printf(" %s", ora_giornaliera[i / actual_classi_sezione % actual_ore_giornaliere]);
+    printf("\n");
+
+    printf("Classe:     ");
+    for (int i = 0; i < len; i++)
+        printf(" %s", classe_sezione[i % actual_classi_sezione]);
+    printf("\n");
+}
+#endif //UNTITLED_PRINTING_H
