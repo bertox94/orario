@@ -1,9 +1,14 @@
 #include <assert.h>
-#include <iso646.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
+#include "classes.h"
+#include "days.h"
+#include "hours.h"
+#include "professors.h"
+#include "rooms.h"
+#include "subjects.h"
 
 #define GIORNO_SETTIMANA_SZ 6
 #define GIORNO_SETTIMANA_ITEM_SZ 4
@@ -63,43 +68,6 @@ int giorno_ora_classi_sz;
 //Associazioni
 int ore_classe_materia[CLASSE_SEZIONE_SZ * MATERIA_SZ] = {};
 int insegnanti_classe_materia[CLASSE_SEZIONE_SZ * MATERIA_SZ * INSEGNANTE_SZ] = {};
-
-//GIORNI
-char Lun[] = "Lun";
-char Mar[] = "Mar";
-char Mer[] = "Mer";
-char Gio[] = "Gio";
-char Ven[] = "Ven";
-char Sab[] = "Sab";
-
-//ORE
-char Ora_08[] = "08";
-char Ora_09[] = "09";
-char Ora_10[] = "10";
-char Ora_11[] = "11";
-char Ora_12[] = "12";
-char Ora_13[] = "13";
-
-//CLASSI
-char Classe_3H[] = "3H";
-char Classe_3E[] = "3E";
-char Classe_3F[] = "3F";
-
-//AULE
-char PS16[] = "PS16";
-char INFO1[] = "INFO1";
-char INFO0[] = "INFO0";
-
-//MATERIE
-char Informatica[] = "Informatica";
-char Sistemi_e_Reti[] = "Sistemi e Reti";
-
-//PROF
-char Ricciardi[] = "Ricciardi";
-char Tiraboschi[] = "Tiraboschi";
-char Gatti[] = "Gatti";
-char Barosi[] = "Barosi";
-char Rizzi[] = "Rizzi";
 
 void print_orario_form(const elem orario[], const int tot) {
     printf("Aula:       ");
