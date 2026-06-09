@@ -20,11 +20,11 @@ int g_classe(const int p) {
 }
 
 void print_orario(elem orario[], const int pos, const int tot, int prof_gia_in_classe_curr[],
-                  int ore_classe_materia_curr[]) {
+                  int ore_classe_materia_curr[], int ore_insegnanti_classe_materia_curr[]) {
     if (n_gen_ok <= n_gen) return;
 
     if (pos == tot) {
-        if (verifica_ore_classe_materia(ore_classe_materia_curr)
+        if (verifica_ore_classe_materia(ore_insegnanti_classe_materia_curr)
             /*&& verifica_ore_settimana_prof(ore_per_settimana_prof_curr)*/) {
             n_gen++;
             print_orario_form(orario, tot);
@@ -35,7 +35,8 @@ void print_orario(elem orario[], const int pos, const int tot, int prof_gia_in_c
     pos % giorno_ora_classi_sz != 0 ? NULL : memset(prof_gia_in_classe_curr, 0, INSEGNANTE_SZ*sizeof(int));
 
     orario[pos] = (elem){-1, -1, -1, -1};
-    print_orario(orario, pos + 1, tot, prof_gia_in_classe_curr, ore_classe_materia_curr);
+    print_orario(orario, pos + 1, tot, prof_gia_in_classe_curr, ore_classe_materia_curr,
+                 ore_insegnanti_classe_materia_curr);
 
     for (int h = 0; h < actual_aula; h++) {
         for (int m = 0; m < actual_materie; m++) {
@@ -54,7 +55,7 @@ void print_orario(elem orario[], const int pos, const int tot, int prof_gia_in_c
 
                         int ore_classe_materia_new[CLASSE_SEZIONE_SZ * MATERIA_SZ];
                         int prof_gia_in_classe_new[INSEGNANTE_SZ];
-                        memcpy(ore_classe_materia_new, ore_classe_materia_curr,
+                        memcpy(ore_classe_materia_new, ore_insegnanti_classe_materia_curr,
                                CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
                         memcpy(prof_gia_in_classe_new, prof_gia_in_classe_curr, INSEGNANTE_SZ*sizeof(int));
 
@@ -64,7 +65,8 @@ void print_orario(elem orario[], const int pos, const int tot, int prof_gia_in_c
                         ore_classe_materia_new[g_classe(pos) * MATERIA_SZ + m]++;
                         prof_gia_in_classe_new[j] = 1;
 
-                        print_orario(orario, pos + 1, tot, prof_gia_in_classe_new, ore_classe_materia_new);
+                        print_orario(orario, pos + 1, tot, prof_gia_in_classe_new, ore_classe_materia_new,
+                                     ore_insegnanti_classe_materia_curr);
                     }
                 }
             }
@@ -82,12 +84,14 @@ int main(void) {
     print_intestazioni(orario_len);
     elem orario[orario_len];
     int ore_insegnanti_classe_materia_curr[CLASSE_SEZIONE_SZ * MATERIA_SZ * INSEGNANTE_SZ];
+    int ore_classe_materia_curr[CLASSE_SEZIONE_SZ * MATERIA_SZ];
     int prof_gia_in_classe[INSEGNANTE_SZ];
     memset(orario, 0, orario_len*sizeof(int));
     memset(ore_insegnanti_classe_materia_curr, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*INSEGNANTE_SZ*sizeof(int));
     memset(prof_gia_in_classe, 0, INSEGNANTE_SZ*sizeof(int));
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
-    print_orario(orario, 0, orario_len, prof_gia_in_classe, ore_insegnanti_classe_materia_curr);
+    print_orario(orario, 0, orario_len, prof_gia_in_classe, ore_classe_materia_curr,
+                 ore_insegnanti_classe_materia_curr);
 
     printf("Totale generati: %llu\n", n_gen);
     fflush(stdout);
