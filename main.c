@@ -62,7 +62,7 @@ int orario_len;
 int giorno_ora_classi_sz;
 //Associazioni
 int ore_classe_materia[CLASSE_SEZIONE_SZ * MATERIA_SZ] = {};
-int insegnante_classe_materia[CLASSE_SEZIONE_SZ * MATERIA_SZ] = {};
+int insegnanti_classe_materia[CLASSE_SEZIONE_SZ * MATERIA_SZ * INSEGNANTE_SZ] = {};
 
 //GIORNI
 char Lun[] = "Lun";
@@ -224,8 +224,11 @@ void set_codocente(char cod[]) {
 
 void set_classe_materia_ore_prof(char cla[], char mat[], const int ore, const char prof[], const char codocente[]) {
     ore_classe_materia[p_classe_sezione(cla) * MATERIA_SZ + p_materia(mat)] = ore;
-    insegnante_classe_materia[p_classe_sezione(cla) * MATERIA_SZ + p_materia(mat)] = p_insegnante(prof);
-    //agigungi codocente
+    insegnanti_classe_materia[p_classe_sezione(cla) * MATERIA_SZ * INSEGNANTE_SZ + p_materia(mat) *
+                              INSEGNANTE_SZ + p_insegnante(prof)]++;
+    codocente ? :insegnanti_classe_materia[
+        p_classe_sezione(cla) * MATERIA_SZ * INSEGNANTE_SZ + p_materia(mat) *
+        INSEGNANTE_SZ + p_insegnante(codocente)]++;
 }
 
 void print_intestazioni(const long len) {
@@ -283,11 +286,10 @@ int prof_in_classe(const int prof1, const int prof2, int prof_in_classe[]) {
            && !prof_in_classe[prof2];
 }
 
-int insegnanti_materia_adeguata(const int mat, int prof1, int prof2) {
+int insegnanti_materia_adeguata(const int cla, const int mat, int prof1, int prof2) {
     assert(prof2 != -1);
-    /*return (prof1 == -1 || insegnante_materie[prof1 * MATERIA_SZ + mat])
-           && insegnante_materie[prof2 * MATERIA_SZ + mat];
-           */
+    return (prof1 == -1 || insegnanti_classe_materia[cla * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ + prof1])
+           && insegnanti_classe_materia[cla * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ + prof2];
 }
 
 
@@ -371,19 +373,12 @@ void inizializza_vincoli() {
     set_codocente("Rizzi");
     set_codocente("Barosi");
 
-    memset(insegnante_materie, 0, INSEGNANTE_SZ*MATERIA_SZ*sizeof(int));
-    set_insegnante_materia("Ricciardi", "Sistemi e Reti");
-    set_insegnante_materia("Tiraboschi", "Sistemi e Reti");
-    set_insegnante_materia("Tiraboschi", "Informatica");
-    set_insegnante_materia("Gatti", "Informatica");
-    set_insegnante_materia("Barosi", "Informatica");
-    set_insegnante_materia("Rizzi", "Sistemi e Reti");
-
     memset(ore_classe_materia, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
-    set_classe_materia_ore_prof("3H", "Sistemi e Reti", 2, Ricciardi);
-    set_classe_materia_ore_prof("3H", "Informatica", 1, Gatti);
-    set_classe_materia_ore_prof("3E", "Sistemi e Reti", 2, Ricciardi);
-    set_classe_materia_ore_prof("3E", "Informatica", 1, Gatti);
+    memset(insegnanti_classe_materia, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*INSEGNANTE_SZ*sizeof(int));
+    set_classe_materia_ore_prof("3H", "Sistemi e Reti", 2, Ricciardi, Barosi);
+    set_classe_materia_ore_prof("3H", "Informatica", 1, Gatti, Barosi);
+    set_classe_materia_ore_prof("3E", "Sistemi e Reti", 2, Ricciardi, Rizzi);
+    set_classe_materia_ore_prof("3E", "Informatica", 1, Gatti, Rizzi);
 
     memset(ore_settimana_prof, 0, INSEGNANTE_SZ*sizeof(int));
     ore_settimana_prof[p_insegnante("Ricciardi")] = 2;
@@ -401,8 +396,7 @@ int controlli_finali(const int ore_classe_materia_curr[], const int ore_per_sett
 }
 
 void print_orario(elem orario[], const int pos, const int tot, int prof_gia_in_classe_curr[],
-                  int ore_classe_materia_curr[],
-                  const int ore_per_settimana_prof_curr[]) {
+                  int ore_classe_materia_curr[], const int ore_per_settimana_prof_curr[]) {
     if (n_gen_ok <= n_gen) return;
 
     if (pos == tot) {
@@ -424,7 +418,7 @@ void print_orario(elem orario[], const int pos, const int tot, int prof_gia_in_c
             for (int i = -1; i < actual_insegnanti; i++) {
                 for (int j = i + 1; j < actual_insegnanti; j++) {
                     if (prof_in_classe(i, j, prof_gia_in_classe_curr)
-                        && insegnanti_materia_adeguata(m, i, j)
+                        && insegnanti_materia_adeguata(g_classe(pos), m, i, j)
                         && codocente_deve_essere_in_lab_no_aula(h, i, j)
                         && controllo_prof_insieme(i, j)
                         && ore_classe_materia_curr[g_classe(pos) * MATERIA_SZ + m] <
