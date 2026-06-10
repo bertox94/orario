@@ -133,14 +133,14 @@ void inizializza_vincoli() {
     set_codocente(Rizzi);
     set_codocente(Barosi);
 
-    /*
-        memset(ore_classe_materia, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
-        memset(ore_insegnanti_classe_materia, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*INSEGNANTE_SZ*sizeof(int));
-        set_classe_materia_ore_prof_codocenza(Classe_3H, Sistemi_e_Reti, 2, Ricciardi, 1, Barosi);
-        set_classe_materia_ore_prof_codocenza(Classe_3H, Informatica, 1, Gatti, 1, Barosi);
-        //set_classe_materia_ore_prof(Classe_3E, Sistemi_e_Reti, 2, Ricciardi, Rizzi);
-        //set_classe_materia_ore_prof(Classe_3E, Informatica, 1, Gatti, Rizzi);
-        */
+
+    memset(ore_classe_materia, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
+    memset(ore_insegnanti_classe_materia, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*INSEGNANTE_SZ*sizeof(int));
+    set_classe_materia_ore_prof_codocenza(Classe_3H, Sistemi_e_Reti, 2, Ricciardi, 1, Barosi);
+    set_classe_materia_ore_prof_codocenza(Classe_3H, Informatica, 1, Gatti, 1, Barosi);
+    //set_classe_materia_ore_prof(Classe_3E, Sistemi_e_Reti, 2, Ricciardi, Rizzi);
+    //set_classe_materia_ore_prof(Classe_3E, Informatica, 1, Gatti, Rizzi);
+
 
     memset(ore_settimana_prof, 0, INSEGNANTE_SZ*sizeof(int));
     ore_settimana_prof[p_insegnante(Ricciardi)] = 2;

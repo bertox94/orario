@@ -21,6 +21,4 @@ add_executable(untitled main.c
         progressive_constraints.c
         professor_functions.c
         professor_functions.h
-        associations.h
-        associations.c
 )
