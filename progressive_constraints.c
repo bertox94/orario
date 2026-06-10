@@ -11,10 +11,19 @@ int g_classe(const int p) {
     return p % actual_classi_sezione;
 }
 
-int prof_in_classe(const int prof1, const int prof2, const int prof_in_classe[]) {
+int prof_in_classe(elem orario[], const long pos, int prof1, int prof2) {
     assert(prof2 != -1);
-    return (is_vuoto(prof1) || !prof_in_classe[prof1])
-           && !prof_in_classe[prof2];
+
+    if (prof1 != -1)
+        for (int i = pos - pos % actual_classi_sezione; i < pos; i++) {
+            if (orario[i].insegnante1 == prof1)
+                return 0;
+        }
+    for (int i = pos - pos % actual_classi_sezione; i < pos; i++) {
+        if (orario[i].insegnante2 == prof2)
+            return 0;
+    }
+    return 1;
 }
 
 int insegnanti_ore_materia_adeguata(const int cla, const int mat, const int prof1, const int prof2) {
@@ -43,7 +52,17 @@ int controllo_prof_insieme(const int prof1, const int prof2) {
            || (n_docenti == 0 && n_codocenti == 0);
 }
 
-int is_teacher_eligible_for_class(const int pos, const int *ore_insegnanti_classe_materia_curr, const int mat, const int prof) {
-    return ore_insegnanti_classe_materia_curr[g_classe(pos) * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ + prof] <
-           ore_insegnanti_classe_materia[g_classe(pos) * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ + prof];
+int is_teacher_eligible_for_class(elem orario[], const int pos, const int mat, const int prof) {
+    if (prof != -1) {
+        int sum = 0;
+        for (int i = 0; i < pos; i++)
+            sum += orario[i].insegnante1 == prof && orario[i].materia == mat && g_classe(i) == g_classe(pos);
+        for (int i = 0; i < pos; i++)
+            sum += orario[i].insegnante2 == prof && orario[i].materia == mat && g_classe(i) == g_classe(pos);
+        return sum < ore_insegnanti_classe_materia[
+                   g_classe(pos) * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ + prof];
+    }
+    return 1;
+    /*    return ore_insegnanti_classe_materia_curr[g_classe(pos) * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ + prof] <
+               ore_insegnanti_classe_materia[g_classe(pos) * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ + prof];*/
 }
