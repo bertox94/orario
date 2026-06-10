@@ -58,9 +58,6 @@ void set_codocente(char cod[]) {
 }
 
 void set_classe_materia_ore_prof(char cla[], char mat[], const int ore, const char prof[]) {
-    if (ore > ore_classe_materia[p_classe_sezione(cla) * MATERIA_SZ + p_materia(mat)])
-        ore_classe_materia[p_classe_sezione(cla) * MATERIA_SZ + p_materia(mat)] = ore;
-
     ore_insegnanti_classe_materia[p_classe_sezione(cla) * MATERIA_SZ * INSEGNANTE_SZ + p_materia(mat) *
                                   INSEGNANTE_SZ + p_insegnante(prof)] = ore;
 }
@@ -134,7 +131,6 @@ void inizializza_vincoli() {
     set_codocente(Barosi);
 
 
-    memset(ore_classe_materia, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*sizeof(int));
     memset(ore_insegnanti_classe_materia, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*INSEGNANTE_SZ*sizeof(int));
     set_classe_materia_ore_prof_codocenza(Classe_3H, Sistemi_e_Reti, 2, Ricciardi, 1, Barosi);
     set_classe_materia_ore_prof_codocenza(Classe_3H, Informatica, 1, Gatti, 1, Barosi);
