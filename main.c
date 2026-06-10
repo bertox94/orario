@@ -46,12 +46,17 @@ void print_orario(elem orario[], const int pos, const int tot, int prof_gia_in_c
                     if (prof_in_classe(i, j, prof_gia_in_classe_curr)
                         && codocente_deve_essere_in_lab_no_aula(h, i, j)
                         && controllo_prof_insieme(i, j)
-                        // ore svolte da prof 1 < ore tot di prof 1
+                        // ore svolte da prof 1 < ore tot di prof 1 (va bene anche se non ha orem verificando se quel prof può insegnare in quella classe)
                         && (i == -1 || ore_insegnanti_classe_materia_curr[
-                                g_classe(pos) * MATERIA_SZ * INSEGNANTE_SZ + m * INSEGNANTE_SZ + i] <)
-                        && insegnanti_ore_materia_adeguata(g_classe(pos), m, i, j)
-                        //&& ore_classe_materia_curr[g_classe(pos) * MATERIA_SZ + m] <
-                        //ore_classe_materia[g_classe(pos) * MATERIA_SZ + m]
+                                g_classe(pos) * MATERIA_SZ * INSEGNANTE_SZ + m * INSEGNANTE_SZ + i] <
+                            ore_insegnanti_classe_materia[
+                                g_classe(pos) * MATERIA_SZ * INSEGNANTE_SZ + m * INSEGNANTE_SZ + i])
+                        && ore_insegnanti_classe_materia_curr[
+                            g_classe(pos) * MATERIA_SZ * INSEGNANTE_SZ + m * INSEGNANTE_SZ + j] <
+                        ore_insegnanti_classe_materia[
+                            g_classe(pos) * MATERIA_SZ * INSEGNANTE_SZ + m * INSEGNANTE_SZ + j]
+                        && ore_classe_materia_curr[g_classe(pos) * MATERIA_SZ + m] <
+                        ore_classe_materia[g_classe(pos) * MATERIA_SZ + m]
                         //&& ore_per_settimana_prof_curr[i] < ore_settimana_prof[i]
                         && 1) {
                         orario[pos] = (elem){h, m, i, j};
