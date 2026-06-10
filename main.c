@@ -11,21 +11,16 @@
 #include "professor_functions.h"
 
 long long int n_gen = 0;
-long long int n_gen_ok = 30;
+long long int n_gen_ok = 330000000;
 int orario_len;
 int giorno_ora_classi_sz;
-
-int g_classe(const int p) {
-    return p % actual_classi_sezione;
-}
 
 void print_orario(elem orario[], const int pos, const int tot, int prof_gia_in_classe_curr[],
                   int ore_insegnanti_classe_materia_curr[]) {
     if (n_gen_ok <= n_gen) return;
 
     if (pos == tot) {
-        if (verifica_ore_classe_materia(ore_insegnanti_classe_materia_curr)
-            /*&& verifica_ore_settimana_prof(ore_per_settimana_prof_curr)*/) {
+        if (verifica_ore_classe_materia(ore_insegnanti_classe_materia_curr)) {
             n_gen++;
             print_orario_form(orario, tot);
         }
@@ -45,20 +40,14 @@ void print_orario(elem orario[], const int pos, const int tot, int prof_gia_in_c
                     if (prof_in_classe(i, j, prof_gia_in_classe_curr)
                         && codocente_deve_essere_in_lab_no_aula(h, i, j)
                         && controllo_prof_insieme(i, j)
-                        // ore svolte da prof 1 < ore tot di prof 1 (va bene anche se non ha orem verificando se quel prof può insegnare in quella classe)
-                        && (i == -1 || ore_insegnanti_classe_materia_curr[
-                                g_classe(pos) * MATERIA_SZ * INSEGNANTE_SZ + m * INSEGNANTE_SZ + i] <
-                            ore_insegnanti_classe_materia[
-                                g_classe(pos) * MATERIA_SZ * INSEGNANTE_SZ + m * INSEGNANTE_SZ + i])
-                        && ore_insegnanti_classe_materia_curr[
-                            g_classe(pos) * MATERIA_SZ * INSEGNANTE_SZ + m * INSEGNANTE_SZ + j] <
-                        ore_insegnanti_classe_materia[
-                            g_classe(pos) * MATERIA_SZ * INSEGNANTE_SZ + m * INSEGNANTE_SZ + j]
+                        // docente non ha raggiunto le ore di insegnamento per quella materia e classe
+                        && (i == -1 || is_teacher_eligible_for_class(pos, ore_insegnanti_classe_materia_curr, m, i))
+                        && is_teacher_eligible_for_class(pos, ore_insegnanti_classe_materia_curr, m, j)
                         && 1) {
                         orario[pos] = (elem){h, m, i, j};
 
-                        int ore_insegnanti_classe_materia_new[CLASSE_SEZIONE_SZ * MATERIA_SZ * INSEGNANTE_SZ];
                         int prof_gia_in_classe_new[INSEGNANTE_SZ];
+                        int ore_insegnanti_classe_materia_new[CLASSE_SEZIONE_SZ * MATERIA_SZ * INSEGNANTE_SZ];
                         memcpy(prof_gia_in_classe_new, prof_gia_in_classe_curr, INSEGNANTE_SZ*sizeof(int));
                         memcpy(ore_insegnanti_classe_materia_new, ore_insegnanti_classe_materia_curr,
                                CLASSE_SEZIONE_SZ*MATERIA_SZ*INSEGNANTE_SZ*sizeof(int));
@@ -68,9 +57,9 @@ void print_orario(elem orario[], const int pos, const int tot, int prof_gia_in_c
                             ore_insegnanti_classe_materia_new[
                                 g_classe(pos) * MATERIA_SZ * INSEGNANTE_SZ + m * INSEGNANTE_SZ + i]++;
                         }
+                        prof_gia_in_classe_new[j] = 1;
                         ore_insegnanti_classe_materia_new[
                             g_classe(pos) * MATERIA_SZ * INSEGNANTE_SZ + m * INSEGNANTE_SZ + j]++;
-                        prof_gia_in_classe_new[j] = 1;
 
                         print_orario(orario, pos + 1, tot, prof_gia_in_classe_new, ore_insegnanti_classe_materia_new);
                     }

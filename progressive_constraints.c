@@ -7,6 +7,10 @@
 #include "database_initializers.h"
 #include "professor_functions.h"
 
+int g_classe(const int p) {
+    return p % actual_classi_sezione;
+}
+
 int prof_in_classe(const int prof1, const int prof2, const int prof_in_classe[]) {
     assert(prof2 != -1);
     return (is_vuoto(prof1) || !prof_in_classe[prof1])
@@ -37,4 +41,9 @@ int controllo_prof_insieme(const int prof1, const int prof2) {
            || (n_docenti == 1 && n_codocenti == 0)
            //ora buca
            || (n_docenti == 0 && n_codocenti == 0);
+}
+
+int is_teacher_eligible_for_class(const int pos, const int *ore_insegnanti_classe_materia_curr, const int mat, const int prof) {
+    return ore_insegnanti_classe_materia_curr[g_classe(pos) * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ + prof] <
+           ore_insegnanti_classe_materia[g_classe(pos) * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ + prof];
 }
