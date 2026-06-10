@@ -15,10 +15,9 @@ int prof_in_classe(const int prof1, const int prof2, const int prof_in_classe[])
 
 int insegnanti_ore_materia_adeguata(const int cla, const int mat, const int prof1, const int prof2) {
     assert(prof2 != -1);
-    /*return (prof1 == -1 || ore_insegnanti_classe_materia[
-                cla * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ + prof1])
-           && ore_insegnanti_classe_materia[cla * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ + prof2];
-           */
+    return (prof1 == -1 || ore_insegnanti_classe_materia[
+                cla * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ + prof1]) > 0
+           && ore_insegnanti_classe_materia[cla * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ + prof2] > 0;
 }
 
 
