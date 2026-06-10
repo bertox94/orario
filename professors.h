@@ -7,7 +7,10 @@
 char Ricciardi[] = "Ricciardi";
 char Tiraboschi[] = "Tiraboschi";
 char Gatti[] = "Gatti";
+char Manganelli[] = "Manganelli";
 char Barosi[] = "Barosi";
 char Rizzi[] = "Rizzi";
+char Gagliano[] = "Gagliano";
+char Benedetto[] = "Benedetto";
 
 #endif //UNTITLED_PROFESSORS_H

@@ -16,10 +16,10 @@
 #define AULA_SZ 10
 #define AULA_ITEM_SZ 15
 
-#define MATERIA_SZ 2
+#define MATERIA_SZ 10
 #define MATERIA_ITEM_SZ 15
 
-#define INSEGNANTE_SZ 5
+#define INSEGNANTE_SZ 15
 #define INSEGNANTE_ITEM_SZ 15
 
 #define MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT 2
@@ -33,7 +33,6 @@ char insegnanti[INSEGNANTE_SZ][INSEGNANTE_ITEM_SZ];
 int laboratori[AULA_SZ];
 int codocenti[INSEGNANTE_SZ]; //non possono avere lezione da soli
 int giorno_libero_prof[INSEGNANTE_SZ];
-int ore_settimana_prof[INSEGNANTE_SZ];
 
 int ore_insegnanti_classe_materia[CLASSE_SEZIONE_SZ * MATERIA_SZ * INSEGNANTE_SZ];
 

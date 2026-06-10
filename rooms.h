@@ -4,7 +4,9 @@
 
 #ifndef UNTITLED_ROOMS_H
 #define UNTITLED_ROOMS_H
+char PS15[] = "PS15";
 char PS16[] = "PS16";
+char INFO2[] = "INFO2";
 char INFO1[] = "INFO1";
 char INFO0[] = "INFO0";
 #endif //UNTITLED_ROOMS_H

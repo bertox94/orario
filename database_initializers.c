@@ -72,6 +72,10 @@ void inizializza_dati() {
     int pos = 0;
     set_giorno_settimana(Lun, pos++);
     set_giorno_settimana(Mar, pos++);
+    set_giorno_settimana(Mer, pos++);
+    set_giorno_settimana(Gio, pos++);
+    set_giorno_settimana(Ven, pos++);
+    set_giorno_settimana(Sab, pos++);
     for (int i = pos; i < GIORNO_SETTIMANA_SZ; i++)
         set_giorno_settimana("", i);
     actual_giorni_settimana = pos;
@@ -96,9 +100,11 @@ void inizializza_dati() {
     actual_classi_sezione = pos;
 
     pos = 0;
+    set_aula(PS15, pos++);
     set_aula(PS16, pos++);
+    set_aula(INFO0, pos++);
     set_aula(INFO1, pos++);
-    //set_aula("INFO0", pos++);
+    set_aula(INFO2, pos++);
     for (int i = pos; i < AULA_SZ; i++)
         set_aula("", i);
     actual_aula = pos;
@@ -106,16 +112,20 @@ void inizializza_dati() {
     pos = 0;
     set_materia(Informatica, pos++);
     set_materia(Sistemi_e_Reti, pos++);
+    set_materia(TPSIT, pos++);
     for (int i = pos; i < MATERIA_SZ; i++)
         set_materia("", i);
     actual_materie = pos;
 
     pos = 0;
-    set_insegnante(Ricciardi, pos++);
+    //set_insegnante(Ricciardi, pos++);
     set_insegnante(Tiraboschi, pos++);
-    set_insegnante(Gatti, pos++);
-    set_insegnante(Barosi, pos++);
+    //set_insegnante(Gatti, pos++);
+    set_insegnante(Manganelli, pos++);
+    //set_insegnante(Barosi, pos++);
     set_insegnante(Rizzi, pos++);
+    set_insegnante(Benedetto, pos++);
+    set_insegnante(Gagliano, pos++);
     for (int i = pos; i < INSEGNANTE_SZ; i++)
         set_insegnante("", i);
     actual_insegnanti = pos;
@@ -123,24 +133,19 @@ void inizializza_dati() {
 
 void inizializza_vincoli() {
     memset(laboratori, 0, AULA_SZ*sizeof(int));
-    //set_laboratorio("INFO0");
+    set_laboratorio(INFO0);
     set_laboratorio(INFO1);
 
     memset(codocenti, 0, INSEGNANTE_SZ*sizeof(int));
     set_codocente(Rizzi);
-    set_codocente(Barosi);
+    //set_codocente(Barosi);
+    set_codocente(Benedetto);
+    set_codocente(Gagliano);
 
 
     memset(ore_insegnanti_classe_materia, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*INSEGNANTE_SZ*sizeof(int));
-    set_classe_materia_ore_prof_codocenza(Classe_3H, Sistemi_e_Reti, 2, Ricciardi, 1, Barosi);
-    set_classe_materia_ore_prof_codocenza(Classe_3H, Informatica, 1, Gatti, 1, Barosi);
-    //set_classe_materia_ore_prof(Classe_3E, Sistemi_e_Reti, 2, Ricciardi, Rizzi);
+    set_classe_materia_ore_prof_codocenza(Classe_3H, Sistemi_e_Reti, 4, Tiraboschi, 2, Gagliano);
+    set_classe_materia_ore_prof_codocenza(Classe_3H, Informatica, 6, Tiraboschi, 3, Benedetto);
+    set_classe_materia_ore_prof_codocenza(Classe_3H, TPSIT, 4, Manganelli, 2, Rizzi);
     //set_classe_materia_ore_prof(Classe_3E, Informatica, 1, Gatti, Rizzi);
-
-
-    memset(ore_settimana_prof, 0, INSEGNANTE_SZ*sizeof(int));
-    ore_settimana_prof[p_insegnante(Ricciardi)] = 2;
-    ore_settimana_prof[p_insegnante(Gatti)] = 1;
-    //ore_settimana_prof[p_insegnante(Tiraboschi)] = 2;
-    ore_settimana_prof[p_insegnante(Barosi)] = 2;
 }
