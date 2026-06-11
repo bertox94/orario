@@ -11,7 +11,6 @@
 long long int n_gen = 0;
 long long int n_gen_ok = 10;
 int orario_len;
-int giorno_ora_classi_sz;
 
 
 void print_orario_form(const elem orario[], const int tot, const long attempt) {

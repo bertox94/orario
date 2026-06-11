@@ -69,7 +69,6 @@ int is_teacher_eligible_for_class(elem orario[], const int pos, const int mat, c
         return sum < ore_insegnanti_classe_materia[
                    g_classe(pos) * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ + prof];
     }
+
     return 1;
-    /*    return ore_insegnanti_classe_materia_curr[g_classe(pos) * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ + prof] <
-               ore_insegnanti_classe_materia[g_classe(pos) * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ + prof];*/
 }

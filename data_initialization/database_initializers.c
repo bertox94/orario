@@ -48,6 +48,12 @@ int p_aula(char a[]) {
     return -1;
 }
 
+int is_vuoto(const int p) { return p == -1; }
+
+int is_docente(const int p) { return !is_vuoto(p) && !codocenti[p]; }
+
+int is_codocente(const int p) { return !is_vuoto(p) && codocenti[p]; }
+
 void set_giorno_settimana(char giorno[], const int pos) {
     assert(pos < GIORNO_SETTIMANA_SZ);
     assert(strlen(giorno) < GIORNO_SETTIMANA_ITEM_SZ);

@@ -45,6 +45,8 @@ int actual_laboratori;
 int actual_materie;
 int actual_insegnanti;
 
+int giorno_ora_classi_sz;
+
 
 typedef struct {
     int aula;
@@ -87,9 +89,9 @@ int p_classe_sezione(char cla[]);
 
 int p_insegnante(const char in[]);
 
-inline int is_vuoto(const int p) { return p == -1; }
+int is_vuoto(const int p);
 
-inline int is_docente(const int p) { return !is_vuoto(p) && !codocenti[p]; }
+int is_docente(const int p);
 
-inline int is_codocente(const int p) { return !is_vuoto(p) && codocenti[p]; }
+int is_codocente(const int p);
 #endif //UNTITLED_CONSTANTS_H
