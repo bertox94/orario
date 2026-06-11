@@ -6,8 +6,8 @@
 
 #include "database_initializers.h"
 #include "printing.h"
-#include "progressive_constraints.h"
-#include "end_of_block_constraints.h"
+#include "constraints/progressive_constraints.h"
+#include "constraints/end_of_block_constraints.h"
 #include "professor_functions.h"
 
 long long int n_gen = 0;

@@ -4,12 +4,12 @@
 
 #include "database_initializers.h"
 #include "find_positions.h"
-#include "days.h"
-#include "hours.h"
-#include "rooms.h"
-#include "professors.h"
-#include "classes.h"
-#include "subjects.h"
+#include "constants/days.h"
+#include "constants/hours.h"
+#include "constants/rooms.h"
+#include "constants/professors.h"
+#include "constants/classes.h"
+#include "constants/subjects.h"
 #include <assert.h>
 #include <string.h>
 
@@ -101,7 +101,7 @@ void inizializza_dati() {
 
     pos = 0;
     //set_aula(PS15, pos++);
-    set_aula(PS16, pos++);
+    //set_aula(PS16, pos++);
     set_aula(INFO0, pos++);
     //set_aula(INFO1, pos++);
     //set_aula(INFO2, pos++);
