@@ -134,7 +134,7 @@ void inizializza_dati() {
 
     pos = 0;
     set_classe_sezione(Classe_3H, pos++);
-    //set_classe_sezione(Classe_3E, pos++);
+    set_classe_sezione(Classe_3E, pos++);
     set_classe_sezione(Classe_3F, pos++);
     for (int i = pos; i < CLASSE_SEZIONE_SZ; i++)
         set_classe_sezione("", i);
@@ -161,7 +161,7 @@ void inizializza_dati() {
     pos = 0;
     set_insegnante(Ricciardi, pos++);
     set_insegnante(Tiraboschi, pos++);
-    //set_insegnante(Gatti, pos++);
+    set_insegnante(Gatti, pos++);
     set_insegnante(Manganelli, pos++);
     //set_insegnante(Barosi, pos++);
     set_insegnante(Rizzi, pos++);
@@ -189,5 +189,5 @@ void inizializza_vincoli() {
     set_classe_materia_ore_prof_codocenza(Classe_3H, Informatica, 6, Tiraboschi, 3, Benedetto);
     set_classe_materia_ore_prof_codocenza(Classe_3F, TPSIT, 4, Ricciardi, 2, Rizzi);
     set_classe_materia_ore_prof_codocenza(Classe_3H, TPSIT, 2, Manganelli, 1, Rizzi);
-   // set_classe_materia_ore_prof_codocenza(Classe_3E, Informatica, 1, Gatti,1, Rizzi);
+    set_classe_materia_ore_prof_codocenza(Classe_3E, Informatica, 1, Gatti, 1, Rizzi);
 }
