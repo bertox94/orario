@@ -15,7 +15,7 @@ int g_classe(const int p) {
     return p % actual_classi_sezione;
 }
 
-int no_lessons_after_end_activities_for_today(const elem *orario, const int pos) {
+int no_end_activities_for_today(const elem *orario, const int pos) {
     if (pos - actual_classi_sezione >= 0) {
         if (g_giorno(pos) == g_giorno(pos - actual_classi_sezione))
             return orario[pos - actual_classi_sezione].insegnante1 != -1

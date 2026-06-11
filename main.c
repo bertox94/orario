@@ -27,7 +27,7 @@ void print_orario(elem orario[], const int pos, const int tot) {
         return;
     }
 
-    if (no_lessons_after_end_activities_for_today(orario, pos)) {
+    if (no_end_activities_for_today(orario, pos)) {
         for (int h = 0; h < actual_aula; h++) {
             for (int m = 0; m < actual_materie; m++) {
                 //ci può essere un solo insegnante perciò parte da -1
