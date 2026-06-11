@@ -2,14 +2,14 @@
 // Created by Alberto Tiraboschi on 09/06/2026.
 //
 
-#include "database_initializers.h"
-#include "find_positions.h"
-#include "constants/days.h"
-#include "constants/hours.h"
-#include "constants/rooms.h"
-#include "constants/professors.h"
-#include "constants/classes.h"
-#include "constants/subjects.h"
+#include "../data_initialization/database_initializers.h"
+#include "../helper/find_positions.h"
+#include "../constants/days.h"
+#include "../constants/hours.h"
+#include "../constants/rooms.h"
+#include "../constants/professors.h"
+#include "../constants/classes.h"
+#include "../constants/subjects.h"
 #include <assert.h>
 #include <string.h>
 

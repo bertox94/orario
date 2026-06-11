@@ -4,8 +4,8 @@
 
 #include <assert.h>
 
-#include "../database_initializers.h"
-#include "../professor_functions.h"
+#include "../data_initialization/database_initializers.h"
+#include "../helper/professor_functions.h"
 
 int g_giorno(const int p) { return p / actual_classi_sezione / actual_ore_giornaliere % actual_giorni_settimana; }
 

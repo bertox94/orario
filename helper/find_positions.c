@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "database_initializers.h"
+#include "../data_initialization/database_initializers.h"
 //
 // Created by Alberto Tiraboschi on 09/06/2026.
 //

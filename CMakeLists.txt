@@ -10,15 +10,13 @@ add_executable(untitled main.c
         constants/rooms.h
         constants/classes.h
         constants/subjects.h
-        database_initializers.h
-        find_positions.h
-        find_positions.c
-        printing.h
-        printing.c
+        data_initialization/database_initializers.h
+        helper/find_positions.h
+        helper/find_positions.c
         constraints/progressive_constraints.h
         constraints/end_of_block_constraints.h
-        database_initializers.c
+        data_initialization/database_initializers.c
         constraints/progressive_constraints.c
-        professor_functions.c
-        professor_functions.h
+        helper/professor_functions.c
+        helper/professor_functions.h
 )
