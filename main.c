@@ -11,7 +11,7 @@
 #include "professor_functions.h"
 
 long long int n_gen = 0;
-long long int n_gen_ok = 3;
+long long int n_gen_ok = 300000000;
 int orario_len;
 int giorno_ora_classi_sz;
 
@@ -19,6 +19,7 @@ void print_orario(elem orario[], const int pos, const int tot) {
     if (n_gen_ok <= n_gen) return;
 
     if (pos == tot) {
+        // da verificare che non ci siano ore buche per le classi, a meo che sia l'ultima ora
         if (verifica_ore_classe_materia(orario, tot)) {
             n_gen++;
             print_orario_form(orario, tot);
@@ -34,8 +35,10 @@ void print_orario(elem orario[], const int pos, const int tot) {
             //ci può essere un solo insegnante perciò parte da -1
             for (int i = -1; i < actual_insegnanti; i++) {
                 for (int j = i + 1; j < actual_insegnanti; j++) {
-                    if (prof_in_classe(orario, pos, i, j)
+                    if ( // verifica che nella stessa ora i prof i,j non siano già in altre classi
+                        prof_in_classe(orario, pos, i, j)
                         && codocente_deve_essere_in_lab_no_aula(h, i, j)
+                        // non si possono avere due docenti teorici, nè due codocenti, ...
                         && controllo_prof_insieme(i, j)
                         // docente non ha raggiunto le ore di insegnamento per quella materia e classe
                         && is_teacher_eligible_for_class(orario, pos, m, i)
@@ -60,11 +63,7 @@ int main(void) {
 
     print_intestazioni(orario_len);
     elem orario[orario_len];
-    int ore_insegnanti_classe_materia_curr[CLASSE_SEZIONE_SZ * MATERIA_SZ * INSEGNANTE_SZ];
-    int prof_gia_in_classe[INSEGNANTE_SZ];
     memset(orario, 0, orario_len*sizeof(int));
-    memset(ore_insegnanti_classe_materia_curr, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*INSEGNANTE_SZ*sizeof(int));
-    memset(prof_gia_in_classe, 0, INSEGNANTE_SZ*sizeof(int));
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
     print_orario(orario, 0, orario_len);
 
