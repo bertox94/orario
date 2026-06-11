@@ -22,13 +22,10 @@ void print_orario(elem orario[], const int pos, const int tot) {
         // da verificare che non ci siano ore buche per le classi, a meo che sia l'ultima ora
         if (verifica_ore_classe_materia(orario, tot)) {
             n_gen++;
-            print_orario_form(orario, tot);
+            print_orario_form(orario, tot, n_gen);
         }
         return;
     }
-
-    orario[pos] = (elem){-1, -1, -1, -1};
-    print_orario(orario, pos + 1, tot);
 
     for (int h = 0; h < actual_aula; h++) {
         for (int m = 0; m < actual_materie; m++) {
@@ -53,27 +50,32 @@ void print_orario(elem orario[], const int pos, const int tot) {
             }
         }
     }
-}
+    if (pos / giorno_ora_classi_sz % (actual_ore_giornaliere - 1) == 0) {
+        orario[pos] = (elem){-1, -1, -1, -1};
+        print_orario(orario, pos + 1, tot);
+       }
+    }
 
-int main(void) {
-    time_t currentTime;
-    time(&currentTime); // Get the current time
+    int main(void)
+    {
+        time_t currentTime;
+        time(&currentTime); // Get the current time
 
-    printf("Program started at: %s\n", ctime(&currentTime));
-    inizializza_dati();
-    inizializza_vincoli();
-    orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
-    giorno_ora_classi_sz = actual_classi_sezione;
-    //test(100);
+        printf("Program started at: %s\n", ctime(&currentTime));
+        inizializza_dati();
+        inizializza_vincoli();
+        orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
+        giorno_ora_classi_sz = actual_classi_sezione;
+        //test(100);
 
-    //print_intestazioni(orario_len);
-    elem orario[orario_len];
-    memset(orario, 0, orario_len*sizeof(int));
-    // al massimo ogni ora ci possono essere 2 prof in tutte le classi
-    print_orario(orario, 0, orario_len);
+        //print_intestazioni(orario_len);
+        elem orario[orario_len];
+        //memset(orario, (elem){-1,-1,-1,-1}, orario_len*sizeof(int));
+        // al massimo ogni ora ci possono essere 2 prof in tutte le classi
+        print_orario(orario, 0, orario_len);
 
-    printf("Totale generati: %llu\n", n_gen);
-    fflush(stdout);
+        printf("Totale generati: %llu\n", n_gen);
+        fflush(stdout);
 
-    return 0;
-}
+        return 0;
+    }

@@ -12,7 +12,6 @@ int g_classe(const int p) {
 }
 
 int prof_in_classe(elem orario[], const long pos, int prof) {
-    assert(prof2 != -1);
 
     if (prof != -1) {
         for (int i = pos - pos % actual_classi_sezione; i < pos; i++) {

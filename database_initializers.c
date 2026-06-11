@@ -134,7 +134,7 @@ void inizializza_dati() {
 void inizializza_vincoli() {
     memset(laboratori, 0, AULA_SZ*sizeof(int));
     set_laboratorio(INFO0);
-    set_laboratorio(INFO1);
+    //set_laboratorio(INFO1);
 
     memset(codocenti, 0, INSEGNANTE_SZ*sizeof(int));
     set_codocente(Rizzi);
