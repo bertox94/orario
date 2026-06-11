@@ -16,11 +16,7 @@ int prof_in_classe(elem orario[], const long pos, int prof) {
 
     if (prof != -1) {
         for (int i = pos - pos % actual_classi_sezione; i < pos; i++) {
-            if (orario[i].insegnante1 == prof)
-                return 0;
-        }
-        for (int i = pos - pos % actual_classi_sezione; i < pos; i++) {
-            if (orario[i].insegnante2 == prof)
+            if (orario[i].insegnante1 == prof || orario[i].insegnante2 == prof)
                 return 0;
         }
     }
@@ -56,10 +52,10 @@ int controllo_prof_insieme(const int prof1, const int prof2) {
 int is_teacher_eligible_for_class(elem orario[], const int pos, const int mat, const int prof) {
     if (prof != -1) {
         int sum = 0;
-        for (int i = 0; i < pos; i++)
+        for (int i = 0; i < pos; i++) {
             sum += orario[i].insegnante1 == prof && orario[i].materia == mat && g_classe(i) == g_classe(pos);
-        for (int i = 0; i < pos; i++)
             sum += orario[i].insegnante2 == prof && orario[i].materia == mat && g_classe(i) == g_classe(pos);
+        }
         return sum < ore_insegnanti_classe_materia[
                    g_classe(pos) * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ + prof];
     }
