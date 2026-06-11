@@ -59,7 +59,7 @@ int main(void) {
     time_t currentTime;
     time(&currentTime); // Get the current time
 
-    printf("Program started at: %s", ctime(&currentTime));
+    printf("Program started at: %s\n", ctime(&currentTime));
     inizializza_dati();
     inizializza_vincoli();
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
