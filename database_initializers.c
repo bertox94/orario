@@ -101,7 +101,7 @@ void inizializza_dati() {
 
     pos = 0;
     //set_aula(PS15, pos++);
-    //set_aula(PS16, pos++);
+    set_aula(PS16, pos++);
     set_aula(INFO0, pos++);
     //set_aula(INFO1, pos++);
     //set_aula(INFO2, pos++);
@@ -121,7 +121,7 @@ void inizializza_dati() {
     set_insegnante(Ricciardi, pos++);
     set_insegnante(Tiraboschi, pos++);
     //set_insegnante(Gatti, pos++);
-    //set_insegnante(Manganelli, pos++);
+    set_insegnante(Manganelli, pos++);
     //set_insegnante(Barosi, pos++);
     set_insegnante(Rizzi, pos++);
     set_insegnante(Benedetto, pos++);

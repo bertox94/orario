@@ -16,7 +16,7 @@ int orario_len;
 int giorno_ora_classi_sz;
 
 void print_orario(elem orario[], const int pos, const int tot) {
-    //if (n_gen_ok <= n_gen) return;
+    if (n_gen_ok <= n_gen) return;
 
     if (pos == tot) {
         // da verificare che non ci siano ore buche per le classi, a meo che sia l'ultima ora
@@ -27,13 +27,13 @@ void print_orario(elem orario[], const int pos, const int tot) {
         return;
     }
 
-    if (no_end_activities_for_today(orario, pos)) {
+    if (still_activities_for_today(orario, pos)) {
         for (int h = 0; h < actual_aula; h++) {
             for (int m = 0; m < actual_materie; m++) {
                 //ci può essere un solo insegnante perciò parte da -1
                 for (int i = -1; i < actual_insegnanti; i++) {
                     for (int j = i + 1; j < actual_insegnanti; j++) {
-                        if ( // verifica che nella stessa ora il prof non sia già in altre classi
+                        if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
                             prof_in_classe(orario, pos, i)
                             && prof_in_classe(orario, pos, j)
                             && codocente_deve_essere_in_lab_no_aula(h, i, j)

@@ -8,7 +8,7 @@
 int g_classe(int p);
 
 
-int no_end_activities_for_today(const elem *orario, const int pos) ;
+int still_activities_for_today(const elem *orario, const int pos) ;
 
 int prof_in_classe(elem orario[], const long pos, int prof);
 
