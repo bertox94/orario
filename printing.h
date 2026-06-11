@@ -8,7 +8,10 @@
 #include "database_initializers.h"
 
 void print_orario_form(const elem orario[], const int tot) {
+    time_t currentTime;
+    time(&currentTime); // Get the current time
 
+    printf("Current time: %s", ctime(&currentTime));
     printf("Giorno:     ");
     for (int i = 0; i < tot; i++)
         printf(" %c%c",
