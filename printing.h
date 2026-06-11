@@ -12,7 +12,7 @@ void print_orario_form(const elem orario[], const int tot, const long attempt) {
     time(&currentTime); // Get the current time
 
     printf("Current time: %s\n", ctime(&currentTime));
-    printf("Attempt: %lu\n", attempt);
+    printf("Orario n. %lu\n", attempt);
     printf("Giorno:     ");
     for (int i = 0; i < tot; i++)
         printf(" %c%c",

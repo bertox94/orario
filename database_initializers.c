@@ -85,8 +85,8 @@ void inizializza_dati() {
     set_ora_giornaliera(Ora_09, pos++);
     set_ora_giornaliera(Ora_10, pos++);
     set_ora_giornaliera(Ora_11, pos++);
-    //set_ora_giornaliera(Ora_12, pos++);
-    //set_ora_giornaliera(Ora_13, pos++);
+    set_ora_giornaliera(Ora_12, pos++);
+    set_ora_giornaliera(Ora_13, pos++);
     for (int i = pos; i < ORA_GIORNALIERA_SZ; i++)
         set_ora_giornaliera("", i);
     actual_ore_giornaliere = pos;

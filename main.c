@@ -27,55 +27,55 @@ void print_orario(elem orario[], const int pos, const int tot) {
         return;
     }
 
-    for (int h = 0; h < actual_aula; h++) {
-        for (int m = 0; m < actual_materie; m++) {
-            //ci può essere un solo insegnante perciò parte da -1
-            for (int i = -1; i < actual_insegnanti; i++) {
-                for (int j = i + 1; j < actual_insegnanti; j++) {
-                    if ( // verifica che nella stessa ora il prof non sia già in altre classi
-                        prof_in_classe(orario, pos, i)
-                        && prof_in_classe(orario, pos, j)
-                        && codocente_deve_essere_in_lab_no_aula(h, i, j)
-                        // non si possono avere due docenti teorici insieme, nè due codocenti, ...
-                        && controllo_prof_insieme(i, j)
-                        // docente non ha raggiunto le ore di insegnamento per quella materia e classe
-                        && is_teacher_eligible_for_class(orario, pos, m, i)
-                        && is_teacher_eligible_for_class(orario, pos, m, j)
-                        && 1) {
-                        orario[pos] = (elem){h, m, i, j};
+        for (int h = 0; h < actual_aula; h++) {
+            for (int m = 0; m < actual_materie; m++) {
+                //ci può essere un solo insegnante perciò parte da -1
+                for (int i = -1; i < actual_insegnanti; i++) {
+                    for (int j = i + 1; j < actual_insegnanti; j++) {
+                        if ( // verifica che nella stessa ora il prof non sia già in altre classi
+                            prof_in_classe(orario, pos, i)
+                            && prof_in_classe(orario, pos, j)
+                            && codocente_deve_essere_in_lab_no_aula(h, i, j)
+                            // non si possono avere due docenti teorici insieme, nè due codocenti, ...
+                            && controllo_prof_insieme(i, j)
+                            // docente non ha raggiunto le ore di insegnamento per quella materia e classe
+                            && is_teacher_eligible_for_class(orario, pos, m, i)
+                            && is_teacher_eligible_for_class(orario, pos, m, j)
+                            && 1) {
+                            orario[pos] = (elem){h, m, i, j};
 
-                        print_orario(orario, pos + 1, tot);
+                            print_orario(orario, pos + 1, tot);
+                        }
                     }
                 }
             }
         }
-    }
-    if (pos / giorno_ora_classi_sz % (actual_ore_giornaliere - 1) == 0) {
+
+    if (pos / giorno_ora_classi_sz % actual_ore_giornaliere >= PRIME_N_ORE_OBBLIGATORIE) {
         orario[pos] = (elem){-1, -1, -1, -1};
         print_orario(orario, pos + 1, tot);
-       }
     }
+}
 
-    int main(void)
-    {
-        time_t currentTime;
-        time(&currentTime); // Get the current time
+int main(void) {
+    time_t currentTime;
+    time(&currentTime); // Get the current time
 
-        printf("Program started at: %s\n", ctime(&currentTime));
-        inizializza_dati();
-        inizializza_vincoli();
-        orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
-        giorno_ora_classi_sz = actual_classi_sezione;
-        //test(100);
+    printf("Program started at: %s\n", ctime(&currentTime));
+    inizializza_dati();
+    inizializza_vincoli();
+    orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
+    giorno_ora_classi_sz = actual_classi_sezione;
+    //test(100);
 
-        //print_intestazioni(orario_len);
-        elem orario[orario_len];
-        //memset(orario, (elem){-1,-1,-1,-1}, orario_len*sizeof(int));
-        // al massimo ogni ora ci possono essere 2 prof in tutte le classi
-        print_orario(orario, 0, orario_len);
+    //print_intestazioni(orario_len);
+    elem orario[orario_len];
+    //memset(orario, (elem){-1,-1,-1,-1}, orario_len*sizeof(int));
+    // al massimo ogni ora ci possono essere 2 prof in tutte le classi
+    print_orario(orario, 0, orario_len);
 
-        printf("Totale generati: %llu\n", n_gen);
-        fflush(stdout);
+    printf("Totale generati: %llu\n", n_gen);
+    fflush(stdout);
 
-        return 0;
-    }
+    return 0;
+}
