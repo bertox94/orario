@@ -15,6 +15,15 @@ void print_orario_form(const elem orario[], const int tot) {
                giorni_settimana[i / actual_ore_giornaliere / actual_classi_sezione % actual_giorni_settimana][0],
                giorni_settimana[i / actual_ore_giornaliere / actual_classi_sezione % actual_giorni_settimana][1]);
     printf("\n");
+    printf("Ora:        ");
+    for (int i = 0; i < tot; i++)
+        printf(" %s", ora_giornaliera[i / actual_classi_sezione % actual_ore_giornaliere]);
+    printf("\n");
+
+    printf("Classe:     ");
+    for (int i = 0; i < tot; i++)
+        printf(" %s", classe_sezione[i % actual_classi_sezione]);
+    printf("\n");
 
     printf("Aula:       ");
     for (int i = 0; i < tot; i++) {
@@ -56,17 +65,4 @@ void print_orario_form(const elem orario[], const int tot) {
     printf("\n");
 }
 
-
-void print_intestazioni(const long len) {
-
-    printf("Ora:        ");
-    for (int i = 0; i < len; i++)
-        printf(" %s", ora_giornaliera[i / actual_classi_sezione % actual_ore_giornaliere]);
-    printf("\n");
-
-    printf("Classe:     ");
-    for (int i = 0; i < len; i++)
-        printf(" %s", classe_sezione[i % actual_classi_sezione]);
-    printf("\n");
-}
 #endif //UNTITLED_PRINTING_H

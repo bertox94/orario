@@ -72,7 +72,7 @@ void inizializza_dati() {
     int pos = 0;
     set_giorno_settimana(Lun, pos++);
     set_giorno_settimana(Mar, pos++);
-    //set_giorno_settimana(Mer, pos++);
+    set_giorno_settimana(Mer, pos++);
     //set_giorno_settimana(Gio, pos++);
     //set_giorno_settimana(Ven, pos++);
     //set_giorno_settimana(Sab, pos++);
@@ -86,7 +86,7 @@ void inizializza_dati() {
     set_ora_giornaliera(Ora_10, pos++);
     set_ora_giornaliera(Ora_11, pos++);
     set_ora_giornaliera(Ora_12, pos++);
-    //set_ora_giornaliera(Ora_13, pos++);
+    set_ora_giornaliera(Ora_13, pos++);
     for (int i = pos; i < ORA_GIORNALIERA_SZ; i++)
         set_ora_giornaliera("", i);
     actual_ore_giornaliere = pos;

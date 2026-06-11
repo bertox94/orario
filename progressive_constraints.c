@@ -11,17 +11,18 @@ int g_classe(const int p) {
     return p % actual_classi_sezione;
 }
 
-int prof_in_classe(elem orario[], const long pos, int prof1, int prof2) {
+int prof_in_classe(elem orario[], const long pos, int prof) {
     assert(prof2 != -1);
 
-    if (prof1 != -1)
+    if (prof != -1) {
         for (int i = pos - pos % actual_classi_sezione; i < pos; i++) {
-            if (orario[i].insegnante1 == prof1)
+            if (orario[i].insegnante1 == prof)
                 return 0;
         }
-    for (int i = pos - pos % actual_classi_sezione; i < pos; i++) {
-        if (orario[i].insegnante2 == prof2)
-            return 0;
+        for (int i = pos - pos % actual_classi_sezione; i < pos; i++) {
+            if (orario[i].insegnante2 == prof)
+                return 0;
+        }
     }
     return 1;
 }

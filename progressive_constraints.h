@@ -7,7 +7,7 @@
 
 int g_classe(int p);
 
-int prof_in_classe(elem orario[], const long pos, int prof1, int prof2);
+int prof_in_classe(elem orario[], const long pos, int prof);
 
 int insegnanti_ore_materia_adeguata(int cla, int mat, int prof1, int prof2);
 

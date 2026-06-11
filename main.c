@@ -11,7 +11,7 @@
 #include "professor_functions.h"
 
 long long int n_gen = 0;
-long long int n_gen_ok = 300000000;
+long long int n_gen_ok = 10;
 int orario_len;
 int giorno_ora_classi_sz;
 
@@ -35,8 +35,9 @@ void print_orario(elem orario[], const int pos, const int tot) {
             //ci può essere un solo insegnante perciò parte da -1
             for (int i = -1; i < actual_insegnanti; i++) {
                 for (int j = i + 1; j < actual_insegnanti; j++) {
-                    if ( // verifica che nella stessa ora i prof i,j non siano già in altre classi
-                        prof_in_classe(orario, pos, i, j)
+                    if ( // verifica che nella stessa ora il prof non sia già in altre classi
+                        prof_in_classe(orario, pos, i)
+                        &&prof_in_classe(orario, pos, j)
                         && codocente_deve_essere_in_lab_no_aula(h, i, j)
                         // non si possono avere due docenti teorici, nè due codocenti, ...
                         && controllo_prof_insieme(i, j)
@@ -61,7 +62,7 @@ int main(void) {
     giorno_ora_classi_sz = actual_classi_sezione;
     //test(100);
 
-    print_intestazioni(orario_len);
+    //print_intestazioni(orario_len);
     elem orario[orario_len];
     memset(orario, 0, orario_len*sizeof(int));
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
