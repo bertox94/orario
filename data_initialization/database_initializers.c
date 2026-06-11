@@ -3,7 +3,6 @@
 //
 
 #include "../data_initialization/database_initializers.h"
-#include "../helper/find_positions.h"
 #include "../constants/days.h"
 #include "../constants/hours.h"
 #include "../constants/rooms.h"
@@ -12,6 +11,42 @@
 #include "../constants/subjects.h"
 #include <assert.h>
 #include <string.h>
+
+int p_insegnante(const char in[]) {
+    for (int i = 0; i < actual_insegnanti; i++) {
+        if (!strcmp(insegnanti[i], in))
+            return i;
+    }
+    assert(0);
+    return -1;
+}
+
+int p_classe_sezione(char cla[]) {
+    for (int i = 0; i < actual_classi_sezione; i++) {
+        if (!strcmp(classe_sezione[i], cla))
+            return i;
+    }
+    assert(0);
+    return -1;
+}
+
+int p_materia(char mat[]) {
+    for (int i = 0; i < actual_materie; i++) {
+        if (!strcmp(materie[i], mat))
+            return i;
+    }
+    assert(0);
+    return -1;
+}
+
+int p_aula(char a[]) {
+    for (int i = 0; i < actual_aula; i++) {
+        if (!strcmp(aule[i], a))
+            return i;
+    }
+    assert(0);
+    return -1;
+}
 
 void set_giorno_settimana(char giorno[], const int pos) {
     assert(pos < GIORNO_SETTIMANA_SZ);

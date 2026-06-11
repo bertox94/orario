@@ -50,7 +50,8 @@ void print_orario_form(const elem orario[], const int tot, const long attempt) {
         if (orario[i].materia == -1)
             printf("  -");
         else
-            printf("%c%c%c", materie[orario[i].materia][0], materie[orario[i].materia][1], materie[orario[i].materia][2]);
+            printf("%c%c%c", materie[orario[i].materia][0], materie[orario[i].materia][1],
+                   materie[orario[i].materia][2]);
     }
     printf("\n");
 
@@ -59,7 +60,8 @@ void print_orario_form(const elem orario[], const int tot, const long attempt) {
         if (orario[i].insegnante1 == -1)
             printf("  -");
         else
-            printf("%c%c%c", insegnanti[orario[i].insegnante1][0],insegnanti[orario[i].insegnante1][1],insegnanti[orario[i].insegnante1][2]);
+            printf("%c%c%c", insegnanti[orario[i].insegnante1][0], insegnanti[orario[i].insegnante1][1],
+                   insegnanti[orario[i].insegnante1][2]);
     }
     printf("\n");
     printf("Prof:       ");
@@ -67,7 +69,8 @@ void print_orario_form(const elem orario[], const int tot, const long attempt) {
         if (orario[i].insegnante2 == -1)
             printf("  -");
         else
-            printf("%c%c%c", insegnanti[orario[i].insegnante2][0],insegnanti[orario[i].insegnante2][1],insegnanti[orario[i].insegnante2][2]);
+            printf("%c%c%c", insegnanti[orario[i].insegnante2][0], insegnanti[orario[i].insegnante2][1],
+                   insegnanti[orario[i].insegnante2][2]);
     }
     printf("\n            ");
     for (int i = 0; i < tot; i++) {
@@ -80,7 +83,6 @@ void print_orario(elem orario[], const int pos, const int tot) {
     if (n_gen_ok <= n_gen) return;
 
     if (pos == tot) {
-        // da verificare che non ci siano ore buche per le classi, a meo che sia l'ultima ora
         if (verifica_ore_classe_materia(orario, tot)) {
             n_gen++;
             print_orario_form(orario, tot, n_gen);

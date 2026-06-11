@@ -78,4 +78,18 @@ void set_classe_materia_ore_prof(char cla[], char mat[], const int ore, const ch
 
 void set_classe_materia_ore_prof_codocenza(char cla[], char mat[], const int ore, const char prof[], const int ore_cod,
                                            const char cod[]);
+
+int p_aula(char a[]);
+
+int p_materia(char mat[]);
+
+int p_classe_sezione(char cla[]);
+
+int p_insegnante(const char in[]);
+
+inline int is_vuoto(const int p) { return p == -1; }
+
+inline int is_docente(const int p) { return !is_vuoto(p) && !codocenti[p]; }
+
+inline int is_codocente(const int p) { return !is_vuoto(p) && codocenti[p]; }
 #endif //UNTITLED_CONSTANTS_H

@@ -11,12 +11,8 @@ add_executable(untitled main.c
         constants/classes.h
         constants/subjects.h
         data_initialization/database_initializers.h
-        helper/find_positions.h
-        helper/find_positions.c
         constraints/progressive_constraints.h
         constraints/end_of_block_constraints.h
         data_initialization/database_initializers.c
         constraints/progressive_constraints.c
-        helper/professor_functions.c
-        helper/professor_functions.h
 )
