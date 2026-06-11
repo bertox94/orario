@@ -16,7 +16,7 @@ int orario_len;
 int giorno_ora_classi_sz;
 
 void print_orario(elem orario[], const int pos, const int tot) {
-    if (n_gen_ok <= n_gen) return;
+    //if (n_gen_ok <= n_gen) return;
 
     if (pos == tot) {
         // da verificare che non ci siano ore buche per le classi, a meo che sia l'ultima ora
@@ -56,6 +56,10 @@ void print_orario(elem orario[], const int pos, const int tot) {
 }
 
 int main(void) {
+    time_t currentTime;
+    time(&currentTime); // Get the current time
+
+    printf("Program started at: %s", ctime(&currentTime));
     inizializza_dati();
     inizializza_vincoli();
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
