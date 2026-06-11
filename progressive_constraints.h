@@ -7,6 +7,9 @@
 
 int g_classe(int p);
 
+
+int no_lessons_after_end_activities_for_today(const elem *orario, const int pos) ;
+
 int prof_in_classe(elem orario[], const long pos, int prof);
 
 int insegnanti_ore_materia_adeguata(int cla, int mat, int prof1, int prof2);

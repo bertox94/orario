@@ -27,6 +27,7 @@ void print_orario(elem orario[], const int pos, const int tot) {
         return;
     }
 
+    if (no_lessons_after_end_activities_for_today(orario, pos)) {
         for (int h = 0; h < actual_aula; h++) {
             for (int m = 0; m < actual_materie; m++) {
                 //ci può essere un solo insegnante perciò parte da -1
@@ -50,7 +51,7 @@ void print_orario(elem orario[], const int pos, const int tot) {
                 }
             }
         }
-
+    }
     if (pos / giorno_ora_classi_sz % actual_ore_giornaliere >= PRIME_N_ORE_OBBLIGATORIE) {
         orario[pos] = (elem){-1, -1, -1, -1};
         print_orario(orario, pos + 1, tot);

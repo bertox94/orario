@@ -7,12 +7,24 @@
 #include "database_initializers.h"
 #include "professor_functions.h"
 
+int g_giorno(const int p) { return p / actual_classi_sezione / actual_ore_giornaliere % actual_giorni_settimana; }
+
+int g_ora(const int p) { return p / actual_classi_sezione % actual_ore_giornaliere; }
+
 int g_classe(const int p) {
     return p % actual_classi_sezione;
 }
 
-int prof_in_classe(elem orario[], const long pos, int prof) {
+int no_lessons_after_end_activities_for_today(const elem *orario, const int pos) {
+    if (pos - actual_classi_sezione >= 0) {
+        if (g_giorno(pos) == g_giorno(pos - actual_classi_sezione))
+            return orario[pos - actual_classi_sezione].insegnante1 != -1
+                   || orario[pos - actual_classi_sezione].insegnante2 != -1;
+    }
+    return 1;
+}
 
+int prof_in_classe(elem orario[], const long pos, int prof) {
     if (prof != -1) {
         for (int i = pos - pos % actual_classi_sezione; i < pos; i++) {
             if (orario[i].insegnante1 == prof || orario[i].insegnante2 == prof)
