@@ -79,13 +79,13 @@ void print_orario_form(const elem orario[], const int tot, const long attempt) {
 }
 
 void print_orario(elem orario[], const int pos, const int tot) {
-    if (n_gen_ok <= n_gen) return;
+    //if (n_gen_ok <= n_gen) return;
 
     if (pos == tot) {
         if (verifica_ore_classe_materia(orario, tot)) {
             n_gen++;
-            // printf("%d\n", n_gen);
-            print_orario_form(orario, tot, n_gen);
+             printf("%d\n", n_gen);
+            //print_orario_form(orario, tot, n_gen);
         }
         return;
     }
