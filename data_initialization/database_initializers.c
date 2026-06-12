@@ -107,6 +107,9 @@ void set_classe_materia_ore_prof_codocenza(char cla[], char mat[], const int ore
                                            const char cod[]) {
     set_classe_materia_ore_prof(cla, mat, ore, prof);
     set_classe_materia_ore_prof(cla, mat, ore_cod, cod);
+    assert(ore>=ore_cod);
+    ore_insegnanti_classe_materia_lonely[p_classe_sezione(cla) * MATERIA_SZ * INSEGNANTE_SZ + p_materia(mat) *
+                                         INSEGNANTE_SZ + p_insegnante(prof)] = ore - ore_cod;
 }
 
 void inizializza_dati() {
@@ -185,6 +188,7 @@ void inizializza_vincoli() {
 
 
     memset(ore_insegnanti_classe_materia, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*INSEGNANTE_SZ*sizeof(int));
+    memset(ore_insegnanti_classe_materia_lonely, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*INSEGNANTE_SZ*sizeof(int));
     set_classe_materia_ore_prof_codocenza(Classe_3F, Sistemi_e_Reti, 4, Tiraboschi, 2, Gagliano);
     set_classe_materia_ore_prof_codocenza(Classe_3H, Informatica, 6, Tiraboschi, 3, Benedetto);
     set_classe_materia_ore_prof_codocenza(Classe_3F, TPSIT, 4, Ricciardi, 2, Rizzi);

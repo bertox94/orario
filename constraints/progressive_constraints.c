@@ -39,47 +39,52 @@ int prof_in_classe(const elem orario[], const long pos, const int prof) {
 }
 
 int controllo_prof_insieme(const int prof1, const int prof2) {
-    const int d1 = is_docente(prof1), c1 = is_codocente(prof1);
-    const int d2 = is_docente(prof2), c2 = is_codocente(prof2);
-
-    // Returns 1 (true) if the pair is allowed, 0 (false) if it's a conflict
-    return (!(d1 & d2)) & ((c1 + c2) <= (d1 + d2));
+    return !(is_codocente(prof1) && is_codocente(prof2)) && !(is_docente(prof1) && is_docente(prof2));
 }
 
 int verify_lonely_teacher_hours(elem orario[], const int pos, const int class, const int mat, const int prof) {
     int sum = 0;
-    int linear3d = class * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ + prof;
+    const int limit = ore_insegnanti_classe_materia_lonely[class * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ + prof];
     for (int i = class; i < pos; i += actual_classi_sezione) {
         if (orario[i].materia == mat)
             sum += orario[i].insegnante1 == prof || orario[i].insegnante2 == prof;
-        if (sum >= ore_insegnanti_classe_materia_lonely[linear3d]) return 0;
+        if (sum >= limit) return 0;
     }
-    if (sum >= ore_insegnanti_classe_materia_lonely[linear3d])
-        printf("sum: %d\n", sum);
-    return 1;
+    return sum < limit;
 }
 
 int verify_teacher_hours(elem orario[], const int pos, const int class, const int mat, const int prof1,
                          const int prof2) {
     int linear3dbase = class * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ;
 
+    // 1. Cache limits in local variables to avoid array lookups and enable early exit
+    int max1 = ore_insegnanti_classe_materia[linear3dbase + prof2];
+    int max2 = ore_insegnanti_classe_materia[linear3dbase + prof1];
+
+    // Quick check: if the allowed hours are already 0, we can skip the loop entirely
+    if (max1 <= 0 || max2 <= 0) {
+        return 0;
+    }
+
     int sum1 = 0;
-    for (int i = class; i < pos; i += actual_classi_sezione) {
-        if (orario[i].materia == mat)
-            sum1 += orario[i].insegnante1 == prof2 || orario[i].insegnante2 == prof2;
-    }
-    if (sum1 >= ore_insegnanti_classe_materia[linear3dbase + prof2])
-        return 0;
-
-    //c'è il codocente
     int sum2 = 0;
-    for (int i = class; i < pos; i += actual_classi_sezione) {
-        if (orario[i].materia == mat)
-            sum2 += orario[i].insegnante1 == prof1 || orario[i].insegnante2 == prof1;
-    }
-    if (sum2 >= ore_insegnanti_classe_materia[linear3dbase + prof1])
-        return 0;
 
+    // 2. Merged loop: processes both teachers in a single pass over the array
+    for (int i = class; i < pos; i += actual_classi_sezione) {
+
+        // Cache array element to minimize pointer arithmetic and maximize CPU cache usage
+        const elem slot = orario[i];
+
+        if (slot.materia == mat) {
+            sum1 += (slot.insegnante1 == prof2 || slot.insegnante2 == prof2);
+            sum2 += (slot.insegnante1 == prof1 || slot.insegnante2 == prof1);
+
+            // 3. Early Exit: Stop the loop the exact moment a threshold is breached
+            if (sum1 >= max1 || sum2 >= max2) {
+                return 0;
+            }
+        }
+    }
 
     return 1;
 }
