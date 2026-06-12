@@ -78,39 +78,46 @@ void print_orario_form(const elem orario[], const int tot, const long attempt) {
     printf("\n");
 }
 
-void print_orario(elem orario[], const int pos, const int tot, int ora_classi_docenti_materia_effettuate[]) {
+void print_orario(elem orario[], const int pos, const int tot, int ora_classi_docenti_materia_effettuate[],
+                  int prof_in_classe[]) {
     //if (n_gen_ok <= n_gen) return;
 
     if (pos == tot) {
         if (verifica_ore_classe_materia(orario, tot)) {
             n_gen++;
-            printf("%d\n", n_gen);
+            printf("%lld\n", n_gen);
             //print_orario_form(orario, tot, n_gen);
         }
         return;
     }
 
+    print_orario_form(orario, pos, n_gen);
+
     if (still_activities_for_today(orario, pos)) {
         for (int h = 0; h < actual_aula; h++) {
             for (int m = 0; m < actual_materie; m++) {
                 int i = -1, j = 0;
-                const int base3d = g_classe(pos) * MATERIA_SZ * INSEGNANTE_SZ + m * INSEGNANTE_SZ;
+                const int base3dore_classi = g_classe(pos) * MATERIA_SZ * INSEGNANTE_SZ + m * INSEGNANTE_SZ;
+                const int base3dprof_impegnati =
+                        g_giorno(pos) * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + g_ora(pos) * INSEGNANTE_SZ;
                 //insegnanti da soli
                 for (; j < actual_insegnanti; j++) {
                     if ( //solo docenti
                         is_docente(j)
                         // verifica che nella stessa ora ciascun prof non sia già in altre classi
-                        && prof_in_classe(orario, pos, j)
+                        && !prof_in_classe[base3dprof_impegnati + j]
                         // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
-                        && ora_classi_docenti_materia_effettuate[base3d + j] < ore_insegnanti_classe_materia_lonely[
-                            base3d + j]
+                        && ora_classi_docenti_materia_effettuate[base3dore_classi + j] <
+                        ore_insegnanti_classe_materia_lonely[
+                            base3dore_classi + j]
                         && 1) {
                         orario[pos] = (elem){h, m, i, j};
-                        ora_classi_docenti_materia_effettuate[base3d + j]++;
+                        ora_classi_docenti_materia_effettuate[base3dore_classi + j]++;
+                        prof_in_classe[base3dprof_impegnati + j] = 1;
 
-                        print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate);
+                        print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate, prof_in_classe);
 
-                        ora_classi_docenti_materia_effettuate[base3d + j]--;
+                        ora_classi_docenti_materia_effettuate[base3dore_classi + j]--;
                     }
                 }
 
@@ -118,26 +125,29 @@ void print_orario(elem orario[], const int pos, const int tot, int ora_classi_do
                 for (i = 0; i < actual_insegnanti; i++) {
                     for (j = i + 1; j < actual_insegnanti; j++) {
                         if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
-                            prof_in_classe(orario, pos, i)
-                            && prof_in_classe(orario, pos, j)
+                            !prof_in_classe[base3dprof_impegnati + i]
+                            && !prof_in_classe[base3dprof_impegnati + j]
                             // le codocenze sono in solo laboratorio
                             && laboratori[h]
                             // non si possono avere due docenti teorici insieme, nè due codocenti, ...
                             && controllo_prof_insieme(i, j)
                             // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
-                            && ora_classi_docenti_materia_effettuate[base3d + i] < ore_insegnanti_classe_materia[
-                                base3d + i]
-                            && ora_classi_docenti_materia_effettuate[base3d + j] < ore_insegnanti_classe_materia[
-                                base3d + j]
+                            && ora_classi_docenti_materia_effettuate[base3dore_classi + i] <
+                            ore_insegnanti_classe_materia[
+                                base3dore_classi + i]
+                            && ora_classi_docenti_materia_effettuate[base3dore_classi + j] <
+                            ore_insegnanti_classe_materia[
+                                base3dore_classi + j]
                             && 1) {
                             orario[pos] = (elem){h, m, i, j};
-                            ora_classi_docenti_materia_effettuate[base3d + i]++;
-                            ora_classi_docenti_materia_effettuate[base3d + j]++;
+                            ora_classi_docenti_materia_effettuate[base3dore_classi + i]++;
+                            ora_classi_docenti_materia_effettuate[base3dore_classi + j]++;
+                            prof_in_classe[base3dprof_impegnati + i] = 1;
+                            prof_in_classe[base3dprof_impegnati + j] = 1;
+                            print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate, prof_in_classe);
 
-                            print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate);
-
-                            ora_classi_docenti_materia_effettuate[base3d + i]--;
-                            ora_classi_docenti_materia_effettuate[base3d + j]--;
+                            ora_classi_docenti_materia_effettuate[base3dore_classi + i]--;
+                            ora_classi_docenti_materia_effettuate[base3dore_classi + j]--;
                         }
                     }
                 }
@@ -146,7 +156,7 @@ void print_orario(elem orario[], const int pos, const int tot, int ora_classi_do
     }
     if (pos / giorno_ora_classi_sz % actual_ore_giornaliere >= PRIME_N_ORE_OBBLIGATORIE) {
         orario[pos] = (elem){-1, -1, -1, -1};
-        print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate);
+        print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate, prof_in_classe);
     }
 }
 
@@ -167,8 +177,10 @@ int main(void) {
     //memset(orario, (elem){-1,-1,-1,-1}, orario_len*sizeof(int));
     int ora_classi_docenti_materie_effettuate[CLASSE_SEZIONE_SZ * MATERIA_SZ * INSEGNANTE_SZ] = {};
     memset(ora_classi_docenti_materie_effettuate, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*INSEGNANTE_SZ * sizeof(int));
+    int prof_in_classe[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ] = {};
+    memset(prof_in_classe, 0, GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ*sizeof(int));
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
-    print_orario(orario, 0, orario_len, ora_classi_docenti_materie_effettuate);
+    print_orario(orario, 0, orario_len, ora_classi_docenti_materie_effettuate, prof_in_classe);
 
     const double elapsed = (clock() - start) / (double) CLOCKS_PER_SEC;
     printf("Totale generati: %llu in %d m, %d s.", n_gen, (int) elapsed / 60, (int) elapsed % 60);

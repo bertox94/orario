@@ -5,6 +5,10 @@
 #ifndef UNTITLED_PROGRESSIVE_CONSTRAINTS_H
 #define UNTITLED_PROGRESSIVE_CONSTRAINTS_H
 
+int g_giorno(const int p);
+
+int g_ora(const int p);
+
 int g_classe(int p);
 
 
