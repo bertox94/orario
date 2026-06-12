@@ -103,8 +103,8 @@ void print_orario(elem orario[], const int pos, const int tot) {
                             // non si possono avere due docenti teorici insieme, nè due codocenti, ...
                             && controllo_prof_insieme(i, j)
                             // docente non ha ancora raggiunto le ore di insegnamento per quella materia e classe
-                            && is_teacher_eligible_for_class(orario, pos, g_classe(pos), m, i)
-                            && is_teacher_eligible_for_class(orario, pos, g_classe(pos), m, j)
+                            //&& is_teacher_eligible_for_class(orario, pos, g_classe(pos), m, i)
+                            //&& is_teacher_eligible_for_class(orario, pos, g_classe(pos), m, j)
                             // docente non deve fare altre ore da solo, ma in compresenza (altrimenti su 6 ore
                             // ne fa 5 da solo, ma altre due dovrebbe farle in comrpesenza su un totale di 6))
                             && docente_necessita_compresenza(orario, pos, g_classe(pos), m, i, j)

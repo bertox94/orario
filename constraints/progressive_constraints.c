@@ -69,7 +69,7 @@ int controllo_prof_insieme(const int prof1, const int prof2) {
     const int d2 = is_docente(prof2), c2 = is_codocente(prof2);
 
     // Returns 1 (true) if the pair is allowed, 0 (false) if it's a conflict
-    return (! (d1 & d2)) & ((c1 + c2) <= (d1 + d2));
+    return (!(d1 & d2)) & ((c1 + c2) <= (d1 + d2));
 }
 
 int is_teacher_eligible_for_class(elem orario[], const int pos, const int class, const int mat, const int prof) {
@@ -91,7 +91,32 @@ int docente_necessita_compresenza(elem orario[], const int pos, const int class,
     //se questa funzione viene chiamata vuol dire che prof1 è abilitsto a insegnare e prof2 è assente, viceversa,
     //oppure sono uno il docente e l'altro il codocente
     //in ogni caso, quello diverso da -1 è il docente, perchè il codocente non può essere da solo per il test precedente
-    if (prof1 != -1 && prof2 != -1) return 1;
+
+    //if (!is_teacher_eligible_for_class(orario, pos, class, mat, prof1)) return 0;
+
+    if (prof1 != -1) {
+        int sum = 0;
+        for (int i = class; i < pos; i += actual_classi_sezione) {
+            if (orario[i].materia == mat)
+                sum += orario[i].insegnante1 == prof1 || orario[i].insegnante2 == prof1;
+        }
+        if (sum >= ore_insegnanti_classe_materia[
+                class * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ + prof1])
+            return 0;
+    }
+
+    if (prof2 != -1) {
+        int sum = 0;
+        for (int i = class; i < pos; i += actual_classi_sezione) {
+            if (orario[i].materia == mat)
+                sum += orario[i].insegnante1 == prof2 || orario[i].insegnante2 == prof2;
+        }
+        if (sum >= ore_insegnanti_classe_materia[
+                class * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ + prof2])
+            return 0;
+    }
+
+    if (prof1 != -1 & prof2 != -1) return 1;
 
     const int prof = prof1 != -1 ? prof1 : prof2;
     const int classe_materia = class * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ;
