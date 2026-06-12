@@ -91,8 +91,6 @@ void print_orario(elem orario[], const int pos, const int tot, int ora_classi_do
         return;
     }
 
-    print_orario_form(orario, pos, n_gen);
-
     if (still_activities_for_today(orario, pos)) {
         for (int h = 0; h < actual_aula; h++) {
             for (int m = 0; m < actual_materie; m++) {
@@ -108,8 +106,7 @@ void print_orario(elem orario[], const int pos, const int tot, int ora_classi_do
                         && !prof_in_classe[base3dprof_impegnati + j]
                         // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
                         && ora_classi_docenti_materia_effettuate[base3dore_classi + j] <
-                        ore_insegnanti_classe_materia_lonely[
-                            base3dore_classi + j]
+                        ore_insegnanti_classe_materia_lonely[base3dore_classi + j]
                         && 1) {
                         orario[pos] = (elem){h, m, i, j};
                         ora_classi_docenti_materia_effettuate[base3dore_classi + j]++;
@@ -118,39 +115,41 @@ void print_orario(elem orario[], const int pos, const int tot, int ora_classi_do
                         print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate, prof_in_classe);
 
                         ora_classi_docenti_materia_effettuate[base3dore_classi + j]--;
+                        prof_in_classe[base3dprof_impegnati + j] = 0;
                     }
                 }
 
                 //codocenze
-                for (i = 0; i < actual_insegnanti; i++) {
-                    for (j = i + 1; j < actual_insegnanti; j++) {
-                        if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
-                            !prof_in_classe[base3dprof_impegnati + i]
-                            && !prof_in_classe[base3dprof_impegnati + j]
-                            // le codocenze sono in solo laboratorio
-                            && laboratori[h]
-                            // non si possono avere due docenti teorici insieme, nè due codocenti, ...
-                            && controllo_prof_insieme(i, j)
-                            // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
+                if (laboratori[h])
+                    for (i = 0; i < actual_insegnanti; i++) {
+                        if (!prof_in_classe[base3dprof_impegnati + i]
                             && ora_classi_docenti_materia_effettuate[base3dore_classi + i] <
-                            ore_insegnanti_classe_materia[
-                                base3dore_classi + i]
-                            && ora_classi_docenti_materia_effettuate[base3dore_classi + j] <
-                            ore_insegnanti_classe_materia[
-                                base3dore_classi + j]
-                            && 1) {
-                            orario[pos] = (elem){h, m, i, j};
-                            ora_classi_docenti_materia_effettuate[base3dore_classi + i]++;
-                            ora_classi_docenti_materia_effettuate[base3dore_classi + j]++;
-                            prof_in_classe[base3dprof_impegnati + i] = 1;
-                            prof_in_classe[base3dprof_impegnati + j] = 1;
-                            print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate, prof_in_classe);
+                            ore_insegnanti_classe_materia[base3dore_classi + i])
+                            for (j = i + 1; j < actual_insegnanti; j++) {
+                                if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
+                                    !prof_in_classe[base3dprof_impegnati + j]
+                                    // non si possono avere due docenti teorici insieme, nè due codocenti, ...
+                                    && controllo_prof_insieme(i, j)
+                                    // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
+                                    && ora_classi_docenti_materia_effettuate[base3dore_classi + j] <
+                                    ore_insegnanti_classe_materia[base3dore_classi + j]
+                                    && 1) {
+                                    orario[pos] = (elem){h, m, i, j};
+                                    ora_classi_docenti_materia_effettuate[base3dore_classi + i]++;
+                                    ora_classi_docenti_materia_effettuate[base3dore_classi + j]++;
+                                    prof_in_classe[base3dprof_impegnati + i] = 1;
+                                    prof_in_classe[base3dprof_impegnati + j] = 1;
 
-                            ora_classi_docenti_materia_effettuate[base3dore_classi + i]--;
-                            ora_classi_docenti_materia_effettuate[base3dore_classi + j]--;
-                        }
+                                    print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate,
+                                                 prof_in_classe);
+
+                                    ora_classi_docenti_materia_effettuate[base3dore_classi + i]--;
+                                    ora_classi_docenti_materia_effettuate[base3dore_classi + j]--;
+                                    prof_in_classe[base3dprof_impegnati + i] = 0;
+                                    prof_in_classe[base3dprof_impegnati + j] = 0;
+                                }
+                            }
                     }
-                }
             }
         }
     }
