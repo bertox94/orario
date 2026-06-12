@@ -9,7 +9,7 @@
 #include "constraints/end_of_block_constraints.h"
 
 long long int n_gen = 0;
-long long int n_gen_ok = 10;
+long long int n_gen_ok = 1;
 int orario_len;
 
 
@@ -80,24 +80,27 @@ void print_orario_form(const elem orario[], const int tot, const long attempt) {
 
 void print_orario(elem orario[], const int pos, const int tot, int ora_classi_docenti_materia_effettuate[],
                   int prof_in_classe[]) {
-    //if (n_gen_ok <= n_gen) return;
+    if (n_gen_ok <= n_gen) return;
 
     if (pos == tot) {
         if (verifica_ore_classe_materia(orario, tot)) {
             n_gen++;
-            printf("%lld\n", n_gen);
-            //print_orario_form(orario, tot, n_gen);
+            //printf("%lld\n", n_gen);
+            print_orario_form(orario, tot, n_gen);
         }
         return;
     }
 
+    //print_orario_form(orario,pos, n_gen);
+
+    const int base3dprof_impegnati =
+            g_giorno(pos) * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + g_ora(pos) * INSEGNANTE_SZ;
     if (still_activities_for_today(orario, pos)) {
         for (int h = 0; h < actual_aula; h++) {
             for (int m = 0; m < actual_materie; m++) {
                 int i = -1, j = 0;
                 const int base3dore_classi = g_classe(pos) * MATERIA_SZ * INSEGNANTE_SZ + m * INSEGNANTE_SZ;
-                const int base3dprof_impegnati =
-                        g_giorno(pos) * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + g_ora(pos) * INSEGNANTE_SZ;
+
                 //insegnanti da soli
                 for (; j < actual_insegnanti; j++) {
                     if ( //solo docenti
