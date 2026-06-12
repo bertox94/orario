@@ -3,6 +3,7 @@
 //
 
 #include <assert.h>
+#include <stdio.h>
 
 #include "../data_initialization/database_initializers.h"
 
@@ -23,24 +24,13 @@ int still_activities_for_today(const elem *orario, const int pos) {
     return 1;
 }
 
-int prof_in_classe(const elem orario[], const long pos, const int prof1, const int prof2) {
+int prof_in_classe(const elem orario[], const long pos, const int prof) {
     // 1. Compute range exactly once
     const int start_index = pos - (pos % actual_classi_sezione);
     const elem *const base = &orario[0];
 
-    // 2. THE SENTINEL TRICK: If prof1 is empty, make it mirror prof2.
-    // This completely eliminates loop hoisting and code duplication!
-    // The CPU evaluates this using a single conditional-move (cmov) instruction.
-    const int p1_target = (prof1 != -1) ? prof1 : prof2;
-
-    // 3. ONE ULTRA-LEAN LOOP FOR ALL SCENARIOS
     for (int i = start_index; i < pos; ++i) {
-        const int t1 = base[i].insegnante1;
-        const int t2 = base[i].insegnante2;
-
-        // If prof1 was -1, it now checks prof2 twice.
-        // Duplicate register checks cost 0 clock cycles due to parallel ALUs!
-        if ((t1 == p1_target) | (t2 == p1_target) | (t1 == prof2) | (t2 == prof2)) {
+        if (base[i].insegnante1 == prof | base[i].insegnante2 == prof) {
             return 0; // Collision found
         }
     }
@@ -56,10 +46,23 @@ int controllo_prof_insieme(const int prof1, const int prof2) {
     return (!(d1 & d2)) & ((c1 + c2) <= (d1 + d2));
 }
 
+int verify_lonely_teacher_hours(elem orario[], const int pos, const int class, const int mat, const int prof) {
+    int sum = 0;
+    int linear3d = class * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ + prof;
+    for (int i = class; i < pos; i += actual_classi_sezione) {
+        if (orario[i].materia == mat)
+            sum += orario[i].insegnante1 == prof || orario[i].insegnante2 == prof;
+        if (sum >= ore_insegnanti_classe_materia_lonely[linear3d]) return 0;
+    }
+    if (sum >= ore_insegnanti_classe_materia_lonely[linear3d])
+        printf("sum: %d\n", sum);
+    return 1;
+}
+
 int verify_teacher_hours(elem orario[], const int pos, const int class, const int mat, const int prof1,
-                                  const int prof2) {
+                         const int prof2) {
     int linear3dbase = class * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ;
-    //assert(!is_vuoto(prof2));
+
     int sum1 = 0;
     for (int i = class; i < pos; i += actual_classi_sezione) {
         if (orario[i].materia == mat)
@@ -68,28 +71,15 @@ int verify_teacher_hours(elem orario[], const int pos, const int class, const in
     if (sum1 >= ore_insegnanti_classe_materia[linear3dbase + prof2])
         return 0;
 
-    if (!is_vuoto(prof1)) {
-        //c'è il codocente
-        int sum2 = 0;
-        for (int i = class; i < pos; i += actual_classi_sezione) {
-            if (orario[i].materia == mat)
-                sum2 += orario[i].insegnante1 == prof1 || orario[i].insegnante2 == prof1;
-        }
-        if (sum2 >= ore_insegnanti_classe_materia[linear3dbase + prof1])
-            return 0;
-    } else {
-        //verifica che non ha superato le ore in cui deve stare da solo
-        int ore_cod = 0;
-        // trova le ore di compresenza
-        for (int i = 0; i < INSEGNANTE_SZ; i++) {
-            if (i != prof2 && ore_insegnanti_classe_materia[linear3dbase + i] > 0) {
-                ore_cod = ore_insegnanti_classe_materia[linear3dbase + i];
-                break;
-            }
-        }
-        if (sum1 >= ore_insegnanti_classe_materia[linear3dbase + prof2] - ore_cod)
-            return 0;
+    //c'è il codocente
+    int sum2 = 0;
+    for (int i = class; i < pos; i += actual_classi_sezione) {
+        if (orario[i].materia == mat)
+            sum2 += orario[i].insegnante1 == prof1 || orario[i].insegnante2 == prof1;
     }
+    if (sum2 >= ore_insegnanti_classe_materia[linear3dbase + prof1])
+        return 0;
+
 
     return 1;
 }

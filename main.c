@@ -84,7 +84,7 @@ void print_orario(elem orario[], const int pos, const int tot) {
     if (pos == tot) {
         if (verifica_ore_classe_materia(orario, tot)) {
             n_gen++;
-             printf("%d\n", n_gen);
+            printf("%d\n", n_gen);
             //print_orario_form(orario, tot, n_gen);
         }
         return;
@@ -93,13 +93,30 @@ void print_orario(elem orario[], const int pos, const int tot) {
     if (still_activities_for_today(orario, pos)) {
         for (int h = 0; h < actual_aula; h++) {
             for (int m = 0; m < actual_materie; m++) {
-                //ci può essere un solo insegnante perciò parte da -1
-                for (int i = -1; i < actual_insegnanti; i++) {
-                    for (int j = i + 1; j < actual_insegnanti; j++) {
+                int i = -1, j = 0;
+                //insegnanti da soli
+                for (; j < actual_insegnanti; j++) {
+                    if ( //solo docenti
+                        is_docente(j)
+                        // verifica che nella stessa ora ciascun prof non sia già in altre classi
+                        && prof_in_classe(orario, pos, j)
+                        // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
+                        && verify_lonely_teacher_hours(orario, pos, g_classe(pos), m, j)
+                        && 1) {
+                        orario[pos] = (elem){h, m, i, j};
+
+                        print_orario(orario, pos + 1, tot);
+                    }
+                }
+
+                //codocenze
+                for (i = 0; i < actual_insegnanti; i++) {
+                    for (j = i + 1; j < actual_insegnanti; j++) {
                         if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
-                            prof_in_classe(orario, pos, i, j)
-                            // se non è un laboratorio, non possono esserci codocenti
-                            && (laboratori[h] || !is_codocente(i) && !is_codocente(j))
+                            prof_in_classe(orario, pos, i)
+                            && prof_in_classe(orario, pos, j)
+                            // le codocenze sono in solo laboratorio
+                            && laboratori[h]
                             // non si possono avere due docenti teorici insieme, nè due codocenti, ...
                             && controllo_prof_insieme(i, j)
                             // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
