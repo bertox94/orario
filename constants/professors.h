@@ -15,5 +15,6 @@ char Paghera[] = "Paghera";
 char Kushi[] = "Kushi";
 char Gagliano[] = "Gagliano";
 char Benedetto[] = "Benedetto";
+char Tosi[] = "Tosi";
 
 #endif //UNTITLED_PROFESSORS_H

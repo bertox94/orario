@@ -23,7 +23,7 @@
 #define INSEGNANTE_ITEM_SZ 15
 
 #define MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT 2
-#define PRIME_N_ORE_OBBLIGATORIE 1
+#define PRIME_N_ORE_OBBLIGATORIE 0
 
 char giorni_settimana[GIORNO_SETTIMANA_SZ][GIORNO_SETTIMANA_ITEM_SZ];
 char ora_giornaliera[ORA_GIORNALIERA_SZ][ORA_GIORNALIERA_ITEM_SZ];
@@ -65,11 +65,11 @@ void set_classe_sezione(char cla[], int pos);
 
 void set_aula(char aul[], const int pos);
 
-void set_materia(char mat[], const int pos);
+void set_materia(char mat[]);
 
-void set_insegnante(char in[], const int pos);
+void set_insegnante(char in[]);
 
-void set_laboratorio(char lab[]);
+void set_laboratorio(char lab[], int pos);
 
 void set_codocente(char cod[]);
 

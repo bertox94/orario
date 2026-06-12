@@ -22,8 +22,10 @@ int verifica_ore_classe_materia(const elem orario[], const long tot) {
     }
 
     for (int i = 0; i < CLASSE_SEZIONE_SZ * MATERIA_SZ * INSEGNANTE_SZ; i++)
-        if (ore_insegnanti_classe_materia[i] != ore_insegnanti_classe_materia_curr[i])
+        if (ore_insegnanti_classe_materia[i] != ore_insegnanti_classe_materia_curr[i]) {
+            printf("Wrong: %d, %d but %d\n",i, ore_insegnanti_classe_materia[i], ore_insegnanti_classe_materia_curr[i]);
             return 0;
+        }
     return 1;
 }
 #endif //UNTITLED_END_OF_BLOCK_CONSTRAINTS_H

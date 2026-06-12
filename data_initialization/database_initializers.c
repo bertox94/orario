@@ -17,7 +17,7 @@ int p_insegnante(const char in[]) {
         if (!strcmp(insegnanti[i], in))
             return i;
     }
-    assert(0);
+    //assert(0);
     return -1;
 }
 
@@ -35,7 +35,6 @@ int p_materia(char mat[]) {
         if (!strcmp(materie[i], mat))
             return i;
     }
-    assert(0);
     return -1;
 }
 
@@ -78,20 +77,24 @@ void set_aula(char aul[], const int pos) {
     strcpy(aule[pos], aul);
 }
 
-void set_materia(char mat[], const int pos) {
-    assert(pos < MATERIA_SZ);
+void set_laboratorio(char lab[], const int pos) {
+    set_aula(lab, pos);
+    laboratori[pos] = 1;
+}
+
+
+void set_materia(char mat[]) {
+    if (p_materia(mat) >= 0) return;
+    assert(actual_materie < MATERIA_SZ);
     assert(strlen(mat) < MATERIA_ITEM_SZ);
-    strcpy(materie[pos], mat);
+    strcpy(materie[actual_materie++], mat);
 }
 
-void set_insegnante(char in[], const int pos) {
-    assert(pos < INSEGNANTE_SZ);
+void set_insegnante(char in[]) {
+    if (p_insegnante(in) >= 0) return;
+    assert(actual_insegnanti < INSEGNANTE_SZ);
     assert(strlen(in) < INSEGNANTE_ITEM_SZ);
-    strcpy(insegnanti[pos], in);
-}
-
-void set_laboratorio(char lab[]) {
-    laboratori[p_aula(lab)] = 1;
+    strcpy(insegnanti[actual_insegnanti++], in);
 }
 
 void set_codocente(char cod[]) {
@@ -99,101 +102,96 @@ void set_codocente(char cod[]) {
 }
 
 void set_classe_materia_ore_prof(char cla[], char mat[], const int ore, const char prof[]) {
-    ore_insegnanti_classe_materia[p_classe_sezione(cla) * MATERIA_SZ * INSEGNANTE_SZ + p_materia(mat) *
-                                  INSEGNANTE_SZ + p_insegnante(prof)] = ore;
+    set_materia(mat);
+    const int base = p_classe_sezione(cla) * MATERIA_SZ * INSEGNANTE_SZ + p_materia(mat) * INSEGNANTE_SZ;
+    set_insegnante(prof);
+    ore_insegnanti_classe_materia_lonely[base + p_insegnante(prof)] = ore;
+    ore_insegnanti_classe_materia[base + p_insegnante(prof)] = ore;
 }
 
 void set_classe_materia_ore_prof_codocenza(char cla[], char mat[], const int ore, const char prof[], const int ore_cod,
                                            const char cod[]) {
-    set_classe_materia_ore_prof(cla, mat, ore, prof);
-    set_classe_materia_ore_prof(cla, mat, ore_cod, cod);
+    set_materia(mat);
+    const int base = p_classe_sezione(cla) * MATERIA_SZ * INSEGNANTE_SZ + p_materia(mat) * INSEGNANTE_SZ;
+    set_insegnante(prof);
+    set_insegnante(cod);
     set_codocente(cod);
+    ore_insegnanti_classe_materia[base + p_insegnante(prof)] = ore;
+    ore_insegnanti_classe_materia[base + p_insegnante(cod)] = ore_cod;
+
     assert(ore>=ore_cod);
-    ore_insegnanti_classe_materia_lonely[p_classe_sezione(cla) * MATERIA_SZ * INSEGNANTE_SZ + p_materia(mat) *
-                                         INSEGNANTE_SZ + p_insegnante(prof)] = ore - ore_cod;
+    ore_insegnanti_classe_materia_lonely[base + p_insegnante(prof)] = ore - ore_cod;
 }
 
 void inizializza_dati() {
-    int pos = 0;
-    set_giorno_settimana(Lun, pos++);
-    set_giorno_settimana(Mar, pos++);
-    set_giorno_settimana(Mer, pos++);
-    set_giorno_settimana(Gio, pos++);
-    set_giorno_settimana(Ven, pos++);
+    actual_giorni_settimana = 0;
+    set_giorno_settimana(Lun, actual_giorni_settimana++);
+    set_giorno_settimana(Mar, actual_giorni_settimana++);
+    set_giorno_settimana(Mer, actual_giorni_settimana++);
+    set_giorno_settimana(Gio, actual_giorni_settimana++);
+    set_giorno_settimana(Ven, actual_giorni_settimana++);
     //set_giorno_settimana(Sab, pos++);
-    for (int i = pos; i < GIORNO_SETTIMANA_SZ; i++)
+    for (int i = actual_giorni_settimana; i < GIORNO_SETTIMANA_SZ; i++)
         set_giorno_settimana("", i);
-    actual_giorni_settimana = pos;
 
-    pos = 0;
-    set_ora_giornaliera(Ora_08, pos++);
-    set_ora_giornaliera(Ora_09, pos++);
-    set_ora_giornaliera(Ora_10, pos++);
-    set_ora_giornaliera(Ora_11, pos++);
-    //set_ora_giornaliera(Ora_12, pos++);
+    actual_ore_giornaliere = 0;
+    set_ora_giornaliera(Ora_08, actual_ore_giornaliere++);
+    set_ora_giornaliera(Ora_09, actual_ore_giornaliere++);
+    set_ora_giornaliera(Ora_10, actual_ore_giornaliere++);
+    set_ora_giornaliera(Ora_11, actual_ore_giornaliere++);
+    set_ora_giornaliera(Ora_12, actual_ore_giornaliere++);
     //set_ora_giornaliera(Ora_13, pos++);
-    for (int i = pos; i < ORA_GIORNALIERA_SZ; i++)
+    for (int i = actual_ore_giornaliere; i < ORA_GIORNALIERA_SZ; i++)
         set_ora_giornaliera("", i);
-    actual_ore_giornaliere = pos;
 
-    pos = 0;
-    set_classe_sezione(Classe_3H, pos++);
-    set_classe_sezione(Classe_3E, pos++);
-    set_classe_sezione(Classe_3F, pos++);
-    for (int i = pos; i < CLASSE_SEZIONE_SZ; i++)
+    actual_classi_sezione = 0;
+    set_classe_sezione(Classe_3H, actual_classi_sezione++);
+    set_classe_sezione(Classe_3E, actual_classi_sezione++);
+    set_classe_sezione(Classe_3F, actual_classi_sezione++);
+    for (int i = actual_classi_sezione; i < CLASSE_SEZIONE_SZ; i++)
         set_classe_sezione("", i);
-    actual_classi_sezione = pos;
 
-    pos = 0;
-    //set_aula(PS15, pos++);
-    //set_aula(PS16, pos++);
-    set_aula(INFO0, pos++);
-    //set_aula(INFO1, pos++);
-    //set_aula(INFO2, pos++);
-    for (int i = pos; i < AULA_SZ; i++)
+    actual_aula = 0;
+    memset(laboratori, 0, AULA_SZ*sizeof(int));
+    set_aula(PS15, actual_aula++);
+    set_aula(PS16, actual_aula++);
+    set_laboratorio(INFO0, actual_aula++);
+    set_laboratorio(INFO1, actual_aula++);
+    set_laboratorio(INFO2, actual_aula++);
+    for (int i = actual_aula; i < AULA_SZ; i++)
         set_aula("", i);
-    actual_aula = pos;
 
-    pos = 0;
-    set_materia(Informatica, pos++);
-    set_materia(Sistemi_e_Reti, pos++);
-    set_materia(TPSIT, pos++);
-    for (int i = pos; i < MATERIA_SZ; i++)
-        set_materia("", i);
-    actual_materie = pos;
+    actual_materie = 0;
+    /*set_materia(Informatica, actual_materie++);
+    set_materia(Sistemi_e_Reti, actual_materie++);
+    set_materia(TPSIT, actual_materie++);
+    for (int i = actual_materie; i < MATERIA_SZ; i++)
+        set_materia("", i);*/
 
-    pos = 0;
-    set_insegnante(Ricciardi, pos++);
-    set_insegnante(Tiraboschi, pos++);
-    set_insegnante(Gatti, pos++);
-    set_insegnante(Manganelli, pos++);
-    set_insegnante(Barosi, pos++);
-    set_insegnante(Kushi, pos++);
-    set_insegnante(Rizzi, pos++);
-    set_insegnante(Paghera, pos++);
-    set_insegnante(Masetti, pos++);
-    set_insegnante(Benedetto, pos++);
-    set_insegnante(Gagliano, pos++);
-    for (int i = pos; i < INSEGNANTE_SZ; i++)
-        set_insegnante("", i);
-    actual_insegnanti = pos;
+    actual_insegnanti = 0;
+    /* set_insegnante(Ricciardi, actual_insegnanti++);
+     set_insegnante(Tiraboschi, actual_insegnanti++);
+     set_insegnante(Gatti, actual_insegnanti++);
+     set_insegnante(Manganelli, actual_insegnanti++);
+     set_insegnante(Barosi, actual_insegnanti++);
+     set_insegnante(Kushi, actual_insegnanti++);
+     set_insegnante(Rizzi, actual_insegnanti++);
+     set_insegnante(Paghera, actual_insegnanti++);
+     set_insegnante(Masetti, actual_insegnanti++);
+     set_insegnante(Benedetto, actual_insegnanti++);
+     set_insegnante(Gagliano, actual_insegnanti++);
+     for (int i = actual_insegnanti; i < INSEGNANTE_SZ; i++)
+         set_insegnante("", i);*/
 }
 
 void inizializza_vincoli() {
-    memset(laboratori, 0, AULA_SZ*sizeof(int));
-    set_laboratorio(INFO0);
-    //set_laboratorio(INFO1);
-
-    /*set_codocente(Rizzi);
-    set_codocente(Barosi);
-    set_codocente(Benedetto);
-    set_codocente(Gagliano);*/
     memset(codocenti, 0, INSEGNANTE_SZ*sizeof(int));
     memset(ore_insegnanti_classe_materia, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*INSEGNANTE_SZ*sizeof(int));
     memset(ore_insegnanti_classe_materia_lonely, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*INSEGNANTE_SZ*sizeof(int));
     set_classe_materia_ore_prof_codocenza(Classe_3H, Informatica, 6, Tiraboschi, 3, Benedetto);
     set_classe_materia_ore_prof_codocenza(Classe_3H, TPSIT, 4, Manganelli, 2, Rizzi);
     set_classe_materia_ore_prof_codocenza(Classe_3H, Sistemi_e_Reti, 4, Tiraboschi, 2, Gagliano);
+    set_classe_materia_ore_prof(Classe_3H, Matematica, 4, Tosi);
     set_classe_materia_ore_prof_codocenza(Classe_3F, Sistemi_e_Reti, 4, Tiraboschi, 2, Gagliano);
     set_classe_materia_ore_prof_codocenza(Classe_3F, TPSIT, 4, Ricciardi, 2, Rizzi);
     set_classe_materia_ore_prof_codocenza(Classe_3F, Informatica, 6, Kushi, 3, Paghera);
