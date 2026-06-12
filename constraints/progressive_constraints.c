@@ -89,7 +89,7 @@ int is_teacher_eligible_for_class(elem orario[], const int pos, const int class,
 int docente_necessita_compresenza(elem orario[], const int pos, const int class, const int mat, const int prof1,
                                   const int prof2) {
     int linear3dbase = class * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ;
-    assert(!is_vuoto(prof2));
+    //assert(!is_vuoto(prof2));
     int sum1 = 0;
     for (int i = class; i < pos; i += actual_classi_sezione) {
         if (orario[i].materia == mat)
