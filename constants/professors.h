@@ -16,5 +16,10 @@ char Kushi[] = "Kushi";
 char Gagliano[] = "Gagliano";
 char Benedetto[] = "Benedetto";
 char Tosi[] = "Tosi";
+char Guerra[] = "Guerra";
+char Nicoletti[] = "Nicoletti";
+char Lancellotti[] = "Lancellotti";
+char Trivini[] = "Trivini";
+char Quaini[] = "Quaini";
 
 #endif //UNTITLED_PROFESSORS_H

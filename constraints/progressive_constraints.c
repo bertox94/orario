@@ -16,6 +16,8 @@ int g_classe(const int p) {
 }
 
 int still_activities_for_today(const elem *orario, const int pos) {
+    //TODO: migliora questa, se ad esempio ho 32 ore, e un numeor minimo di ore di 5, già al 3 giorno a 6 ore devo fermarmi
+    //32%5 = 2, ovvero solo due giorni possno avere 6 ore
     if (pos - actual_classi_sezione >= 0) {
         if (g_giorno(pos) == g_giorno(pos - actual_classi_sezione))
             return orario[pos - actual_classi_sezione].insegnante1 != -1
