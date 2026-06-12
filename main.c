@@ -97,10 +97,9 @@ void print_orario(elem orario[], const int pos, const int tot) {
                 for (int i = -1; i < actual_insegnanti; i++) {
                     for (int j = i + 1; j < actual_insegnanti; j++) {
                         if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
-                            prof_in_classe(orario, pos, i)
-                            && prof_in_classe(orario, pos, j)
-                            && codocente_deve_essere_in_lab_no_aula(h, i)
-                            && codocente_deve_essere_in_lab_no_aula(h, j)
+                            prof_in_classe(orario, pos, i, j)
+                            // se non è un laboratorio, non possono esserci codocenti
+                            && (laboratori[h] || !is_codocente(i) && !is_codocente(j))
                             // non si possono avere due docenti teorici insieme, nè due codocenti, ...
                             && controllo_prof_insieme(i, j)
                             // docente non ha ancora raggiunto le ore di insegnamento per quella materia e classe

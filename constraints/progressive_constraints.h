@@ -10,7 +10,7 @@ int g_classe(int p);
 
 int still_activities_for_today(const elem *orario, const int pos);
 
-int prof_in_classe(elem orario[], const long pos, int prof);
+int prof_in_classe(elem orario[], const long pos, int prof1, int prof2);
 
 int insegnanti_ore_materia_adeguata(int cla, int mat, int prof1, int prof2);
 

@@ -23,23 +23,37 @@ int still_activities_for_today(const elem *orario, const int pos) {
     return 1;
 }
 
-int prof_in_classe(elem orario[], const long pos, int prof) {
-    // 1. Move the check to the absolute top. If prof is -1, skip everything immediately.
-    if (prof == -1) return 1;
+int prof_in_classe(elem orario[], const long pos, int prof1, int prof2) {
+    //assert(!is_vuoto(prof1) || !is_vuoto(prof2));
+    // 2. Compute range exactly once
+    const int start_index = pos - (pos % actual_classi_sezione);
+    const elem *const base = &orario[0];
 
-    // 2. Optimization: Calculate start_index using bitwise operations if actual_classi_sezione is a power of 2.
-    // Otherwise, standard subtraction is fine, but compute it exactly once outside the loop.
-    const int start_index = pos - pos % actual_classi_sezione;
+    // 3. Handle cases where one of the two slots is empty
+    if (prof1 == -1 || prof2 == -1) {
+        const int valid_prof = prof1 != -1 ? prof1 : prof2;
 
-    // 3. Pointer-arithmetic & Local caching loop
-    const elem* const base = &orario[0]; // Helps compiler realize the base array pointer is invariant
+        for (int i = start_index; i < pos; ++i) {
+            if (base[i].insegnante1 == valid_prof | base[i].insegnante2 == valid_prof) {
+                return 0; // Collision found
+            }
+        }
+        return 1;
+    }
+
+    // 4. THE HOT PATH: Both professors are valid.
+    // We check both professors simultaneously in a single memory sweep.
     for (int i = start_index; i < pos; ++i) {
-        // Bitwise OR eliminates the short-circuiting branch of logical ||
-        if ((base[i].insegnante1 == prof) | (base[i].insegnante2 == prof)) {
-            return 0;
+        const int t1 = base[i].insegnante1;
+        const int t2 = base[i].insegnante2;
+
+        // Flattened bitwise OR check for maximum ILP (Instruction-Level Parallelism)
+        if (t1 == prof1 | t2 == prof1 | t1 == prof2 | t2 == prof2) {
+            return 0; // At least one professor is already busy in this hour block
         }
     }
-    return 1;
+
+    return 1; // Both professors are free!
 }
 
 int insegnanti_ore_materia_adeguata(const int cla, const int mat, const int prof1, const int prof2) {
@@ -50,19 +64,12 @@ int insegnanti_ore_materia_adeguata(const int cla, const int mat, const int prof
 }
 
 
-int codocente_deve_essere_in_lab_no_aula(const int aula, int prof) {
-    return !is_codocente(prof) || laboratori[aula];
-}
-
 int controllo_prof_insieme(const int prof1, const int prof2) {
-    int n_docenti = is_docente(prof1) + is_docente(prof2);
-    int n_codocenti = is_codocente(prof1) + is_codocente(prof2);
-    // docente e codocente
-    return (n_docenti == 1 && n_codocenti == 1)
-           // docente solo
-           || (n_docenti == 1 && n_codocenti == 0)
-           //ora buca
-           || (n_docenti == 0 && n_codocenti == 0);
+    const int d1 = is_docente(prof1), c1 = is_codocente(prof1);
+    const int d2 = is_docente(prof2), c2 = is_codocente(prof2);
+
+    // Returns 1 (true) if the pair is allowed, 0 (false) if it's a conflict
+    return (! (d1 & d2)) & ((c1 + c2) <= (d1 + d2));
 }
 
 int is_teacher_eligible_for_class(elem orario[], const int pos, const int class, const int mat, const int prof) {
