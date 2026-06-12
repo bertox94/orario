@@ -88,12 +88,6 @@ int is_teacher_eligible_for_class(elem orario[], const int pos, const int class,
 
 int docente_necessita_compresenza(elem orario[], const int pos, const int class, const int mat, const int prof1,
                                   const int prof2) {
-    //se questa funzione viene chiamata vuol dire che prof1 è abilitsto a insegnare e prof2 è assente, viceversa,
-    //oppure sono uno il docente e l'altro il codocente
-    //in ogni caso, quello diverso da -1 è il docente, perchè il codocente non può essere da solo per il test precedente
-
-    //if (!is_teacher_eligible_for_class(orario, pos, class, mat, prof1)) return 0;
-
     if (prof1 != -1) {
         int sum = 0;
         for (int i = class; i < pos; i += actual_classi_sezione) {
