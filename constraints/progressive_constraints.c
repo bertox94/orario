@@ -24,10 +24,19 @@ int still_activities_for_today(const elem *orario, const int pos) {
 }
 
 int prof_in_classe(elem orario[], const long pos, int prof) {
-    if (prof != -1) {
-        for (int i = pos - pos % actual_classi_sezione; i < pos; i++) {
-            if (orario[i].insegnante1 == prof || orario[i].insegnante2 == prof)
-                return 0;
+    // 1. Move the check to the absolute top. If prof is -1, skip everything immediately.
+    if (prof == -1) return 1;
+
+    // 2. Optimization: Calculate start_index using bitwise operations if actual_classi_sezione is a power of 2.
+    // Otherwise, standard subtraction is fine, but compute it exactly once outside the loop.
+    const int start_index = pos - pos % actual_classi_sezione;
+
+    // 3. Pointer-arithmetic & Local caching loop
+    const elem* const base = &orario[0]; // Helps compiler realize the base array pointer is invariant
+    for (int i = start_index; i < pos; ++i) {
+        // Bitwise OR eliminates the short-circuiting branch of logical ||
+        if ((base[i].insegnante1 == prof) | (base[i].insegnante2 == prof)) {
+            return 0;
         }
     }
     return 1;

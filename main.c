@@ -84,7 +84,8 @@ void print_orario(elem orario[], const int pos, const int tot) {
     if (pos == tot) {
         if (verifica_ore_classe_materia(orario, tot)) {
             n_gen++;
-            print_orario_form(orario, tot, n_gen);
+            printf("%d\n", n_gen);
+            //print_orario_form(orario, tot, n_gen);
         }
         return;
     }
@@ -127,6 +128,7 @@ void print_orario(elem orario[], const int pos, const int tot) {
 int main(void) {
     time_t currentTime;
     time(&currentTime); // Get the current time
+    const clock_t start = clock();
 
     printf("Program started at: %s\n", ctime(&currentTime));
     inizializza_dati();
@@ -141,7 +143,8 @@ int main(void) {
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
     print_orario(orario, 0, orario_len);
 
-    printf("Totale generati: %llu\n", n_gen);
+    const double elapsed = (clock() - start) / (double) CLOCKS_PER_SEC;
+    printf("Totale generati: %llu in %d m, %d s.", n_gen, (int) elapsed / 60, (int) elapsed % 60);
     fflush(stdout);
 
     return 0;
