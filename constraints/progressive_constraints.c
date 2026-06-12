@@ -88,44 +88,38 @@ int is_teacher_eligible_for_class(elem orario[], const int pos, const int class,
 
 int docente_necessita_compresenza(elem orario[], const int pos, const int class, const int mat, const int prof1,
                                   const int prof2) {
-    if (prof1 != -1) {
-        int sum = 0;
+    int linear3dbase = class * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ;
+    assert(!is_vuoto(prof2));
+    int sum1 = 0;
+    for (int i = class; i < pos; i += actual_classi_sezione) {
+        if (orario[i].materia == mat)
+            sum1 += orario[i].insegnante1 == prof2 || orario[i].insegnante2 == prof2;
+    }
+    if (sum1 >= ore_insegnanti_classe_materia[linear3dbase + prof2])
+        return 0;
+
+    if (!is_vuoto(prof1)) {
+        //c'è il codocente
+        int sum2 = 0;
         for (int i = class; i < pos; i += actual_classi_sezione) {
             if (orario[i].materia == mat)
-                sum += orario[i].insegnante1 == prof1 || orario[i].insegnante2 == prof1;
+                sum2 += orario[i].insegnante1 == prof1 || orario[i].insegnante2 == prof1;
         }
-        if (sum >= ore_insegnanti_classe_materia[
-                class * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ + prof1])
+        if (sum2 >= ore_insegnanti_classe_materia[linear3dbase + prof1])
+            return 0;
+    } else {
+        //verifica che non ha superato le ore in cui deve stare da solo
+        int ore_cod = 0;
+        // trova le ore di compresenza
+        for (int i = 0; i < INSEGNANTE_SZ; i++) {
+            if (i != prof2 && ore_insegnanti_classe_materia[linear3dbase + i] > 0) {
+                ore_cod = ore_insegnanti_classe_materia[linear3dbase + i];
+                break;
+            }
+        }
+        if (sum1 >= ore_insegnanti_classe_materia[linear3dbase + prof2] - ore_cod)
             return 0;
     }
 
-    if (prof2 != -1) {
-        int sum = 0;
-        for (int i = class; i < pos; i += actual_classi_sezione) {
-            if (orario[i].materia == mat)
-                sum += orario[i].insegnante1 == prof2 || orario[i].insegnante2 == prof2;
-        }
-        if (sum >= ore_insegnanti_classe_materia[
-                class * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ + prof2])
-            return 0;
-    }
-
-    if (prof1 != -1 & prof2 != -1) return 1;
-
-    const int prof = prof1 != -1 ? prof1 : prof2;
-    const int classe_materia = class * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ;
-    int ore_cod = 0;
-
-    int sum = 0;
-    for (int i = 0; i < pos; i++) {
-        if (orario[i].materia == mat && g_classe(i) == class)
-            sum += orario[i].insegnante1 == prof || orario[i].insegnante2 == prof;
-    }
-
-    // trova le ore di compresenza
-    for (int i = 0; i < INSEGNANTE_SZ; i++) {
-        if (i != prof && ore_insegnanti_classe_materia[classe_materia + i] > 0)
-            ore_cod = ore_insegnanti_classe_materia[classe_materia + i];
-    }
-    return sum < ore_insegnanti_classe_materia[classe_materia + prof] - ore_cod;
+    return 1;
 }
