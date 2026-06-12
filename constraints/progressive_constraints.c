@@ -42,17 +42,6 @@ int controllo_prof_insieme(const int prof1, const int prof2) {
     return !(is_codocente(prof1) && is_codocente(prof2)) && !(is_docente(prof1) && is_docente(prof2));
 }
 
-int verify_lonely_teacher_hours(elem orario[], const int pos, const int class, const int mat, const int prof) {
-    int sum = 0;
-    const int limit = ore_insegnanti_classe_materia_lonely[class * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ + prof];
-    for (int i = class; i < pos; i += actual_classi_sezione) {
-        if (orario[i].materia == mat)
-            sum += orario[i].insegnante1 == prof || orario[i].insegnante2 == prof;
-        if (sum >= limit) return 0;
-    }
-    return sum < limit;
-}
-
 int verify_teacher_hours(elem orario[], const int pos, const int class, const int mat, const int prof1,
                          const int prof2) {
     int linear3dbase = class * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ;
@@ -71,7 +60,6 @@ int verify_teacher_hours(elem orario[], const int pos, const int class, const in
 
     // 2. Merged loop: processes both teachers in a single pass over the array
     for (int i = class; i < pos; i += actual_classi_sezione) {
-
         // Cache array element to minimize pointer arithmetic and maximize CPU cache usage
         const elem slot = orario[i];
 
