@@ -15,7 +15,7 @@ int g_classe(const int p) {
     return p % actual_classi_sezione;
 }
 
-int still_activities_for_this_day_and_hour(const int ora, const int cla, int classe_finisce_tardi_num[]) {
+int still_activities_for_this_class_and_hour(const int ora, const int cla, int classe_finisce_tardi_num[]) {
 
     if (ora == actual_ore_giornaliere - 1 && (32 - PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana) %
         actual_giorni_settimana <= classe_finisce_tardi_num[cla])

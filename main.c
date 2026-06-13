@@ -91,7 +91,7 @@ void print_orario(elem orario[], const int pos, const int tot, int ora_classi_do
     if (n_gen_ok <= n_gen) return;
 
     if (pos == tot) {
-        if (verifica_ore_classe_materia(orario, tot)) {
+        if (verifica_ore_classe_materia(ora_classi_docenti_materia_effettuate)) {
             n_gen++;
             //printf("%lld\n", n_gen);
             print_orario_form(orario, tot, n_gen);
@@ -106,7 +106,7 @@ void print_orario(elem orario[], const int pos, const int tot, int ora_classi_do
     const int cla = g_classe(pos);
     const int base3dprof_impegnati = giorno * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + ora * INSEGNANTE_SZ;
     const int base3daule_impegnate = giorno * ORA_GIORNALIERA_SZ * AULA_SZ + ora * AULA_SZ;
-    if (still_activities_for_this_day_and_hour(ora, cla, classe_finisce_ultima_ora_num_giorni)) {
+    if (still_activities_for_this_class_and_hour(ora, cla, classe_finisce_ultima_ora_num_giorni)) {
         for (int h = 0; h < actual_aula; h++) {
             if (!aule_occupate[base3daule_impegnate + h])
                 for (int m = 0; m < actual_materie; m++) {
