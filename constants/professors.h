@@ -22,5 +22,11 @@ char Nicoletti[] = "Nicoletti";
 char Lancellotti[] = "Lancellotti";
 char Trivini[] = "Trivini";
 char Quaini[] = "Quaini";
+char Avolio[] = "Avolio";
+char Sciambarella[] = "Sciambarella";
+char Moretti[] = "Moretti";
+char Alves[] = "Alves";
+char DalZovo[] = "DalZovo";
+char Berno[] = "Berno";
 
 #endif //UNTITLED_PROFESSORS_H
