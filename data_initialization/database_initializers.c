@@ -201,6 +201,7 @@ void inizializza_vincoli() {
                     (ore_insegnanti_classe_materia[i] - ore_insegnanti_classe_materia_lonely[i]) / 2 +
                     ore_insegnanti_classe_materia_lonely[i];
         }*/
-    assert(ore_classe_settimanali[0]<=actual_giorni_settimana*actual_ore_giornaliere);
+    for (int i = 0; i < CLASSE_SEZIONE_SZ; i++)
+        assert(ore_classe_settimanali[i]<=actual_giorni_settimana*actual_ore_giornaliere);
     //improve print orario one each class in recurs
 }
