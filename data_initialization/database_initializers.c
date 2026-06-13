@@ -227,10 +227,11 @@ void inizializza_dati() {
 
 
     set_classe_materia_ore_prof_codocenza(Classe_3H, Informatica, 6, Tiraboschi, 3, Benedetto);
-    //set_classe_materia_ore_prof_codocenza(Classe_3H, TPSIT, 3, Manganelli, 1, Rizzi);
-    set_classe_materia_ore_prof_codocenza(Classe_3H, Sistemi_e_Reti, 2, Tiraboschi, 2, Gagliano);
-    //set_classe_materia_ore_prof_codocenza(Classe_3H, Matematica, 1, Tosi, 1, Sannino);
-    //set_classe_materia_ore_prof(Classe_3H, Complementi_Matematica, 1, Tosi);
+    set_classe_materia_ore_prof_codocenza(Classe_3H, TPSIT, 3, Manganelli, 1, Rizzi);
+    set_classe_materia_ore_prof_codocenza(Classe_3H, Sistemi_e_Reti, 4, Tiraboschi, 2, Gagliano);
+    set_classe_materia_ore_prof_codocenza(Classe_3H, Matematica, 1, Tosi, 1, Sannino);
+    set_classe_materia_ore_prof(Classe_3H, Complementi_Matematica, 2, Tosi);
+    set_classe_materia_ore_prof(Classe_3H, Complementi_Matematica, 1, Tosi);
 
     set_classe_materia_ore_prof(Classe_3H, Lingua_Letteratura, 4, Guerra);
     set_classe_materia_ore_prof(Classe_3H, Storia_Cittadinanza_Costituzione, 2, Guerra);

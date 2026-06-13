@@ -13,7 +13,7 @@ void print_orario_form(const elem orario[], const int tot, const long attempt) {
     printf("Orario n. %lu\n", attempt);
 
     for (int curr_class = 0; curr_class < actual_classi_sezione; curr_class++) {
-        printf("\nClasse: %s\n", classe_sezione[curr_class]);
+        printf("\nClasse: %s, ore: %d\n", classe_sezione[curr_class], ore_classe_settimanali[curr_class]);
         printf("Giorno:     ");
         for (int i = curr_class; i < tot; i += actual_classi_sezione) {
             printf(" %c%c",
