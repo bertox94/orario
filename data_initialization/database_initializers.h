@@ -34,6 +34,7 @@ char insegnanti[INSEGNANTE_SZ][INSEGNANTE_ITEM_SZ];
 int laboratori[AULA_SZ];
 int solo_in_lab[INSEGNANTE_SZ];
 int giorno_libero_prof[INSEGNANTE_SZ];
+int ore_classe_settimanali[CLASSE_SEZIONE_SZ];
 
 int ore_insegnanti_classe_materia[CLASSE_SEZIONE_SZ * MATERIA_SZ * INSEGNANTE_SZ];
 int ore_insegnanti_classe_materia_lonely[CLASSE_SEZIONE_SZ * MATERIA_SZ * INSEGNANTE_SZ];

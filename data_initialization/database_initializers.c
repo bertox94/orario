@@ -10,6 +10,7 @@
 #include "../constants/classes.h"
 #include "../constants/subjects.h"
 #include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -189,4 +190,13 @@ void inizializza_vincoli() {
     set_classe_materia_ore_prof_codocenza(Classe_3E, Sistemi_e_Reti, 4, Tiraboschi, 2, Barosi);
     set_classe_materia_ore_prof_codocenza(Classe_3E, Informatica, 6, Masetti, 3, Barosi);
     */
+
+    const int div = MATERIA_SZ / INSEGNANTE_SZ;
+    for (int i = 0; i < CLASSE_SEZIONE_SZ * MATERIA_SZ * INSEGNANTE_SZ; i++) {
+        ore_classe_settimanali[i / div] +=
+                (ore_insegnanti_classe_materia[i] - ore_insegnanti_classe_materia_lonely[i]) / 2 +
+                ore_insegnanti_classe_materia_lonely[i];
+    }
+
+    //improve print orario one each class in recurs
 }
