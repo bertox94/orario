@@ -11,7 +11,7 @@ void print_orario_form(const elem orario[], const int tot, const long attempt, F
 
     fseek(f, 0, SEEK_END);
     const long current_size = ftell(f);
-    if (current_size > 9999999999) {
+    if (current_size > 99999999999) {
         fseek(f, 0, SEEK_SET);
         ftruncate(fileno(f), 0);
     }
