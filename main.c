@@ -35,6 +35,8 @@ void print_orario(elem orario[], const int pos, const int tot, int ora_classi_do
                   int prof_in_classe[], int aule_occupate[], int classe_finisce_ultima_ora_num_giorni[]) {
     if (n_gen_ok <= n_gen) return;
 
+    print_orario_form(orario, pos, n_gen, f);
+
     if (pos == tot) {
         if (verifica_ore_classe_materia(ora_classi_docenti_materia_effettuate)) {
             n_gen++;
@@ -43,8 +45,6 @@ void print_orario(elem orario[], const int pos, const int tot, int ora_classi_do
         }
         return;
     }
-
-    print_orario_form(orario, pos, n_gen, f);
 
     const int giorno = g_giorno(pos);
     const int ora = g_ora(pos);
