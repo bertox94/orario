@@ -79,7 +79,9 @@ void print_orario_form(const elem orario[], const int tot, const long attempt) {
         printf("\n");
     }
     printf("            ");
-    for (int i = 0; i < tot; i += actual_classi_sezione) {
+    for (int i = 0; i < tot/actual_classi_sezione; i++) {
+        if (i %actual_ore_giornaliere == actual_ore_giornaliere-1)
+            printf("-");
         printf("---");
     }
     printf("\n");

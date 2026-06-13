@@ -232,24 +232,27 @@ void inizializza_dati() {
     set_classe_materia_ore_prof_codocenza(Classe_3H, Matematica, 1, Tosi, 1, Sannino);
     set_classe_materia_ore_prof(Classe_3H, Matematica, 2, Tosi);
     set_classe_materia_ore_prof(Classe_3H, Complementi_Matematica, 1, Tosi);
-
     set_classe_materia_ore_prof(Classe_3H, Lingua_Letteratura, 4, Guerra);
     set_classe_materia_ore_prof(Classe_3H, Storia_Cittadinanza_Costituzione, 2, Guerra);
     set_classe_materia_ore_prof(Classe_3H, Inglese, 3, Lancellotti);
     set_classe_materia_ore_prof(Classe_3H, Telecomunicazioni, 3, Trivini);
     set_classe_materia_ore_prof(Classe_3H, ScienzeMotorie, 2, Nicoletti);
     set_classe_materia_ore_prof(Classe_3H, Religione_Cattolica, 1, Quaini);
-    /*
-        set_classe_materia_ore_prof_codocenza(Classe_3F, Sistemi_e_Reti, 4, Tiraboschi, 2, Gagliano);
-        set_classe_materia_ore_prof_codocenza(Classe_3F, TPSIT, 4, Ricciardi, 2, Rizzi);
-        set_classe_materia_ore_prof_codocenza(Classe_3F, Informatica, 6, Kushi, 3, Paghera);
-        set_classe_materia_ore_prof_codocenza(Classe_3E, TPSIT, 4, Ricciardi, 2, Rizzi);
-        set_classe_materia_ore_prof_codocenza(Classe_3E, Sistemi_e_Reti, 4, Tiraboschi, 2, Barosi);
-        set_classe_materia_ore_prof_codocenza(Classe_3E, Informatica, 6, Masetti, 3, Barosi);
-    */
+
+    set_classe_materia_ore_prof_codocenza(Classe_3F, Sistemi_e_Reti, 4, Tiraboschi, 2, Gagliano);
+    set_classe_materia_ore_prof_codocenza(Classe_3F, TPSIT, 4, Ricciardi, 2, Rizzi);
+    set_classe_materia_ore_prof_codocenza(Classe_3F, Informatica, 6, Kushi, 3, Paghera);
+
+    set_classe_materia_ore_prof_codocenza(Classe_3E, TPSIT, 4, Ricciardi, 2, Rizzi);
+    set_classe_materia_ore_prof_codocenza(Classe_3E, Sistemi_e_Reti, 4, Tiraboschi, 2, Barosi);
+    set_classe_materia_ore_prof_codocenza(Classe_3E, Informatica, 6, Masetti, 3, Barosi);
+
+
     set_solo_lez_in_lab(Benedetto);
     set_solo_lez_in_lab(Rizzi);
     set_solo_lez_in_lab(Gagliano);
+    set_solo_lez_in_lab(Paghera);
+    set_solo_lez_in_lab(Barosi);
 
 
     /**/
