@@ -8,6 +8,14 @@
 #include <unistd.h>
 
 void print_orario_form(const elem orario[], const int tot, const long attempt, FILE *f) {
+
+    fseek(f, 0, SEEK_END);
+    const long current_size = ftell(f);
+    if (current_size > 10000000) {
+        fseek(f, 0, SEEK_SET);
+        ftruncate(fileno(f), 0);
+    }
+
     time_t currentTime;
     time(&currentTime); // Get the current time
     fprintf(f, "Current time: %s", ctime(&currentTime));
