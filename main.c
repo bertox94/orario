@@ -7,10 +7,19 @@
 #include "data_initialization/database_initializers.h"
 #include "constraints/progressive_constraints.h"
 #include "constraints/end_of_block_constraints.h"
+#include "printer.h"
 
 long long int n_gen = 0;
 long long int n_gen_ok = 1;
 int orario_len;
+
+int g_giorno(const int p) { return p / actual_classi_sezione / actual_ore_giornaliere % actual_giorni_settimana; }
+
+int g_ora(const int p) { return p / actual_classi_sezione % actual_ore_giornaliere; }
+
+int g_classe(const int p) {
+    return p % actual_classi_sezione;
+}
 
 int *int_alloc(size_t len) {
     int *p = malloc(len * sizeof(int));
@@ -19,91 +28,6 @@ int *int_alloc(size_t len) {
         exit(EXIT_FAILURE);
     }
     return p;
-}
-
-void print_orario_form(const elem orario[], const int tot, const long attempt) {
-    time_t currentTime;
-    time(&currentTime); // Get the current time
-
-    printf("Current time: %s", ctime(&currentTime));
-    printf("Orario n. %lu\n", attempt);
-
-    for (int curr_class = 0; curr_class < actual_classi_sezione; curr_class++) {
-        printf("\nClasse: %s\n", classe_sezione[curr_class]);
-        printf("Giorno:     ");
-        for (int i = curr_class; i < tot; i += actual_classi_sezione) {
-            printf(" %c%c",
-                   giorni_settimana[i / actual_ore_giornaliere / actual_classi_sezione % actual_giorni_settimana][0],
-                   giorni_settimana[i / actual_ore_giornaliere / actual_classi_sezione % actual_giorni_settimana][1]);
-            if (i / actual_classi_sezione % actual_ore_giornaliere == actual_ore_giornaliere - 1)
-                printf(" ");
-        }
-        printf("\n");
-
-        printf("Ora:        ");
-        for (int i = curr_class; i < tot; i += actual_classi_sezione) {
-            printf(" %s", ora_giornaliera[i / actual_classi_sezione % actual_ore_giornaliere]);
-            if (i / actual_classi_sezione % actual_ore_giornaliere == actual_ore_giornaliere - 1)
-                printf(" ");
-        }
-        printf("\n");
-        /*
-            printf("Classe:     ");
-            for (int i = curr_class; i < tot; i++)
-                printf(" %s", classe_sezione[i % actual_classi_sezione]);
-            printf("\n");
-        */
-        printf("Aula:       ");
-        for (int i = curr_class; i < tot; i += actual_classi_sezione) {
-            if (orario[i].aula == -1)
-                printf("  -");
-            else
-                printf("  %d", orario[i].aula);
-            if (i / actual_classi_sezione % actual_ore_giornaliere == actual_ore_giornaliere - 1)
-                printf(" ");
-        }
-        printf("\n");
-
-        printf("Materia:    ");
-        for (int i = curr_class; i < tot; i += actual_classi_sezione) {
-            if (orario[i].materia == -1)
-                printf("  -");
-            else
-                printf("%c%c%c", materie[orario[i].materia][0], materie[orario[i].materia][1],
-                       materie[orario[i].materia][2]);
-            if (i / actual_classi_sezione % actual_ore_giornaliere == actual_ore_giornaliere - 1)
-                printf(" ");
-        }
-        printf("\n");
-
-        printf("Prof:       ");
-        for (int i = curr_class; i < tot; i += actual_classi_sezione) {
-            if (orario[i].insegnante1 == -1)
-                printf("  -");
-            else
-                printf("%c%c%c", insegnanti[orario[i].insegnante1][0], insegnanti[orario[i].insegnante1][1],
-                       insegnanti[orario[i].insegnante1][2]);
-            if (i / actual_classi_sezione % actual_ore_giornaliere == actual_ore_giornaliere - 1)
-                printf(" ");
-        }
-        printf("\n");
-        printf("Prof:       ");
-        for (int i = curr_class; i < tot; i += actual_classi_sezione) {
-            if (orario[i].insegnante2 == -1)
-                printf("  -");
-            else
-                printf("%c%c%c", insegnanti[orario[i].insegnante2][0], insegnanti[orario[i].insegnante2][1],
-                       insegnanti[orario[i].insegnante2][2]);
-            if (i / actual_classi_sezione % actual_ore_giornaliere == actual_ore_giornaliere - 1)
-                printf(" ");
-        }
-        printf("\n");
-    }
-    printf("            ");
-    for (int i = 0; i < tot; i += actual_classi_sezione) {
-        printf("---");
-    }
-    printf("\n");
 }
 
 void print_orario(elem orario[], const int pos, const int tot, int ora_classi_docenti_materia_effettuate[],

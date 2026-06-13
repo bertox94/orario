@@ -15,4 +15,5 @@ add_executable(untitled main.c
         constraints/end_of_block_constraints.h
         data_initialization/database_initializers.c
         constraints/progressive_constraints.c
+        printer.h
 )
