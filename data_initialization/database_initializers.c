@@ -219,23 +219,25 @@ void inizializza_dati() {
     set_ora_giornaliera(Ora_13);
 
 
-    //set_aula(PS15);
+    set_aula(PS15);
     set_aula(PS16);
+    set_aula(PS14);
     set_laboratorio(INFO0);
     set_laboratorio(INFO1);
     set_laboratorio(INFO2);
+    set_laboratorio(INFO3);
 
 
     set_classe_materia_ore_prof_codocenza(Classe_3E, Sistemi_e_Reti, 4, Tiraboschi, 2, Barosi);
     set_classe_materia_ore_prof_codocenza(Classe_3E, TPSIT, 3, Sciambarella, 2, Barosi);
     set_classe_materia_ore_prof_codocenza(Classe_3E, Informatica, 6, Masetti, 3, Moretti);
     set_classe_materia_ore_prof(Classe_3E, Matematica, 4, Berno);
-    set_classe_materia_ore_prof(Classe_3E,Lingua_Letteratura,4, DalZovo);
+    set_classe_materia_ore_prof(Classe_3E, Lingua_Letteratura, 4, DalZovo);
     set_classe_materia_ore_prof(Classe_3E, Storia_Cittadinanza_Costituzione, 2, DalZovo);
     set_classe_materia_ore_prof(Classe_3E, Inglese, 3, Alves);
     set_classe_materia_ore_prof(Classe_3E, ScienzeMotorie, 2, Nicoletti);
     set_classe_materia_ore_prof(Classe_3E, Religione_Cattolica, 1, Quaini);
-    set_classe_materia_ore_prof_codocenza(Classe_3E, Telecomunicazioni,3,Trivini,2,Avolio);
+    set_classe_materia_ore_prof_codocenza(Classe_3E, Telecomunicazioni, 3, Trivini, 2, Avolio);
 
     set_classe_materia_ore_prof_codocenza(Classe_3H, Informatica, 6, Tiraboschi, 3, Benedetto);
     set_classe_materia_ore_prof_codocenza(Classe_3H, TPSIT, 3, Manganelli, 1, Rizzi);
@@ -253,15 +255,22 @@ void inizializza_dati() {
     set_classe_materia_ore_prof_codocenza(Classe_3F, Sistemi_e_Reti, 4, Tiraboschi, 2, Gagliano);
     set_classe_materia_ore_prof_codocenza(Classe_3F, TPSIT, 3, Ricciardi, 2, Rizzi);
     set_classe_materia_ore_prof_codocenza(Classe_3F, Informatica, 6, Kushi, 3, Paghera);
+    set_classe_materia_ore_prof(Classe_3F, Matematica, 4, Sannino);
+    set_classe_materia_ore_prof(Classe_3F, Lingua_Letteratura, 4, Bortolotti);
+    set_classe_materia_ore_prof(Classe_3F, Storia_Cittadinanza_Costituzione, 2, Bortolotti);
+    set_classe_materia_ore_prof(Classe_3F, Inglese, 3, Comelli);
+    set_classe_materia_ore_prof(Classe_3F, ScienzeMotorie, 2, Calace);
+    set_classe_materia_ore_prof(Classe_3F, Religione_Cattolica, 1, Marchione);
+    //set_classe_materia_ore_prof_codocenza(Classe_3F, Telecomunicazioni, 3, Trivini, 2, Avolio);
 
 
-
-
+    // matrice insegnante aule : es: mat[Benedetto][Info0] = 1, mat[Benedetto][Info1] = 1,...
     set_solo_lez_in_lab(Benedetto);
     set_solo_lez_in_lab(Rizzi);
     set_solo_lez_in_lab(Gagliano);
     set_solo_lez_in_lab(Paghera);
     set_solo_lez_in_lab(Barosi);
+    set_solo_lez_in_lab(Avolio);
 
 
     /**/

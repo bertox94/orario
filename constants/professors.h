@@ -28,5 +28,9 @@ char Moretti[] = "Moretti";
 char Alves[] = "Alves";
 char DalZovo[] = "DalZovo";
 char Berno[] = "Berno";
+char Bortolotti[] = "Bortolotti";
+char Comelli[] = "Comelli";
+char Calace[] = "Calace";
+char Marchione[] = "Marchione";
 
 #endif //UNTITLED_PROFESSORS_H

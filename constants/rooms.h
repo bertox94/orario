@@ -9,4 +9,6 @@ char PS16[] = "PS16";
 char INFO2[] = "INFO2";
 char INFO1[] = "INFO1";
 char INFO0[] = "INFO0";
+char PS14[] = "PS14";
+char INFO3[] = "INFO3";
 #endif //UNTITLED_ROOMS_H

@@ -31,8 +31,7 @@ int *int_alloc(size_t len) {
 }
 
 void print_orario(elem orario[], const int pos, const int tot, int ora_classi_docenti_materia_effettuate[],
-                  int prof_in_classe[], int aule_occupate[], int classe_finisce_ultima_ora_num_giorni[],
-                  int ha_ora_buca_classe[]) {
+                  int prof_in_classe[], int aule_occupate[], int classe_finisce_ultima_ora_num_giorni[]) {
     if (n_gen_ok <= n_gen) return;
 
     if (pos == tot) {
@@ -52,11 +51,7 @@ void print_orario(elem orario[], const int pos, const int tot, int ora_classi_do
     const int base3dprof_impegnati = giorno * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + ora * INSEGNANTE_SZ;
     const int base3daule_impegnate = giorno * ORA_GIORNALIERA_SZ * AULA_SZ + ora * AULA_SZ;
 
-    if (ora == 0)
-        memset(ha_ora_buca_classe, 0, CLASSE_SEZIONE_SZ*sizeof(int));
-
-    if (!ha_ora_buca_classe[cla]
-        && activities_for_this_class_and_hour(ora, cla, classe_finisce_ultima_ora_num_giorni))
+    if (activities_for_this_class_and_hour(orario, pos, ora, cla, classe_finisce_ultima_ora_num_giorni))
         for (int h = 0; h < actual_aula; h++) {
             if (!aule_occupate[base3daule_impegnate + h])
                 for (int m = 0; m < actual_materie; m++) {
@@ -81,7 +76,7 @@ void print_orario(elem orario[], const int pos, const int tot, int ora_classi_do
                                 classe_finisce_ultima_ora_num_giorni[cla]++;
 
                             print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate, prof_in_classe,
-                                         aule_occupate, classe_finisce_ultima_ora_num_giorni, ha_ora_buca_classe);
+                                         aule_occupate, classe_finisce_ultima_ora_num_giorni);
 
                             ora_classi_docenti_materia_effettuate[base3dore_classi + j]--;
                             prof_in_classe[base3dprof_impegnati + j] = 0;
@@ -116,7 +111,7 @@ void print_orario(elem orario[], const int pos, const int tot, int ora_classi_do
 
                                     print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate,
                                                  prof_in_classe, aule_occupate,
-                                                 classe_finisce_ultima_ora_num_giorni, ha_ora_buca_classe);
+                                                 classe_finisce_ultima_ora_num_giorni);
 
                                     ora_classi_docenti_materia_effettuate[base3dore_classi + i]--;
                                     ora_classi_docenti_materia_effettuate[base3dore_classi + j]--;
@@ -133,10 +128,8 @@ void print_orario(elem orario[], const int pos, const int tot, int ora_classi_do
 
     if (ora >= PRIME_N_ORE_OBBLIGATORIE) {
         orario[pos] = (elem){-1, -1, -1, -1};
-        ha_ora_buca_classe[cla] = 1;
         print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate, prof_in_classe, aule_occupate,
-                     classe_finisce_ultima_ora_num_giorni, ha_ora_buca_classe);
-        ha_ora_buca_classe[cla] = 0;
+                     classe_finisce_ultima_ora_num_giorni);
     }
 }
 
@@ -166,7 +159,7 @@ int main(void) {
     memset(ora_buca_classe, 0, CLASSE_SEZIONE_SZ*sizeof(int));
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
     print_orario(orario, 0, orario_len, ora_classi_docenti_materie_effettuate, prof_in_classe, aule_occupate,
-                 classe_finisce_tardi_num, ora_buca_classe);
+                 classe_finisce_tardi_num);
 
     const double elapsed = (clock() - start) / (double) CLOCKS_PER_SEC;
     printf("Totale generati: %llu in %d m, %d s.", n_gen, (int) elapsed / 60, (int) elapsed % 60);

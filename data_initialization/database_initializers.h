@@ -19,13 +19,11 @@
 #define MATERIA_SZ 20
 #define MATERIA_ITEM_SZ 50
 
-#define INSEGNANTE_SZ 25
+#define INSEGNANTE_SZ 35
 #define INSEGNANTE_ITEM_SZ 15
 
 #define MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT 2
-#define PRIME_N_ORE_OBBLIGATORIE 0
-#include <stdio.h>
-#include <stdlib.h>
+#define PRIME_N_ORE_OBBLIGATORIE 2
 
 char giorni_settimana[GIORNO_SETTIMANA_SZ][GIORNO_SETTIMANA_ITEM_SZ];
 char ore_giornaliere[ORA_GIORNALIERA_SZ][ORA_GIORNALIERA_ITEM_SZ];
