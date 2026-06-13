@@ -9,7 +9,7 @@
 #include "constraints/end_of_block_constraints.h"
 
 long long int n_gen = 0;
-long long int n_gen_ok = 1000000;
+long long int n_gen_ok = 1;
 int orario_len;
 
 int *int_alloc(size_t len) {
@@ -88,7 +88,7 @@ void print_orario_form(const elem orario[], const int tot, const long attempt) {
 
 void print_orario(elem orario[], const int pos, const int tot, int ora_classi_docenti_materia_effettuate[],
                   int prof_in_classe[], int aule_occupate[], int classe_finisce_ultima_ora_num_giorni[]) {
-    //if (n_gen_ok <= n_gen) return;
+    if (n_gen_ok <= n_gen) return;
 
     if (pos == tot) {
         if (verifica_ore_classe_materia(ora_classi_docenti_materia_effettuate)) {
@@ -106,80 +106,80 @@ void print_orario(elem orario[], const int pos, const int tot, int ora_classi_do
     const int cla = g_classe(pos);
     const int base3dprof_impegnati = giorno * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + ora * INSEGNANTE_SZ;
     const int base3daule_impegnate = giorno * ORA_GIORNALIERA_SZ * AULA_SZ + ora * AULA_SZ;
-    //if (activities_for_this_class_and_hour(ora, cla, classe_finisce_ultima_ora_num_giorni))
-    for (int h = 0; h < actual_aula; h++) {
-        if (!aule_occupate[base3daule_impegnate + h])
-            for (int m = 0; m < actual_materie; m++) {
-                int i = -1, j = 0;
-                const int base3dore_classi = cla * MATERIA_SZ * INSEGNANTE_SZ + m * INSEGNANTE_SZ;
+    if (activities_for_this_class_and_hour(orario, pos, ora, cla, classe_finisce_ultima_ora_num_giorni))
+        for (int h = 0; h < actual_aula; h++) {
+            if (!aule_occupate[base3daule_impegnate + h])
+                for (int m = 0; m < actual_materie; m++) {
+                    int i = -1, j = 0;
+                    const int base3dore_classi = cla * MATERIA_SZ * INSEGNANTE_SZ + m * INSEGNANTE_SZ;
 
-                //insegnanti da soli
-                for (; j < actual_insegnanti; j++) {
-                    if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
-                        !prof_in_classe[base3dprof_impegnati + j]
-                        //se un docente fa lezione solo in lab controlla che l'aula lo sia
-                        && (!solo_in_lab[j] || laboratori[h])
-                        // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
-                        && ora_classi_docenti_materia_effettuate[base3dore_classi + j] <
-                        ore_insegnanti_classe_materia_lonely[base3dore_classi + j]
-                        && 1) {
-                        orario[pos] = (elem){h, m, i, j};
-                        ora_classi_docenti_materia_effettuate[base3dore_classi + j]++;
-                        prof_in_classe[base3dprof_impegnati + j] = 1;
-                        aule_occupate[base3daule_impegnate + h] = 1;
-                        if (ora == actual_ore_giornaliere - 1)
-                            classe_finisce_ultima_ora_num_giorni[cla]++;
+                    //insegnanti da soli
+                    for (; j < actual_insegnanti; j++) {
+                        if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
+                            !prof_in_classe[base3dprof_impegnati + j]
+                            //se un docente fa lezione solo in lab controlla che l'aula lo sia
+                            && (!solo_in_lab[j] || laboratori[h])
+                            // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
+                            && ora_classi_docenti_materia_effettuate[base3dore_classi + j] <
+                            ore_insegnanti_classe_materia_lonely[base3dore_classi + j]
+                            && 1) {
+                            orario[pos] = (elem){h, m, i, j};
+                            ora_classi_docenti_materia_effettuate[base3dore_classi + j]++;
+                            prof_in_classe[base3dprof_impegnati + j] = 1;
+                            aule_occupate[base3daule_impegnate + h] = 1;
+                            if (ora == actual_ore_giornaliere - 1)
+                                classe_finisce_ultima_ora_num_giorni[cla]++;
 
-                        print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate, prof_in_classe,
-                                     aule_occupate, classe_finisce_ultima_ora_num_giorni);
+                            print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate, prof_in_classe,
+                                         aule_occupate, classe_finisce_ultima_ora_num_giorni);
 
-                        ora_classi_docenti_materia_effettuate[base3dore_classi + j]--;
-                        prof_in_classe[base3dprof_impegnati + j] = 0;
-                        aule_occupate[base3daule_impegnate + h] = 0;
-                        if (ora == actual_ore_giornaliere - 1)
-                            classe_finisce_ultima_ora_num_giorni[cla]--;
+                            ora_classi_docenti_materia_effettuate[base3dore_classi + j]--;
+                            prof_in_classe[base3dprof_impegnati + j] = 0;
+                            aule_occupate[base3daule_impegnate + h] = 0;
+                            if (ora == actual_ore_giornaliere - 1)
+                                classe_finisce_ultima_ora_num_giorni[cla]--;
+                        }
+                    }
+
+                    //codocenze
+                    for (i = 0; i < actual_insegnanti; i++) {
+                        if (!prof_in_classe[base3dprof_impegnati + i]
+                            && ora_classi_docenti_materia_effettuate[base3dore_classi + i] <
+                            ore_insegnanti_classe_materia[base3dore_classi + i])
+                            for (j = i + 1; j < actual_insegnanti; j++) {
+                                if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
+                                    !prof_in_classe[base3dprof_impegnati + j]
+                                    && (!solo_in_lab[i] || laboratori[h])
+                                    && (!solo_in_lab[j] || laboratori[h])
+                                    // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
+                                    && ora_classi_docenti_materia_effettuate[base3dore_classi + j] <
+                                    ore_insegnanti_classe_materia[base3dore_classi + j]
+                                    && 1) {
+                                    orario[pos] = (elem){h, m, i, j};
+                                    ora_classi_docenti_materia_effettuate[base3dore_classi + i]++;
+                                    ora_classi_docenti_materia_effettuate[base3dore_classi + j]++;
+                                    prof_in_classe[base3dprof_impegnati + i] = 1;
+                                    prof_in_classe[base3dprof_impegnati + j] = 1;
+                                    aule_occupate[base3daule_impegnate + h] = 1;
+                                    if (ora == actual_ore_giornaliere - 1)
+                                        classe_finisce_ultima_ora_num_giorni[cla]++;
+
+                                    print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate,
+                                                 prof_in_classe, aule_occupate,
+                                                 classe_finisce_ultima_ora_num_giorni);
+
+                                    ora_classi_docenti_materia_effettuate[base3dore_classi + i]--;
+                                    ora_classi_docenti_materia_effettuate[base3dore_classi + j]--;
+                                    prof_in_classe[base3dprof_impegnati + i] = 0;
+                                    prof_in_classe[base3dprof_impegnati + j] = 0;
+                                    aule_occupate[base3daule_impegnate + h] = 0;
+                                    if (ora == actual_ore_giornaliere - 1)
+                                        classe_finisce_ultima_ora_num_giorni[cla]--;
+                                }
+                            }
                     }
                 }
-
-                //codocenze
-                for (i = 0; i < actual_insegnanti; i++) {
-                    if (!prof_in_classe[base3dprof_impegnati + i]
-                        && ora_classi_docenti_materia_effettuate[base3dore_classi + i] <
-                        ore_insegnanti_classe_materia[base3dore_classi + i])
-                        for (j = i + 1; j < actual_insegnanti; j++) {
-                            if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
-                                !prof_in_classe[base3dprof_impegnati + j]
-                                && (!solo_in_lab[i] || laboratori[h])
-                                && (!solo_in_lab[j] || laboratori[h])
-                                // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
-                                && ora_classi_docenti_materia_effettuate[base3dore_classi + j] <
-                                ore_insegnanti_classe_materia[base3dore_classi + j]
-                                && 1) {
-                                orario[pos] = (elem){h, m, i, j};
-                                ora_classi_docenti_materia_effettuate[base3dore_classi + i]++;
-                                ora_classi_docenti_materia_effettuate[base3dore_classi + j]++;
-                                prof_in_classe[base3dprof_impegnati + i] = 1;
-                                prof_in_classe[base3dprof_impegnati + j] = 1;
-                                aule_occupate[base3daule_impegnate + h] = 1;
-                                if (ora == actual_ore_giornaliere - 1)
-                                    classe_finisce_ultima_ora_num_giorni[cla]++;
-
-                                print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate,
-                                             prof_in_classe, aule_occupate,
-                                             classe_finisce_ultima_ora_num_giorni);
-
-                                ora_classi_docenti_materia_effettuate[base3dore_classi + i]--;
-                                ora_classi_docenti_materia_effettuate[base3dore_classi + j]--;
-                                prof_in_classe[base3dprof_impegnati + i] = 0;
-                                prof_in_classe[base3dprof_impegnati + j] = 0;
-                                aule_occupate[base3daule_impegnate + h] = 0;
-                                if (ora == actual_ore_giornaliere - 1)
-                                    classe_finisce_ultima_ora_num_giorni[cla]--;
-                            }
-                        }
-                }
-            }
-    }
+        }
 
     if (ora >= PRIME_N_ORE_OBBLIGATORIE) {
         orario[pos] = (elem){-1, -1, -1, -1};

@@ -106,6 +106,7 @@ void set_classe_materia_ore_prof(char cla[], char mat[], const int ore, const ch
     const int base = p_cla * MATERIA_SZ * INSEGNANTE_SZ + p_mat * INSEGNANTE_SZ;
     ore_insegnanti_classe_materia_lonely[base + p_prof] = ore;
     ore_insegnanti_classe_materia[base + p_prof] = ore;
+    ore_classe_settimanali[p_cla] += ore;
 }
 
 void set_classe_materia_ore_prof_codocenza(char cla[], char mat[], const int ore, const char prof[], const int ore_cod,
@@ -128,13 +129,14 @@ void set_classe_materia_ore_prof_codocenza(char cla[], char mat[], const int ore
 
     assert(ore>=ore_cod);
     ore_insegnanti_classe_materia_lonely[base + p_prof] = ore - ore_cod;
+    ore_classe_settimanali[p_cla] += ore;
 }
 
 void inizializza_dati() {
     actual_giorni_settimana = 0;
     set_giorno_settimana(Lun, actual_giorni_settimana++);
     set_giorno_settimana(Mar, actual_giorni_settimana++);
-    //set_giorno_settimana(Mer, actual_giorni_settimana++);
+    set_giorno_settimana(Mer, actual_giorni_settimana++);
     //set_giorno_settimana(Gio, actual_giorni_settimana++);
     //set_giorno_settimana(Ven, actual_giorni_settimana++);
     //set_giorno_settimana(Sab, actual_giorni_settimana++);
@@ -167,7 +169,7 @@ void inizializza_vincoli() {
     memset(solo_in_lab, 0, INSEGNANTE_SZ*sizeof(int));
     memset(ore_insegnanti_classe_materia, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*INSEGNANTE_SZ*sizeof(int));
     memset(ore_insegnanti_classe_materia_lonely, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*INSEGNANTE_SZ*sizeof(int));
-    set_classe_materia_ore_prof_codocenza(Classe_3H, Informatica, 3, Tiraboschi, 2, Benedetto);
+    set_classe_materia_ore_prof_codocenza(Classe_3H, Informatica, 6, Tiraboschi, 3, Benedetto);
     set_classe_materia_ore_prof_codocenza(Classe_3H, TPSIT, 3, Manganelli, 1, Rizzi);
     set_classe_materia_ore_prof_codocenza(Classe_3H, Sistemi_e_Reti, 2, Tiraboschi, 2, Gagliano);
     set_classe_materia_ore_prof_codocenza(Classe_3H, Matematica, 1, Tosi, 1, Sannino);
@@ -190,13 +192,15 @@ void inizializza_vincoli() {
     set_classe_materia_ore_prof_codocenza(Classe_3E, Sistemi_e_Reti, 4, Tiraboschi, 2, Barosi);
     set_classe_materia_ore_prof_codocenza(Classe_3E, Informatica, 6, Masetti, 3, Barosi);
     */
-
-    const int div = MATERIA_SZ / INSEGNANTE_SZ;
-    for (int i = 0; i < CLASSE_SEZIONE_SZ * MATERIA_SZ * INSEGNANTE_SZ; i++) {
-        ore_classe_settimanali[i / div] +=
-                (ore_insegnanti_classe_materia[i] - ore_insegnanti_classe_materia_lonely[i]) / 2 +
-                ore_insegnanti_classe_materia_lonely[i];
-    }
-
+    /*
+        const int div = MATERIA_SZ / INSEGNANTE_SZ;
+        for (int i = 0; i < CLASSE_SEZIONE_SZ * MATERIA_SZ * INSEGNANTE_SZ; i++) {
+            if (ore_insegnanti_classe_materia_lonely[i]==0)
+                ore_classe_settimanali[i / div] += ore_insegnanti_classe_materia[i];
+            ore_classe_settimanali[i / div] +=
+                    (ore_insegnanti_classe_materia[i] - ore_insegnanti_classe_materia_lonely[i]) / 2 +
+                    ore_insegnanti_classe_materia_lonely[i];
+        }*/
+    assert(ore_classe_settimanali[0]<=actual_giorni_settimana*actual_ore_giornaliere);
     //improve print orario one each class in recurs
 }

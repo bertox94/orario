@@ -12,7 +12,8 @@ int g_ora(const int p);
 int g_classe(int p);
 
 
-int activities_for_this_class_and_hour(const int ora, int cla, int classe_finisce_tardi_num[]);
+int activities_for_this_class_and_hour(const elem orario[], const int pos, const int ora, const int cla,
+                                       int classe_finisce_tardi_num[]);
 
 int prof_in_classe(elem orario[], const long pos, int prof);
 

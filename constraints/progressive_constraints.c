@@ -15,12 +15,25 @@ int g_classe(const int p) {
     return p % actual_classi_sezione;
 }
 
-int activities_for_this_class_and_hour(const int ora, const int cla, int classe_finisce_tardi_num[]) {
-    if (ora > PRIME_N_ORE_OBBLIGATORIE
-        && (ore_classe_settimanali[cla] - PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana) % actual_giorni_settimana
-        <= classe_finisce_tardi_num[cla]
-        && 1)
+int activities_for_this_class_and_hour(const elem orario[], const int pos, const int ora, const int cla,
+                                       int classe_finisce_tardi_num[]) {
+    //se ti trovi ad avere già n classe con orari pieni
+    const int giorni_pieni = (ore_classe_settimanali[cla] - PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana) %
+                             actual_ore_giornaliere;
+
+    //l'ultima ora non è permessa se è di un giorno che supera i giorni pieni, le altre prima possono,
+    //quelle fino a obbligatorie devono
+    if (ora == actual_ore_giornaliere - 1 && classe_finisce_tardi_num[cla] >= giorni_pieni)
         return 0;
+
+/*
+    //sostituire con parametro senza usare orario
+    if (pos - actual_classi_sezione >= 0) {
+        if (g_giorno(pos) == g_giorno(pos - actual_classi_sezione))
+            return orario[pos - actual_classi_sezione].insegnante1 != -1
+                   || orario[pos - actual_classi_sezione].insegnante2 != -1;
+    }
+    */
     return 1;
 }
 
