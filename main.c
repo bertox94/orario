@@ -12,6 +12,7 @@
 long long int n_gen = 0;
 long long int n_gen_ok = 1;
 int orario_len;
+FILE *f;
 
 int g_giorno(const int p) { return p / actual_classi_sezione / actual_ore_giornaliere % actual_giorni_settimana; }
 
@@ -34,16 +35,16 @@ void print_orario(elem orario[], const int pos, const int tot, int ora_classi_do
                   int prof_in_classe[], int aule_occupate[], int classe_finisce_ultima_ora_num_giorni[]) {
     if (n_gen_ok <= n_gen) return;
 
-    if (pos == tot) {print_orario_form(orario, pos, n_gen);
+    if (pos == tot) {
         if (verifica_ore_classe_materia(ora_classi_docenti_materia_effettuate)) {
             n_gen++;
             //printf("%lld\n", n_gen);
-            print_orario_form(orario, tot, n_gen);
+            print_orario_form(orario, tot, n_gen, f);
         }
         return;
     }
 
-
+    print_orario_form(orario, pos, n_gen, f);
 
     const int giorno = g_giorno(pos);
     const int ora = g_ora(pos);
@@ -157,9 +158,11 @@ int main(void) {
     memset(classe_finisce_tardi_num, 0, CLASSE_SEZIONE_SZ*sizeof(int));
     int *ora_buca_classe = int_alloc(CLASSE_SEZIONE_SZ);
     memset(ora_buca_classe, 0, CLASSE_SEZIONE_SZ*sizeof(int));
+    f = fopen("orario.txt", "w");
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
     print_orario(orario, 0, orario_len, ora_classi_docenti_materie_effettuate, prof_in_classe, aule_occupate,
                  classe_finisce_tardi_num);
+    fclose(f);
 
     const double elapsed = (clock() - start) / (double) CLOCKS_PER_SEC;
     printf("Totale generati: %llu in %d m, %d s.", n_gen, (int) elapsed / 60, (int) elapsed % 60);

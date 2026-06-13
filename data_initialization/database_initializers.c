@@ -219,13 +219,13 @@ void inizializza_dati() {
     set_ora_giornaliera(Ora_13);
 
 
-    set_aula(PS15);
-    set_aula(PS16);
-    set_aula(PS14);
+    //set_aula(PS15);
+    //set_aula(PS16);
+    //set_aula(PS14);
     set_laboratorio(INFO0);
     set_laboratorio(INFO1);
     set_laboratorio(INFO2);
-    set_laboratorio(INFO3);
+    //set_laboratorio(INFO3);
 
 
     set_classe_materia_ore_prof_codocenza(Classe_3E, Sistemi_e_Reti, 4, Tiraboschi, 2, Barosi);
