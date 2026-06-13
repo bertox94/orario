@@ -43,7 +43,7 @@ void print_orario(elem orario[], const int pos, const int tot, int ora_classi_do
         return;
     }
 
-    print_orario_form(orario,pos, n_gen);
+    //print_orario_form(orario,pos, n_gen);
 
     const int giorno = g_giorno(pos);
     const int ora = g_ora(pos);
