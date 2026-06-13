@@ -16,6 +16,7 @@ char Kushi[] = "Kushi";
 char Gagliano[] = "Gagliano";
 char Benedetto[] = "Benedetto";
 char Tosi[] = "Tosi";
+char Sannino[] = "Sannino";
 char Guerra[] = "Guerra";
 char Nicoletti[] = "Nicoletti";
 char Lancellotti[] = "Lancellotti";

@@ -37,10 +37,6 @@ int prof_in_classe(const elem orario[], const long pos, const int prof) {
     return 1; // Both professors are free!
 }
 
-int controllo_prof_insieme(const int prof1, const int prof2) {
-    return !(is_codocente(prof1) && is_codocente(prof2)) && !(is_docente(prof1) && is_docente(prof2));
-}
-
 int verify_teacher_hours(elem orario[], const int pos, const int class, const int mat, const int prof1,
                          const int prof2) {
     int linear3dbase = class * MATERIA_SZ * INSEGNANTE_SZ + mat * INSEGNANTE_SZ;

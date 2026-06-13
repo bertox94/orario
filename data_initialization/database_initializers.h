@@ -32,7 +32,7 @@ char aule[AULA_SZ][AULA_ITEM_SZ];
 char materie[MATERIA_SZ][MATERIA_ITEM_SZ];
 char insegnanti[INSEGNANTE_SZ][INSEGNANTE_ITEM_SZ];
 int laboratori[AULA_SZ];
-int codocenti[INSEGNANTE_SZ]; //non possono avere lezione da soli
+int solo_in_lab[INSEGNANTE_SZ];
 int giorno_libero_prof[INSEGNANTE_SZ];
 
 int ore_insegnanti_classe_materia[CLASSE_SEZIONE_SZ * MATERIA_SZ * INSEGNANTE_SZ];
@@ -71,7 +71,7 @@ void set_insegnante(char in[]);
 
 void set_laboratorio(char lab[], int pos);
 
-void set_codocente(char cod[]);
+void set_solo_lez_in_lab(char cod[]);
 
 void inizializza_dati();
 
@@ -90,9 +90,4 @@ int p_classe_sezione(char cla[]);
 
 int p_insegnante(const char in[]);
 
-int is_vuoto(const int p);
-
-int is_docente(const int p);
-
-int is_codocente(const int p);
 #endif //UNTITLED_CONSTANTS_H
