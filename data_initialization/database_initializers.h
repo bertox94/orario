@@ -24,18 +24,20 @@
 
 #define MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT 2
 #define PRIME_N_ORE_OBBLIGATORIE 2
+#include <stdio.h>
+#include <stdlib.h>
 
 char giorni_settimana[GIORNO_SETTIMANA_SZ][GIORNO_SETTIMANA_ITEM_SZ];
-char ora_giornaliera[ORA_GIORNALIERA_SZ][ORA_GIORNALIERA_ITEM_SZ];
+char ore_giornaliere[ORA_GIORNALIERA_SZ][ORA_GIORNALIERA_ITEM_SZ];
 char classe_sezione[CLASSE_SEZIONE_SZ][CLASSE_SEZIONE_ITEM_SZ];
 char aule[AULA_SZ][AULA_ITEM_SZ];
 char materie[MATERIA_SZ][MATERIA_ITEM_SZ];
 char insegnanti[INSEGNANTE_SZ][INSEGNANTE_ITEM_SZ];
+
 int laboratori[AULA_SZ];
 int solo_in_lab[INSEGNANTE_SZ];
 int giorno_libero_prof[INSEGNANTE_SZ];
 int ore_classe_settimanali[CLASSE_SEZIONE_SZ];
-
 int ore_insegnanti_classe_materia[CLASSE_SEZIONE_SZ * MATERIA_SZ * INSEGNANTE_SZ];
 int ore_insegnanti_classe_materia_lonely[CLASSE_SEZIONE_SZ * MATERIA_SZ * INSEGNANTE_SZ];
 
@@ -49,7 +51,6 @@ int actual_insegnanti;
 
 int giorno_ora_classi_sz;
 
-
 typedef struct {
     int aula;
     int materia;
@@ -58,19 +59,19 @@ typedef struct {
 } elem;
 
 
-void set_giorno_settimana(char giorno[], int pos);
+void set_giorno_settimana(char giorno[]);
 
-void set_ora_giornaliera(char ora[], int pos);
+void set_ora_giornaliera(char ora[]);
 
 void set_classe_sezione(char cla[]);
 
-void set_aula(char aul[], const int pos);
+void set_aula(char aul[]);
 
 void set_materia(char mat[]);
 
 void set_insegnante(char in[]);
 
-void set_laboratorio(char lab[], int pos);
+void set_laboratorio(char lab[]);
 
 void set_solo_lez_in_lab(char cod[]);
 
