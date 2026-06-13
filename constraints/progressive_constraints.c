@@ -15,10 +15,11 @@ int g_classe(const int p) {
     return p % actual_classi_sezione;
 }
 
-int still_activities_for_this_class_and_hour(const int ora, const int cla, int classe_finisce_tardi_num[]) {
-
-    if (ora == actual_ore_giornaliere - 1 && (32 - PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana) %
-        actual_giorni_settimana <= classe_finisce_tardi_num[cla])
+int activities_for_this_class_and_hour(const int ora, const int cla, int classe_finisce_tardi_num[]) {
+    if (ora > PRIME_N_ORE_OBBLIGATORIE
+        && (ore_classe_settimanali[cla] - PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana) % actual_giorni_settimana
+        <= classe_finisce_tardi_num[cla]
+        && 1)
         return 0;
     return 1;
 }
