@@ -9,7 +9,7 @@
 #include "constraints/end_of_block_constraints.h"
 
 long long int n_gen = 0;
-long long int n_gen_ok = 1;
+long long int n_gen_ok = 1000000;
 int orario_len;
 
 int *int_alloc(size_t len) {
@@ -87,7 +87,7 @@ void print_orario_form(const elem orario[], const int tot, const long attempt) {
 }
 
 void print_orario(elem orario[], const int pos, const int tot, int ora_classi_docenti_materia_effettuate[],
-                  int prof_in_classe[], int aule_occupate[]) {
+                  int prof_in_classe[], int aule_occupate[], int classe_finisce_ultima_ora_num_giorni[]) {
     if (n_gen_ok <= n_gen) return;
 
     if (pos == tot) {
@@ -101,14 +101,17 @@ void print_orario(elem orario[], const int pos, const int tot, int ora_classi_do
 
     //print_orario_form(orario,pos, n_gen);
 
-    const int base3dprof_impegnati = g_giorno(pos) * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + g_ora(pos) * INSEGNANTE_SZ;
-    const int base3daule_impegnate = g_giorno(pos) * ORA_GIORNALIERA_SZ * AULA_SZ + g_ora(pos) * AULA_SZ;
-    if (still_activities_for_today(orario, pos)) {
+    const int giorno = g_giorno(pos);
+    const int ora = g_ora(pos);
+    const int cla = g_classe(pos);
+    const int base3dprof_impegnati = giorno * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + ora * INSEGNANTE_SZ;
+    const int base3daule_impegnate = giorno * ORA_GIORNALIERA_SZ * AULA_SZ + ora * AULA_SZ;
+    if (still_activities_for_this_day_and_hour(ora, cla, classe_finisce_ultima_ora_num_giorni)) {
         for (int h = 0; h < actual_aula; h++) {
             if (!aule_occupate[base3daule_impegnate + h])
                 for (int m = 0; m < actual_materie; m++) {
                     int i = -1, j = 0;
-                    const int base3dore_classi = g_classe(pos) * MATERIA_SZ * INSEGNANTE_SZ + m * INSEGNANTE_SZ;
+                    const int base3dore_classi = cla * MATERIA_SZ * INSEGNANTE_SZ + m * INSEGNANTE_SZ;
 
                     //insegnanti da soli
                     for (; j < actual_insegnanti; j++) {
@@ -124,13 +127,17 @@ void print_orario(elem orario[], const int pos, const int tot, int ora_classi_do
                             ora_classi_docenti_materia_effettuate[base3dore_classi + j]++;
                             prof_in_classe[base3dprof_impegnati + j] = 1;
                             aule_occupate[base3daule_impegnate + h] = 1;
+                            if (ora == actual_ore_giornaliere - 1)
+                                classe_finisce_ultima_ora_num_giorni[cla]++;
 
                             print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate, prof_in_classe,
-                                         aule_occupate);
+                                         aule_occupate, classe_finisce_ultima_ora_num_giorni);
 
                             ora_classi_docenti_materia_effettuate[base3dore_classi + j]--;
                             prof_in_classe[base3dprof_impegnati + j] = 0;
                             aule_occupate[base3daule_impegnate + h] = 0;
+                            if (ora == actual_ore_giornaliere - 1)
+                                classe_finisce_ultima_ora_num_giorni[cla]--;
                         }
                     }
 
@@ -155,24 +162,30 @@ void print_orario(elem orario[], const int pos, const int tot, int ora_classi_do
                                         prof_in_classe[base3dprof_impegnati + i] = 1;
                                         prof_in_classe[base3dprof_impegnati + j] = 1;
                                         aule_occupate[base3daule_impegnate + h] = 1;
+                                        if (ora == actual_ore_giornaliere - 1)
+                                            classe_finisce_ultima_ora_num_giorni[cla]++;
 
                                         print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate,
-                                                     prof_in_classe, aule_occupate);
+                                                     prof_in_classe, aule_occupate,
+                                                     classe_finisce_ultima_ora_num_giorni);
 
                                         ora_classi_docenti_materia_effettuate[base3dore_classi + i]--;
                                         ora_classi_docenti_materia_effettuate[base3dore_classi + j]--;
                                         prof_in_classe[base3dprof_impegnati + i] = 0;
                                         prof_in_classe[base3dprof_impegnati + j] = 0;
                                         aule_occupate[base3daule_impegnate + h] = 0;
+                                        if (ora == actual_ore_giornaliere - 1)
+                                            classe_finisce_ultima_ora_num_giorni[cla]--;
                                     }
                                 }
                         }
                 }
         }
     }
-    if (pos / giorno_ora_classi_sz % actual_ore_giornaliere >= PRIME_N_ORE_OBBLIGATORIE) {
+    if (ora >= PRIME_N_ORE_OBBLIGATORIE) {
         orario[pos] = (elem){-1, -1, -1, -1};
-        print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate, prof_in_classe, aule_occupate);
+        print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate, prof_in_classe, aule_occupate,
+                     classe_finisce_ultima_ora_num_giorni);
     }
 }
 
@@ -197,8 +210,11 @@ int main(void) {
     memset(prof_in_classe, 0, GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ*sizeof(int));
     int *aule_occupate = int_alloc(GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * AULA_SZ);
     memset(aule_occupate, 0, GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * AULA_SZ*sizeof(int));
+    int *classe_finisce_tardi_num = int_alloc(CLASSE_SEZIONE_SZ);
+    memset(classe_finisce_tardi_num, 0, CLASSE_SEZIONE_SZ*sizeof(int));
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
-    print_orario(orario, 0, orario_len, ora_classi_docenti_materie_effettuate, prof_in_classe, aule_occupate);
+    print_orario(orario, 0, orario_len, ora_classi_docenti_materie_effettuate, prof_in_classe, aule_occupate,
+                 classe_finisce_tardi_num);
 
     const double elapsed = (clock() - start) / (double) CLOCKS_PER_SEC;
     printf("Totale generati: %llu in %d m, %d s.", n_gen, (int) elapsed / 60, (int) elapsed % 60);

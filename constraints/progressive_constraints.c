@@ -15,14 +15,11 @@ int g_classe(const int p) {
     return p % actual_classi_sezione;
 }
 
-int still_activities_for_today(const elem *orario, const int pos) {
-    //TODO: migliora questa, se ad esempio ho 32 ore, e un numeor minimo di ore di 5, già al 3 giorno a 6 ore devo fermarmi
-    //32%5 = 2, ovvero solo due giorni possno avere 6 ore
-    if (pos - actual_classi_sezione >= 0) {
-        if (g_giorno(pos) == g_giorno(pos - actual_classi_sezione))
-            return orario[pos - actual_classi_sezione].insegnante1 != -1
-                   || orario[pos - actual_classi_sezione].insegnante2 != -1;
-    }
+int still_activities_for_this_day_and_hour(const int ora, const int cla, int classe_finisce_tardi_num[]) {
+
+    if (ora == actual_ore_giornaliere - 1 && (32 - PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana) %
+        actual_giorni_settimana <= classe_finisce_tardi_num[cla])
+        return 0;
     return 1;
 }
 
