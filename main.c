@@ -50,7 +50,7 @@ void print_orario(elem orario[], const int pos, const int tot, int ora_classi_do
     const int cla = g_classe(pos);
     const int base3dprof_impegnati = giorno * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + ora * INSEGNANTE_SZ;
     const int base3daule_impegnate = giorno * ORA_GIORNALIERA_SZ * AULA_SZ + ora * AULA_SZ;
-    if (activities_for_this_class_and_hour(ora, cla, classe_finisce_ultima_ora_num_giorni))
+    if (activities_for_this_class_and_hour(orario, pos, ora, cla, classe_finisce_ultima_ora_num_giorni))
         for (int h = 0; h < actual_aula; h++) {
             if (!aule_occupate[base3daule_impegnate + h])
                 for (int m = 0; m < actual_materie; m++) {
