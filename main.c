@@ -54,8 +54,10 @@ void print_orario(elem orario[], const int pos, const int tot, int ora_classi_do
 
     if (activities_for_this_class_and_hour(orario, pos, ora, cla, classe_finisce_ultima_ora_num_giorni))
         for (int h = 0; h < actual_aula; h++) {
+            const int ran = pos;//rand();
             if (!aule_occupate[base3daule_impegnate + h])
-                for (int m = 0; m < actual_materie; m++) {
+                for (int mat = 0; mat < actual_materie; mat++) {
+                    const int m = (mat + ran) % actual_materie;
                     int i = -1, j = 0;
                     const int base3dore_classi = cla * MATERIA_SZ * INSEGNANTE_SZ + m * INSEGNANTE_SZ;
 
