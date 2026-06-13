@@ -23,7 +23,7 @@
 #define INSEGNANTE_ITEM_SZ 15
 
 #define MAX_PROF_IN_SAME_CLASS_ROOM_SUBJECT 2
-#define PRIME_N_ORE_OBBLIGATORIE 2
+#define PRIME_N_ORE_OBBLIGATORIE 5
 #include <stdio.h>
 #include <stdlib.h>
 

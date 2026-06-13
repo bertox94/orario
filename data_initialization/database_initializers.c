@@ -158,8 +158,8 @@ void set_classe_materia_ore_prof(char cla[], char mat[], const int ore, const ch
     const int p_mat = p_materia(mat);
     const int p_prof = p_insegnante(prof);
     const int base = p_cla * MATERIA_SZ * INSEGNANTE_SZ + p_mat * INSEGNANTE_SZ;
-    ore_insegnanti_classe_materia_lonely[base + p_prof] = ore;
-    ore_insegnanti_classe_materia[base + p_prof] = ore;
+    ore_insegnanti_classe_materia_lonely[base + p_prof] += ore;
+    ore_insegnanti_classe_materia[base + p_prof] += ore;
     ore_classe_settimanali[p_cla] += ore;
 }
 
@@ -178,11 +178,11 @@ void set_classe_materia_ore_prof_codocenza(char cla[], char mat[], const int ore
     assert(p_prof!=-1);
     assert(p_cod!=-1);
     const int base = p_cla * MATERIA_SZ * INSEGNANTE_SZ + p_mat * INSEGNANTE_SZ;
-    ore_insegnanti_classe_materia[base + p_prof] = ore;
-    ore_insegnanti_classe_materia[base + p_cod] = ore_cod;
+    ore_insegnanti_classe_materia[base + p_prof] += ore;
+    ore_insegnanti_classe_materia[base + p_cod] += ore_cod;
 
     assert(ore>=ore_cod);
-    ore_insegnanti_classe_materia_lonely[base + p_prof] = ore - ore_cod;
+    ore_insegnanti_classe_materia_lonely[base + p_prof] += ore - ore_cod;
     ore_classe_settimanali[p_cla] += ore;
 }
 
@@ -230,7 +230,7 @@ void inizializza_dati() {
     set_classe_materia_ore_prof_codocenza(Classe_3H, TPSIT, 3, Manganelli, 1, Rizzi);
     set_classe_materia_ore_prof_codocenza(Classe_3H, Sistemi_e_Reti, 4, Tiraboschi, 2, Gagliano);
     set_classe_materia_ore_prof_codocenza(Classe_3H, Matematica, 1, Tosi, 1, Sannino);
-    set_classe_materia_ore_prof(Classe_3H, Complementi_Matematica, 2, Tosi);
+    set_classe_materia_ore_prof(Classe_3H, Matematica, 2, Tosi);
     set_classe_materia_ore_prof(Classe_3H, Complementi_Matematica, 1, Tosi);
 
     set_classe_materia_ore_prof(Classe_3H, Lingua_Letteratura, 4, Guerra);
