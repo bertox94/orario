@@ -261,7 +261,7 @@ void inizializza_dati() {
     set_classe_materia_ore_prof(Classe_3F, Inglese, 3, Comelli);
     set_classe_materia_ore_prof(Classe_3F, ScienzeMotorie, 2, Calace);
     set_classe_materia_ore_prof(Classe_3F, Religione_Cattolica, 1, Marchione);
-    //set_classe_materia_ore_prof_codocenza(Classe_3F, Telecomunicazioni, 3, Trivini, 2, Avolio);
+    set_classe_materia_ore_prof_codocenza(Classe_3F, Telecomunicazioni, 3, Trivini, 2, Avolio);
 
 
     // matrice insegnante aule : es: mat[Benedetto][Info0] = 1, mat[Benedetto][Info1] = 1,...
