@@ -136,7 +136,7 @@ void inizializza_dati() {
     actual_giorni_settimana = 0;
     set_giorno_settimana(Lun, actual_giorni_settimana++);
     set_giorno_settimana(Mar, actual_giorni_settimana++);
-    set_giorno_settimana(Mer, actual_giorni_settimana++);
+    //set_giorno_settimana(Mer, actual_giorni_settimana++);
     //set_giorno_settimana(Gio, actual_giorni_settimana++);
     //set_giorno_settimana(Ven, actual_giorni_settimana++);
     //set_giorno_settimana(Sab, actual_giorni_settimana++);
@@ -158,7 +158,7 @@ void inizializza_dati() {
     //set_aula(PS15, actual_aula++);
     //set_aula(PS16, actual_aula++);
     set_laboratorio(INFO0, actual_aula++);
-    //set_laboratorio(INFO1, actual_aula++);
+    set_laboratorio(INFO1, actual_aula++);
     //set_laboratorio(INFO2, actual_aula++);
 }
 
@@ -170,14 +170,13 @@ void inizializza_vincoli() {
     memset(ore_insegnanti_classe_materia, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*INSEGNANTE_SZ*sizeof(int));
     memset(ore_insegnanti_classe_materia_lonely, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*INSEGNANTE_SZ*sizeof(int));
     set_classe_materia_ore_prof_codocenza(Classe_3H, Informatica, 6, Tiraboschi, 3, Benedetto);
-    set_classe_materia_ore_prof_codocenza(Classe_3H, TPSIT, 3, Manganelli, 1, Rizzi);
+    //set_classe_materia_ore_prof_codocenza(Classe_3H, TPSIT, 3, Manganelli, 1, Rizzi);
     set_classe_materia_ore_prof_codocenza(Classe_3H, Sistemi_e_Reti, 2, Tiraboschi, 2, Gagliano);
-    set_classe_materia_ore_prof_codocenza(Classe_3H, Matematica, 1, Tosi, 1, Sannino);
-    set_classe_materia_ore_prof(Classe_3H, Complementi_Matematica, 1, Tosi);
+    //set_classe_materia_ore_prof_codocenza(Classe_3H, Matematica, 1, Tosi, 1, Sannino);
+    //set_classe_materia_ore_prof(Classe_3H, Complementi_Matematica, 1, Tosi);
 
-    set_solo_lez_in_lab(Benedetto);
-    set_solo_lez_in_lab(Rizzi);
-    set_solo_lez_in_lab(Gagliano);
+    set_classe_materia_ore_prof_codocenza(Classe_3F, Sistemi_e_Reti, 4, Tiraboschi, 2, Gagliano);
+    set_classe_materia_ore_prof_codocenza(Classe_3F, TPSIT, 4, Ricciardi, 2, Rizzi);
 
     /*set_classe_materia_ore_prof(Classe_3H, Lingua_Letteratura, 4, Guerra);
     set_classe_materia_ore_prof(Classe_3H, Storia_Cittadinanza_Costituzione, 2, Guerra);
@@ -185,8 +184,7 @@ void inizializza_vincoli() {
     set_classe_materia_ore_prof(Classe_3H, Telecomunicazioni, 3, Trivini);
     set_classe_materia_ore_prof(Classe_3H, ScienzeMotorie, 2, Nicoletti);
     set_classe_materia_ore_prof(Classe_3H, Religione_Cattolica, 1, Quaini);
-    set_classe_materia_ore_prof_codocenza(Classe_3F, Sistemi_e_Reti, 4, Tiraboschi, 2, Gagliano);
-    set_classe_materia_ore_prof_codocenza(Classe_3F, TPSIT, 4, Ricciardi, 2, Rizzi);
+
     set_classe_materia_ore_prof_codocenza(Classe_3F, Informatica, 6, Kushi, 3, Paghera);
     set_classe_materia_ore_prof_codocenza(Classe_3E, TPSIT, 4, Ricciardi, 2, Rizzi);
     set_classe_materia_ore_prof_codocenza(Classe_3E, Sistemi_e_Reti, 4, Tiraboschi, 2, Barosi);
@@ -201,6 +199,12 @@ void inizializza_vincoli() {
                     (ore_insegnanti_classe_materia[i] - ore_insegnanti_classe_materia_lonely[i]) / 2 +
                     ore_insegnanti_classe_materia_lonely[i];
         }*/
+
+
+    set_solo_lez_in_lab(Benedetto);
+    set_solo_lez_in_lab(Rizzi);
+    set_solo_lez_in_lab(Gagliano);
+
     for (int i = 0; i < CLASSE_SEZIONE_SZ; i++)
         assert(ore_classe_settimanali[i]<=actual_giorni_settimana*actual_ore_giornaliere);
     //improve print orario one each class in recurs
