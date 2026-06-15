@@ -31,6 +31,13 @@ int *int_alloc(size_t len) {
     return p;
 }
 
+void print_array(const int arr[], int size) {
+    for (int i = size - 1; i >= 0; i++) {
+        printf("%d ", arr[i]);
+    }
+    printf("\n");
+}
+
 void print_orario(elem orario[], const int pos, const int tot, int ora_classi_docenti_materia_effettuate[],
                   int prof_in_classe[], int aule_occupate[], int classe_finisce_ultima_ora_num_giorni[]) {
     if (n_gen_ok <= n_gen) return;
@@ -136,6 +143,48 @@ void print_orario(elem orario[], const int pos, const int tot, int ora_classi_do
     }
 }
 
+void run_scheduler(int length, int scheduling[6], const int limit[6]) {
+    // Infinite loop syntax (no iteration counters used)
+    while (1) {
+        // 1. Process Increment & Carry Ripple
+        // We use pointers/indexing, but we break the moment no carry is needed.
+        for (int j = 0; j < length; j++) {
+            scheduling[j]++;
+
+            if (scheduling[j] <= limit[j]) {
+                break; // NO CARRY: Stop checking higher positions immediately.
+            }
+
+            // Carry occurred: reset this position and let loop move to j + 1
+            scheduling[j] = 0;
+
+            // If the highest position overflows, the entire structure has wrapped around
+            if (j == length - 1) {
+                // Optional: Handle total system overflow here
+                scheduling[j] = limit[j];
+            }
+        }
+
+        // 2. Action / Print state
+        print_array(scheduling, length);
+
+        // 3. Optimized End Condition (Stateless)
+        // Check if the array is 100% full. We check from highest index down to lowest
+        // because higher indices change less often, triggering "false" (early exit) instantly.
+        int is_full = 1;
+        for (int j = length - 1; j >= 0; j--) {
+            if (scheduling[j] < limit[j]) {
+                is_full = 0;
+                break; // Early exit: The array is NOT full yet.
+            }
+        }
+
+        if (is_full) {
+            break; // Stop the infinite loop
+        }
+    }
+}
+
 int main(void) {
     time_t currentTime;
     time(&currentTime); // Get the current time
@@ -162,8 +211,26 @@ int main(void) {
     memset(ora_buca_classe, 0, CLASSE_SEZIONE_SZ*sizeof(int));
     f = fopen("orario.txt", "w");
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
-    print_orario(orario, 0, orario_len, ora_classi_docenti_materie_effettuate, prof_in_classe, aule_occupate,
+
+    int length = 6;
+    int schedule[length];
+    memset(schedule, 0, 6*sizeof(int));
+    int limit[6];
+    int small_limit_sz = 2;
+    int small_limit[small_limit_sz];
+    small_limit[0] = 17;
+    small_limit[1] = 9;
+
+    for (int i = 0; i < 6; i++) {
+        limit[i] = small_limit[i % 2];
+    }
+
+
+    run_scheduler(length, schedule, limit);
+
+    /* print_orario(orario, 0, orario_len, ora_classi_docenti_materie_effettuate, prof_in_classe, aule_occupate,
                  classe_finisce_tardi_num);
+    */
     fclose(f);
 
     const double elapsed = (clock() - start) / (double) CLOCKS_PER_SEC;
