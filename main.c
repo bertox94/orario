@@ -31,13 +31,11 @@ int *int_alloc(size_t len) {
     return p;
 }
 
-void print_array(int arr[], int size) {
-    printf("[");
-    for (int i = size - 1; i >= 0; i--) {
-        printf("%d", arr[i]);
-        if (i > 0) printf(", ");
+void print_array(const int arr[], int size) {
+    for (int i = size - 1; i >= 0; i++) {
+        printf("%d ", arr[i]);
     }
-    printf("]\n");
+    printf("\n");
 }
 
 void print_orario(elem orario[], const int pos, const int tot, int ora_classi_docenti_materia_effettuate[],
