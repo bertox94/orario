@@ -214,17 +214,15 @@ int main(void) {
     f = fopen("orario.txt", "w");
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
 
-    int length = 6;
+    int group_len = 4;
+    int length = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione * group_len;
     int schedule[length];
-    memset(schedule, 0, 6*sizeof(int));
-    int limit[6];
-    int small_limit_sz = 2;
-    int small_limit[small_limit_sz];
-    small_limit[0] = 17;
-    small_limit[1] = 9;
+    memset(schedule, 0, length*sizeof(int));
+    int limit[length];
+    int small_limit[] = {actual_materie, actual_aula, actual_insegnanti, actual_insegnanti};
 
-    for (int i = 0; i < 6; i++) {
-        limit[i] = small_limit[i % 2];
+    for (int i = 0; i < length; i++) {
+        limit[i] = small_limit[i % group_len];
     }
 
 
