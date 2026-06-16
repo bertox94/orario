@@ -17,6 +17,7 @@ FILE *f;
 typedef struct el {
     int teacher;
     struct el *next;
+    struct el *prev;
 } el, *elp;
 
 elp priority_queue = NULL;
@@ -144,19 +145,41 @@ void print_orario(teaching_slot orario[], const int pos, const int tot, int ora_
     }
 }
 
-int pop() {
-    elp head = priority_queue->next;
-    tail->next = priority_queue;
-    priority_queue = priority_queue->next;
-    priority_queue->next = NULL;
-    priority_queue = priority_queue->next;
-    int prof = head->teacher;
-    free(head);
-    return prof;
+int pop(int pos) {
+    assert(pos < actual_insegnanti);
+
+    elp curr = priority_queue;
+    while (pos > 0)
+        curr = curr->next, pos--;
+
+    curr->prev = curr->next->prev;
+    tail->next = curr;
+    curr->next = NULL;
+
+    return curr->teacher;
 }
 
-int peek() {
-    return priority_queue->teacher;
+int peek(int pos) {
+    assert(pos < actual_insegnanti);
+    assert(pos>=0);
+    elp curr = priority_queue;
+    while (pos > 0 && curr != NULL)
+        curr = curr->next, pos--;
+    return curr->teacher;
+}
+
+void initialize_teacher_queue() {
+    assert(actual_insegnanti>0);
+
+    elp next = NULL;
+    elp curr = NULL;
+    for (int i = actual_insegnanti - 1; i >= 0; i--) {
+        curr = malloc(sizeof(el));
+        curr->teacher = i;
+        curr->next = next;
+        next = curr;
+    }
+    priority_queue = curr;
 }
 
 int main(void) {
@@ -184,18 +207,10 @@ int main(void) {
     int *ora_buca_classe = int_alloc(CLASSE_SEZIONE_SZ);
     memset(ora_buca_classe, 0, CLASSE_SEZIONE_SZ*sizeof(int));
 
-    assert(actual_insegnanti>0);
-
-    elp next = NULL;
-    elp curr = NULL;
     actual_insegnanti = 3;
-    for (int i = actual_insegnanti - 1; i >= 0; i--) {
-        curr = malloc(sizeof(el));
-        curr->teacher = i;
-        curr->next = next;
-        next = curr;
-    }
-    priority_queue = curr;
+    initialize_teacher_queue();
+
+    pop(2);
 
 
     f = fopen("orario.txt", "w");
