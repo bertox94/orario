@@ -14,6 +14,11 @@ long long int n_gen_ok = 1;
 int orario_len;
 FILE *f;
 
+typedef struct el {
+    int teacher;
+    struct el *next;
+} el, *elp;
+
 int g_giorno(const int p) { return p / actual_classi_sezione / actual_ore_giornaliere % actual_giorni_settimana; }
 
 int g_ora(const int p) { return p / actual_classi_sezione % actual_ore_giornaliere; }
@@ -161,6 +166,18 @@ int main(void) {
     int *ora_buca_classe = int_alloc(CLASSE_SEZIONE_SZ);
     memset(ora_buca_classe, 0, CLASSE_SEZIONE_SZ*sizeof(int));
 
+    assert(actual_insegnanti>0);
+    elp priority_queue = NULL;
+    elp next = NULL;
+    for (int i = actual_insegnanti - 1; i < actual_insegnanti; i++) {
+        elp e = (elp) malloc(sizeof(el));
+        e->teacher = i;
+        e->next = priority_queue;
+        if (priority_queue == NULL)
+            priority_queue = e;
+        else
+            priority_queue->next = e;
+    }
 
 
     f = fopen("orario.txt", "w");
