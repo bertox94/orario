@@ -7,7 +7,7 @@
 #include <sys/errno.h>
 #include <unistd.h>
 
-void print_orario_form(const elem orario[], const int tot, const long attempt, FILE *f) {
+void print_orario_form(const teaching_slot orario[], const int tot, const long attempt, FILE *f) {
 
     fseek(f, 0, SEEK_END);
     const long current_size = ftell(f);

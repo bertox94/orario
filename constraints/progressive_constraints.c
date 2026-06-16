@@ -7,7 +7,7 @@
 
 #include "../data_initialization/database_initializers.h"
 
-int activities_for_this_class_and_hour(elem orario[], int pos, const int ora, const int cla,
+int activities_for_this_class_and_hour(teaching_slot orario[], int pos, const int ora, const int cla,
                                        const int classe_finisce_tardi_num[]) {
     //se ti trovi ad avere già n classe con orari pieni
     const int giorni_pieni = (ore_classe_settimanali[cla] - PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana) %

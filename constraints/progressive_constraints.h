@@ -5,7 +5,7 @@
 #ifndef UNTITLED_PROGRESSIVE_CONSTRAINTS_H
 #define UNTITLED_PROGRESSIVE_CONSTRAINTS_H
 
-int activities_for_this_class_and_hour(elem orario[], int pos, const int ora, const int cla,
+int activities_for_this_class_and_hour(teaching_slot orario[], int pos, const int ora, const int cla,
                                        const int classe_finisce_tardi_num[]);
 
 #endif //UNTITLED_PROGRESSIVE_CONSTRAINTS_H

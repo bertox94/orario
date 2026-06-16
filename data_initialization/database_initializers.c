@@ -290,10 +290,10 @@ void inizializza_dati() {
                "ore_classe_settimanali[i]<=actual_giorni_settimana*actual_ore_giornaliere");
 
     fill_giorni_settimana();
-    fill_giorni_settimana();
-    fill_giorni_settimana();
-    fill_giorni_settimana();
-    fill_giorni_settimana();
+    fill_ore_giornaliere();
+    fill_materie();
+    fill_aule();
+    fill_insegnanti();
 
     //improve print orario one each class in recurs
 }

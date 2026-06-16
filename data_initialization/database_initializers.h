@@ -54,7 +54,7 @@ typedef struct {
     int materia;
     int insegnante1;
     int insegnante2;
-} elem;
+} teaching_slot;
 
 
 void set_giorno_settimana(char giorno[]);

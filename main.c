@@ -31,7 +31,7 @@ int *int_alloc(size_t len) {
     return p;
 }
 
-void print_orario(elem orario[], const int pos, const int tot, int ora_classi_docenti_materia_effettuate[],
+void print_orario(teaching_slot orario[], const int pos, const int tot, int ora_classi_docenti_materia_effettuate[],
                   int prof_in_classe[], int aule_occupate[], int classe_finisce_ultima_ora_num_giorni[]) {
     if (n_gen_ok <= n_gen) return;
 
@@ -57,7 +57,7 @@ void print_orario(elem orario[], const int pos, const int tot, int ora_classi_do
             const int ran = pos; //(int)(&ran);//rand();
             if (!aule_occupate[base3daule_impegnate + h])
                 for (int mat = 0; mat < actual_materie; mat++) {
-                    const int m = mat; //(mat + ran) % actual_materie;
+                    const int m = (mat + ran) % actual_materie;
                     int i = -1, j = 0;
                     const int base3dore_classi = cla * MATERIA_SZ * INSEGNANTE_SZ + m * INSEGNANTE_SZ;
 
@@ -71,7 +71,7 @@ void print_orario(elem orario[], const int pos, const int tot, int ora_classi_do
                             && ora_classi_docenti_materia_effettuate[base3dore_classi + j] <
                             ore_insegnanti_classe_materia_lonely[base3dore_classi + j]
                             && 1) {
-                            orario[pos] = (elem){h, m, i, j};
+                            orario[pos] = (teaching_slot){h, m, i, j};
                             ora_classi_docenti_materia_effettuate[base3dore_classi + j]++;
                             prof_in_classe[base3dprof_impegnati + j] = 1;
                             aule_occupate[base3daule_impegnate + h] = 1;
@@ -103,7 +103,7 @@ void print_orario(elem orario[], const int pos, const int tot, int ora_classi_do
                                     && ora_classi_docenti_materia_effettuate[base3dore_classi + j] <
                                     ore_insegnanti_classe_materia[base3dore_classi + j]
                                     && 1) {
-                                    orario[pos] = (elem){h, m, i, j};
+                                    orario[pos] = (teaching_slot){h, m, i, j};
                                     ora_classi_docenti_materia_effettuate[base3dore_classi + i]++;
                                     ora_classi_docenti_materia_effettuate[base3dore_classi + j]++;
                                     prof_in_classe[base3dprof_impegnati + i] = 1;
@@ -130,7 +130,7 @@ void print_orario(elem orario[], const int pos, const int tot, int ora_classi_do
         }
 
     if (ora >= PRIME_N_ORE_OBBLIGATORIE) {
-        orario[pos] = (elem){-1, -1, -1, -1};
+        orario[pos] = (teaching_slot){-1, -1, -1, -1};
         print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate, prof_in_classe, aule_occupate,
                      classe_finisce_ultima_ora_num_giorni);
     }
@@ -148,7 +148,7 @@ int main(void) {
     //test(100);
 
     //print_intestazioni(orario_len);
-    elem orario[orario_len];
+    teaching_slot orario[orario_len];
     //memset(orario, (elem){-1,-1,-1,-1}, orario_len*sizeof(int));
     int *ora_classi_docenti_materie_effettuate = int_alloc(CLASSE_SEZIONE_SZ * MATERIA_SZ * INSEGNANTE_SZ);
     memset(ora_classi_docenti_materie_effettuate, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*INSEGNANTE_SZ * sizeof(int));
@@ -160,6 +160,9 @@ int main(void) {
     memset(classe_finisce_tardi_num, 0, CLASSE_SEZIONE_SZ*sizeof(int));
     int *ora_buca_classe = int_alloc(CLASSE_SEZIONE_SZ);
     memset(ora_buca_classe, 0, CLASSE_SEZIONE_SZ*sizeof(int));
+
+
+
     f = fopen("orario.txt", "w");
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
     print_orario(orario, 0, orario_len, ora_classi_docenti_materie_effettuate, prof_in_classe, aule_occupate,
