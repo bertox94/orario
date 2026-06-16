@@ -19,6 +19,9 @@ typedef struct el {
     struct el *next;
 } el, *elp;
 
+elp priority_queue = NULL;
+elp tail = NULL;
+
 int g_giorno(const int p) { return p / actual_classi_sezione / actual_ore_giornaliere % actual_giorni_settimana; }
 
 int g_ora(const int p) { return p / actual_classi_sezione % actual_ore_giornaliere; }
@@ -141,6 +144,21 @@ void print_orario(teaching_slot orario[], const int pos, const int tot, int ora_
     }
 }
 
+int pop() {
+    elp head = priority_queue->next;
+    tail->next = priority_queue;
+    priority_queue = priority_queue->next;
+    priority_queue->next = NULL;
+    priority_queue = priority_queue->next;
+    int prof = head->teacher;
+    free(head);
+    return prof;
+}
+
+int peek() {
+    return priority_queue->teacher;
+}
+
 int main(void) {
     time_t currentTime;
     time(&currentTime); // Get the current time
@@ -167,7 +185,7 @@ int main(void) {
     memset(ora_buca_classe, 0, CLASSE_SEZIONE_SZ*sizeof(int));
 
     assert(actual_insegnanti>0);
-    elp priority_queue = NULL;
+
     elp next = NULL;
     elp curr = NULL;
     actual_insegnanti = 3;
