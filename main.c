@@ -71,7 +71,7 @@ void print_orario(teaching_slot orario[], const int pos, const int tot, int ora_
             const int ran = pos; //(int)(&ran);//rand();
             if (!aule_occupate[base3daule_impegnate + h])
                 for (int mat = 0; mat < actual_materie; mat++) {
-                    const int m = (mat + ran) % actual_materie;
+                    const int m = mat; //(mat + ran) % actual_materie;
                     int i = -1, j = 0;
                     const int base3dore_classi = cla * MATERIA_SZ * INSEGNANTE_SZ + m * INSEGNANTE_SZ;
 
