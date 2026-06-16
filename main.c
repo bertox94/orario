@@ -16,9 +16,14 @@ FILE *f;
 
 typedef struct el {
     int teacher;
-    struct el *next;
     struct el *prev;
+    struct el *next;
 } el, *elp;
+
+typedef struct {
+    elp head;
+    elp tail;
+} head_tail_queue;
 
 elp priority_queue = NULL;
 elp tail = NULL;
@@ -168,18 +173,16 @@ int peek(int pos) {
     return curr->teacher;
 }
 
-void initialize_teacher_queue() {
-    assert(actual_insegnanti>0);
+head_tail_queue initialize_teacher_queue(const elp prev, const int num, const int maxelems) {
+    if (num == maxelems)
+        return (head_tail_queue){NULL, prev};
 
-    elp next = NULL;
-    elp curr = NULL;
-    for (int i = actual_insegnanti - 1; i >= 0; i--) {
-        curr = malloc(sizeof(el));
-        curr->teacher = i;
-        curr->next = next;
-        next = curr;
-    }
-    priority_queue = curr;
+    elp curr = malloc(sizeof(el));
+    curr->teacher = num;
+    curr->prev = prev;
+    const head_tail_queue ret = initialize_teacher_queue(curr, num + 1, maxelems);
+    curr->next = ret.head;
+    return (head_tail_queue){curr, ret.tail};
 }
 
 int main(void) {
@@ -208,10 +211,16 @@ int main(void) {
     memset(ora_buca_classe, 0, CLASSE_SEZIONE_SZ*sizeof(int));
 
     actual_insegnanti = 3;
-    initialize_teacher_queue();
+    const head_tail_queue ret = initialize_teacher_queue(NULL, 0, actual_insegnanti);
+    priority_queue = ret.head;
+    tail = ret.tail;
 
-    pop(2);
+    pop(0);
 
+    for (elp i = priority_queue; i != NULL; i = i->next) {
+        printf("%d ", i->teacher);
+    }
+    return 0;
 
     f = fopen("orario.txt", "w");
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
