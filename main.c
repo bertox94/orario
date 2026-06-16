@@ -157,9 +157,18 @@ int pop(int pos) {
     while (pos > 0)
         curr = curr->next, pos--;
 
-    curr->prev = curr->next->prev;
-    tail->next = curr;
+    if (curr == tail) return curr->teacher;
+
+    if (curr == priority_queue) {
+        priority_queue = priority_queue->next;
+    } else {
+        curr->prev->next = curr->next;
+    }
+    curr->next->prev = curr->prev;
     curr->next = NULL;
+    curr->prev = tail;
+    tail->next = curr;
+    tail = curr;
 
     return curr->teacher;
 }
@@ -173,16 +182,34 @@ int peek(int pos) {
     return curr->teacher;
 }
 
-head_tail_queue initialize_teacher_queue(const elp prev, const int num, const int maxelems) {
-    if (num == maxelems)
-        return (head_tail_queue){NULL, prev};
+head_tail_queue initialize_teacher_queue(const int num, const int maxelems) {
+    if (num < maxelems) {
+        // S -> aS
+        const elp curr = malloc(sizeof(el));
+        curr->teacher = num;
+        head_tail_queue ret = initialize_teacher_queue(num + 1, maxelems);
+        if (ret.head != NULL)
+            ret.head->prev = curr;
+        curr->next = ret.head;
+        return (head_tail_queue){curr, ret.tail == NULL ? curr : ret.tail};
+    }
 
-    elp curr = malloc(sizeof(el));
-    curr->teacher = num;
-    curr->prev = prev;
-    const head_tail_queue ret = initialize_teacher_queue(curr, num + 1, maxelems);
-    curr->next = ret.head;
-    return (head_tail_queue){curr, ret.tail};
+    if (num == maxelems) {
+        // S -> eps
+        return (head_tail_queue){NULL, NULL};
+    }
+}
+
+void print_prioritt_queue(void) {
+    for (elp i = priority_queue; i != NULL; i = i->next) {
+        printf("%d ", i->teacher);
+    }
+}
+
+void initialize_priority_queue(void) {
+    const head_tail_queue ret = initialize_teacher_queue(0, actual_insegnanti);
+    priority_queue = ret.head;
+    tail = ret.tail;
 }
 
 int main(void) {
@@ -210,17 +237,7 @@ int main(void) {
     int *ora_buca_classe = int_alloc(CLASSE_SEZIONE_SZ);
     memset(ora_buca_classe, 0, CLASSE_SEZIONE_SZ*sizeof(int));
 
-    actual_insegnanti = 3;
-    const head_tail_queue ret = initialize_teacher_queue(NULL, 0, actual_insegnanti);
-    priority_queue = ret.head;
-    tail = ret.tail;
-
-    pop(0);
-
-    for (elp i = priority_queue; i != NULL; i = i->next) {
-        printf("%d ", i->teacher);
-    }
-    return 0;
+    initialize_priority_queue();
 
     f = fopen("orario.txt", "w");
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
