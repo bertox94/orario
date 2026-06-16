@@ -169,15 +169,14 @@ int main(void) {
     assert(actual_insegnanti>0);
     elp priority_queue = NULL;
     elp next = NULL;
-    for (int i = actual_insegnanti - 1; i < actual_insegnanti; i++) {
-        elp e = (elp) malloc(sizeof(el));
-        e->teacher = i;
-        e->next = priority_queue;
-        if (priority_queue == NULL)
-            priority_queue = e;
-        else
-            priority_queue->next = e;
+    elp curr = NULL;
+    for (int i = actual_insegnanti - 1; i >= 0; i++) {
+        curr = malloc(sizeof(el));
+        curr->teacher = i;
+        curr->next = next;
+        next = curr;
     }
+    priority_queue = curr;
 
 
     f = fopen("orario.txt", "w");
