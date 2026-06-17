@@ -34,6 +34,103 @@ int g_classe(const int p) {
     return p % actual_classi_sezione;
 }
 
+void copy_and_pad(char *dest, const char *src, int maxlen) {
+    int src_len = strlen(src);
+    int copy_len = src_len;
+
+    // 1. Determine how much to copy (leave 1 slot for the null terminator)
+    if (copy_len > maxlen - 1) {
+        copy_len = maxlen - 1;
+    }
+
+    // 2. Copy the actual string characters
+    memcpy(dest, src, copy_len);
+
+    // 3. Fill the remaining space with blank spaces ' '
+    for (int i = copy_len; i < maxlen - 1; i++) {
+        dest[i] = ' ';
+    }
+
+    // 4. Always force a null terminator at the very end
+    dest[maxlen - 1] = '\0';
+}
+
+void draw_horizontal_separator(void) {
+    printf("---+");
+    for (int i = 0; i < actual_giorni_settimana; i++) {
+        printf("---------------------------+");
+    }
+    printf("\n");
+}
+
+// Helper 1: Prints the header block containing the current time and attempt number
+void print_header(unsigned long long attempt) {
+    time_t current_time;
+    time(&current_time);
+
+    printf("Current time: %s", ctime(&current_time));
+    printf("Orario n. %llu\n", attempt);
+}
+
+// Helper 2: Prints the days of the week header row for a specific class
+void print_days_header(int class_index) {
+    printf("\nClasse: %s, ore: %d\n", classe_sezione[class_index], ore_classe_settimanali[class_index]);
+    printf("   |");
+
+    for (int day = 0; day < actual_giorni_settimana; day++) {
+        printf("            %s            |", giorni_settimana[day]);
+    }
+    printf("\n");
+}
+
+// Helper 3: Formats and prints a single row of scheduled data (e.g., all subjects or all rooms for that hour)
+void print_schedule_row(int class_idx, int hour_idx, int property_type, const char source_strings[][MAX_LEN_WORDS]) {
+    char formatted_str[MAX_STR_SZ_IN_DISPLAY];
+    printf("   |");
+
+    for (int day = 0; day < actual_giorni_settimana; day++) {
+        int string_id = orario[day][hour_idx][class_idx][property_type];
+        const char *raw_text = source_strings[string_id];
+
+        copy_and_pad(formatted_str, raw_text, MAX_STR_SZ_IN_DISPLAY);
+        printf("     %s     |", formatted_str);
+    }
+    printf("\n");
+}
+
+// Main Function: Clean, descriptive, and easy to read
+void print(unsigned long long attempt) {
+    print_header(attempt);
+
+    for (int c = 0; c < actual_classi_sezione; c++) {
+        print_days_header(c);
+        draw_horizontal_separator();
+
+        for (int o = 0; o < actual_ore_giornaliere; o++) {
+            // Print the row label (the specific hour slot)
+            printf(" %s|", ore_giornaliere[o]);
+
+            // Print the 4 rows of data for this hour slot
+            // Note: The first row skips 'print_schedule_row' margin handling because the hour label is already there
+            char formatted_str[MAX_STR_SZ_IN_DISPLAY];
+            for (int day = 0; day < actual_giorni_settimana; day++) {
+                int mat_id = orario[day][o][c][P_MAT];
+                copy_and_pad(formatted_str, materie[mat_id], MAX_STR_SZ_IN_DISPLAY);
+                printf("     %s     |", formatted_str);
+            }
+            printf("\n");
+
+            // Print subsequent rows using the helper function
+            print_schedule_row(c, o, P_AULA, aule);
+            print_schedule_row(c, o, P_PROF1, insegnanti);
+            print_schedule_row(c, o, P_PROF2, insegnanti);
+
+            draw_horizontal_separator();
+        }
+    }
+}
+
+
 int *int_alloc(size_t len) {
     int *p = malloc(len * sizeof(int));
     if (p == NULL) {
