@@ -188,6 +188,7 @@ void print_orario(teaching_slot orario[], const int pos, const int tot, int ora_
                         }
                     }
 
+                    //TODO: try removing codocenze while you set the priority queue
                     //codocenze
                     for (i = 0; i < actual_insegnanti; i++) {
                         if (!prof_in_classe[base3dprof_impegnati + i]
