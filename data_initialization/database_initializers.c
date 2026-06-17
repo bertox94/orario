@@ -89,21 +89,21 @@ int p_giorno(char g[]) {
 void set_giorno_settimana(char giorno[]) {
     if (p_giorno(giorno) >= 0) return;
     verify(actual_giorni_settimana < GIORNO_SETTIMANA_SZ, "actual_giorni_settimana < GIORNO_SETTIMANA_SZ");
-    verify(strlen(giorno) < GIORNO_SETTIMANA_ITEM_SZ, "strlen(giorno) < GIORNO_SETTIMANA_ITEM_SZ");
+    verify(strlen(giorno) < MAX_LEN_WORDS, "strlen(giorno) < MAX_LEN_WORDS");
     strcpy(giorni_settimana[actual_giorni_settimana++], giorno);
 }
 
 void set_ora_giornaliera(char ora[]) {
     if (p_ora(ora) >= 0) return;
     verify(actual_ore_giornaliere < ORA_GIORNALIERA_SZ, "actual_ore_giornaliere < ORA_GIORNALIERA_SZ");
-    verify(strlen(ora) < ORA_GIORNALIERA_ITEM_SZ, "strlen(ora)<ORA_GIORNALIERA_ITEM_SZ");
+    verify(strlen(ora) < MAX_LEN_WORDS, "strlen(ora)<MAX_LEN_WORDS");
     strcpy(ore_giornaliere[actual_ore_giornaliere++], ora);
 }
 
 void set_classe_sezione(char cla[]) {
     if (p_classe_sezione(cla) >= 0) return;
     verify(actual_classi_sezione < CLASSE_SEZIONE_SZ, "actual_classi_sezione<CLASSE_SEZIONE_SZ");
-    verify(strlen(cla) < CLASSE_SEZIONE_ITEM_SZ, "strlen(cla)<CLASSE_SEZIONE_ITEM_SZ");
+    verify(strlen(cla) < MAX_LEN_WORDS, "strlen(cla)<MAX_LEN_WORDS");
     strcpy(classe_sezione[actual_classi_sezione++], cla);
 }
 
@@ -111,14 +111,14 @@ void set_classe_sezione(char cla[]) {
 void set_materia(char mat[]) {
     if (p_materia(mat) >= 0) return;
     verify(actual_materie < MATERIA_SZ, "actual_materie < MATERIA_SZ");
-    verify(strlen(mat) < MATERIA_ITEM_SZ, "strlen(mat) < MATERIA_ITEM_SZ");
+    verify(strlen(mat) < MAX_LEN_WORDS, "strlen(mat) < MAX_LEN_WORDS");
     strcpy(materie[actual_materie++], mat);
 }
 
 void set_insegnante(char in[]) {
     if (p_insegnante(in) >= 0) return;
     verify(actual_insegnanti < INSEGNANTE_SZ, "actual_insegnanti < INSEGNANTE_SZ");
-    verify(strlen(in) < INSEGNANTE_ITEM_SZ, "strlen(in) < INSEGNANTE_ITEM_SZ");
+    verify(strlen(in) < MAX_LEN_WORDS, "strlen(in) < MAX_LEN_WORDS");
     strcpy(insegnanti[actual_insegnanti++], in);
 }
 

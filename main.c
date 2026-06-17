@@ -9,6 +9,14 @@
 #include "constraints/end_of_block_constraints.h"
 #include "printer.h"
 
+#define P_MAT 0
+#define P_AULA 1
+#define P_PROF1 2
+#define P_PROF2 3
+#define A_LEN 4
+
+#define MAX_STR_SZ_IN_DISPLAY 18
+
 long long int n_gen = 0;
 long long int n_gen_ok = 1;
 int orario_len;
@@ -89,7 +97,7 @@ void print_schedule_row(int class_idx, int hour_idx, int property_type, const ch
     printf("   |");
 
     for (int day = 0; day < actual_giorni_settimana; day++) {
-        int string_id = orario[day][hour_idx][class_idx][property_type];
+        int string_id = 1;//orario[day][hour_idx][class_idx][property_type];
         const char *raw_text = source_strings[string_id];
 
         copy_and_pad(formatted_str, raw_text, MAX_STR_SZ_IN_DISPLAY);
@@ -114,7 +122,7 @@ void print(unsigned long long attempt) {
             // Note: The first row skips 'print_schedule_row' margin handling because the hour label is already there
             char formatted_str[MAX_STR_SZ_IN_DISPLAY];
             for (int day = 0; day < actual_giorni_settimana; day++) {
-                int mat_id = orario[day][o][c][P_MAT];
+                int mat_id = 1;//orario[day][o][c][P_MAT];
                 copy_and_pad(formatted_str, materie[mat_id], MAX_STR_SZ_IN_DISPLAY);
                 printf("     %s     |", formatted_str);
             }
