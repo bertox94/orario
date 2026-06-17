@@ -21,36 +21,6 @@ void verify(int cond, char *msg) {
     }
 }
 
-void fill_giorni_settimana(void) {
-    char str[] = "";
-    for (int i = actual_giorni_settimana; i < GIORNO_SETTIMANA_SZ; i++)
-        set_giorno_settimana(str);
-}
-
-void fill_ore_giornaliere(void) {
-    char str[] = "";
-    for (int i = actual_ore_giornaliere; i < ORA_GIORNALIERA_SZ; i++)
-        set_ora_giornaliera(str);
-}
-
-void fill_classe_sezione(void) {
-    char str[] = "";
-    for (int i = actual_classi_sezione; i < CLASSE_SEZIONE_SZ; i++)
-        set_classe_sezione(str);
-}
-
-void fill_materie(void) {
-    char str[] = "";
-    for (int i = actual_materie; i < MATERIA_SZ; i++)
-        set_materia(str);
-}
-
-void fill_insegnanti(void) {
-    char str[] = "";
-    for (int i = actual_insegnanti; i < INSEGNANTE_SZ; i++)
-        set_insegnante(str);
-}
-
 int p_insegnante(const char in[]) {
     for (int i = 0; i < actual_insegnanti; i++)
         if (!strcmp(insegnanti[i], in))
@@ -222,10 +192,6 @@ void inizializza_dati() {
         verify(ore_classe_settimanali[i] <= actual_giorni_settimana * actual_ore_giornaliere,
                "ore_classe_settimanali[i]<=actual_giorni_settimana*actual_ore_giornaliere");
 
-    fill_giorni_settimana();
-    fill_ore_giornaliere();
-    fill_materie();
-    fill_insegnanti();
 
     //improve print orario one each class in recurs
 }
