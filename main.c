@@ -184,6 +184,7 @@ head_tail_queue initialize_teacher_queue(const int num, const int maxelems) {
     if (num < maxelems) {
         // S -> aS
         const elp curr = malloc(sizeof(el));
+        // verify prev is NULL for first element
         curr->teacher = num;
         head_tail_queue ret = initialize_teacher_queue(num + 1, maxelems);
         if (ret.head != NULL)
@@ -199,35 +200,21 @@ head_tail_queue initialize_teacher_queue(const int num, const int maxelems) {
     exit(EXIT_FAILURE);
 }
 
-elp copy_list_recursive(elp original) {
-    // Base Case: If the original list is empty, the copy is empty
-    if (original == NULL) {
-        return NULL;
+head_tail_queue copy_list(const elp curr) {
+    if (curr != NULL) {
+        elp copy = malloc(sizeof(el));
+        copy->teacher = curr->teacher;
+        copy->prev = NULL;
+        const head_tail_queue ret = copy_list(curr->next);
+        if (ret.head != NULL)
+            ret.head->prev = copy;
+        copy->next = ret.head;
+        return (head_tail_queue){copy, ret.tail == NULL ? curr : ret.tail};
     }
 
-    // 1. Allocate a new node for the copy using your specific type
-    elp new_node = malloc(sizeof(el));
-    if (new_node == NULL) {
-        printf("Memory allocation failed!\n");
-        exit(1);
+    if (curr == NULL) {
+        return (head_tail_queue){NULL, NULL};
     }
-
-    // 2. Copy the data from the original node
-    new_node->teacher = original->teacher;
-
-    // Initializing pointers safely
-    new_node->prev = NULL;
-
-    // 3. Recursively copy the rest of the list and link it forward
-    new_node->next = copy_list_recursive(original->next);
-
-    // 4. Double Linking: If a next node exists, point its 'prev' back to us
-    if (new_node->next != NULL) {
-        new_node->next->prev = new_node;
-    }
-
-    // 5. Return the head of the newly copied sub-list
-    return new_node;
 }
 
 void print_prioritt_queue(elp priority_queue) {
