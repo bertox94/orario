@@ -133,6 +133,7 @@ void set_classe_materia_ore_prof(char cla[], char mat[], const int ore, const ch
     ore_insegnanti_classe_materia[base + p_prof] += ore;
     ore_classe_settimanali[p_cla] += ore;
 }
+
 /*
 void set_classe_materia_ore_prof_codocenza(char cla[], char mat[], const int ore, const char prof[], const int ore_cod,
                                            const char cod[]) {
@@ -171,18 +172,18 @@ void inizializza_dati() {
 
     set_giorno_settimana(Lun);
     set_giorno_settimana(Mar);
-    set_giorno_settimana(Mer);
+    /*set_giorno_settimana(Mer);
     set_giorno_settimana(Gio);
     set_giorno_settimana(Ven);
-    set_giorno_settimana(Sab);
+    set_giorno_settimana(Sab);*/
 
 
     set_ora_giornaliera(Ora_08);
     set_ora_giornaliera(Ora_09);
     set_ora_giornaliera(Ora_10);
-    set_ora_giornaliera(Ora_11);
+    /*set_ora_giornaliera(Ora_11);
     set_ora_giornaliera(Ora_12);
-    set_ora_giornaliera(Ora_13);
+    set_ora_giornaliera(Ora_13);*/
 
 
     //set_aula(PS15);
@@ -191,29 +192,18 @@ void inizializza_dati() {
     //set_laboratorio(INFO3);
 
 
-    set_classe_materia_ore_prof(Classe_3E, Matematica, 4, Berno);
-    set_classe_materia_ore_prof(Classe_3E, Lingua_Letteratura, 4, DalZovo);
-    set_classe_materia_ore_prof(Classe_3E, Storia_Cittadinanza_Costituzione, 2, DalZovo);
-    set_classe_materia_ore_prof(Classe_3E, Inglese, 3, Alves);
-    set_classe_materia_ore_prof(Classe_3E, ScienzeMotorie, 2, Nicoletti);
-    set_classe_materia_ore_prof(Classe_3E, Religione_Cattolica, 1, Quaini);
+    set_classe_materia_ore_prof(Classe_3E, Matematica, 2, Berno);
+    set_classe_materia_ore_prof(Classe_3E, Lingua_Letteratura, 2, DalZovo);
+    set_classe_materia_ore_prof(Classe_3E, Storia_Cittadinanza_Costituzione, 1, DalZovo);
+
 
     set_classe_materia_ore_prof(Classe_3H, Matematica, 2, Tosi);
-    set_classe_materia_ore_prof(Classe_3H, Complementi_Matematica, 1, Tosi);
-    set_classe_materia_ore_prof(Classe_3H, Lingua_Letteratura, 4, Guerra);
-    set_classe_materia_ore_prof(Classe_3H, Storia_Cittadinanza_Costituzione, 2, Guerra);
-    set_classe_materia_ore_prof(Classe_3H, Inglese, 3, Lancellotti);
-    set_classe_materia_ore_prof(Classe_3H, ScienzeMotorie, 2, Nicoletti);
-    set_classe_materia_ore_prof(Classe_3H, Religione_Cattolica, 1, Quaini);
+    set_classe_materia_ore_prof(Classe_3H, Lingua_Letteratura, 2, Guerra);
+    set_classe_materia_ore_prof(Classe_3H, Storia_Cittadinanza_Costituzione, 1, Guerra);
 
-
-    set_classe_materia_ore_prof(Classe_3F, Matematica, 4, Sannino);
-    set_classe_materia_ore_prof(Classe_3F, Lingua_Letteratura, 4, Bortolotti);
-    set_classe_materia_ore_prof(Classe_3F, Storia_Cittadinanza_Costituzione, 2, Bortolotti);
-    set_classe_materia_ore_prof(Classe_3F, Inglese, 3, Comelli);
-    set_classe_materia_ore_prof(Classe_3F, ScienzeMotorie, 2, Calace);
-    set_classe_materia_ore_prof(Classe_3F, Religione_Cattolica, 1, Marchione);
-
+    set_classe_materia_ore_prof(Classe_3F, Matematica, 2, Sannino);
+    set_classe_materia_ore_prof(Classe_3F, Lingua_Letteratura, 2, Bortolotti);
+    set_classe_materia_ore_prof(Classe_3F, Storia_Cittadinanza_Costituzione, 1, Bortolotti);
 
 
     /**/

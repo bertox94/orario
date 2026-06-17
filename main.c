@@ -236,22 +236,20 @@ void print_orario(teaching_slot orario[], const int pos, const int tot, int ora_
 
 
     if (pos == tot) {
-        print_orario_form(orario, pos, n_gen, f);
         if (verifica_ore_classe_materia(ora_classi_docenti_materia_effettuate)) {
             n_gen++;
             //printf("%lld\n", n_gen);
-            print_orario_form(orario, tot, n_gen, f);
+            print(orario, tot, n_gen, f);
         }
         return;
     }
 
-    print_orario_form(orario, pos, n_gen, f);
+    print(orario, pos, n_gen, f);
 
     const int giorno = g_giorno(pos);
     const int ora = g_ora(pos);
     const int cla = g_classe(pos);
     const int base3dprof_impegnati = giorno * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + ora * INSEGNANTE_SZ;
-    const int base3daule_impegnate = giorno * ORA_GIORNALIERA_SZ * AULA_SZ + ora * AULA_SZ;
 
     if (activities_for_this_class_and_hour(orario, pos, ora, cla, classe_finisce_ultima_ora_num_giorni)) {
         for (int m = 0; m < actual_materie; m++) {
@@ -285,7 +283,7 @@ void print_orario(teaching_slot orario[], const int pos, const int tot, int ora_
 
 
     if (ora >= PRIME_N_ORE_OBBLIGATORIE) {
-        orario[pos] = (teaching_slot){-1, -1, -1,};
+        orario[pos] = (teaching_slot){-1, -1, -1};
         print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate, prof_in_classe,
                      classe_finisce_ultima_ora_num_giorni, priority_queue, tail);
     }
