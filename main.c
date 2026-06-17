@@ -148,30 +148,30 @@ void print_orario(teaching_slot orario[], const int pos, const int tot, int ora_
     }
 }
 
-int pop(int pos) {
+int pop(int pos, elp *priority_queue, elp *tail) {
     assert(pos < actual_insegnanti);
 
-    elp curr = priority_queue;
+    elp curr = *priority_queue;
     while (pos > 0)
         curr = curr->next, pos--;
 
-    if (curr == tail) return curr->teacher;
+    if (curr == *tail) return curr->teacher;
 
-    if (curr == priority_queue) {
-        priority_queue = priority_queue->next;
+    if (curr == *priority_queue) {
+        *priority_queue = (*priority_queue)->next;
     } else {
         curr->prev->next = curr->next;
     }
     curr->next->prev = curr->prev;
     curr->next = NULL;
-    curr->prev = tail;
-    tail->next = curr;
-    tail = curr;
+    curr->prev = *tail;
+    (*tail)->next = curr;
+    *tail = curr;
 
     return curr->teacher;
 }
 
-int peek(int pos) {
+int peek(int pos, elp priority_queue) {
     assert(pos < actual_insegnanti);
     assert(pos>=0);
     elp curr = priority_queue;
@@ -230,16 +230,15 @@ elp copy_list_recursive(elp original) {
     return new_node;
 }
 
-void print_prioritt_queue(void) {
+void print_prioritt_queue(elp priority_queue) {
     for (elp i = priority_queue; i != NULL; i = i->next) {
         printf("%d ", i->teacher);
     }
 }
 
-void initialize_priority_queue(elp *priority_queue, elp *tail) {
+head_tail_queue initialize_priority_queue() {
     const head_tail_queue ret = initialize_teacher_queue(0, actual_insegnanti);
-    *priority_queue = ret.head;
-    *tail = ret.tail;
+    return (head_tail_queue){ret.head, ret.tail};
 }
 
 int main(void) {
@@ -267,14 +266,14 @@ int main(void) {
     int *ora_buca_classe = int_alloc(CLASSE_SEZIONE_SZ);
     memset(ora_buca_classe, 0, CLASSE_SEZIONE_SZ*sizeof(int));
 
-    elp priority_queue = NULL;
-    elp tail = NULL;
-    initialize_priority_queue(&priority_queue, &tail);
+    head_tail_queue ret = initialize_priority_queue();
+    elp priority_queue = ret.head;
+    elp tail = ret.tail;
 
     f = fopen("orario.txt", "w");
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
     print_orario(orario, 0, orario_len, ora_classi_docenti_materie_effettuate, prof_in_classe, aule_occupate,
-                 classe_finisce_tardi_num);
+                 classe_finisce_tardi_num, priority_queue, tail);
     fclose(f);
 
     const double elapsed = (clock() - start) / (double) CLOCKS_PER_SEC;
