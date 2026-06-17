@@ -23,8 +23,8 @@ int activities_for_this_class_and_hour(teaching_slot orario[], int pos, const in
     if (pos - actual_classi_sezione >= 0) {
         if (pos / actual_classi_sezione / actual_ore_giornaliere % actual_giorni_settimana == (
                 pos - actual_classi_sezione) / actual_classi_sezione / actual_ore_giornaliere % actual_giorni_settimana)
-            return orario[pos - actual_classi_sezione].insegnante1 != -1
-                   || orario[pos - actual_classi_sezione].insegnante2 != -1;
+            return orario[pos - actual_classi_sezione].insegnante != -1;
+                   //|| orario[pos - actual_classi_sezione].insegnante2 != -1;
     }
 
     return 1;

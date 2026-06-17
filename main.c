@@ -110,11 +110,12 @@ head_tail_queue copy_list(const elp curr) {
     if (curr == NULL) {
         return (head_tail_queue){NULL, NULL};
     }
+    exit(EXIT_FAILURE);
 }
 
 void print_prioritt_queue(elp priority_queue) {
     for (elp i = priority_queue; i != NULL; i = i->next) {
-        printf("%p: %d\n",i, i->teacher);
+        printf("%p: %d\n", i, i->teacher);
     }
     printf("------------\n");
 }
@@ -125,8 +126,7 @@ head_tail_queue initialize_priority_queue(const int len) {
 }
 
 void print_orario(teaching_slot orario[], const int pos, const int tot, int ora_classi_docenti_materia_effettuate[],
-                  int prof_in_classe[], int aule_occupate[], int classe_finisce_ultima_ora_num_giorni[],
-                  elp priority_queue, elp tail) {
+                  int prof_in_classe[], int classe_finisce_ultima_ora_num_giorni[], elp priority_queue, elp tail) {
     if (n_gen_ok <= n_gen) return;
 
 
@@ -148,93 +148,40 @@ void print_orario(teaching_slot orario[], const int pos, const int tot, int ora_
     const int base3dprof_impegnati = giorno * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + ora * INSEGNANTE_SZ;
     const int base3daule_impegnate = giorno * ORA_GIORNALIERA_SZ * AULA_SZ + ora * AULA_SZ;
 
-    if (activities_for_this_class_and_hour(orario, pos, ora, cla, classe_finisce_ultima_ora_num_giorni))
-        for (int h = 0; h < actual_aula; h++) {
-            const int ran = pos; //(int)(&ran);//rand();
-            if (!aule_occupate[base3daule_impegnate + h])
-                for (int mat = 0; mat < actual_materie; mat++) {
-                    const int m =  (mat + ran) % actual_materie;//peek(priority_queue, mat);
-                    int i = -1, j = 0;
-                    const int base3dore_classi = cla * MATERIA_SZ * INSEGNANTE_SZ + m * INSEGNANTE_SZ;
+    if (activities_for_this_class_and_hour(orario, pos, ora, cla, classe_finisce_ultima_ora_num_giorni)) {
+        for (int m = 0; m < actual_materie; m++) {
+            int j = 0;
+            const int base3dore_classi = cla * MATERIA_SZ * INSEGNANTE_SZ + m * INSEGNANTE_SZ;
 
-                    //insegnanti da soli
-                    for (; j < actual_insegnanti; j++) {
-                        if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
-                            !prof_in_classe[base3dprof_impegnati + j]
-                            //se un docente fa lezione solo in lab controlla che l'aula lo sia
-                            && (!solo_in_lab[j] || laboratori[h])
-                            // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
-                            && ora_classi_docenti_materia_effettuate[base3dore_classi + j] <
-                            ore_insegnanti_classe_materia_lonely[base3dore_classi + j]
-                            && 1) {
-                            orario[pos] = (teaching_slot){h, m, i, j};
-                            ora_classi_docenti_materia_effettuate[base3dore_classi + j]++;
-                            prof_in_classe[base3dprof_impegnati + j] = 1;
-                            aule_occupate[base3daule_impegnate + h] = 1;
-                            if (ora == actual_ore_giornaliere - 1)
-                                classe_finisce_ultima_ora_num_giorni[cla]++;
-                            head_tail_queue ret = copy_list(priority_queue);
-                            elp new_head = ret.head, new_tail = ret.tail;
-                            //pop(mat, &new_head, &new_tail);
+            for (; j < actual_insegnanti; j++) {
+                if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
+                    !prof_in_classe[base3dprof_impegnati + j]
+                    // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
+                    && ora_classi_docenti_materia_effettuate[base3dore_classi + j] <
+                    ore_insegnanti_classe_materia[base3dore_classi + j]
+                    && 1) {
+                    ora_classi_docenti_materia_effettuate[base3dore_classi + j]++;
+                    prof_in_classe[base3dprof_impegnati + j] = 1;
+                    if (ora == actual_ore_giornaliere - 1)
+                        classe_finisce_ultima_ora_num_giorni[cla]++;
 
-                            print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate, prof_in_classe,
-                                         aule_occupate, classe_finisce_ultima_ora_num_giorni, new_head, new_tail);
+                    orario[pos] = (teaching_slot){-1, m, j};
+                    print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate, prof_in_classe,
+                                 classe_finisce_ultima_ora_num_giorni, priority_queue, tail);
 
-                            ora_classi_docenti_materia_effettuate[base3dore_classi + j]--;
-                            prof_in_classe[base3dprof_impegnati + j] = 0;
-                            aule_occupate[base3daule_impegnate + h] = 0;
-                            if (ora == actual_ore_giornaliere - 1)
-                                classe_finisce_ultima_ora_num_giorni[cla]--;
-                        }
-                    }
-
-                    //TODO: try removing codocenze while you set the priority queue
-                    //codocenze
-                    for (i = 0; i < actual_insegnanti; i++) {
-                        if (!prof_in_classe[base3dprof_impegnati + i]
-                            && ora_classi_docenti_materia_effettuate[base3dore_classi + i] <
-                            ore_insegnanti_classe_materia[base3dore_classi + i])
-                            for (j = i + 1; j < actual_insegnanti; j++) {
-                                if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
-                                    !prof_in_classe[base3dprof_impegnati + j]
-                                    && (!solo_in_lab[i] || laboratori[h])
-                                    && (!solo_in_lab[j] || laboratori[h])
-                                    // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
-                                    && ora_classi_docenti_materia_effettuate[base3dore_classi + j] <
-                                    ore_insegnanti_classe_materia[base3dore_classi + j]
-                                    && 1) {
-                                    orario[pos] = (teaching_slot){h, m, i, j};
-                                    ora_classi_docenti_materia_effettuate[base3dore_classi + i]++;
-                                    ora_classi_docenti_materia_effettuate[base3dore_classi + j]++;
-                                    prof_in_classe[base3dprof_impegnati + i] = 1;
-                                    prof_in_classe[base3dprof_impegnati + j] = 1;
-                                    aule_occupate[base3daule_impegnate + h] = 1;
-                                    if (ora == actual_ore_giornaliere - 1)
-                                        classe_finisce_ultima_ora_num_giorni[cla]++;
-                                  head_tail_queue ret = copy_list(priority_queue);
-                                    elp new_head = ret.head, new_tail = ret.tail;
-                                 /*     pop(mat, &new_head, &new_tail);*/
-
-                                    print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate,
-                                                 prof_in_classe, aule_occupate,
-                                                 classe_finisce_ultima_ora_num_giorni, new_head, new_tail);
-
-                                    ora_classi_docenti_materia_effettuate[base3dore_classi + i]--;
-                                    ora_classi_docenti_materia_effettuate[base3dore_classi + j]--;
-                                    prof_in_classe[base3dprof_impegnati + i] = 0;
-                                    prof_in_classe[base3dprof_impegnati + j] = 0;
-                                    aule_occupate[base3daule_impegnate + h] = 0;
-                                    if (ora == actual_ore_giornaliere - 1)
-                                        classe_finisce_ultima_ora_num_giorni[cla]--;
-                                }
-                            }
-                    }
+                    ora_classi_docenti_materia_effettuate[base3dore_classi + j]--;
+                    prof_in_classe[base3dprof_impegnati + j] = 0;
+                    if (ora == actual_ore_giornaliere - 1)
+                        classe_finisce_ultima_ora_num_giorni[cla]--;
                 }
+            }
         }
+    }
+
 
     if (ora >= PRIME_N_ORE_OBBLIGATORIE) {
-        orario[pos] = (teaching_slot){-1, -1, -1, -1};
-        print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate, prof_in_classe, aule_occupate,
+        orario[pos] = (teaching_slot){-1, -1, -1,};
+        print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate, prof_in_classe,
                      classe_finisce_ultima_ora_num_giorni, priority_queue, tail);
     }
 }
@@ -257,12 +204,8 @@ int main(void) {
     memset(ora_classi_docenti_materie_effettuate, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*INSEGNANTE_SZ * sizeof(int));
     int *prof_in_classe = int_alloc(GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ);
     memset(prof_in_classe, 0, GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ*sizeof(int));
-    int *aule_occupate = int_alloc(GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * AULA_SZ);
-    memset(aule_occupate, 0, GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * AULA_SZ*sizeof(int));
     int *classe_finisce_tardi_num = int_alloc(CLASSE_SEZIONE_SZ);
     memset(classe_finisce_tardi_num, 0, CLASSE_SEZIONE_SZ*sizeof(int));
-    int *ora_buca_classe = int_alloc(CLASSE_SEZIONE_SZ);
-    memset(ora_buca_classe, 0, CLASSE_SEZIONE_SZ*sizeof(int));
 
     head_tail_queue ret = initialize_priority_queue(actual_materie);
     elp priority_queue = ret.head;
@@ -270,7 +213,7 @@ int main(void) {
 
     f = fopen("orario.txt", "w");
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
-    print_orario(orario, 0, orario_len, ora_classi_docenti_materie_effettuate, prof_in_classe, aule_occupate,
+    print_orario(orario, 0, orario_len, ora_classi_docenti_materie_effettuate, prof_in_classe,
                  classe_finisce_tardi_num, priority_queue, tail);
     fclose(f);
 

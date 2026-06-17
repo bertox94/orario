@@ -66,16 +66,16 @@ void print_orario_form(const teaching_slot orario[], const int tot, const long a
 
         fprintf(f, "Prof:       ");
         for (int i = curr_class; i < tot; i += actual_classi_sezione) {
-            if (orario[i].insegnante1 == -1)
+            if (orario[i].insegnante == -1)
                 fprintf(f, "  -");
             else
-                fprintf(f, "%c%c%c", insegnanti[orario[i].insegnante1][0], insegnanti[orario[i].insegnante1][1],
-                        insegnanti[orario[i].insegnante1][2]);
+                fprintf(f, "%c%c%c", insegnanti[orario[i].insegnante][0], insegnanti[orario[i].insegnante][1],
+                        insegnanti[orario[i].insegnante][2]);
             if (i / actual_classi_sezione % actual_ore_giornaliere == actual_ore_giornaliere - 1)
                 fprintf(f, " ");
         }
         fprintf(f, "\n");
-        fprintf(f, "Prof:       ");
+/*        fprintf(f, "Prof:       ");
         for (int i = curr_class; i < tot; i += actual_classi_sezione) {
             if (orario[i].insegnante2 == -1)
                 fprintf(f, "  -");
@@ -85,7 +85,7 @@ void print_orario_form(const teaching_slot orario[], const int tot, const long a
             if (i / actual_classi_sezione % actual_ore_giornaliere == actual_ore_giornaliere - 1)
                 fprintf(f, " ");
         }
-        fprintf(f, "\n");
+        fprintf(f, "\n");*/
     }
     fprintf(f, "            ");
     for (int i = 0; i < tot / actual_classi_sezione; i++) {
