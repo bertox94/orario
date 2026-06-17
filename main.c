@@ -63,9 +63,9 @@ void copy_and_pad(char *dest, const char *src, int maxlen) {
     dest[maxlen - 1] = '\0';
 }
 
-void draw_horizontal_separator(void) {
+void draw_horizontal_separator(int pos) {
     printf("---+");
-    for (int i = 0; i < actual_giorni_settimana; i++) {
+    for (int i = 0; i < pos; i += actual_ore_giornaliere * actual_classi_sezione) {
         printf("---------------------------+");
     }
     printf("\n");
@@ -81,12 +81,12 @@ void print_header(unsigned long long attempt) {
 }
 
 // Helper 2: Prints the days of the week header row for a specific class
-void print_days_header(int class_index) {
+void print_days_header(const int pos, int class_index) {
     printf("\nClasse: %s, ore: %d\n", classe_sezione[class_index], ore_classe_settimanali[class_index]);
     printf("   |");
 
-    for (int day = 0; day < actual_giorni_settimana; day++) {
-        printf("            %s            |", giorni_settimana[day]);
+    for (int i = 0; i < pos; i += actual_ore_giornaliere * actual_classi_sezione) {
+        printf("            %s            |", giorni_settimana[i / actual_ore_giornaliere / actual_classi_sezione]);
     }
     printf("\n");
 }
@@ -108,51 +108,53 @@ void print_schedule_row(int class_idx, int hour_idx, int property_type, const ch
 
 // Main Function: Clean, descriptive, and easy to read
 void print(const teaching_slot orario[], const int pos, unsigned long long attempt) {
+    if (pos < 1) return;
     print_header(attempt);
 
-    for (int c = 0; c < actual_classi_sezione; c++) {
-        print_days_header(c);
-        draw_horizontal_separator();
+    for (int c = 0; c < (pos > actual_classi_sezione ? actual_classi_sezione : pos); c++) {
+        print_days_header(pos, c);
+        draw_horizontal_separator(pos);
 
-        for (int o = 0; o < actual_ore_giornaliere; o++) {
+        for (int o = 0; o < pos; o += actual_classi_sezione) {
             // Print the row label (the specific hour slot)
 
-
+            char formatted_str[MAX_STR_SZ_IN_DISPLAY];
             for (int i = 0; i < pos; i += actual_ore_giornaliere * actual_classi_sezione) {
                 int g = i / actual_ore_giornaliere / actual_classi_sezione;
                 const teaching_slot curr = orario[g * actual_ore_giornaliere * actual_classi_sezione + o *
-                                            actual_classi_sezione + c];
+                                                  actual_classi_sezione + c];
 
-                char formatted_str[MAX_STR_SZ_IN_DISPLAY];
+
                 printf(" %s|", ore_giornaliere[o]);
-                for (int day = 0; day < actual_giorni_settimana; day++) {
-                    int mat_id = curr.materia;
-                    copy_and_pad(formatted_str, materie[mat_id], MAX_STR_SZ_IN_DISPLAY);
-                    printf("     %s     |", formatted_str);
-                }
-                printf("\n");
-
-                printf("   |");
-                for (int day = 0; day < actual_giorni_settimana; day++) {
-                    int insegnante_id = curr.insegnante;
-                    copy_and_pad(formatted_str, insegnanti[insegnante_id], MAX_STR_SZ_IN_DISPLAY);
-                    printf("     %s     |", formatted_str);
-                }
-                printf("\n");
+                int mat_id = curr.materia;
+                copy_and_pad(formatted_str, materie[mat_id], MAX_STR_SZ_IN_DISPLAY);
+                printf("     %s     |", formatted_str);
             }
+            printf("\n");
 
-
-            // Print the 4 rows of data for this hour slot
-            // Note: The first row skips 'print_schedule_row' margin handling because the hour label is already there
-
-
-            // Print subsequent rows using the helper function
-            //print_schedule_row(c, o, P_AULA, aule);
-
-            //print_schedule_row(c, o, P_PROF2, insegnanti);
-
-            draw_horizontal_separator();
+            printf("   |");
+            for (int i = 0; i < pos; i += actual_ore_giornaliere * actual_classi_sezione) {
+                int g = i / actual_ore_giornaliere / actual_classi_sezione;
+                const teaching_slot curr = orario[g * actual_ore_giornaliere * actual_classi_sezione + o *
+                                                  actual_classi_sezione + c];
+                int insegnante_id = curr.insegnante;
+                copy_and_pad(formatted_str, insegnanti[insegnante_id], MAX_STR_SZ_IN_DISPLAY);
+                printf("     %s     |", formatted_str);
+            }
+            printf("\n");
         }
+
+
+        // Print the 4 rows of data for this hour slot
+        // Note: The first row skips 'print_schedule_row' margin handling because the hour label is already there
+
+
+        // Print subsequent rows using the helper function
+        //print_schedule_row(c, o, P_AULA, aule);
+
+        //print_schedule_row(c, o, P_PROF2, insegnanti);
+
+        draw_horizontal_separator(pos);
     }
 }
 
@@ -262,7 +264,7 @@ void print_orario(teaching_slot orario[], const int pos, const int tot, int ora_
         return;
     }
 
-    if (pos % actual_classi_sezione == 0 && pos != 0) print(orario, pos, n_gen);
+    print(orario, pos, n_gen);
 
     const int giorno = g_giorno(pos);
     const int ora = g_ora(pos);
