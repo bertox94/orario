@@ -108,14 +108,14 @@ void print_schedule_row(int class_idx, int hour_idx, int property_type, const ch
 
 // Main Function: Clean, descriptive, and easy to read
 void print(const teaching_slot orario[], const int pos, unsigned long long attempt) {
-    if (pos < 1) return;
     print_header(attempt);
 
     for (int c = 0; c < (pos > actual_classi_sezione ? actual_classi_sezione : pos); c++) {
         print_days_header(pos, c);
         draw_horizontal_separator(pos);
 
-        for (int o = 0; o < pos; o += actual_classi_sezione) {
+        for (int oo = c; oo < pos; oo += actual_classi_sezione) {
+            int o = oo / actual_classi_sezione % actual_ore_giornaliere;
             // Print the row label (the specific hour slot)
 
             char formatted_str[MAX_STR_SZ_IN_DISPLAY];
@@ -273,10 +273,12 @@ void print_orario(teaching_slot orario[], const int pos, const int tot, int ora_
 
     if (activities_for_this_class_and_hour(orario, pos, ora, cla, classe_finisce_ultima_ora_num_giorni)) {
         for (int m = 0; m < actual_materie; m++) {
+            char *decoded_materia = materie[m];
             int j = 0;
             const int base3dore_classi = cla * MATERIA_SZ * INSEGNANTE_SZ + m * INSEGNANTE_SZ;
 
             for (; j < actual_insegnanti; j++) {
+                char *decoded_insegnante = insegnanti[j];
                 if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
                     !prof_in_classe[base3dprof_impegnati + j]
                     // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
