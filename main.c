@@ -97,7 +97,7 @@ void print_schedule_row(int class_idx, int hour_idx, int property_type, const ch
     printf("   |");
 
     for (int day = 0; day < actual_giorni_settimana; day++) {
-        int string_id = 1;//orario[day][hour_idx][class_idx][property_type];
+        int string_id = 1; //orario[day][hour_idx][class_idx][property_type];
         const char *raw_text = source_strings[string_id];
 
         copy_and_pad(formatted_str, raw_text, MAX_STR_SZ_IN_DISPLAY);
@@ -107,7 +107,7 @@ void print_schedule_row(int class_idx, int hour_idx, int property_type, const ch
 }
 
 // Main Function: Clean, descriptive, and easy to read
-void print(unsigned long long attempt) {
+void print(const teaching_slot orario[], const int pos, unsigned long long attempt) {
     print_header(attempt);
 
     for (int c = 0; c < actual_classi_sezione; c++) {
@@ -122,7 +122,7 @@ void print(unsigned long long attempt) {
             // Note: The first row skips 'print_schedule_row' margin handling because the hour label is already there
             char formatted_str[MAX_STR_SZ_IN_DISPLAY];
             for (int day = 0; day < actual_giorni_settimana; day++) {
-                int mat_id = 1;//orario[day][o][c][P_MAT];
+                int mat_id = 1; //orario[day][o][c][P_MAT];
                 copy_and_pad(formatted_str, materie[mat_id], MAX_STR_SZ_IN_DISPLAY);
                 printf("     %s     |", formatted_str);
             }
@@ -239,12 +239,12 @@ void print_orario(teaching_slot orario[], const int pos, const int tot, int ora_
         if (verifica_ore_classe_materia(ora_classi_docenti_materia_effettuate)) {
             n_gen++;
             //printf("%lld\n", n_gen);
-            print(orario, tot, n_gen, f);
+            print(orario, pos, n_gen);
         }
         return;
     }
 
-    print(orario, pos, n_gen, f);
+    print(orario, pos, n_gen);
 
     const int giorno = g_giorno(pos);
     const int ora = g_ora(pos);
