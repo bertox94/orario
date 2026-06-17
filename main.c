@@ -25,8 +25,6 @@ typedef struct {
     elp tail;
 } head_tail_queue;
 
-elp priority_queue = NULL;
-elp tail = NULL;
 
 int g_giorno(const int p) { return p / actual_classi_sezione / actual_ore_giornaliere % actual_giorni_settimana; }
 
@@ -238,10 +236,10 @@ void print_prioritt_queue(void) {
     }
 }
 
-void initialize_priority_queue(void) {
+void initialize_priority_queue(elp *priority_queue, elp *tail) {
     const head_tail_queue ret = initialize_teacher_queue(0, actual_insegnanti);
-    priority_queue = ret.head;
-    tail = ret.tail;
+    *priority_queue = ret.head;
+    *tail = ret.tail;
 }
 
 int main(void) {
@@ -269,7 +267,9 @@ int main(void) {
     int *ora_buca_classe = int_alloc(CLASSE_SEZIONE_SZ);
     memset(ora_buca_classe, 0, CLASSE_SEZIONE_SZ*sizeof(int));
 
-    initialize_priority_queue();
+    elp priority_queue = NULL;
+    elp tail = NULL;
+    initialize_priority_queue(&priority_queue, &tail);
 
     f = fopen("orario.txt", "w");
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
