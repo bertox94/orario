@@ -198,6 +198,38 @@ head_tail_queue initialize_teacher_queue(const int num, const int maxelems) {
         // S -> eps
         return (head_tail_queue){NULL, NULL};
     }
+    exit(EXIT_FAILURE);
+}
+
+elp copy_list_recursive(elp original) {
+    // Base Case: If the original list is empty, the copy is empty
+    if (original == NULL) {
+        return NULL;
+    }
+
+    // 1. Allocate a new node for the copy using your specific type
+    elp new_node = malloc(sizeof(el));
+    if (new_node == NULL) {
+        printf("Memory allocation failed!\n");
+        exit(1);
+    }
+
+    // 2. Copy the data from the original node
+    new_node->teacher = original->teacher;
+
+    // Initializing pointers safely
+    new_node->prev = NULL;
+
+    // 3. Recursively copy the rest of the list and link it forward
+    new_node->next = copy_list_recursive(original->next);
+
+    // 4. Double Linking: If a next node exists, point its 'prev' back to us
+    if (new_node->next != NULL) {
+        new_node->next->prev = new_node;
+    }
+
+    // 5. Return the head of the newly copied sub-list
+    return new_node;
 }
 
 void print_prioritt_queue(void) {
