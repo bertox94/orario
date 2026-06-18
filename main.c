@@ -9,12 +9,6 @@
 #include "constraints/end_of_block_constraints.h"
 #include "printer.h"
 
-#define P_MAT 0
-#define P_AULA 1
-#define P_PROF1 2
-#define P_PROF2 3
-#define A_LEN 4
-
 #define MAX_STR_SZ_IN_DISPLAY 18
 
 long long int n_gen = 0;
@@ -111,7 +105,7 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
     if (pos < 10) return;
     print_header(attempt);
 
-    for (int c = 0; c < (pos > actual_classi_sezione ? actual_classi_sezione : pos); c++) {
+    for (int c = 0; c < actual_classi_sezione; c++) {
         print_days_header(pos, c);
         draw_horizontal_separator(pos);
 
@@ -120,19 +114,21 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
 
             char formatted_str[MAX_STR_SZ_IN_DISPLAY];
             printf(" %s|", ore_giornaliere[o]);
-            for (int i = c + o * actual_classi_sezione; i < pos; i += actual_ore_giornaliere * actual_classi_sezione) {
-                const teaching_slot curr = orario[i];
+            for (int g = 0; g < actual_giorni_settimana; g++) {
+                const teaching_slot curr = orario[
+                    g * actual_ore_giornaliere * actual_classi_sezione + o * actual_classi_sezione + c];
                 int mat_id = curr.materia;
-                copy_and_pad(formatted_str, materie[mat_id], MAX_STR_SZ_IN_DISPLAY);
+                copy_and_pad(formatted_str, mat_id == -1 ? "       --        " : materie[mat_id], MAX_STR_SZ_IN_DISPLAY);
                 printf("     %s     |", formatted_str);
             }
             printf("\n");
 
             printf("   |");
-            for (int i = c + o * actual_classi_sezione; i < pos; i += actual_ore_giornaliere * actual_classi_sezione) {
-                const teaching_slot curr = orario[i];
+            for (int g = 0; g < actual_giorni_settimana; g++) {
+                const teaching_slot curr = orario[ g * actual_ore_giornaliere * actual_classi_sezione + o * actual_classi_sezione + c];
                 int insegnante_id = curr.insegnante;
-                copy_and_pad(formatted_str, insegnanti[insegnante_id], MAX_STR_SZ_IN_DISPLAY);
+                copy_and_pad(formatted_str, insegnante_id == -1 ? "       --        " : insegnanti[insegnante_id],
+                             MAX_STR_SZ_IN_DISPLAY);
                 printf("     %s     |", formatted_str);
             }
             printf("\n");
@@ -308,6 +304,9 @@ int main(void) {
 
     //print_intestazioni(orario_len);
     teaching_slot orario[orario_len];
+    for (int i = 0; i < orario_len; i++) {
+        orario[i] = (teaching_slot){-1, -1, -1};
+    }
     //memset(orario, (elem){-1,-1,-1,-1}, orario_len*sizeof(int));
     int *ora_classi_docenti_materie_effettuate = int_alloc(CLASSE_SEZIONE_SZ * MATERIA_SZ * INSEGNANTE_SZ);
     memset(ora_classi_docenti_materie_effettuate, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*INSEGNANTE_SZ * sizeof(int));
