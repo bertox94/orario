@@ -7,7 +7,6 @@
 #include "data_initialization/database_initializers.h"
 #include "constraints/progressive_constraints.h"
 #include "constraints/end_of_block_constraints.h"
-#include "printer.h"
 
 #define MAX_STR_SZ_IN_DISPLAY 18
 

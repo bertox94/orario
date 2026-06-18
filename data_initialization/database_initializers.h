@@ -60,7 +60,6 @@ void set_insegnante(char in[]);
 
 void set_laboratorio(char lab[]);
 
-void set_solo_lez_in_lab(char cod[]);
 
 void inizializza_dati();
 
@@ -68,14 +67,35 @@ void inizializza_vincoli();
 
 void set_classe_materia_ore_prof(char cla[], char mat[], const int ore, const char prof[]);
 
+/*
 void set_classe_materia_ore_prof_codocenza(char cla[], char mat[], const int ore, const char prof[], const int ore_cod,
-                                           const char cod[]);
+                                           const char cod[]) {
+    set_classe_sezione(cla);
+    set_materia(mat);
+    set_insegnante(prof);
+    set_insegnante(cod);
+    const int p_cla = p_classe_sezione(cla);
+    const int p_mat = p_materia(mat);
+    const int p_prof = p_insegnante(prof);
+    const int p_cod = p_insegnante(cod);
+    assert(p_cla!=-1);
+    assert(p_mat!=-1);
+    assert(p_prof!=-1);
+    assert(p_cod!=-1);
+    const int base = p_cla * MATERIA_SZ * INSEGNANTE_SZ + p_mat * INSEGNANTE_SZ;
+    ore_insegnanti_classe_materia[base + p_prof] += ore;
+    ore_insegnanti_classe_materia[base + p_cod] += ore_cod;
+
+    assert(ore>=ore_cod);
+    ore_insegnanti_classe_materia_lonely[base + p_prof] += ore - ore_cod;
+    ore_classe_settimanali[p_cla] += ore;
+}
+*/
 
 int p_aula(char a[]);
 
 int p_materia(char mat[]);
 
-int p_classe_sezione(char cla[]);
 
 int p_insegnante(const char in[]);
 
