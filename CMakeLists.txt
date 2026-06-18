@@ -11,7 +11,5 @@ add_executable(untitled main.c
         constants/classes.h
         constants/subjects.h
         data_initialization/database_initializers.h
-        constraints/progressive_constraints.h
-        constraints/end_of_block_constraints.h
         data_initialization/database_initializers.c
 )

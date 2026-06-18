@@ -182,7 +182,7 @@ void inizializza_dati() {
 
 
     for (int i = 0; i < CLASSE_SEZIONE_SZ; i++)
-        assert(ore_classe_settimanali[i] <= actual_giorni_settimana * actual_ore_giornaliere);
+        assert(ore_classi_settimanali[i] <= actual_giorni_settimana * actual_ore_giornaliere);
 }
 
 void stampa_dati() {
@@ -211,6 +211,6 @@ void stampa_dati() {
         printf("Insegnante: %s\t Ore: %d\n", insegnanti[i], ore_insegnante_settimanali[i]);
     printf("Ore classe settimanale: ");
     for (int i = 0; i < actual_classi_sezione; i++)
-        printf("Classe: %s\t Ore: %d\n", classe_sezione[i], ore_classe_settimanali[i]);
+        printf("Classe: %s\t Ore: %d\n", classe_sezione[i], ore_classi_settimanali[i]);
     printf("\n");
 }

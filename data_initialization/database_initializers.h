@@ -25,7 +25,7 @@ extern int actual_classi_sezione;
 extern int actual_insegnanti;
 
 extern int ore_insegnante_classi[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
-extern int ore_classe_settimanali[CLASSE_SEZIONE_SZ];
+extern int ore_classi_settimanali[CLASSE_SEZIONE_SZ];
 extern int ore_insegnante_settimanali[INSEGNANTE_SZ];
 extern int giorno_ora_classi_sz;
 
