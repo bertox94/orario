@@ -187,30 +187,26 @@ void inizializza_dati() {
 
 void stampa_dati() {
     printf("Giorni settimana: ");
-    for (int i = 0; i < actual_giorni_settimana; i++)
-        printf("%s ", giorni_settimana[i]);
-    printf("\n");
+    for (int i = 0; i < actual_giorni_settimana - 1; i++)
+        printf("%s, ", giorni_settimana[i]);
+    if (actual_giorni_settimana - 1 > 0)
+        printf("%s\n", giorni_settimana[actual_giorni_settimana - 1]);
     printf("Ore giornaliere: ");
-    for (int i = 0; i < actual_ore_giornaliere; i++)
-        printf("%s ", ore_giornaliere[i]);
-    printf("\n");
-    printf("Classi sezione: ");
-    for (int i = 0; i < actual_classi_sezione; i++)
-        printf("%s ", classe_sezione[i]);
-    printf("\n");
-    printf("Insegnanti: ");
-    for (int i = 0; i < actual_insegnanti; i++)
-        printf("%s ", insegnanti[i]);
-    printf("\n");
-    printf("Ore insegnante classe: ");
-    for (int i = 0; i < CLASSE_SEZIONE_SZ * INSEGNANTE_SZ; i++)
-        printf("Classe: %s\tInsegnante: %s\t Ore: %d\n", classe_sezione[i / INSEGNANTE_SZ],
-               classe_sezione[i % actual_insegnanti], ore_insegnante_classi[i]);
-    printf("Ore insegnante settimanale: ");
-    for (int i = 0; i < actual_insegnanti; i++)
-        printf("Insegnante: %s\t Ore: %d\n", insegnanti[i], ore_insegnante_settimanali[i]);
-    printf("Ore classe settimanale: ");
-    for (int i = 0; i < actual_classi_sezione; i++)
-        printf("Classe: %s\t Ore: %d\n", classe_sezione[i], ore_classi_settimanali[i]);
-    printf("\n");
+    for (int i = 0; i < actual_ore_giornaliere - 1; i++)
+        printf("%s, ", ore_giornaliere[i]);
+    if (actual_ore_giornaliere - 1 > 0)
+        printf("%s\n", ore_giornaliere[actual_ore_giornaliere - 1]);
+    printf("Ore insegnanti classe: \n");
+    for (int i = 0; i < CLASSE_SEZIONE_SZ; i++) {
+        printf("Classe %s: ", classe_sezione[i]);
+        for (int j = 0; j < INSEGNANTE_SZ; j++) {
+            printf("%s(%d), ", insegnanti[j], ore_insegnante_classi[i * INSEGNANTE_SZ + j]);
+        }
+        printf("\n");
+    }
+    printf("Ore insegnanti settimanale: \n");
+    for (int i = 0; i < INSEGNANTE_SZ; i++) {
+        printf("Insegnante %s: ", insegnanti[i]);
+    }
+
 }
