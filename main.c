@@ -16,6 +16,7 @@ int orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
 int ora_classi_docenti_effettuate[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 int prof_in_classe[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ];
 int classe_finisce_tardi_num[CLASSE_SEZIONE_SZ];
+int almeno_un_ora_buca[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ];
 int orario_len;
 FILE *f;
 
