@@ -5,7 +5,6 @@
 #include "../data_initialization/database_initializers.h"
 #include "../constants/days.h"
 #include "../constants/hours.h"
-#include "../constants/rooms.h"
 #include "../constants/professors.h"
 #include "../constants/classes.h"
 #include "../constants/subjects.h"
@@ -14,30 +13,28 @@
 #include <stdlib.h>
 #include <string.h>
 
-void verify(int cond, char *msg) {
-    if (!cond) {
-        perror(msg);
-        exit(-1);
-    }
-}
+char giorni_settimana[GIORNO_SETTIMANA_SZ][MAX_LEN_WORDS];
+char ore_giornaliere[ORA_GIORNALIERA_SZ][MAX_LEN_WORDS];
+char classe_sezione[CLASSE_SEZIONE_SZ][MAX_LEN_WORDS];
+char insegnanti[INSEGNANTE_SZ][MAX_LEN_WORDS];
 
-int p_insegnante(const char in[]) {
-    for (int i = 0; i < actual_insegnanti; i++)
-        if (!strcmp(insegnanti[i], in))
-            return i;
-    return -1;
-}
+// automatically initialized to zero since they are global
+int actual_giorni_settimana;
+int actual_ore_giornaliere;
+int actual_classi_sezione;
+int actual_insegnanti;
 
-int p_classe_sezione(char cla[]) {
-    for (int i = 0; i < actual_classi_sezione; i++)
-        if (!strcmp(classe_sezione[i], cla))
-            return i;
-    return -1;
-}
+int ore_insegnante_classi[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
+int ore_classi_settimanali[CLASSE_SEZIONE_SZ];
+int ore_insegnante_settimanali[INSEGNANTE_SZ];
+int giorno_ora_classi_sz;
 
-int p_materia(char mat[]) {
-    for (int i = 0; i < actual_materie; i++)
-        if (!strcmp(materie[i], mat))
+/*
+ * Conversions from string to id
+ */
+int p_giorno(char g[]) {
+    for (int i = 0; i < actual_giorni_settimana; i++)
+        if (!strcmp(giorni_settimana[i], g))
             return i;
     return -1;
 }
@@ -49,59 +46,88 @@ int p_ora(char o[]) {
     return -1;
 }
 
-int p_giorno(char g[]) {
-    for (int i = 0; i < actual_giorni_settimana; i++)
-        if (!strcmp(giorni_settimana[i], g))
+int p_classe_sezione(char cla[]) {
+    for (int i = 0; i < actual_classi_sezione; i++)
+        if (!strcmp(classe_sezione[i], cla))
             return i;
     return -1;
 }
 
+int p_insegnante(const char in[]) {
+    for (int i = 0; i < actual_insegnanti; i++)
+        if (!strcmp(insegnanti[i], in))
+            return i;
+    return -1;
+}
+
+/*
+ * Append string to its array and increment respective size.
+ */
+
 void set_giorno_settimana(char giorno[]) {
     if (p_giorno(giorno) >= 0) return;
-    verify(actual_giorni_settimana < GIORNO_SETTIMANA_SZ, "actual_giorni_settimana < GIORNO_SETTIMANA_SZ");
-    verify(strlen(giorno) < MAX_LEN_WORDS, "strlen(giorno) < MAX_LEN_WORDS");
+    assert(actual_giorni_settimana < GIORNO_SETTIMANA_SZ);
+    assert(strlen(giorno) < MAX_LEN_WORDS);
     strcpy(giorni_settimana[actual_giorni_settimana++], giorno);
 }
 
 void set_ora_giornaliera(char ora[]) {
     if (p_ora(ora) >= 0) return;
-    verify(actual_ore_giornaliere < ORA_GIORNALIERA_SZ, "actual_ore_giornaliere < ORA_GIORNALIERA_SZ");
-    verify(strlen(ora) < MAX_LEN_WORDS, "strlen(ora)<MAX_LEN_WORDS");
+    assert(actual_ore_giornaliere < ORA_GIORNALIERA_SZ);
+    assert(strlen(ora) < MAX_LEN_WORDS);
     strcpy(ore_giornaliere[actual_ore_giornaliere++], ora);
 }
 
 void set_classe_sezione(char cla[]) {
     if (p_classe_sezione(cla) >= 0) return;
-    verify(actual_classi_sezione < CLASSE_SEZIONE_SZ, "actual_classi_sezione<CLASSE_SEZIONE_SZ");
-    verify(strlen(cla) < MAX_LEN_WORDS, "strlen(cla)<MAX_LEN_WORDS");
+    assert(actual_classi_sezione < CLASSE_SEZIONE_SZ);
+    assert(strlen(cla) < MAX_LEN_WORDS);
     strcpy(classe_sezione[actual_classi_sezione++], cla);
-}
-
-
-void set_materia(char mat[]) {
-    if (p_materia(mat) >= 0) return;
-    verify(actual_materie < MATERIA_SZ, "actual_materie < MATERIA_SZ");
-    verify(strlen(mat) < MAX_LEN_WORDS, "strlen(mat) < MAX_LEN_WORDS");
-    strcpy(materie[actual_materie++], mat);
 }
 
 void set_insegnante(char in[]) {
     if (p_insegnante(in) >= 0) return;
-    verify(actual_insegnanti < INSEGNANTE_SZ, "actual_insegnanti < INSEGNANTE_SZ");
-    verify(strlen(in) < MAX_LEN_WORDS, "strlen(in) < MAX_LEN_WORDS");
+    assert(actual_insegnanti < INSEGNANTE_SZ);
+    assert(strlen(in) < MAX_LEN_WORDS);
     strcpy(insegnanti[actual_insegnanti++], in);
 }
 
-void set_classe_materia_ore_prof(char cla[], char mat[], const int ore, const char prof[]) {
+/*
+ * Access and set constraints
+ */
+void add_ore_classi_insegnante(int classe, int insegnante, int ore) {
+    ore_insegnante_classi[classe * INSEGNANTE_SZ + insegnante] += ore;
+}
+
+void add_ore_classi_settimanale(int classe, int ore) {
+    ore_classi_settimanali[classe] += ore;
+}
+
+void add_ore_insegnante_settimanale(int insegnante, int ore) {
+    ore_insegnante_settimanali[insegnante] += ore;
+}
+
+int get_ore_classi_insegnante(int classe, int insegnante) {
+    return ore_insegnante_classi[classe * INSEGNANTE_SZ + insegnante];
+}
+
+int get_ore_classi_settimanale(int classe) {
+    return ore_classi_settimanali[classe];
+}
+
+int get_ore_insegnante_settimanale(int insegnante) {
+    return ore_insegnante_settimanali[insegnante];
+}
+
+/*
+ * Set constraints from user
+ */
+void set_classe_insegnante_ore(char cla[], char prof[], const int ore) {
     set_classe_sezione(cla);
-    set_materia(mat);
     set_insegnante(prof);
-    const int p_cla = p_classe_sezione(cla);
-    const int p_mat = p_materia(mat);
-    const int p_prof = p_insegnante(prof);
-    const int base = p_cla * MATERIA_SZ * INSEGNANTE_SZ + p_mat * INSEGNANTE_SZ;
-    ore_insegnanti_classe_materia[base + p_prof] += ore;
-    ore_classe_settimanali[p_cla] += ore;
+    add_ore_classi_insegnante(p_classe_sezione(cla), p_insegnante(prof), ore);
+    add_ore_classi_settimanale(p_classe_sezione(cla), ore);
+    add_ore_insegnante_settimanale(p_insegnante(prof), ore);
 }
 
 /*
@@ -130,68 +156,61 @@ void set_classe_materia_ore_prof_codocenza(char cla[], char mat[], const int ore
 */
 
 void inizializza_dati() {
-    actual_ore_giornaliere = 0;
-    actual_giorni_settimana = 0;
-    actual_classi_sezione = 0;
-    actual_materie = 0;
-    actual_insegnanti = 0;
-
-    memset(ore_classe_settimanali, 0, CLASSE_SEZIONE_SZ*sizeof(int));
-    memset(ore_insegnanti_classe_materia, 0, CLASSE_SEZIONE_SZ*MATERIA_SZ*INSEGNANTE_SZ*sizeof(int));
-
-
     set_giorno_settimana(Lun);
     set_giorno_settimana(Mar);
-    /*set_giorno_settimana(Mer);
-    set_giorno_settimana(Gio);
-    set_giorno_settimana(Ven);
-    set_giorno_settimana(Sab);*/
-
 
     set_ora_giornaliera(Ora_08);
     set_ora_giornaliera(Ora_09);
     set_ora_giornaliera(Ora_10);
-    /*set_ora_giornaliera(Ora_11);
-    set_ora_giornaliera(Ora_12);
-    set_ora_giornaliera(Ora_13);*/
 
+    memset(ore_insegnante_classi, 0, CLASSE_SEZIONE_SZ*INSEGNANTE_SZ*sizeof(int));
+    memset(ore_classi_settimanali, 0, CLASSE_SEZIONE_SZ*sizeof(int));
+    memset(ore_insegnante_settimanali, 0, INSEGNANTE_SZ*sizeof(int));
 
-    //set_aula(PS15);
-    //set_aula(PS16);
-    //set_aula(PS14);
-    //set_laboratorio(INFO3);
-
-
-    set_classe_materia_ore_prof(Classe_3E, Matematica, 2, Tosi);
-    set_classe_materia_ore_prof(Classe_3E, Lingua_Letteratura, 2, DalZovo);
-    set_classe_materia_ore_prof(Classe_3E, Storia_Cittadinanza_Costituzione, 1, DalZovo);
-
-
-    set_classe_materia_ore_prof(Classe_3H, Matematica, 2, Tosi);
-    set_classe_materia_ore_prof(Classe_3H, Lingua_Letteratura, 2, Guerra);
-    set_classe_materia_ore_prof(Classe_3H, Storia_Cittadinanza_Costituzione, 1, Guerra);
-
-    set_classe_materia_ore_prof(Classe_3F, Matematica, 2, Sannino);
-    set_classe_materia_ore_prof(Classe_3F, Lingua_Letteratura, 2, Guerra);
-    set_classe_materia_ore_prof(Classe_3F, Storia_Cittadinanza_Costituzione, 1, Bortolotti);
-
-
-    /**/
+    set_classe_insegnante_ore(Classe_3E, Berno, 2);
+    set_classe_insegnante_ore(Classe_3E, DalZovo, 2);
+    set_classe_insegnante_ore(Classe_3E, DalZovo, 1);
     /*
-        const int div = MATERIA_SZ / INSEGNANTE_SZ;
-        for (int i = 0; i < CLASSE_SEZIONE_SZ * MATERIA_SZ * INSEGNANTE_SZ; i++) {
-            if (ore_insegnanti_classe_materia_lonely[i]==0)
-                ore_classe_settimanali[i / div] += ore_insegnanti_classe_materia[i];
-            ore_classe_settimanali[i / div] +=
-                    (ore_insegnanti_classe_materia[i] - ore_insegnanti_classe_materia_lonely[i]) / 2 +
-                    ore_insegnanti_classe_materia_lonely[i];
-        }*/
+        set_classe_insegnante_ore(Classe_3H, Tosi, 2);
+        set_classe_insegnante_ore(Classe_3H, Guerra, 2);
+        set_classe_insegnante_ore(Classe_3H, Guerra, 1);
+
+        set_classe_insegnante_ore(Classe_3F, Sannino, 2);
+        set_classe_insegnante_ore(Classe_3F, Bortolotti, 2);
+        set_classe_insegnante_ore(Classe_3F, Bortolotti, 1);
+    */
 
 
     for (int i = 0; i < CLASSE_SEZIONE_SZ; i++)
-        verify(ore_classe_settimanali[i] <= actual_giorni_settimana * actual_ore_giornaliere,
-               "ore_classe_settimanali[i]<=actual_giorni_settimana*actual_ore_giornaliere");
+        assert(ore_classe_settimanali[i] <= actual_giorni_settimana * actual_ore_giornaliere);
+}
 
-
-    //improve print orario one each class in recurs
+void stampa_dati() {
+    printf("Giorni settimana: ");
+    for (int i = 0; i < actual_giorni_settimana; i++)
+        printf("%s ", giorni_settimana[i]);
+    printf("\n");
+    printf("Ore giornaliere: ");
+    for (int i = 0; i < actual_ore_giornaliere; i++)
+        printf("%s ", ore_giornaliere[i]);
+    printf("\n");
+    printf("Classi sezione: ");
+    for (int i = 0; i < actual_classi_sezione; i++)
+        printf("%s ", classe_sezione[i]);
+    printf("\n");
+    printf("Insegnanti: ");
+    for (int i = 0; i < actual_insegnanti; i++)
+        printf("%s ", insegnanti[i]);
+    printf("\n");
+    printf("Ore insegnante classe: ");
+    for (int i = 0; i < CLASSE_SEZIONE_SZ * INSEGNANTE_SZ; i++)
+        printf("Classe: %s\tInsegnante: %s\t Ore: %d\n", classe_sezione[i / INSEGNANTE_SZ],
+               classe_sezione[i % actual_insegnanti], ore_insegnante_classi[i]);
+    printf("Ore insegnante settimanale: ");
+    for (int i = 0; i < actual_insegnanti; i++)
+        printf("Insegnante: %s\t Ore: %d\n", insegnanti[i], ore_insegnante_settimanali[i]);
+    printf("Ore classe settimanale: ");
+    for (int i = 0; i < actual_classi_sezione; i++)
+        printf("Classe: %s\t Ore: %d\n", classe_sezione[i], ore_classe_settimanali[i]);
+    printf("\n");
 }

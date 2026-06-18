@@ -26,6 +26,11 @@ typedef struct {
     elp tail;
 } head_tail_queue;
 
+typedef struct {
+    int aula;
+    int materia;
+    int insegnante;
+} teaching_slot;
 
 int g_giorno(const int p) { return p / actual_classi_sezione / actual_ore_giornaliere % actual_giorni_settimana; }
 
@@ -84,8 +89,21 @@ void print_days_header(const int pos, int class_index) {
     printf("\n");
 }
 
+void print_row_prof(char ora[], int orario[], int c, int o) {
+    printf(" %s|", ora);
+    char formatted_str[MAX_STR_SZ_IN_DISPLAY];
+    for (int g = 0; g < actual_giorni_settimana; g++) {
+        const int curr = orario[
+            g * actual_ore_giornaliere * actual_classi_sezione + o * actual_classi_sezione + c];
+        copy_and_pad(formatted_str, curr == -1 ? "       --        " : insegnanti[curr],
+                     MAX_STR_SZ_IN_DISPLAY);
+        printf("     %s     |", formatted_str);
+    }
+    printf("\n");
+}
+
 // Main Function: Clean, descriptive, and easy to read
-void print(const teaching_slot orario[], const int pos, unsigned long long attempt) {
+void print(const int orario[], const int pos, unsigned long long attempt) {
     print_header(attempt);
 
     for (int c = 0; c < actual_classi_sezione; c++) {
@@ -96,27 +114,7 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
             // Print the row label (the specific hour slot)
 
             char formatted_str[MAX_STR_SZ_IN_DISPLAY];
-            printf(" %s|", ore_giornaliere[o]);
-            for (int g = 0; g < actual_giorni_settimana; g++) {
-                const teaching_slot curr = orario[
-                    g * actual_ore_giornaliere * actual_classi_sezione + o * actual_classi_sezione + c];
-                int mat_id = curr.materia;
-                copy_and_pad(formatted_str, mat_id == -1 ? "       --        " : materie[mat_id],
-                             MAX_STR_SZ_IN_DISPLAY);
-                printf("     %s     |", formatted_str);
-            }
-            printf("\n");
-
-            printf("   |");
-            for (int g = 0; g < actual_giorni_settimana; g++) {
-                const teaching_slot curr = orario[
-                    g * actual_ore_giornaliere * actual_classi_sezione + o * actual_classi_sezione + c];
-                int insegnante_id = curr.insegnante;
-                copy_and_pad(formatted_str, insegnante_id == -1 ? "       --        " : insegnanti[insegnante_id],
-                             MAX_STR_SZ_IN_DISPLAY);
-                printf("     %s     |", formatted_str);
-            }
-            printf("\n");
+            print_row_prof(ore_giornaliere[o], orario, c, o);
 
             draw_horizontal_separator(pos);
         }
@@ -215,13 +213,13 @@ head_tail_queue initialize_priority_queue(const int len) {
     return (head_tail_queue){ret.head, ret.tail};
 }
 
-void print_orario(teaching_slot orario[], const int pos, const int tot, int ora_classi_docenti_materia_effettuate[],
-                  int prof_in_classe[], int classe_finisce_ultima_ora_num_giorni[], elp priority_queue, elp tail) {
+void print_orario(int orario[], const int pos, const int tot, int ora_classi_docenti_effettuate[],
+                  int prof_in_classe[], int classe_finisce_ultima_ora_num_giorni[]) {
     if (n_gen_ok <= n_gen) return;
 
 
     if (pos == tot) {
-        if (verifica_ore_classe_materia(ora_classi_docenti_materia_effettuate)) {
+        if (verifica_ore_classe_materia(ora_classi_docenti_effettuate)) {
             n_gen++;
             //printf("%lld\n", n_gen);
             print(orario, pos, n_gen);
@@ -235,42 +233,39 @@ void print_orario(teaching_slot orario[], const int pos, const int tot, int ora_
     const int base3dprof_impegnati = giorno * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + ora * INSEGNANTE_SZ;
 
     if (activities_for_this_class_and_hour(orario, pos, ora, cla, classe_finisce_ultima_ora_num_giorni)) {
-        for (int m = 0; m < actual_materie; m++) {
-            char *decoded_materia = materie[m];
-            int j = 0;
-            const int base3dore_classi = cla * MATERIA_SZ * INSEGNANTE_SZ + m * INSEGNANTE_SZ;
+        int j = 0;
 
-            for (; j < actual_insegnanti; j++) {
-                char *decoded_insegnante = insegnanti[j];
-                if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
-                    !prof_in_classe[base3dprof_impegnati + j]
-                    // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
-                    && ora_classi_docenti_materia_effettuate[base3dore_classi + j] <
-                    ore_insegnanti_classe_materia[base3dore_classi + j]
-                    && 1) {
-                    ora_classi_docenti_materia_effettuate[base3dore_classi + j]++;
-                    prof_in_classe[base3dprof_impegnati + j] = 1;
-                    if (ora == actual_ore_giornaliere - 1)
-                        classe_finisce_ultima_ora_num_giorni[cla]++;
 
-                    orario[pos] = (teaching_slot){-1, m, j};
-                    print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate, prof_in_classe,
-                                 classe_finisce_ultima_ora_num_giorni, priority_queue, tail);
+        for (; j < actual_insegnanti; j++) {
+            const int base3dore_classi = cla * INSEGNANTE_SZ + j;
+            if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
+                !prof_in_classe[base3dprof_impegnati + j]
+                // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
+                && ora_classi_docenti_effettuate[base3dore_classi + j] <
+                ore_insegnante_classi[base3dore_classi + j]
+                && 1) {
+                ora_classi_docenti_effettuate[base3dore_classi + j]++;
+                prof_in_classe[base3dprof_impegnati + j] = 1;
+                if (ora == actual_ore_giornaliere - 1)
+                    classe_finisce_ultima_ora_num_giorni[cla]++;
 
-                    ora_classi_docenti_materia_effettuate[base3dore_classi + j]--;
-                    prof_in_classe[base3dprof_impegnati + j] = 0;
-                    if (ora == actual_ore_giornaliere - 1)
-                        classe_finisce_ultima_ora_num_giorni[cla]--;
-                }
+                orario[pos] = j;
+                print_orario(orario, pos + 1, tot, ora_classi_docenti_effettuate, prof_in_classe,
+                             classe_finisce_ultima_ora_num_giorni);
+
+                ora_classi_docenti_effettuate[base3dore_classi + j]--;
+                prof_in_classe[base3dprof_impegnati + j] = 0;
+                if (ora == actual_ore_giornaliere - 1)
+                    classe_finisce_ultima_ora_num_giorni[cla]--;
             }
         }
     }
 
 
     if (ora >= PRIME_N_ORE_OBBLIGATORIE) {
-        orario[pos] = (teaching_slot){-1, -1, -1};
-        print_orario(orario, pos + 1, tot, ora_classi_docenti_materia_effettuate, prof_in_classe,
-                     classe_finisce_ultima_ora_num_giorni, priority_queue, tail);
+        orario[pos] = -1;
+        print_orario(orario, pos + 1, tot, ora_classi_docenti_effettuate, prof_in_classe,
+                     classe_finisce_ultima_ora_num_giorni);
     }
 }
 
@@ -281,14 +276,15 @@ int main(void) {
 
     printf("Program started at: %s\n", ctime(&currentTime));
     inizializza_dati();
+    stampa_dati();
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
     giorno_ora_classi_sz = actual_classi_sezione;
     //test(100);
 
     //print_intestazioni(orario_len);
-    teaching_slot orario[orario_len];
+    int orario[orario_len];
     for (int i = 0; i < orario_len; i++) {
-        orario[i] = (teaching_slot){-1, -1, -1};
+        orario[i] = -1;
     }
     //memset(orario, (elem){-1,-1,-1,-1}, orario_len*sizeof(int));
     int *ora_classi_docenti_materie_effettuate = int_alloc(CLASSE_SEZIONE_SZ * MATERIA_SZ * INSEGNANTE_SZ);
@@ -298,7 +294,7 @@ int main(void) {
     int *classe_finisce_tardi_num = int_alloc(CLASSE_SEZIONE_SZ);
     memset(classe_finisce_tardi_num, 0, CLASSE_SEZIONE_SZ*sizeof(int));
 
-    head_tail_queue ret = initialize_priority_queue(actual_materie);
+    head_tail_queue ret = initialize_priority_queue(actual_insegnanti);
     elp priority_queue = ret.head;
     elp tail = ret.tail;
 

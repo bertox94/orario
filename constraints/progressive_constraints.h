@@ -5,7 +5,7 @@
 #ifndef UNTITLED_PROGRESSIVE_CONSTRAINTS_H
 #define UNTITLED_PROGRESSIVE_CONSTRAINTS_H
 
-int activities_for_this_class_and_hour(teaching_slot orario[], int pos, const int ora, const int cla,
+int activities_for_this_class_and_hour(int orario[], int pos, const int ora, const int cla,
                                        const int classe_finisce_tardi_num[]) {
     //se ti trovi ad avere già n classe con orari pieni
     const int giorni_pieni = (ore_classe_settimanali[cla] - PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana) %
@@ -21,7 +21,7 @@ int activities_for_this_class_and_hour(teaching_slot orario[], int pos, const in
     if (pos - actual_classi_sezione >= 0) {
         if (pos / actual_classi_sezione / actual_ore_giornaliere % actual_giorni_settimana == (
                 pos - actual_classi_sezione) / actual_classi_sezione / actual_ore_giornaliere % actual_giorni_settimana)
-            return orario[pos - actual_classi_sezione].insegnante != -1;
+            return orario[pos - actual_classi_sezione] != -1;
         //|| orario[pos - actual_classi_sezione].insegnante2 != -1;
     }
 

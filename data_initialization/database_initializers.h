@@ -4,47 +4,30 @@
 
 #ifndef UNTITLED_CONSTANTS_H
 #define UNTITLED_CONSTANTS_H
+
 #define GIORNO_SETTIMANA_SZ 6
-
 #define ORA_GIORNALIERA_SZ 6
-#define ORA_GIORNALIERA_ITEM_SZ 3
-
-#define CLASSE_SEZIONE_SZ 3
-
-#define AULA_SZ 10
-
-#define MATERIA_SZ 20
-
-#define INSEGNANTE_SZ 35
+#define CLASSE_SEZIONE_SZ 120
+#define INSEGNANTE_SZ 250
 
 #define MAX_LEN_WORDS 50
 
 #define PRIME_N_ORE_OBBLIGATORIE 2
 
-char giorni_settimana[GIORNO_SETTIMANA_SZ][MAX_LEN_WORDS];
-char ore_giornaliere[ORA_GIORNALIERA_SZ][ORA_GIORNALIERA_ITEM_SZ];
-char classe_sezione[CLASSE_SEZIONE_SZ][MAX_LEN_WORDS];
-char aule[AULA_SZ][MAX_LEN_WORDS];
-char materie[MATERIA_SZ][MAX_LEN_WORDS];
-char insegnanti[INSEGNANTE_SZ][MAX_LEN_WORDS];
+extern char giorni_settimana[GIORNO_SETTIMANA_SZ][MAX_LEN_WORDS];
+extern char ore_giornaliere[ORA_GIORNALIERA_SZ][MAX_LEN_WORDS];
+extern char classe_sezione[CLASSE_SEZIONE_SZ][MAX_LEN_WORDS];
+extern char insegnanti[INSEGNANTE_SZ][MAX_LEN_WORDS];
 
-int ore_classe_settimanali[CLASSE_SEZIONE_SZ];
-int ore_insegnanti_classe_materia[CLASSE_SEZIONE_SZ * MATERIA_SZ * INSEGNANTE_SZ];
+extern int actual_giorni_settimana;
+extern int actual_ore_giornaliere;
+extern int actual_classi_sezione;
+extern int actual_insegnanti;
 
-int actual_giorni_settimana;
-int actual_ore_giornaliere;
-int actual_classi_sezione;
-int actual_materie;
-int actual_insegnanti;
-
-int giorno_ora_classi_sz;
-
-typedef struct {
-    int aula;
-    int materia;
-    int insegnante;
-} teaching_slot;
-
+extern int ore_insegnante_classi[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
+extern int ore_classe_settimanali[CLASSE_SEZIONE_SZ];
+extern int ore_insegnante_settimanali[INSEGNANTE_SZ];
+extern int giorno_ora_classi_sz;
 
 void set_giorno_settimana(char giorno[]);
 
@@ -52,51 +35,14 @@ void set_ora_giornaliera(char ora[]);
 
 void set_classe_sezione(char cla[]);
 
-void set_aula(char aul[]);
-
-void set_materia(char mat[]);
-
 void set_insegnante(char in[]);
 
-void set_laboratorio(char lab[]);
+void set_classe_insegnante_ore(char cla[], char prof[], const int ore);
 
+int p_insegnante(const char in[]);
 
 void inizializza_dati();
 
-void inizializza_vincoli();
-
-void set_classe_materia_ore_prof(char cla[], char mat[], const int ore, const char prof[]);
-
-/*
-void set_classe_materia_ore_prof_codocenza(char cla[], char mat[], const int ore, const char prof[], const int ore_cod,
-                                           const char cod[]) {
-    set_classe_sezione(cla);
-    set_materia(mat);
-    set_insegnante(prof);
-    set_insegnante(cod);
-    const int p_cla = p_classe_sezione(cla);
-    const int p_mat = p_materia(mat);
-    const int p_prof = p_insegnante(prof);
-    const int p_cod = p_insegnante(cod);
-    assert(p_cla!=-1);
-    assert(p_mat!=-1);
-    assert(p_prof!=-1);
-    assert(p_cod!=-1);
-    const int base = p_cla * MATERIA_SZ * INSEGNANTE_SZ + p_mat * INSEGNANTE_SZ;
-    ore_insegnanti_classe_materia[base + p_prof] += ore;
-    ore_insegnanti_classe_materia[base + p_cod] += ore_cod;
-
-    assert(ore>=ore_cod);
-    ore_insegnanti_classe_materia_lonely[base + p_prof] += ore - ore_cod;
-    ore_classe_settimanali[p_cla] += ore;
-}
-*/
-
-int p_aula(char a[]);
-
-int p_materia(char mat[]);
-
-
-int p_insegnante(const char in[]);
+void stampa_dati();
 
 #endif //UNTITLED_CONSTANTS_H
