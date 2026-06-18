@@ -196,17 +196,16 @@ void stampa_dati() {
         printf("%s, ", ore_giornaliere[i]);
     if (actual_ore_giornaliere - 1 > 0)
         printf("%s\n", ore_giornaliere[actual_ore_giornaliere - 1]);
-    printf("Ore insegnanti classe: \n");
-    for (int i = 0; i < CLASSE_SEZIONE_SZ; i++) {
-        printf("Classe %s: ", classe_sezione[i]);
-        for (int j = 0; j < INSEGNANTE_SZ; j++) {
-            printf("%s(%d), ", insegnanti[j], ore_insegnante_classi[i * INSEGNANTE_SZ + j]);
-        }
-        printf("\n");
-    }
-    printf("Ore insegnanti settimanale: \n");
-    for (int i = 0; i < INSEGNANTE_SZ; i++) {
-        printf("Insegnante %s: ", insegnanti[i]);
-    }
-
+    printf("Ore classe:\n");
+    for (int i = 0; i < actual_classi_sezione; i++)
+        printf("Classe %s: %d ore\n", classe_sezione[i], ore_classi_settimanali[i]);
+    printf("-----------\n");
+    printf("Ore insegnanti:\n");
+    for (int i = 0; i < actual_insegnanti; i++)
+        printf("Ins. %s: %d ore\n", insegnanti[i], ore_insegnante_settimanali[i]);
+    printf("-----------\n");
+    printf("Ore insegnanti in classe:\n");
+    for (int i = 0; i < actual_classi_sezione; i++)
+        for (int j = 0; j < actual_insegnanti; j++)
+            printf("In %s %s\tha %d ore\n", classe_sezione[i], insegnanti[j], get_ore_classi_insegnante(i, j));
 }
