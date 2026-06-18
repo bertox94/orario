@@ -9,7 +9,7 @@
 #define MAX_STR_SZ_IN_DISPLAY 18
 
 long long int n_gen = 0;
-long long int n_gen_ok = 99990000;
+long long int n_gen_ok = 10000000000;
 int orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
     [0 ... GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1] = -1
 };
@@ -116,8 +116,6 @@ void print(const int pos, unsigned long long attempt) {
 
         for (int o = 0; o < actual_ore_giornaliere; o++) {
             // Print the row label (the specific hour slot)
-
-            char formatted_str[MAX_STR_SZ_IN_DISPLAY];
             print_row_prof(ore_giornaliere[o], c, o);
 
             draw_horizontal_separator(pos);

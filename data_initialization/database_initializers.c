@@ -169,15 +169,17 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_3E, Berno, 2);
     set_classe_insegnante_ore(Classe_3E, DalZovo, 2);
     set_classe_insegnante_ore(Classe_3E, DalZovo, 1);
-    /*
-        set_classe_insegnante_ore(Classe_3H, Tosi, 2);
-        set_classe_insegnante_ore(Classe_3H, Guerra, 2);
-        set_classe_insegnante_ore(Classe_3H, Guerra, 1);
+    set_classe_insegnante_ore(Classe_3E,Ricciardi,1);
 
-        set_classe_insegnante_ore(Classe_3F, Sannino, 2);
-        set_classe_insegnante_ore(Classe_3F, Bortolotti, 2);
-        set_classe_insegnante_ore(Classe_3F, Bortolotti, 1);
-    */
+    set_classe_insegnante_ore(Classe_3H, Tosi, 2);
+    set_classe_insegnante_ore(Classe_3H, Guerra, 2);
+    set_classe_insegnante_ore(Classe_3H, Guerra, 1);
+    set_classe_insegnante_ore(Classe_3H,Ricciardi,1);
+
+    set_classe_insegnante_ore(Classe_3F, Sannino, 2);
+    set_classe_insegnante_ore(Classe_3F, Bortolotti, 2);
+    set_classe_insegnante_ore(Classe_3F, Bortolotti, 1);
+    set_classe_insegnante_ore(Classe_3F,Ricciardi,1);
 
 
     for (int i = 0; i < CLASSE_SEZIONE_SZ; i++)
@@ -206,6 +208,7 @@ void stampa_dati() {
     printf("Ore insegnanti in classe:\n");
     for (int i = 0; i < actual_classi_sezione; i++)
         for (int j = 0; j < actual_insegnanti; j++)
-            printf("In %s %s\tha %d ore\n", classe_sezione[i], insegnanti[j], get_ore_classi_insegnante(i, j));
+            if (get_ore_classi_insegnante(i, j) > 0)
+                printf("In %s %s\tha %d ore\n", classe_sezione[i], insegnanti[j], get_ore_classi_insegnante(i, j));
     printf("-----------\n");
 }
