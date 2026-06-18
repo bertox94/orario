@@ -249,15 +249,14 @@ head_tail_queue initialize_priority_queue(const int len) {
     return (head_tail_queue){ret.head, ret.tail};
 }
 
-void print_orario(const int pos, const int tot, int ora_classi_docenti_effettuate[],
-                  int prof_in_classe[], int classe_finisce_ultima_ora_num_giorni[]) {
+void print_orario(const int pos, const int tot,
+                  int ora_classi_docenti_effettuate[], int prof_in_classe[], int classe_finisce_ultima_ora_num_giorni[]) {
     if (n_gen_ok <= n_gen) return;
 
 
     if (pos == tot) {
         if (verifica_ore_classe_materia(ora_classi_docenti_effettuate)) {
             n_gen++;
-            //printf("%lld\n", n_gen);
             print(orario, pos, n_gen);
         }
         return;

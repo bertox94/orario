@@ -207,4 +207,5 @@ void stampa_dati() {
     for (int i = 0; i < actual_classi_sezione; i++)
         for (int j = 0; j < actual_insegnanti; j++)
             printf("In %s %s\tha %d ore\n", classe_sezione[i], insegnanti[j], get_ore_classi_insegnante(i, j));
+    printf("-----------\n");
 }
