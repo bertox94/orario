@@ -59,7 +59,7 @@ void copy_and_pad(char *dest, const char *src, int maxlen) {
 
 void draw_horizontal_separator(int pos) {
     printf("---+");
-    for (int i = 0; i < pos; i += actual_ore_giornaliere * actual_classi_sezione) {
+    for (int i = 0; i < actual_giorni_settimana; i ++) {
         printf("---------------------------+");
     }
     printf("\n");
@@ -85,24 +85,8 @@ void print_days_header(const int pos, int class_index) {
     printf("\n");
 }
 
-// Helper 3: Formats and prints a single row of scheduled data (e.g., all subjects or all rooms for that hour)
-void print_schedule_row(int class_idx, int hour_idx, int property_type, const char source_strings[][MAX_LEN_WORDS]) {
-    char formatted_str[MAX_STR_SZ_IN_DISPLAY];
-    printf("   |");
-
-    for (int day = 0; day < actual_giorni_settimana; day++) {
-        int string_id = 1; //orario[day][hour_idx][class_idx][property_type];
-        const char *raw_text = source_strings[string_id];
-
-        copy_and_pad(formatted_str, raw_text, MAX_STR_SZ_IN_DISPLAY);
-        printf("     %s     |", formatted_str);
-    }
-    printf("\n");
-}
-
 // Main Function: Clean, descriptive, and easy to read
 void print(const teaching_slot orario[], const int pos, unsigned long long attempt) {
-    if (pos < 10) return;
     print_header(attempt);
 
     for (int c = 0; c < actual_classi_sezione; c++) {
@@ -118,14 +102,16 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
                 const teaching_slot curr = orario[
                     g * actual_ore_giornaliere * actual_classi_sezione + o * actual_classi_sezione + c];
                 int mat_id = curr.materia;
-                copy_and_pad(formatted_str, mat_id == -1 ? "       --        " : materie[mat_id], MAX_STR_SZ_IN_DISPLAY);
+                copy_and_pad(formatted_str, mat_id == -1 ? "       --        " : materie[mat_id],
+                             MAX_STR_SZ_IN_DISPLAY);
                 printf("     %s     |", formatted_str);
             }
             printf("\n");
 
             printf("   |");
             for (int g = 0; g < actual_giorni_settimana; g++) {
-                const teaching_slot curr = orario[ g * actual_ore_giornaliere * actual_classi_sezione + o * actual_classi_sezione + c];
+                const teaching_slot curr = orario[
+                    g * actual_ore_giornaliere * actual_classi_sezione + o * actual_classi_sezione + c];
                 int insegnante_id = curr.insegnante;
                 copy_and_pad(formatted_str, insegnante_id == -1 ? "       --        " : insegnanti[insegnante_id],
                              MAX_STR_SZ_IN_DISPLAY);
