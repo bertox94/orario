@@ -12,7 +12,7 @@
 #define MAX_STR_SZ_IN_DISPLAY 18
 
 long long int n_gen = 0;
-long long int n_gen_ok = 1;
+long long int n_gen_ok = 99990000;
 int orario_len;
 FILE *f;
 
@@ -59,7 +59,7 @@ void copy_and_pad(char *dest, const char *src, int maxlen) {
 
 void draw_horizontal_separator(int pos) {
     printf("---+");
-    for (int i = 0; i < actual_giorni_settimana; i ++) {
+    for (int i = 0; i < actual_giorni_settimana; i++) {
         printf("---------------------------+");
     }
     printf("\n");
@@ -229,8 +229,6 @@ void print_orario(teaching_slot orario[], const int pos, const int tot, int ora_
         }
         return;
     }
-
-    print(orario, pos, n_gen);
 
     const int giorno = g_giorno(pos);
     const int ora = g_ora(pos);

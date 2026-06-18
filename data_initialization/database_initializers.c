@@ -162,7 +162,7 @@ void inizializza_dati() {
     //set_laboratorio(INFO3);
 
 
-    set_classe_materia_ore_prof(Classe_3E, Matematica, 2, Berno);
+    set_classe_materia_ore_prof(Classe_3E, Matematica, 2, Tosi);
     set_classe_materia_ore_prof(Classe_3E, Lingua_Letteratura, 2, DalZovo);
     set_classe_materia_ore_prof(Classe_3E, Storia_Cittadinanza_Costituzione, 1, DalZovo);
 
@@ -172,7 +172,7 @@ void inizializza_dati() {
     set_classe_materia_ore_prof(Classe_3H, Storia_Cittadinanza_Costituzione, 1, Guerra);
 
     set_classe_materia_ore_prof(Classe_3F, Matematica, 2, Sannino);
-    set_classe_materia_ore_prof(Classe_3F, Lingua_Letteratura, 2, Bortolotti);
+    set_classe_materia_ore_prof(Classe_3F, Lingua_Letteratura, 2, Guerra);
     set_classe_materia_ore_prof(Classe_3F, Storia_Cittadinanza_Costituzione, 1, Bortolotti);
 
 
