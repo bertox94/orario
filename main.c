@@ -249,7 +249,7 @@ head_tail_queue initialize_priority_queue(const int len) {
     return (head_tail_queue){ret.head, ret.tail};
 }
 
-void print_orario(int orario[], const int pos, const int tot, int ora_classi_docenti_effettuate[],
+void print_orario(const int pos, const int tot, int ora_classi_docenti_effettuate[],
                   int prof_in_classe[], int classe_finisce_ultima_ora_num_giorni[]) {
     if (n_gen_ok <= n_gen) return;
 
@@ -286,7 +286,7 @@ void print_orario(int orario[], const int pos, const int tot, int ora_classi_doc
                     classe_finisce_ultima_ora_num_giorni[cla]++;
 
                 orario[pos] = j;
-                print_orario(orario, pos + 1, tot, ora_classi_docenti_effettuate, prof_in_classe,
+                print_orario(pos + 1, tot, ora_classi_docenti_effettuate, prof_in_classe,
                              classe_finisce_ultima_ora_num_giorni);
 
                 ora_classi_docenti_effettuate[base3dore_classi + j]--;
@@ -300,8 +300,7 @@ void print_orario(int orario[], const int pos, const int tot, int ora_classi_doc
 
     if (ora >= PRIME_N_ORE_OBBLIGATORIE) {
         orario[pos] = -1;
-        print_orario(orario, pos + 1, tot, ora_classi_docenti_effettuate, prof_in_classe,
-                     classe_finisce_ultima_ora_num_giorni);
+        print_orario(pos + 1, tot, ora_classi_docenti_effettuate, prof_in_classe, classe_finisce_ultima_ora_num_giorni);
     }
 }
 
@@ -314,14 +313,9 @@ int main(void) {
     inizializza_dati();
     stampa_dati();
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
-    giorno_ora_classi_sz = actual_classi_sezione;
     //test(100);
 
-    //print_intestazioni(orario_len);
-    for (int i = 0; i < orario_len; i++) {
-        orario[i] = -1;
-    }
-    //memset(orario, (elem){-1,-1,-1,-1}, orario_len*sizeof(int));
+    memset(orario, -1, orario_len*sizeof(int));
     int *ora_classi_docenti_effettuate = int_alloc(CLASSE_SEZIONE_SZ * INSEGNANTE_SZ);
     memset(ora_classi_docenti_effettuate, 0, CLASSE_SEZIONE_SZ*INSEGNANTE_SZ * sizeof(int));
     int *prof_in_classe = int_alloc(GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ);
@@ -335,7 +329,7 @@ int main(void) {
 
     f = fopen("orario.txt", "w");
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
-    print_orario(orario, 0, orario_len, ora_classi_docenti_effettuate, prof_in_classe, classe_finisce_tardi_num);
+    print_orario(0, orario_len, ora_classi_docenti_effettuate, prof_in_classe, classe_finisce_tardi_num);
     fclose(f);
 
     const double elapsed = (clock() - start) / (double) CLOCKS_PER_SEC;

@@ -27,7 +27,6 @@ int actual_insegnanti;
 int ore_insegnante_classi[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 int ore_classi_settimanali[CLASSE_SEZIONE_SZ];
 int ore_insegnante_settimanali[INSEGNANTE_SZ];
-int giorno_ora_classi_sz;
 
 /*
  * Conversions from string to id
