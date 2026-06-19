@@ -11,7 +11,7 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 long long int n_gen = 0;
-long long int n_gen_ok = SCHEDULES_PER_GB * 5;
+long long int n_gen_ok = 1; //= SCHEDULES_PER_GB * 5;
 int orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
     [0 ... GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1] = -1
 };
@@ -19,6 +19,7 @@ int ore_classi_docenti_effettuate_tot[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 int prof_gia_impegnato_giorno_ora[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ];
 int ore_classe_svolte[CLASSE_SEZIONE_SZ];
 int n_ore_buche[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ];
+int ore_prof_giorno_classe[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 //TODO: non più di 2 ore consecutive per ciascun profe ciascun giorno
 //TODO: un prof vede una classe una sola volta al giorno
 
@@ -274,6 +275,9 @@ void print_orario(const int pos) {
         return;
     }
 
+    // if (pos % 30000000)
+    //     print(pos, n_gen);
+
     const int giorno = g_giorno(pos);
     const int ora = g_ora(pos);
     const int cla = g_classe(pos);
@@ -286,10 +290,13 @@ void print_orario(const int pos) {
                 // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
                 && ore_classi_docenti_effettuate_tot[base3dore_classi + j] <
                 ore_insegnante_classi[base3dore_classi + j]
+                //max 2 ore stesso prof in ciascuna classe ogni giorno, anche se non contigue
+                && ore_prof_giorno_classe[giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + j] < 2
                 && 1) {
                 ore_classi_docenti_effettuate_tot[base3dore_classi + j]++;
                 prof_gia_impegnato_giorno_ora[base3dprof_impegnati + j] = 1;
                 ore_classe_svolte[cla]++;
+                ore_prof_giorno_classe[giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + j]++;
 
                 orario[pos] = j;
                 print_orario(pos + 1);
@@ -297,6 +304,7 @@ void print_orario(const int pos) {
                 ore_classi_docenti_effettuate_tot[base3dore_classi + j]--;
                 prof_gia_impegnato_giorno_ora[base3dprof_impegnati + j] = 0;
                 ore_classe_svolte[cla]--;
+                ore_prof_giorno_classe[giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + j]--;
             }
         }
     }
@@ -326,7 +334,8 @@ int main(void) {
     elp priority_queue = ret.head;
     elp tail = ret.tail;
 
-    f = fopen("/Volumes/ESD-USB/orario.txt", "w");
+    f = fopen("orario.txt", "w");
+    //f = fopen("/Volumes/ESD-USB/orario.txt", "w");
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
     print_orario(0);
     fclose(f);
