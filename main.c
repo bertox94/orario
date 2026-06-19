@@ -7,19 +7,22 @@
 #include "data_initialization/database_initializers.h"
 
 #define MAX_STR_SZ_IN_DISPLAY 18
+#define SCHEDULES_PER_GB 135500
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 long long int n_gen = 0;
-long long int n_gen_ok = 200;
+long long int n_gen_ok = SCHEDULES_PER_GB * 5;
 int orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
     [0 ... GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1] = -1
 };
-int ora_classi_docenti_effettuate[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
-int prof_in_classe[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ];
-
-
+int ore_classi_docenti_effettuate_tot[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
+int prof_gia_impegnato_giorno_ora[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ];
 int ore_classe_svolte[CLASSE_SEZIONE_SZ];
 int n_ore_buche[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ];
+//TODO: non più di 2 ore consecutive per ciascun profe ciascun giorno
+//TODO: un prof vede una classe una sola volta al giorno
+
+
 int orario_len;
 FILE *f;
 
@@ -70,11 +73,11 @@ void copy_and_pad(char *dest, const char *src, int maxlen) {
 }
 
 void draw_horizontal_separator(int pos) {
-    printf("---+");
+    fprintf(f, "---+");
     for (int i = 0; i < actual_giorni_settimana; i++) {
-        printf("---------------------------+");
+        fprintf(f, "---------------------------+");
     }
-    printf("\n");
+    fprintf(f, "\n");
 }
 
 // Helper 1: Prints the header block containing the current time and attempt number
@@ -82,32 +85,32 @@ void print_header(unsigned long long attempt) {
     time_t current_time;
     time(&current_time);
 
-    printf("Current time: %s", ctime(&current_time));
-    printf("Orario n. %llu\n", attempt);
+    fprintf(f, "Current time: %s", ctime(&current_time));
+    fprintf(f, "Orario n. %llu\n", attempt);
 }
 
 // Helper 2: Prints the days of the week header row for a specific class
 void print_days_header(const int pos, int class_index) {
-    printf("\nClasse: %s, ore: %d\n", classe_sezione[class_index], ore_classi_settimanali[class_index]);
-    printf("   |");
+    fprintf(f, "\nClasse: %s, ore: %d\n", classe_sezione[class_index], ore_classi_settimanali[class_index]);
+    fprintf(f, "   |");
 
     for (int i = 0; i < actual_giorni_settimana; i++) {
-        printf("            %s            |", giorni_settimana[i]);
+        fprintf(f, "            %s            |", giorni_settimana[i]);
     }
-    printf("\n");
+    fprintf(f, "\n");
 }
 
 void print_row_prof(char ora[], int c, int o) {
-    printf(" %s|", ora);
+    fprintf(f, " %s|", ora);
     char formatted_str[MAX_STR_SZ_IN_DISPLAY];
     for (int g = 0; g < actual_giorni_settimana; g++) {
         const int curr = orario[
             g * actual_ore_giornaliere * actual_classi_sezione + o * actual_classi_sezione + c];
         copy_and_pad(formatted_str, curr == -1 ? "       --        " : insegnanti[curr],
                      MAX_STR_SZ_IN_DISPLAY);
-        printf("     %s     |", formatted_str);
+        fprintf(f, "     %s     |", formatted_str);
     }
-    printf("\n");
+    fprintf(f, "\n");
 }
 
 // Main Function: Clean, descriptive, and easy to read
@@ -157,7 +160,7 @@ int activities_for_this_class_and_hour(int pos, int gio, const int ora, const in
 /*End of block constraints*/
 int verifica_ore_classe_materia(void) {
     for (int i = 0; i < CLASSE_SEZIONE_SZ * INSEGNANTE_SZ; i++)
-        if (ore_insegnante_classi[i] != ora_classi_docenti_effettuate[i]) {
+        if (ore_insegnante_classi[i] != ore_classi_docenti_effettuate_tot[i]) {
             /*printf("Wrong: Classe: %s, Materia: %s, Teacher: %s %d but got %d\n",
                    classe_sezione[i / MATERIA_SZ / INSEGNANTE_SZ % CLASSE_SEZIONE_SZ],
                    materie[i / INSEGNANTE_SZ % MATERIA_SZ],
@@ -279,20 +282,20 @@ void print_orario(const int pos) {
     if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
         for (int j = 0; j < actual_insegnanti; j++) {
             if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
-                !prof_in_classe[base3dprof_impegnati + j]
+                !prof_gia_impegnato_giorno_ora[base3dprof_impegnati + j]
                 // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
-                && ora_classi_docenti_effettuate[base3dore_classi + j] <
+                && ore_classi_docenti_effettuate_tot[base3dore_classi + j] <
                 ore_insegnante_classi[base3dore_classi + j]
                 && 1) {
-                ora_classi_docenti_effettuate[base3dore_classi + j]++;
-                prof_in_classe[base3dprof_impegnati + j] = 1;
+                ore_classi_docenti_effettuate_tot[base3dore_classi + j]++;
+                prof_gia_impegnato_giorno_ora[base3dprof_impegnati + j] = 1;
                 ore_classe_svolte[cla]++;
 
                 orario[pos] = j;
                 print_orario(pos + 1);
 
-                ora_classi_docenti_effettuate[base3dore_classi + j]--;
-                prof_in_classe[base3dprof_impegnati + j] = 0;
+                ore_classi_docenti_effettuate_tot[base3dore_classi + j]--;
+                prof_gia_impegnato_giorno_ora[base3dprof_impegnati + j] = 0;
                 ore_classe_svolte[cla]--;
             }
         }
@@ -323,7 +326,7 @@ int main(void) {
     elp priority_queue = ret.head;
     elp tail = ret.tail;
 
-    f = fopen("orario.txt", "w");
+    f = fopen("/Volumes/ESD-USB/orario.txt", "w");
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
     print_orario(0);
     fclose(f);
