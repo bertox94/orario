@@ -9,7 +9,7 @@
 #define MAX_STR_SZ_IN_DISPLAY 18
 
 long long int n_gen = 0;
-long long int n_gen_ok = 200000000;
+long long int n_gen_ok = 200;
 int orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
     [0 ... GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1] = -1
 };
@@ -133,8 +133,11 @@ int activities_for_this_class_and_hour(int pos, int gio, const int ora, const in
     //TODO: given the hours done for a class, decide if this day and hour are possible or not
 
     int ore_rimanenti = ore_classi_settimanali[cla] - ore_classe_svolte[cla];
+    int ore = (PRIME_N_ORE_OBBLIGATORIE - ora) < 0 ? 0 : (PRIME_N_ORE_OBBLIGATORIE - ora);
+    int slot_minimi_da_riempire =
+            PRIME_N_ORE_OBBLIGATORIE * (actual_giorni_settimana - gio) - ore;
 
-    if (ore_rimanenti - (actual_giorni_settimana - gio) * PRIME_N_ORE_OBBLIGATORIE + 1 < 0) {
+    if (ore_rimanenti < slot_minimi_da_riempire) {
         return 0;
     }
     /*
@@ -270,7 +273,7 @@ void print_orario(const int pos) {
         }
         return;
     }
-
+    print(pos, n_gen);
     const int giorno = g_giorno(pos);
     const int ora = g_ora(pos);
     const int cla = g_classe(pos);
