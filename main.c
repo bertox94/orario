@@ -15,7 +15,11 @@ int orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
 };
 int ora_classi_docenti_effettuate[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 int prof_in_classe[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ];
+
+[[deprecated]]
 int classe_finisce_tardi_num[CLASSE_SEZIONE_SZ];
+
+int ore_classe_svolte[CLASSE_SEZIONE_SZ];
 int n_ore_buche[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ];
 int orario_len;
 FILE *f;
@@ -126,8 +130,7 @@ void print(const int pos, unsigned long long attempt) {
 
 /*Progressive contraints*/
 int activities_for_this_class_and_hour(int pos, int gio, const int ora, const int cla) {
-    // trova la durata massima, sapendo il numeor di ore obbligaorie
-    //int ora_max = ore_classi_settimanali[cla] - PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana;
+    //TODO: given the hours done for a class, decide if this day and hour are possible or not
 
     //se ti trovi ad avere già n classe con orari pieni
     const int n_giorni_pieni_permessi = (ore_classi_settimanali[cla] - PRIME_N_ORE_OBBLIGATORIE *
@@ -278,6 +281,7 @@ void print_orario(const int pos) {
                 && 1) {
                 ora_classi_docenti_effettuate[base3dore_classi + j]++;
                 prof_in_classe[base3dprof_impegnati + j] = 1;
+                ore_classe_svolte[cla]++;
                 if (ora == actual_ore_giornaliere - 1)
                     // it should be max hour: f(prime_n_ore_obblig, ore totali della classe)
                     classe_finisce_tardi_num[cla]++;
@@ -287,6 +291,7 @@ void print_orario(const int pos) {
 
                 ora_classi_docenti_effettuate[base3dore_classi + j]--;
                 prof_in_classe[base3dprof_impegnati + j] = 0;
+                ore_classe_svolte[cla]--;
                 if (ora == actual_ore_giornaliere - 1)
                     classe_finisce_tardi_num[cla]--;
             }
