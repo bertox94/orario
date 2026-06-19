@@ -157,30 +157,29 @@ void set_classe_materia_ore_prof_codocenza(char cla[], char mat[], const int ore
 void inizializza_dati() {
     set_giorno_settimana(Lun);
     set_giorno_settimana(Mar);
+    set_giorno_settimana(Mer);
 
     set_ora_giornaliera(Ora_08);
     set_ora_giornaliera(Ora_09);
     set_ora_giornaliera(Ora_10);
     set_ora_giornaliera(Ora_11);
     set_ora_giornaliera(Ora_12);
+    set_ora_giornaliera(Ora_13);
 
     memset(ore_insegnante_classi, 0, CLASSE_SEZIONE_SZ*INSEGNANTE_SZ*sizeof(int));
     memset(ore_classi_settimanali, 0, CLASSE_SEZIONE_SZ*sizeof(int));
     memset(ore_insegnante_settimanali, 0, INSEGNANTE_SZ*sizeof(int));
 
     set_classe_insegnante_ore(Classe_3E, Berno, 4);
-    set_classe_insegnante_ore(Classe_3E, DalZovo, 2);
-    set_classe_insegnante_ore(Classe_3E, DalZovo, 1);
+    set_classe_insegnante_ore(Classe_3E, DalZovo, 5);
     set_classe_insegnante_ore(Classe_3E,Ricciardi,1);
 
     set_classe_insegnante_ore(Classe_3H, Tosi, 4);
-    set_classe_insegnante_ore(Classe_3H, Guerra, 2);
-    set_classe_insegnante_ore(Classe_3H, Guerra, 1);
+    set_classe_insegnante_ore(Classe_3H, Guerra, 5);
     set_classe_insegnante_ore(Classe_3H,Ricciardi,1);
 
     set_classe_insegnante_ore(Classe_3F, Sannino, 4);
-    set_classe_insegnante_ore(Classe_3F, Bortolotti, 2);
-    set_classe_insegnante_ore(Classe_3F, Bortolotti, 1);
+    set_classe_insegnante_ore(Classe_3F, Bortolotti, 5);
     set_classe_insegnante_ore(Classe_3F,Ricciardi,1);
 
 
