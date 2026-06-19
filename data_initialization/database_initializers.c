@@ -158,6 +158,9 @@ void inizializza_dati() {
     set_giorno_settimana(Lun);
     set_giorno_settimana(Mar);
     set_giorno_settimana(Mer);
+    set_giorno_settimana(Gio);
+    set_giorno_settimana(Ven);
+    set_giorno_settimana(Sab);
 
     set_ora_giornaliera(Ora_08);
     set_ora_giornaliera(Ora_09);
@@ -166,25 +169,30 @@ void inizializza_dati() {
     set_ora_giornaliera(Ora_12);
     set_ora_giornaliera(Ora_13);
 
-    memset(ore_insegnante_classi, 0, CLASSE_SEZIONE_SZ*INSEGNANTE_SZ*sizeof(int));
-    memset(ore_classi_settimanali, 0, CLASSE_SEZIONE_SZ*sizeof(int));
-    memset(ore_insegnante_settimanali, 0, INSEGNANTE_SZ*sizeof(int));
 
     set_classe_insegnante_ore(Classe_3E, Berno, 4);
-    set_classe_insegnante_ore(Classe_3E, DalZovo, 5);
-    set_classe_insegnante_ore(Classe_3E,Ricciardi,1);
+    set_classe_insegnante_ore(Classe_3E, DalZovo, 6);
+    set_classe_insegnante_ore(Classe_3E, Sciambarella, 3);
+    /* set_classe_insegnante_ore(Classe_3E, Masetti, 6);
+     set_classe_insegnante_ore(Classe_3E, Nicoletti, 2);
+     set_classe_insegnante_ore(Classe_3E, Trivini, 3);
+     set_classe_insegnante_ore(Classe_3E, Quaini, 1);
+     set_classe_insegnante_ore(Classe_3E, Tiraboschi, 4);
+     set_classe_insegnante_ore(Classe_3E, Alves, 3);
+     */
 
     set_classe_insegnante_ore(Classe_3H, Tosi, 4);
-    set_classe_insegnante_ore(Classe_3H, Guerra, 5);
-    set_classe_insegnante_ore(Classe_3H,Ricciardi,1);
+    set_classe_insegnante_ore(Classe_3H, Guerra, 6);
+    set_classe_insegnante_ore(Classe_3H, Ricciardi, 3);
 
     set_classe_insegnante_ore(Classe_3F, Sannino, 4);
-    set_classe_insegnante_ore(Classe_3F, Bortolotti, 5);
-    set_classe_insegnante_ore(Classe_3F,Ricciardi,1);
+    set_classe_insegnante_ore(Classe_3F, Bortolotti, 6);
+    set_classe_insegnante_ore(Classe_3F, Ricciardi, 3);
 
-
-    for (int i = 0; i < CLASSE_SEZIONE_SZ; i++)
+    for (int i = 0; i < actual_classi_sezione; i++) {
         assert(ore_classi_settimanali[i] <= actual_giorni_settimana * actual_ore_giornaliere);
+        assert(ore_classi_settimanali[i] >= PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana);
+    }
 }
 
 void stampa_dati() {

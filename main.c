@@ -126,6 +126,9 @@ void print(const int pos, unsigned long long attempt) {
 
 /*Progressive contraints*/
 int activities_for_this_class_and_hour(int pos, int gio, const int ora, const int cla) {
+    // trova la durata massima, sapendo il numeor di ore obbligaorie
+    //int ora_max = ore_classi_settimanali[cla] - PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana;
+
     //se ti trovi ad avere già n classe con orari pieni
     const int n_giorni_pieni_permessi = (ore_classi_settimanali[cla] - PRIME_N_ORE_OBBLIGATORIE *
                                          actual_giorni_settimana) %
