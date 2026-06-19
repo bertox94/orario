@@ -173,22 +173,22 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_3E, Berno, 4);
     set_classe_insegnante_ore(Classe_3E, DalZovo, 6);
     set_classe_insegnante_ore(Classe_3E, Sciambarella, 3);
-    /* set_classe_insegnante_ore(Classe_3E, Masetti, 6);
+     set_classe_insegnante_ore(Classe_3E, Masetti, 6);
      set_classe_insegnante_ore(Classe_3E, Nicoletti, 2);
      set_classe_insegnante_ore(Classe_3E, Trivini, 3);
      set_classe_insegnante_ore(Classe_3E, Quaini, 1);
      set_classe_insegnante_ore(Classe_3E, Tiraboschi, 4);
      set_classe_insegnante_ore(Classe_3E, Alves, 3);
-     */
 
-    set_classe_insegnante_ore(Classe_3H, Tosi, 4);
+
+    /*set_classe_insegnante_ore(Classe_3H, Tosi, 4);
     set_classe_insegnante_ore(Classe_3H, Guerra, 6);
     set_classe_insegnante_ore(Classe_3H, Ricciardi, 3);
 
     set_classe_insegnante_ore(Classe_3F, Sannino, 4);
     set_classe_insegnante_ore(Classe_3F, Bortolotti, 6);
     set_classe_insegnante_ore(Classe_3F, Ricciardi, 3);
-
+*/
     for (int i = 0; i < actual_classi_sezione; i++) {
         assert(ore_classi_settimanali[i] <= actual_giorni_settimana * actual_ore_giornaliere);
         assert(ore_classi_settimanali[i] >= PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana);

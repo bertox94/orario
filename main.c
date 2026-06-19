@@ -132,15 +132,21 @@ void print(const int pos, unsigned long long attempt) {
 int activities_for_this_class_and_hour(int pos, int gio, const int ora, const int cla) {
     //TODO: given the hours done for a class, decide if this day and hour are possible or not
 
-    //se ti trovi ad avere già n classe con orari pieni
-    const int n_giorni_pieni_permessi = (ore_classi_settimanali[cla] - PRIME_N_ORE_OBBLIGATORIE *
-                                         actual_giorni_settimana) %
-                                        actual_ore_giornaliere;
+    int ore_rimanenti = ore_classi_settimanali[cla] - ore_classe_svolte[cla];
 
-    //l'ultima ora non è permessa se già vi sono _giorni_pieni_ giorni in cui è stata fatta l'ultima ora,
-    if (ora == actual_ore_giornaliere - 1 && classe_finisce_tardi_num[cla] >= n_giorni_pieni_permessi)
+    if (ore_rimanenti - (actual_giorni_settimana - gio) * PRIME_N_ORE_OBBLIGATORIE + 1 < 0) {
         return 0;
+    }
+    /*
+        //se ti trovi ad avere già n classe con orari pieni
+        const int n_giorni_pieni_permessi = (ore_classi_settimanali[cla] - PRIME_N_ORE_OBBLIGATORIE *
+                                             actual_giorni_settimana) %
+                                            actual_ore_giornaliere;
 
+        //l'ultima ora non è permessa se già vi sono _giorni_pieni_ giorni in cui è stata fatta l'ultima ora,
+        if (ora == actual_ore_giornaliere - 1 && classe_finisce_tardi_num[cla] >= n_giorni_pieni_permessi)
+            return 0;
+    */
     //se c'è almeno un ora buca, non mettere altre lezioni
     if (n_ore_buche[gio * CLASSE_SEZIONE_SZ + cla] > 0)
         return 0;
