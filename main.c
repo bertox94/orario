@@ -16,7 +16,7 @@ int orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
 int ora_classi_docenti_effettuate[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 int prof_in_classe[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ];
 int classe_finisce_tardi_num[CLASSE_SEZIONE_SZ];
-int almeno_un_ora_buca[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ];
+int n_ore_buche[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ];
 int orario_len;
 FILE *f;
 
@@ -127,17 +127,17 @@ void print(const int pos, unsigned long long attempt) {
 /*Progressive contraints*/
 int activities_for_this_class_and_hour(int pos, int gio, const int ora, const int cla) {
     //se ti trovi ad avere già n classe con orari pieni
-    const int n_giorni_pieni_permessi = (ore_classi_settimanali[cla] - PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana) %
-                             actual_ore_giornaliere;
+    const int n_giorni_pieni_permessi = (ore_classi_settimanali[cla] - PRIME_N_ORE_OBBLIGATORIE *
+                                         actual_giorni_settimana) %
+                                        actual_ore_giornaliere;
 
     //l'ultima ora non è permessa se già vi sono _giorni_pieni_ giorni in cui è stata fatta l'ultima ora,
     if (ora == actual_ore_giornaliere - 1 && classe_finisce_tardi_num[cla] >= n_giorni_pieni_permessi)
         return 0;
 
     //se c'è almeno un ora buca, non mettere altre lezioni
-    for (int i = 0; i < actual_ore_giornaliere; i++)
-        if (almeno_un_ora_buca[gio * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ + i * CLASSE_SEZIONE_SZ + cla] == 1)
-            return 0;
+    if (n_ore_buche[gio * CLASSE_SEZIONE_SZ + cla] > 0)
+        return 0;
 
     return 1;
 }
@@ -275,7 +275,8 @@ void print_orario(const int pos) {
                 && 1) {
                 ora_classi_docenti_effettuate[base3dore_classi + j]++;
                 prof_in_classe[base3dprof_impegnati + j] = 1;
-                if (ora == actual_ore_giornaliere - 1) // it should be max hour: f(prime_n_ore_obblig, ore totali della classe)
+                if (ora == actual_ore_giornaliere - 1)
+                    // it should be max hour: f(prime_n_ore_obblig, ore totali della classe)
                     classe_finisce_tardi_num[cla]++;
 
                 orario[pos] = j;
@@ -292,9 +293,9 @@ void print_orario(const int pos) {
 
     if (ora >= PRIME_N_ORE_OBBLIGATORIE) {
         orario[pos] = -1;
-        almeno_un_ora_buca[giorno * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ + ora * CLASSE_SEZIONE_SZ + cla] = 1;
+        n_ore_buche[giorno * CLASSE_SEZIONE_SZ + cla]++;
         print_orario(pos + 1);
-        almeno_un_ora_buca[giorno * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ + ora * CLASSE_SEZIONE_SZ + cla] = 0;
+        n_ore_buche[giorno * CLASSE_SEZIONE_SZ + cla]--;
     }
 }
 
