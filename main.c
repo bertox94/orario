@@ -7,6 +7,7 @@
 #include "data_initialization/database_initializers.h"
 
 #define MAX_STR_SZ_IN_DISPLAY 18
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 long long int n_gen = 0;
 long long int n_gen_ok = 200;
@@ -16,8 +17,6 @@ int orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
 int ora_classi_docenti_effettuate[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 int prof_in_classe[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ];
 
-[[deprecated]]
-int classe_finisce_tardi_num[CLASSE_SEZIONE_SZ];
 
 int ore_classe_svolte[CLASSE_SEZIONE_SZ];
 int n_ore_buche[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ];
@@ -130,14 +129,12 @@ void print(const int pos, unsigned long long attempt) {
 
 /*Progressive contraints*/
 int activities_for_this_class_and_hour(int pos, int gio, const int ora, const int cla) {
-    //TODO: given the hours done for a class, decide if this day and hour are possible or not
-
     int ore_rimanenti = ore_classi_settimanali[cla] - ore_classe_svolte[cla];
-    int ore = (PRIME_N_ORE_OBBLIGATORIE - ora) < 0 ? 0 : (PRIME_N_ORE_OBBLIGATORIE - ora);
-    int slot_minimi_da_riempire =
-            PRIME_N_ORE_OBBLIGATORIE * (actual_giorni_settimana - gio) - ore;
+    int slot_obligatori_gia_occupati = gio * PRIME_N_ORE_OBBLIGATORIE + MIN(ora, PRIME_N_ORE_OBBLIGATORIE - 1);
+    int slot_minimi_da_riempire = PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana;
+    int slot_mancanti = slot_minimi_da_riempire - slot_obligatori_gia_occupati;
 
-    if (ore_rimanenti < slot_minimi_da_riempire) {
+    if (ore_rimanenti < slot_mancanti) {
         return 0;
     }
     /*
@@ -273,15 +270,14 @@ void print_orario(const int pos) {
         }
         return;
     }
-    print(pos, n_gen);
+
     const int giorno = g_giorno(pos);
     const int ora = g_ora(pos);
     const int cla = g_classe(pos);
     const int base3dprof_impegnati = giorno * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + ora * INSEGNANTE_SZ;
     const int base3dore_classi = cla * INSEGNANTE_SZ;
     if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
-        int j = 0;
-        for (; j < actual_insegnanti; j++) {
+        for (int j = 0; j < actual_insegnanti; j++) {
             if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
                 !prof_in_classe[base3dprof_impegnati + j]
                 // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
@@ -291,9 +287,6 @@ void print_orario(const int pos) {
                 ora_classi_docenti_effettuate[base3dore_classi + j]++;
                 prof_in_classe[base3dprof_impegnati + j] = 1;
                 ore_classe_svolte[cla]++;
-                if (ora == actual_ore_giornaliere - 1)
-                    // it should be max hour: f(prime_n_ore_obblig, ore totali della classe)
-                    classe_finisce_tardi_num[cla]++;
 
                 orario[pos] = j;
                 print_orario(pos + 1);
@@ -301,8 +294,6 @@ void print_orario(const int pos) {
                 ora_classi_docenti_effettuate[base3dore_classi + j]--;
                 prof_in_classe[base3dprof_impegnati + j] = 0;
                 ore_classe_svolte[cla]--;
-                if (ora == actual_ore_giornaliere - 1)
-                    classe_finisce_tardi_num[cla]--;
             }
         }
     }
