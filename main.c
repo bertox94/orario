@@ -49,15 +49,15 @@ int activities_for_this_class_and_hour(int pos, int gio, const int ora, const in
         return 0;
 
     //le ore di lezione in ogni clase rimanenti per ogni insegnante devono essere <= a 2*giorni rimanenti
-/*
-    int base2dc = cla * INSEGNANTE_SZ;
-    for (int i = 0; i < actual_insegnanti; i++) {
-        if (ore_insegnante_classi[base2dc + i] > 0
-            && ore_insegnante_classi[base2dc + i] - ore_classi_docenti_svolte[base2dc + i] >
-            MAX_ORE_STESSA_MATERIA_GIORNO * (actual_giorni_settimana - gio))
-            return 0;
-    }
-*/
+    /*
+        int base2dc = cla * INSEGNANTE_SZ;
+        for (int i = 0; i < actual_insegnanti; i++) {
+            if (ore_insegnante_classi[base2dc + i] > 0
+                && ore_insegnante_classi[base2dc + i] - ore_classi_docenti_svolte[base2dc + i] >
+                MAX_ORE_STESSA_MATERIA_GIORNO * (actual_giorni_settimana - gio))
+                return 0;
+        }
+    */
     return 1;
 }
 
@@ -92,7 +92,7 @@ void print_orario(const int pos, head_tail_queue priority_queue) {
     if (pos == orario_len) {
         if (verifica_ore_classe_materia()) {
             n_gen++;
-            //print(orario, pos, n_gen);
+            print(orario, pos, n_gen);
         }
         return;
     }
@@ -113,12 +113,13 @@ void print_orario(const int pos, head_tail_queue priority_queue) {
                 && ore_classi_docenti_svolte[base2d_ci + j] <
                 ore_insegnante_classi[base2d_ci + j]
                 //max 2 ore stesso prof in ciascuna classe ogni giorno, anche se non contigue
-                //&& ore_prof_giorno_classe[base3d_gci + j] < MAX_ORE_STESSA_MATERIA_GIORNO
+                && ore_prof_giorno_classe[base3d_gci + j] < MAX_ORE_STESSA_MATERIA_GIORNO
                 && 1) {
                 ore_classi_docenti_svolte[base2d_ci + j]++;
                 prof_gia_impegnato_giorno_ora[base3d_goi + j] = 1;
                 ore_classe_svolte[cla]++;
                 ore_docente_svolte[j]++;
+                ore_prof_giorno_classe[base3d_gci + j]++;
 
                 head_tail_queue new = copy_list(priority_queue.head);
                 set_priority(new.head, j, ore_docente_svolte, giorno);
@@ -130,6 +131,7 @@ void print_orario(const int pos, head_tail_queue priority_queue) {
                 prof_gia_impegnato_giorno_ora[base3d_goi + j] = 0;
                 ore_classe_svolte[cla]--;
                 ore_docente_svolte[j]--;
+                ore_prof_giorno_classe[base3d_gci + j]--;
             }
         }
     }
