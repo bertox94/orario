@@ -14,4 +14,6 @@ add_executable(untitled main.c
         data_initialization/database_initializers.c
         printer/printer.h
         printer/printer.c
+        prio_queue.c
+        prio_queue.h
 )
