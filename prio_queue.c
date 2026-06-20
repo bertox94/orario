@@ -118,12 +118,15 @@ void sort_queue_descending(head_tail_queue *q) {
     q->tail = curr;
 }
 
-void set_priority(elp priority_queue, int docente, int ore_docenti_svolte[], int giorno) {
+void set_priority(elp priority_queue, int giorno, int cla, int docente) {
+    double priority;
     while (priority_queue && priority_queue->next) {
-        if (priority_queue->teacher == docente)
+        if (priority_queue->teacher == docente && ore_classi[cla] - ore_classe_svolte[cla] > 0) {
+            priority = priority_queue->priority;
             priority_queue->priority =
-                    (double) (ore_docenti[priority_queue->teacher] - ore_docenti_svolte[
-                                  priority_queue->teacher]) / (actual_giorni_settimana - giorno);
+                    (double) (ore_classi_docenti[cla * INSEGNANTE_SZ + docente] - ore_classi_docenti_svolte[
+                                  cla * INSEGNANTE_SZ + docente]) / (ore_classi[cla] - ore_classe_svolte[cla]);
+        }
         priority_queue = priority_queue->next;
     }
 }

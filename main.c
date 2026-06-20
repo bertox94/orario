@@ -92,11 +92,11 @@ void print_orario(const int pos, head_tail_queue priority_queues[]) {
     if (pos == orario_len) {
         if (verifica_ore_classe_materia()) {
             n_gen++;
-            print(orario, pos, n_gen);
+            //print(orario, pos, n_gen);
         }
         return;
     }
-    print(orario, pos, n_gen);
+    //print(orario, pos, n_gen);
 
     const int giorno = g_giorno(pos);
     const int ora = g_ora(pos);
@@ -122,7 +122,9 @@ void print_orario(const int pos, head_tail_queue priority_queues[]) {
                 ore_prof_giorno_classe[base3d_gci + j]++;
 
                 head_tail_queue new = copy_list(priority_queues[cla].head);
-                set_priority(new.head, j, ore_docenti_svolte, giorno);
+                set_priority(new.head, giorno, cla, j);
+                sort_queue_descending(&new);
+                priority_queues[cla] = new;
 
                 orario[pos] = j;
                 print_orario(pos + 1, priority_queues);
