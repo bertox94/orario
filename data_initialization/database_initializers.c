@@ -24,12 +24,12 @@ int actual_ore_giornaliere;
 int actual_classi_sezione;
 int actual_insegnanti;
 
-int ore_insegnante_classi[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
+int ore_classi_docenti[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 int ore_classi_docenti_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
-int ore_classi_settimanali[CLASSE_SEZIONE_SZ];
+int ore_classi[CLASSE_SEZIONE_SZ];
 int ore_classe_svolte[CLASSE_SEZIONE_SZ];
-int ore_insegnante_settimanali[INSEGNANTE_SZ];
-int ore_docente_svolte[INSEGNANTE_SZ];
+int ore_docenti[INSEGNANTE_SZ];
+int ore_docenti_svolte[INSEGNANTE_SZ];
 
 int prof_gia_impegnato_giorno_ora[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ];
 int n_ore_buche[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ];
@@ -102,27 +102,27 @@ void set_insegnante(char in[]) {
  * Access and set constraints
  */
 void add_ore_classi_insegnante(int classe, int insegnante, int ore) {
-    ore_insegnante_classi[classe * INSEGNANTE_SZ + insegnante] += ore;
+    ore_classi_docenti[classe * INSEGNANTE_SZ + insegnante] += ore;
 }
 
 void add_ore_classi_settimanale(int classe, int ore) {
-    ore_classi_settimanali[classe] += ore;
+    ore_classi[classe] += ore;
 }
 
 void add_ore_insegnante_settimanale(int insegnante, int ore) {
-    ore_insegnante_settimanali[insegnante] += ore;
+    ore_docenti[insegnante] += ore;
 }
 
 int get_ore_classi_insegnante(int classe, int insegnante) {
-    return ore_insegnante_classi[classe * INSEGNANTE_SZ + insegnante];
+    return ore_classi_docenti[classe * INSEGNANTE_SZ + insegnante];
 }
 
 int get_ore_classi_settimanale(int classe) {
-    return ore_classi_settimanali[classe];
+    return ore_classi[classe];
 }
 
 int get_ore_insegnante_settimanale(int insegnante) {
-    return ore_insegnante_settimanali[insegnante];
+    return ore_docenti[insegnante];
 }
 
 /*
@@ -209,8 +209,8 @@ void inizializza_dati() {
 
 
     for (int i = 0; i < actual_classi_sezione; i++) {
-        assert(ore_classi_settimanali[i] <= actual_giorni_settimana * actual_ore_giornaliere);
-        assert(ore_classi_settimanali[i] >= PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana);
+        assert(ore_classi[i] <= actual_giorni_settimana * actual_ore_giornaliere);
+        assert(ore_classi[i] >= PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana);
     }
 }
 
@@ -227,11 +227,11 @@ void stampa_dati() {
         printf("%s\n", ore_giornaliere[actual_ore_giornaliere - 1]);
     printf("Ore classe:\n");
     for (int i = 0; i < actual_classi_sezione; i++)
-        printf("Classe %s: %d ore\n", classe_sezione[i], ore_classi_settimanali[i]);
+        printf("Classe %s: %d ore\n", classe_sezione[i], ore_classi[i]);
     printf("-----------\n");
     printf("Ore insegnanti:\n");
     for (int i = 0; i < actual_insegnanti; i++)
-        printf("Ins. %s: %d ore\n", insegnanti[i], ore_insegnante_settimanali[i]);
+        printf("Ins. %s: %d ore\n", insegnanti[i], ore_docenti[i]);
     printf("-----------\n");
     printf("Ore insegnanti in classe:\n");
     for (int i = 0; i < actual_classi_sezione; i++)

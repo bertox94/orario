@@ -25,17 +25,17 @@ extern int actual_ore_giornaliere;
 extern int actual_classi_sezione;
 extern int actual_insegnanti;
 
-extern int ore_insegnante_classi[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
+extern int ore_classi_docenti[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 //associa ad ogni classe e insegnante le ore totali svolte fino a _pos_
 extern int ore_classi_docenti_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 
-extern int ore_classi_settimanali[CLASSE_SEZIONE_SZ];
+extern int ore_classi[CLASSE_SEZIONE_SZ];
 // tiene traccia delle svolte in totale in una classe fino a _pos_
 extern int ore_classe_svolte[CLASSE_SEZIONE_SZ];
 
-extern int ore_insegnante_settimanali[INSEGNANTE_SZ];
+extern int ore_docenti[INSEGNANTE_SZ];
 // tiene traccia del numero di ore svolte da un docente fino a _pos_
-extern int ore_docente_svolte[INSEGNANTE_SZ];
+extern int ore_docenti_svolte[INSEGNANTE_SZ];
 
 // verifica che un prof, dato un giorno e un ora, stia facendo lezione, perciò nella stesso giorno e ora non può fare altro
 extern int prof_gia_impegnato_giorno_ora[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ];

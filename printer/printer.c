@@ -48,7 +48,7 @@ void print_header(unsigned long long attempt) {
 
 // Helper 2: Prints the days of the week header row for a specific class
 void print_days_header(const int pos, int class_index) {
-    printf("\nClasse: %s, ore: %d\n", classe_sezione[class_index], ore_classi_settimanali[class_index]);
+    printf("\nClasse: %s, ore: %d\n", classe_sezione[class_index], ore_classi[class_index]);
     printf("   |");
 
     for (int i = 0; i < actual_giorni_settimana; i++) {

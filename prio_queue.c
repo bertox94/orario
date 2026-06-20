@@ -122,31 +122,25 @@ void set_priority(elp priority_queue, int docente, int ore_docenti_svolte[], int
     while (priority_queue && priority_queue->next) {
         if (priority_queue->teacher == docente)
             priority_queue->priority =
-                    (double) (ore_insegnante_settimanali[priority_queue->teacher] - ore_docenti_svolte[
+                    (double) (ore_docenti[priority_queue->teacher] - ore_docenti_svolte[
                                   priority_queue->teacher]) / (actual_giorni_settimana - giorno);
         priority_queue = priority_queue->next;
     }
 }
 
-head_tail_queue initialize_queue(const int num, const int maxelems) {
-    if (num < maxelems) {
-        // S -> aS
-        const elp curr = malloc(sizeof(el));
-        curr->prev = NULL;
-        curr->teacher = num;
-        head_tail_queue ret = initialize_queue(num + 1, maxelems);
-        if (ret.head != NULL)
-            ret.head->prev = curr;
-        curr->next = ret.head;
-        curr->priority = (double) ore_insegnante_settimanali[num] / actual_giorni_settimana;
-        return (head_tail_queue){curr, ret.tail == NULL ? curr : ret.tail};
-    }
+head_tail_queue initialize_queue(int prof, const int class) {
+    while (prof < actual_insegnanti && ore_classi_docenti[class * INSEGNANTE_SZ + prof] == 0) prof++;
+    if (prof == actual_insegnanti) return (head_tail_queue){NULL, NULL};
 
-    if (num == maxelems) {
-        // S -> eps
-        return (head_tail_queue){NULL, NULL};
-    }
-    exit(EXIT_FAILURE);
+    const elp curr = malloc(sizeof(el));
+    curr->prev = NULL;
+    curr->teacher = prof;
+    head_tail_queue ret = initialize_queue(prof + 1, class);
+    if (ret.head != NULL)
+        ret.head->prev = curr;
+    curr->next = ret.head;
+    curr->priority = (double) ore_classi_docenti[class * INSEGNANTE_SZ + prof] / ore_classi[class];
+    return (head_tail_queue){curr, ret.tail == NULL ? curr : ret.tail};
 }
 
 head_tail_queue copy_list(const elp curr) {
@@ -177,7 +171,7 @@ void print_prioritt_queue(elp priority_queue, elp tail) {
     printf("------------\n");
 }
 
-head_tail_queue initialize_priority_queue(const int len) {
-    const head_tail_queue ret = initialize_queue(0, len);
+head_tail_queue initialize_priority_queue(const int cla) {
+    const head_tail_queue ret = initialize_queue(0, cla);
     return (head_tail_queue){ret.head, ret.tail};
 }

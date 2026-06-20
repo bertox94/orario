@@ -23,7 +23,7 @@ int peek(elp priority_queue, int pos);
 
 void sort_queue_descending(head_tail_queue *q);
 
-head_tail_queue initialize_priority_queue(const int len);
+head_tail_queue initialize_priority_queue(const int class);
 
 void print_prioritt_queue(elp priority_queue, elp tail);
 
