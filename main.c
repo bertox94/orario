@@ -107,6 +107,7 @@ void print_orario(const int pos, head_tail_queue priority_queues[]) {
     const int base3d_gci = giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ;
     if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
         for (int jj = 0; jj < actual_insegnanti; jj++) {
+            sort_queue_descending(&priority_queues[cla]);
             int j = peek(priority_queues[cla].head, jj);
             if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
                 !prof_gia_impegnato_giorno_ora[base3d_goi + j]
@@ -121,10 +122,8 @@ void print_orario(const int pos, head_tail_queue priority_queues[]) {
                 ore_docenti_svolte[j]++;
                 ore_prof_giorno_classe[base3d_gci + j]++;
 
-                head_tail_queue new = copy_list(priority_queues[cla].head);
-                set_priority(new.head, giorno, cla, j);
-                sort_queue_descending(&new);
-                priority_queues[cla] = new;
+                set_priority(priority_queues[cla].head, giorno, cla, j);
+
 
                 orario[pos] = j;
                 print_orario(pos + 1, priority_queues);

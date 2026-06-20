@@ -119,8 +119,6 @@ void sort_queue_descending(head_tail_queue *q) {
 }
 
 void set_priority(elp curr, int giorno, int cla, int docente) {
-    elp head = curr;
-    elp start = curr;
     while (curr && curr->next) {
         if (curr->teacher == docente && ore_classi[cla] - ore_classe_svolte[cla] > 0) {
             curr->priority =
@@ -130,24 +128,6 @@ void set_priority(elp curr, int giorno, int cla, int docente) {
         }
         curr = curr->next;
     }
-    curr->prev->next = curr->next;
-    curr->next->prev = curr->prev;
-    curr->next = NULL;
-    curr->prev = NULL;
-
-    while (head && head->next && curr && head->priority < curr->priority) {
-        head = head->next;
-    }
-
-    if (head == start) {
-
-    }
-
-    head->next = curr;
-    curr->prev = head;
-    curr->next = head->next;
-    head->next->prev = curr;
-
 }
 
 head_tail_queue initialize_queue(int prof, const int class) {
