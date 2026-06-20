@@ -8,8 +8,6 @@
 
 #define MAX_STR_SZ_IN_DISPLAY 18
 #define SCHEDULES_PER_GB 135500
-#define PRIME_N_ORE_OBBLIGATORIE 5
-#define MAX_ORE_STESSA_MATERIA_GIORNO 2
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 long long int n_gen = 0;
@@ -144,19 +142,18 @@ int activities_for_this_class_and_hour(int pos, int gio, const int ora, const in
     if (ore_rimanenti < slot_mancanti) {
         return 0;
     }
-    /*
-        //se ti trovi ad avere già n classe con orari pieni
-        const int n_giorni_pieni_permessi = (ore_classi_settimanali[cla] - PRIME_N_ORE_OBBLIGATORIE *
-                                             actual_giorni_settimana) %
-                                            actual_ore_giornaliere;
-
-        //l'ultima ora non è permessa se già vi sono _giorni_pieni_ giorni in cui è stata fatta l'ultima ora,
-        if (ora == actual_ore_giornaliere - 1 && classe_finisce_tardi_num[cla] >= n_giorni_pieni_permessi)
-            return 0;
-    */
     //se c'è almeno un ora buca, non mettere altre lezioni
     if (n_ore_buche[gio * CLASSE_SEZIONE_SZ + cla] > 0)
         return 0;
+
+    //le ore di lezione in ogni clase rimanenti per ogni insegnante devono essere <= a 2*giorni rimanenti
+
+    int base2dc = cla * actual_insegnanti;
+    for (int i = 0; i < actual_insegnanti; i++) {
+        if (ore_insegnante_settimanali[base2dc + i] - ore_classi_docenti_effettuate_tot[base2dc + i] > 2 * (
+                actual_giorni_settimana - gio))
+            return 0;
+    }
 
     return 1;
 }
