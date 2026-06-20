@@ -118,15 +118,55 @@ void sort_queue_descending(head_tail_queue *q) {
     q->tail = curr;
 }
 
-void set_priority(elp curr, int giorno, int cla, int docente) {
-    while (curr && curr->next) {
+void set_priority(elp *head, elp *tail, int giorno, int cla, int docente) {
+    elp curr = *head;
+
+    // 1. Find and update the node
+    while (curr) {
         if (curr->teacher == docente && ore_classi[cla] - ore_classe_svolte[cla] > 0) {
-            curr->priority =
-                    (double) (ore_classi_docenti[cla * INSEGNANTE_SZ + docente] - ore_classi_docenti_svolte[
-                                  cla * INSEGNANTE_SZ + docente]) / (ore_classi[cla] - ore_classe_svolte[cla]);
-            break;
+            curr->priority = (double) (ore_classi_docenti[cla * INSEGNANTE_SZ + docente] -
+                                       ore_classi_docenti_svolte[cla * INSEGNANTE_SZ + docente]) /
+                             (ore_classi[cla] - ore_classe_svolte[cla]);
+            break; // Target found and updated
         }
         curr = curr->next;
+    }
+
+    // If node wasn't found, or it's already at the tail, no repositioning needed
+    if (!curr || !curr->next) {
+        return;
+    }
+
+    // 2. Check if it actually needs to move
+    // (Since priority decreased, it only needs to move forward if it's smaller than the next node)
+    if (curr->priority < curr->next->priority) {
+        // Detach curr from its current position
+        if (curr->prev) {
+            curr->prev->next = curr->next;
+        } else {
+            *head = curr->next; // It was the head, update head pointer
+        }
+        curr->next->prev = curr->prev;
+
+        // Save a reference to scan forward starting from the next node
+        elp scan = curr->next;
+
+        // 3. Walk forward to find the correct insertion spot
+        // We stop when scan->next is NULL or scan->next has a smaller/equal priority
+        while (scan->next && scan->next->priority > curr->priority) {
+            scan = scan->next;
+        }
+
+        // 4. Insert curr after 'scan'
+        curr->next = scan->next;
+        curr->prev = scan;
+
+        if (scan->next) {
+            scan->next->prev = curr;
+        } else {
+            *tail = curr; // It reached the end of the list, update tail pointer
+        }
+        scan->next = curr;
     }
 }
 
