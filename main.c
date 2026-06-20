@@ -190,7 +190,7 @@ void print_orario(const int pos) {
     if (pos == orario_len) {
         if (verifica_ore_classe_materia()) {
             n_gen++;
-            print(orario, pos, n_gen);
+            //print(orario, pos, n_gen);
         }
         return;
     }
@@ -211,7 +211,6 @@ void print_orario(const int pos) {
                 ore_insegnante_classi[base2d_ci + j]
                 //max 2 ore stesso prof in ciascuna classe ogni giorno, anche se non contigue
                 && ore_prof_giorno_classe[base3d_gci + j] < MAX_ORE_STESSA_MATERIA_GIORNO
-                // TODO; verifica che le ore rimanenti di ciascun prof di questa classe non siano superiori a 2* il numero di giorni rimanenti, o meglio scegli il prof più adatto
                 && 1) {
                 ore_classi_docenti_effettuate_tot[base2d_ci + j]++;
                 prof_gia_impegnato_giorno_ora[base3d_goi + j] = 1;
