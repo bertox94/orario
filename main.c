@@ -11,7 +11,7 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 long long int n_gen = 0;
-long long int n_gen_ok = 100; //= SCHEDULES_PER_GB * 5;
+long long int n_gen_ok = 10000000; //= SCHEDULES_PER_GB * 5;
 int orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
     [0 ... GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1] = -1
 };
@@ -70,8 +70,8 @@ int activities_for_this_class_and_hour(int pos, int gio, const int ora, const in
     int base2dc = cla * INSEGNANTE_SZ;
     for (int i = 0; i < actual_insegnanti; i++) {
         if (ore_insegnante_classi[base2dc + i] > 0
-            && ore_insegnante_classi[base2dc + i] - ore_classi_docenti_effettuate_tot[base2dc + i] > 2 * (
-                actual_giorni_settimana - gio))
+            && ore_insegnante_classi[base2dc + i] - ore_classi_docenti_effettuate_tot[base2dc + i] >
+            MAX_ORE_STESSA_MATERIA_GIORNO * (actual_giorni_settimana - gio))
             return 0;
     }
 
@@ -194,8 +194,6 @@ void print_orario(const int pos) {
         }
         return;
     }
-
-    //print(orario, pos, n_gen);
 
     const int giorno = g_giorno(pos);
     const int ora = g_ora(pos);
