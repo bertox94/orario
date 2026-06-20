@@ -16,20 +16,6 @@ long long int n_gen_ok = 10000000; //= SCHEDULES_PER_GB * 5;
 int orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
     [0 ... GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1] = -1
 };
-//associa ad ogni classe e insegnante le ore totali svolte fino a _pos_
-int ore_classi_docenti_effettuate_tot[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
-// verifica che un prof, dato un giorno e un ora, stia facendo lezione, perciò nella stesso giorno e ora non può fare altro
-int prof_gia_impegnato_giorno_ora[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ];
-// tiene traccia delle svolte in totale in una classe fino a _pos_
-int ore_classe_svolte[CLASSE_SEZIONE_SZ];
-// tiene traccia del numero di ore svolte da un docente fino a _pos_
-int ore_docente_svolte[INSEGNANTE_SZ];
-// tiene traccia se in un giorno e una classa c'è un ora buca
-int n_ore_buche[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ];
-// tiene traccia delle ore svolte da un insegnante in un giorno e una classe (serve per non avere lezioni di tre ore con lo stesso insegnante)
-//int ore_prof_giorno_classe[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
-//TODO: un prof vede una classe una sola volta al giorno
-
 
 int orario_len;
 FILE *f;
@@ -63,22 +49,22 @@ int activities_for_this_class_and_hour(int pos, int gio, const int ora, const in
         return 0;
 
     //le ore di lezione in ogni clase rimanenti per ogni insegnante devono essere <= a 2*giorni rimanenti
-
+/*
     int base2dc = cla * INSEGNANTE_SZ;
     for (int i = 0; i < actual_insegnanti; i++) {
         if (ore_insegnante_classi[base2dc + i] > 0
-            && ore_insegnante_classi[base2dc + i] - ore_classi_docenti_effettuate_tot[base2dc + i] >
+            && ore_insegnante_classi[base2dc + i] - ore_classi_docenti_svolte[base2dc + i] >
             MAX_ORE_STESSA_MATERIA_GIORNO * (actual_giorni_settimana - gio))
             return 0;
     }
-
+*/
     return 1;
 }
 
 /*End of block constraints*/
 int verifica_ore_classe_materia(void) {
     for (int i = 0; i < CLASSE_SEZIONE_SZ * INSEGNANTE_SZ; i++)
-        if (ore_insegnante_classi[i] != ore_classi_docenti_effettuate_tot[i]) {
+        if (ore_insegnante_classi[i] != ore_classi_docenti_svolte[i]) {
             /*printf("Wrong: Classe: %s, Materia: %s, Teacher: %s %d but got %d\n",
                    classe_sezione[i / MATERIA_SZ / INSEGNANTE_SZ % CLASSE_SEZIONE_SZ],
                    materie[i / INSEGNANTE_SZ % MATERIA_SZ],
@@ -124,12 +110,12 @@ void print_orario(const int pos, head_tail_queue priority_queue) {
             if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
                 !prof_gia_impegnato_giorno_ora[base3d_goi + j]
                 // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
-                && ore_classi_docenti_effettuate_tot[base2d_ci + j] <
+                && ore_classi_docenti_svolte[base2d_ci + j] <
                 ore_insegnante_classi[base2d_ci + j]
                 //max 2 ore stesso prof in ciascuna classe ogni giorno, anche se non contigue
                 //&& ore_prof_giorno_classe[base3d_gci + j] < MAX_ORE_STESSA_MATERIA_GIORNO
                 && 1) {
-                ore_classi_docenti_effettuate_tot[base2d_ci + j]++;
+                ore_classi_docenti_svolte[base2d_ci + j]++;
                 prof_gia_impegnato_giorno_ora[base3d_goi + j] = 1;
                 ore_classe_svolte[cla]++;
                 ore_docente_svolte[j]++;
@@ -140,7 +126,7 @@ void print_orario(const int pos, head_tail_queue priority_queue) {
                 orario[pos] = j;
                 print_orario(pos + 1, new);
 
-                ore_classi_docenti_effettuate_tot[base2d_ci + j]--;
+                ore_classi_docenti_svolte[base2d_ci + j]--;
                 prof_gia_impegnato_giorno_ora[base3d_goi + j] = 0;
                 ore_classe_svolte[cla]--;
                 ore_docente_svolte[j]--;

@@ -25,8 +25,14 @@ int actual_classi_sezione;
 int actual_insegnanti;
 
 int ore_insegnante_classi[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
+int ore_classi_docenti_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 int ore_classi_settimanali[CLASSE_SEZIONE_SZ];
+int ore_classe_svolte[CLASSE_SEZIONE_SZ];
 int ore_insegnante_settimanali[INSEGNANTE_SZ];
+int ore_docente_svolte[INSEGNANTE_SZ];
+
+int prof_gia_impegnato_giorno_ora[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ];
+int n_ore_buche[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ];
 
 /*
  * Conversions from string to id

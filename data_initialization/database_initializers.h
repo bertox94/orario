@@ -26,8 +26,25 @@ extern int actual_classi_sezione;
 extern int actual_insegnanti;
 
 extern int ore_insegnante_classi[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
+//associa ad ogni classe e insegnante le ore totali svolte fino a _pos_
+extern int ore_classi_docenti_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
+
 extern int ore_classi_settimanali[CLASSE_SEZIONE_SZ];
+// tiene traccia delle svolte in totale in una classe fino a _pos_
+extern int ore_classe_svolte[CLASSE_SEZIONE_SZ];
+
 extern int ore_insegnante_settimanali[INSEGNANTE_SZ];
+// tiene traccia del numero di ore svolte da un docente fino a _pos_
+extern int ore_docente_svolte[INSEGNANTE_SZ];
+
+// verifica che un prof, dato un giorno e un ora, stia facendo lezione, perciò nella stesso giorno e ora non può fare altro
+extern int prof_gia_impegnato_giorno_ora[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ];
+
+// tiene traccia se in un giorno e una classa c'è un ora buca
+extern int n_ore_buche[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ];
+// tiene traccia delle ore svolte da un insegnante in un giorno e una classe (serve per non avere lezioni di tre ore con lo stesso insegnante)
+//int ore_prof_giorno_classe[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
+//TODO: un prof vede una classe una sola volta al giorno
 
 void set_giorno_settimana(char giorno[]);
 
