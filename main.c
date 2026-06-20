@@ -92,10 +92,11 @@ void print_orario(const int pos, head_tail_queue priority_queues[]) {
     if (pos == orario_len) {
         if (verifica_ore_classe_materia()) {
             n_gen++;
-            //print(orario, pos, n_gen);
+            print(orario, pos, n_gen);
         }
         return;
     }
+    print(orario, pos, n_gen);
 
     const int giorno = g_giorno(pos);
     const int ora = g_ora(pos);
@@ -110,8 +111,7 @@ void print_orario(const int pos, head_tail_queue priority_queues[]) {
             if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
                 !prof_gia_impegnato_giorno_ora[base3d_goi + j]
                 // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
-                && ore_classi_docenti_svolte[base2d_ci + j] <
-                ore_classi_docenti[base2d_ci + j]
+                && ore_classi_docenti_svolte[base2d_ci + j] < ore_classi_docenti[base2d_ci + j]
                 //max 2 ore stesso prof in ciascuna classe ogni giorno, anche se non contigue
                 && ore_prof_giorno_classe[base3d_gci + j] < MAX_ORE_STESSA_MATERIA_GIORNO
                 && 1) {
