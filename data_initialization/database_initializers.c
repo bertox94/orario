@@ -180,16 +180,6 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_3E, Tiraboschi, 4);
     set_classe_insegnante_ore(Classe_3E, Alves, 3);
 
-    set_classe_insegnante_ore(Classe_3H, Tosi, 4);
-    set_classe_insegnante_ore(Classe_3H, Guerra, 6);
-    set_classe_insegnante_ore(Classe_3H, Manganelli, 3);
-    set_classe_insegnante_ore(Classe_3H, Tiraboschi, 6);
-    set_classe_insegnante_ore(Classe_3H, Nicoletti, 2);
-    set_classe_insegnante_ore(Classe_3H, Trivini, 3);
-    set_classe_insegnante_ore(Classe_3H, Quaini, 1);
-    set_classe_insegnante_ore(Classe_3H, Tiraboschi, 4);
-    set_classe_insegnante_ore(Classe_3H, Lancellotti, 3);
-
     set_classe_insegnante_ore(Classe_3F, Sannino, 4);
     set_classe_insegnante_ore(Classe_3F, Bortolotti, 6);
     set_classe_insegnante_ore(Classe_3F, Ricciardi, 3);
@@ -199,6 +189,16 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_3F, Quaini, 1);
     set_classe_insegnante_ore(Classe_3F, Tiraboschi, 4);
     set_classe_insegnante_ore(Classe_3F, Comelli, 3);
+
+    set_classe_insegnante_ore(Classe_3H, Tosi, 4);
+    set_classe_insegnante_ore(Classe_3H, Guerra, 6);
+    set_classe_insegnante_ore(Classe_3H, Manganelli, 3);
+    set_classe_insegnante_ore(Classe_3H, Tiraboschi, 6);
+    set_classe_insegnante_ore(Classe_3H, Nicoletti, 2);
+    set_classe_insegnante_ore(Classe_3H, Trivini, 3);
+    set_classe_insegnante_ore(Classe_3H, Quaini, 1);
+    set_classe_insegnante_ore(Classe_3H, Tiraboschi, 4);
+    set_classe_insegnante_ore(Classe_3H, Lancellotti, 3);
 
 
     for (int i = 0; i < actual_classi_sezione; i++) {

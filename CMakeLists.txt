@@ -12,4 +12,6 @@ add_executable(untitled main.c
         constants/subjects.h
         data_initialization/database_initializers.h
         data_initialization/database_initializers.c
+        printer/printer.h
+        printer/printer.c
 )
