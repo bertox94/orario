@@ -8,6 +8,8 @@
 
 #define MAX_STR_SZ_IN_DISPLAY 18
 #define SCHEDULES_PER_GB 135500
+#define PRIME_N_ORE_OBBLIGATORIE 5
+#define MAX_ORE_STESSA_MATERIA_GIORNO 2
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 long long int n_gen = 0;
@@ -20,7 +22,6 @@ int prof_gia_impegnato_giorno_ora[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INS
 int ore_classe_svolte[CLASSE_SEZIONE_SZ];
 int n_ore_buche[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ];
 int ore_prof_giorno_classe[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
-//TODO: non più di 2 ore consecutive per ciascun profe ciascun giorno
 //TODO: un prof vede una classe una sola volta al giorno
 
 
@@ -284,6 +285,7 @@ void print_orario(const int pos) {
     const int cla = g_classe(pos);
     const int base3dprof_impegnati = giorno * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + ora * INSEGNANTE_SZ;
     const int base3dore_classi = cla * INSEGNANTE_SZ;
+    const int base3d_gci = giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ;
     if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
         for (int j = 0; j < actual_insegnanti; j++) {
             if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
@@ -292,7 +294,8 @@ void print_orario(const int pos) {
                 && ore_classi_docenti_effettuate_tot[base3dore_classi + j] <
                 ore_insegnante_classi[base3dore_classi + j]
                 //max 2 ore stesso prof in ciascuna classe ogni giorno, anche se non contigue
-                && ore_prof_giorno_classe[giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + j] < 2
+                && ore_prof_giorno_classe[base3d_gci + j] < MAX_ORE_STESSA_MATERIA_GIORNO
+                // TODO; verifica che le ore rimanenti di ciascun prof di questa classe non siano superiori a 2* il numero di giorni rimanenti, o meglio scegli il prof più adatto
                 && 1) {
                 ore_classi_docenti_effettuate_tot[base3dore_classi + j]++;
                 prof_gia_impegnato_giorno_ora[base3dprof_impegnati + j] = 1;
