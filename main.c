@@ -157,6 +157,7 @@ int main(void) {
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
     //test(100);
 
+    //TODO: priority queue for each class ?
     head_tail_queue ret = initialize_priority_queue(actual_insegnanti);
     elp priority_queue = ret.head;
     elp tail = ret.tail;

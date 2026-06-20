@@ -172,7 +172,7 @@ void print_prioritt_queue(elp priority_queue, elp tail) {
         if (i == priority_queue) printf("Head: ");
         else if (i == tail) printf("Tail: ");
         else printf("       ");
-        printf("%p: id: %d\t priority: %.2f\n", i, i->teacher, i->priority);
+        printf("%p: %s\t priority: %.2f\n", i, insegnanti[i->teacher], i->priority);
     }
     printf("------------\n");
 }
