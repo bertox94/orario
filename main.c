@@ -101,12 +101,14 @@ void print_days_header(const int pos, int class_index) {
     fprintf(f, "\n");
 }
 
-void print_row_prof(char ora[], int c, int o) {
+void print_row_prof(int pos, char ora[], int c, int o) {
     fprintf(f, " %s|", ora);
     char formatted_str[MAX_STR_SZ_IN_DISPLAY];
     for (int g = 0; g < actual_giorni_settimana; g++) {
-        const int curr = orario[
-            g * actual_ore_giornaliere * actual_classi_sezione + o * actual_classi_sezione + c];
+        int curr;
+        int p = g * actual_ore_giornaliere * actual_classi_sezione + o * actual_classi_sezione + c;
+        if (p >= pos) curr = -1;
+        else curr = orario[p];
         copy_and_pad(formatted_str, curr == -1 ? "       --        " : insegnanti[curr],
                      MAX_STR_SZ_IN_DISPLAY);
         fprintf(f, "     %s     |", formatted_str);
@@ -124,7 +126,7 @@ void print(const int pos, unsigned long long attempt) {
 
         for (int o = 0; o < actual_ore_giornaliere; o++) {
             // Print the row label (the specific hour slot)
-            print_row_prof(ore_giornaliere[o], c, o);
+            print_row_prof(pos, ore_giornaliere[o], c, o);
 
             draw_horizontal_separator(pos);
         }
@@ -275,8 +277,7 @@ void print_orario(const int pos) {
         return;
     }
 
-    // if (pos % 30000000)
-    //     print(pos, n_gen);
+    print(pos, n_gen);
 
     const int giorno = g_giorno(pos);
     const int ora = g_ora(pos);
@@ -334,8 +335,8 @@ int main(void) {
     elp priority_queue = ret.head;
     elp tail = ret.tail;
 
-    f = fopen("orario.txt", "w");
-    //f = fopen("/Volumes/ESD-USB/orario.txt", "w");
+    //f = fopen("orario.txt", "w");
+    f = fopen("/Volumes/ESD-USB/orario.txt", "w");
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
     print_orario(0);
     fclose(f);
