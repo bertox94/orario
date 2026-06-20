@@ -15,11 +15,16 @@ long long int n_gen_ok = 10000000; //= SCHEDULES_PER_GB * 5;
 int orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
     [0 ... GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1] = -1
 };
+//associa ad ogni classe e insegnante le ore totali svolte fino a _pos_
 int ore_classi_docenti_effettuate_tot[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
+// verifica che un prof, dato un giorno e un ora, stia facendo lezione, perciò nella stesso giorno e ora non può fare altro
 int prof_gia_impegnato_giorno_ora[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ];
+// tiene traccia delle svolte in totale in una classe fino a _pos_
 int ore_classe_svolte[CLASSE_SEZIONE_SZ];
+// tiene traccia se in un giorno e una classa c'è un ora buca
 int n_ore_buche[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ];
-int ore_prof_giorno_classe[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
+// tiene traccia delle ore svolte da un insegnante in un giorno e una classe (serve per non avere lezioni di tre ore con lo stesso insegnante)
+//int ore_prof_giorno_classe[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 //TODO: un prof vede una classe una sola volta al giorno
 
 
@@ -210,12 +215,12 @@ void print_orario(const int pos) {
                 && ore_classi_docenti_effettuate_tot[base2d_ci + j] <
                 ore_insegnante_classi[base2d_ci + j]
                 //max 2 ore stesso prof in ciascuna classe ogni giorno, anche se non contigue
-                && ore_prof_giorno_classe[base3d_gci + j] < MAX_ORE_STESSA_MATERIA_GIORNO
+                //&& ore_prof_giorno_classe[base3d_gci + j] < MAX_ORE_STESSA_MATERIA_GIORNO
                 && 1) {
                 ore_classi_docenti_effettuate_tot[base2d_ci + j]++;
                 prof_gia_impegnato_giorno_ora[base3d_goi + j] = 1;
                 ore_classe_svolte[cla]++;
-                ore_prof_giorno_classe[base3d_gci + j]++;
+                //ore_prof_giorno_classe[base3d_gci + j]++;
 
                 orario[pos] = j;
                 print_orario(pos + 1);
@@ -223,7 +228,7 @@ void print_orario(const int pos) {
                 ore_classi_docenti_effettuate_tot[base2d_ci + j]--;
                 prof_gia_impegnato_giorno_ora[base3d_goi + j] = 0;
                 ore_classe_svolte[cla]--;
-                ore_prof_giorno_classe[base3d_gci + j]--;
+                //ore_prof_giorno_classe[base3d_gci + j]--;
             }
         }
     }
