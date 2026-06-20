@@ -33,6 +33,7 @@ FILE *f;
 
 typedef struct el {
     int teacher;
+    double priority;
     struct el *prev;
     struct el *next;
 } el, *elp;
@@ -148,6 +149,7 @@ head_tail_queue initialize_queue(const int num, const int maxelems) {
         if (ret.head != NULL)
             ret.head->prev = curr;
         curr->next = ret.head;
+        curr->priority = (double) ore_insegnante_settimanali[num] / actual_giorni_settimana;
         return (head_tail_queue){curr, ret.tail == NULL ? curr : ret.tail};
     }
 
