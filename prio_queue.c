@@ -34,13 +34,13 @@ int pop(int pos, elp *priority_queue, elp *tail) {
     return curr->teacher;
 }
 
-int peek(elp priority_queue, int pos) {
+elp peek(elp priority_queue, int pos) {
     assert(pos < actual_insegnanti);
     assert(pos>=0);
     elp curr = priority_queue;
     while (pos > 0 && curr && curr->next)
         curr = curr->next, pos--;
-    return curr->teacher;
+    return curr;
 }
 
 // Helper: Splits a doubly linked list into two halves

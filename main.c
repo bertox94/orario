@@ -91,8 +91,8 @@ void print_orario(const int pos, head_tail_queue priority_queue) {
     if (pos == orario_len) {
         if (verifica_ore_classe_materia()) {
             n_gen++;
-            printf("%d ", n_gen);
-            //print(orario, pos, n_gen);
+            //printf("%d ", n_gen);
+            print(orario, pos, n_gen);
         }
         return;
     }
@@ -107,7 +107,9 @@ void print_orario(const int pos, head_tail_queue priority_queue) {
     const int base3d_gci = giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ;
     if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
         for (int jj = 0; jj < actual_insegnanti; jj++) {
-            const int j = peek(priority_queue.head, jj);
+            sort_queue_descending(&priority_queue);
+            elp elem = peek(priority_queue.head, jj);
+            const int j = elem->teacher;
             if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
                 !prof_gia_impegnato_giorno_ora[base3d_goi + j]
                 // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
@@ -120,19 +122,19 @@ void print_orario(const int pos, head_tail_queue priority_queue) {
                 ore_classe_svolte[cla]++;
                 ore_docenti_svolte[j]++;
                 ore_prof_giorno_classe[base3d_gci + j]++;
-
-                head_tail_queue new = copy_list(priority_queue.head);
-                set_priority(&new.head, &new.tail, giorno, j);
+                elem->priority --;
+                //set_priority(&new.head, &new.tail, giorno, j);
 
 
                 orario[pos] = j;
-                print_orario(pos + 1, new);
+                print_orario(pos + 1, priority_queue);
 
                 ore_classi_docenti_svolte[base2d_ci + j]--;
                 prof_gia_impegnato_giorno_ora[base3d_goi + j] = 0;
                 ore_classe_svolte[cla]--;
                 ore_docenti_svolte[j]--;
                 ore_prof_giorno_classe[base3d_gci + j]--;
+                elem->priority ++;
             }
         }
     }

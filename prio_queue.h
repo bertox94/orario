@@ -19,7 +19,7 @@ typedef struct {
 
 int pop(int pos, elp *priority_queue, elp *tail);
 
-int peek(elp priority_queue, int pos);
+elp peek(elp priority_queue, int pos);
 
 void sort_queue_descending(head_tail_queue *q);
 
