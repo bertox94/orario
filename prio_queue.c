@@ -118,15 +118,15 @@ void sort_queue_descending(head_tail_queue *q) {
     q->tail = curr;
 }
 
-void set_priority(elp *head, elp *tail, int giorno, int cla, int docente) {
+void set_priority(elp *head, elp *tail, int giorno, int docente) {
     elp curr = *head;
 
     // 1. Find and update the node's priority
     while (curr) {
-        if (curr->teacher == docente && ore_classi[cla] - ore_classe_svolte[cla] > 0) {
-            curr->priority = (double) (ore_classi_docenti[cla * INSEGNANTE_SZ + docente] -
-                                       ore_classi_docenti_svolte[cla * INSEGNANTE_SZ + docente]) /
-                             (ore_classi[cla] - ore_classe_svolte[cla]);
+        assert(ore_docenti[docente]>0);
+        if (curr->teacher == docente) {
+            curr->priority = (double) (ore_docenti[docente] - ore_docenti_svolte[docente]) / (
+                                 actual_giorni_settimana - giorno);
             break; // Target found and updated
         }
         curr = curr->next;
@@ -177,19 +177,21 @@ void set_priority(elp *head, elp *tail, int giorno, int cla, int docente) {
     }
 }
 
-head_tail_queue initialize_queue(int prof, const int class) {
-    while (prof < actual_insegnanti && ore_classi_docenti[class * INSEGNANTE_SZ + prof] == 0) prof++;
-    if (prof == actual_insegnanti) return (head_tail_queue){NULL, NULL};
-
-    const elp curr = malloc(sizeof(el));
-    curr->prev = NULL;
-    curr->teacher = prof;
-    head_tail_queue ret = initialize_queue(prof + 1, class);
-    if (ret.head != NULL)
-        ret.head->prev = curr;
-    curr->next = ret.head;
-    curr->priority = (double) ore_classi_docenti[class * INSEGNANTE_SZ + prof] / ore_classi[class];
-    return (head_tail_queue){curr, ret.tail == NULL ? curr : ret.tail};
+head_tail_queue initialize_queue(const int num, const int maxelems) {
+    if (num < maxelems) {
+        // S -> aS
+        const elp curr = malloc(sizeof(el));
+        curr->prev = NULL;
+        curr->teacher = num;
+        head_tail_queue ret = initialize_queue(num + 1, maxelems);
+        if (ret.head != NULL)
+            ret.head->prev = curr;
+        curr->next = ret.head;
+        curr->priority = (double) ore_docenti[num]/actual_giorni_settimana;
+        return (head_tail_queue){curr, ret.tail == NULL ? curr : ret.tail};
+    }
+    // S -> eps
+    return (head_tail_queue){NULL, NULL};
 }
 
 head_tail_queue copy_list(const elp curr) {
@@ -220,7 +222,7 @@ void print_prioritt_queue(elp priority_queue, elp tail) {
     printf("------------\n");
 }
 
-head_tail_queue initialize_priority_queue(const int cla) {
-    const head_tail_queue ret = initialize_queue(0, cla);
+head_tail_queue initialize_priority_queue(const int profs) {
+    const head_tail_queue ret = initialize_queue(0, profs);
     return (head_tail_queue){ret.head, ret.tail};
 }

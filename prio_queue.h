@@ -29,5 +29,5 @@ void print_prioritt_queue(elp priority_queue, elp tail);
 
 head_tail_queue copy_list(const elp curr);
 
-void set_priority(elp *head, elp *tail, int giorno, int cla, int docente);
+void set_priority(elp *head, elp *tail, int giorno, int docente);
 #endif //UNTITLED_PRIO_QUEUE_H

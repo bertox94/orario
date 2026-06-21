@@ -12,7 +12,7 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 long long int n_gen = 0;
-long long int n_gen_ok = 10000000; //= SCHEDULES_PER_GB * 5;
+long long int n_gen_ok = 100000; //= SCHEDULES_PER_GB * 5;
 int orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
     [0 ... GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1] = -1
 };
@@ -84,7 +84,7 @@ int *int_alloc(size_t len) {
 }
 
 
-void print_orario(const int pos, head_tail_queue priority_queues[]) {
+void print_orario(const int pos, head_tail_queue priority_queue) {
     if (n_gen_ok <= n_gen) return;
 
 
@@ -107,7 +107,7 @@ void print_orario(const int pos, head_tail_queue priority_queues[]) {
     const int base3d_gci = giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ;
     if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
         for (int jj = 0; jj < actual_insegnanti; jj++) {
-            int j = peek(priority_queues[cla].head, jj);
+            const int j = peek(priority_queue.head, jj);
             if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
                 !prof_gia_impegnato_giorno_ora[base3d_goi + j]
                 // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
@@ -121,14 +121,12 @@ void print_orario(const int pos, head_tail_queue priority_queues[]) {
                 ore_docenti_svolte[j]++;
                 ore_prof_giorno_classe[base3d_gci + j]++;
 
-                head_tail_queue new_arr[actual_classi_sezione];
-                memcpy(new_arr, priority_queues, sizeof(head_tail_queue) * actual_classi_sezione);
-                new_arr[cla] = copy_list(priority_queues[cla].head);
-                set_priority(&new_arr[cla].head, &new_arr[cla].tail, giorno, cla, j);
+                head_tail_queue new = copy_list(priority_queue.head);
+                set_priority(&new.head, &new.tail, giorno, j);
 
 
                 orario[pos] = j;
-                print_orario(pos + 1, new_arr);
+                print_orario(pos + 1, new);
 
                 ore_classi_docenti_svolte[base2d_ci + j]--;
                 prof_gia_impegnato_giorno_ora[base3d_goi + j] = 0;
@@ -143,7 +141,7 @@ void print_orario(const int pos, head_tail_queue priority_queues[]) {
     if (ora >= PRIME_N_ORE_OBBLIGATORIE) {
         orario[pos] = -1;
         n_ore_buche[base2d_gc + cla]++;
-        print_orario(pos + 1, priority_queues);
+        print_orario(pos + 1, priority_queue);
         n_ore_buche[base2d_gc + cla]--;
     }
 }
@@ -160,20 +158,20 @@ int main(void) {
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
     //test(100);
 
-    //head_tail_queue ret = initialize_priority_queue(actual_insegnanti);
+    head_tail_queue ret = initialize_priority_queue(actual_insegnanti);
+    sort_queue_descending(&ret);
+    print_prioritt_queue(ret.head, ret.tail);
 
-    head_tail_queue queues[actual_classi_sezione];
-
-    for (int i = 0; i < actual_classi_sezione; i++) {
+    /*for (int i = 0; i < actual_classi_sezione; i++) {
         queues[i] = initialize_priority_queue(i);
         sort_queue_descending(&queues[i]);
         print_prioritt_queue(queues[i].head, queues[i].tail);
-    }
+    }*/
 
     //f = fopen("orario.txt", "w");
     f = fopen("/Volumes/ESD-USB/orario.txt", "w");
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
-    print_orario(0, queues);
+    print_orario(0, ret);
     fclose(f);
 
     const double elapsed = (clock() - start) / (double) CLOCKS_PER_SEC;
