@@ -34,5 +34,7 @@ char Calace[] = "Calace";
 char Marchione[] = "Marchione";
 char Pizzatti[] = "Pizzatti";
 char Torbol[] = "Torbol";
+char Caniato[] = "Caniato";
+char Cerini[] = "Cerini";
 
 #endif //UNTITLED_PROFESSORS_H

@@ -65,11 +65,10 @@ int activities_for_this_class_and_hour(int pos, int gio, const int ora, const in
 int verifica_ore_classe_materia(void) {
     for (int i = 0; i < CLASSE_SEZIONE_SZ * INSEGNANTE_SZ; i++)
         if (ore_classi_docenti[i] != ore_classi_docenti_svolte[i]) {
-            /*printf("Wrong: Classe: %s, Materia: %s, Teacher: %s %d but got %d\n",
-                   classe_sezione[i / MATERIA_SZ / INSEGNANTE_SZ % CLASSE_SEZIONE_SZ],
-                   materie[i / INSEGNANTE_SZ % MATERIA_SZ],
+            printf("Wrong: Classe: %s, Teacher: %s %d but got %d\n",
+                   classe_sezione[i / INSEGNANTE_SZ % CLASSE_SEZIONE_SZ],
                    insegnanti[i % INSEGNANTE_SZ],
-                   ore_insegnanti_classe_materia[i], ora_classi_materie_effettuate[i]);*/
+                   ore_classi_docenti[i], ore_classi_docenti_svolte[i]);
             return 0;
         }
     return 1;
@@ -92,6 +91,7 @@ void print_orario(const int pos, head_tail_queue priority_queues[]) {
     if (pos == orario_len) {
         if (verifica_ore_classe_materia()) {
             n_gen++;
+            printf("%d ", n_gen);
             //print(orario, pos, n_gen);
         }
         return;
@@ -160,7 +160,6 @@ int main(void) {
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
     //test(100);
 
-    //TODO: priority queue for each class ?
     //head_tail_queue ret = initialize_priority_queue(actual_insegnanti);
 
     head_tail_queue queues[actual_classi_sezione];

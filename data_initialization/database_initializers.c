@@ -187,15 +187,6 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_3E, Tiraboschi, 4);
     set_classe_insegnante_ore(Classe_3E, Alves, 3);
 
-    set_classe_insegnante_ore(Classe_4E, Berno, 4);
-    set_classe_insegnante_ore(Classe_4E, Pizzatti, 6);
-    set_classe_insegnante_ore(Classe_4E, Sciambarella, 7);
-    set_classe_insegnante_ore(Classe_4E, Masetti, 6);
-    set_classe_insegnante_ore(Classe_4E, Torbol, 2);
-    set_classe_insegnante_ore(Classe_4E, Trivini, 3);
-    set_classe_insegnante_ore(Classe_4E, Quaini, 1);
-    set_classe_insegnante_ore(Classe_4E, Alves, 3);
-
     set_classe_insegnante_ore(Classe_3F, Sannino, 4);
     set_classe_insegnante_ore(Classe_3F, Bortolotti, 6);
     set_classe_insegnante_ore(Classe_3F, Ricciardi, 3);
@@ -216,6 +207,25 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_3H, Tiraboschi, 4);
     set_classe_insegnante_ore(Classe_3H, Lancellotti, 3);
 
+    set_classe_insegnante_ore(Classe_4E, Berno, 4);
+    set_classe_insegnante_ore(Classe_4E, Pizzatti, 6);
+    set_classe_insegnante_ore(Classe_4E, Sciambarella, 7);
+    set_classe_insegnante_ore(Classe_4E, Masetti, 6);
+    set_classe_insegnante_ore(Classe_4E, Torbol, 2);
+    set_classe_insegnante_ore(Classe_4E, Trivini, 3);
+    set_classe_insegnante_ore(Classe_4E, Quaini, 1);
+    set_classe_insegnante_ore(Classe_4E, Alves, 3);
+/*
+    set_classe_insegnante_ore(Classe_5E, Berno, 3);
+    set_classe_insegnante_ore(Classe_5E, DalZovo, 6);
+    set_classe_insegnante_ore(Classe_5E, Sciambarella, 4);
+    set_classe_insegnante_ore(Classe_5E, Masetti, 6);
+    set_classe_insegnante_ore(Classe_5E, Nicoletti, 2);
+    set_classe_insegnante_ore(Classe_5E, Caniato, 4);
+    set_classe_insegnante_ore(Classe_5E, Cerini, 3);
+    set_classe_insegnante_ore(Classe_5E, Alves, 3);
+    set_classe_insegnante_ore(Classe_5E, Quaini, 1);
+*/
 
     for (int i = 0; i < actual_classi_sezione; i++) {
         assert(ore_classi[i] <= actual_giorni_settimana * actual_ore_giornaliere);
@@ -243,9 +253,11 @@ void stampa_dati() {
         printf("Ins. %s: %d ore\n", insegnanti[i], ore_docenti[i]);
     printf("-----------\n");
     printf("Ore insegnanti in classe:\n");
-    for (int i = 0; i < actual_classi_sezione; i++)
+    for (int i = 0; i < actual_classi_sezione; i++) {
         for (int j = 0; j < actual_insegnanti; j++)
             if (get_ore_classi_insegnante(i, j) > 0)
                 printf("In %s %s\tha %d ore\n", classe_sezione[i], insegnanti[j], get_ore_classi_insegnante(i, j));
+        printf("\n");
+    }
     printf("-----------\n");
 }
