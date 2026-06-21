@@ -125,8 +125,7 @@ void set_priority(elp *head, elp *tail, int giorno, int docente) {
     while (curr) {
         assert(ore_docenti[docente]>0);
         if (curr->teacher == docente) {
-            curr->priority = (double) (ore_docenti[docente] - ore_docenti_svolte[docente]) / (
-                                 actual_giorni_settimana - giorno);
+            curr->priority = ore_docenti[docente] - ore_docenti_svolte[docente];
             break; // Target found and updated
         }
         curr = curr->next;
@@ -187,7 +186,7 @@ head_tail_queue initialize_queue(const int num, const int maxelems) {
         if (ret.head != NULL)
             ret.head->prev = curr;
         curr->next = ret.head;
-        curr->priority = (double) ore_docenti[num]/actual_giorni_settimana;
+        curr->priority = (double) ore_docenti[num];
         return (head_tail_queue){curr, ret.tail == NULL ? curr : ret.tail};
     }
     // S -> eps
