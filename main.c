@@ -124,7 +124,7 @@ void print_orario(const int pos, head_tail_queue priority_queues[]) {
                 head_tail_queue new_arr[actual_classi_sezione];
                 memcpy(new_arr, priority_queues, sizeof(head_tail_queue) * actual_classi_sezione);
                 new_arr[cla] = copy_list(priority_queues[cla].head);
-                set_priority(&priority_queues[cla].head, &priority_queues[cla].tail, giorno, cla, j);
+                set_priority(&new_arr[cla].head, &new_arr[cla].tail, giorno, cla, j);
 
 
                 orario[pos] = j;
