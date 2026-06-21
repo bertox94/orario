@@ -7,4 +7,6 @@
 char Classe_3H[] = "3H";
 char Classe_3E[] = "3E";
 char Classe_3F[] = "3F";
+char Classe_4E[] = "4E";
+char Classe_5E[] = "5E";
 #endif //UNTITLED_CLASS_H

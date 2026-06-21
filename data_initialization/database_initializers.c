@@ -187,6 +187,15 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_3E, Tiraboschi, 4);
     set_classe_insegnante_ore(Classe_3E, Alves, 3);
 
+    set_classe_insegnante_ore(Classe_4E, Berno, 4);
+    set_classe_insegnante_ore(Classe_4E, Pizzatti, 6);
+    set_classe_insegnante_ore(Classe_4E, Sciambarella, 7);
+    set_classe_insegnante_ore(Classe_4E, Masetti, 6);
+    set_classe_insegnante_ore(Classe_4E, Torbol, 2);
+    set_classe_insegnante_ore(Classe_4E, Trivini, 3);
+    set_classe_insegnante_ore(Classe_4E, Quaini, 1);
+    set_classe_insegnante_ore(Classe_4E, Alves, 3);
+
     set_classe_insegnante_ore(Classe_3F, Sannino, 4);
     set_classe_insegnante_ore(Classe_3F, Bortolotti, 6);
     set_classe_insegnante_ore(Classe_3F, Ricciardi, 3);
