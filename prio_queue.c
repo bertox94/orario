@@ -121,7 +121,7 @@ void sort_queue_descending(head_tail_queue *q) {
 void set_priority(elp *head, elp *tail, int giorno, int cla, int docente) {
     elp curr = *head;
 
-    // 1. Find and update the node
+    // 1. Find and update the node's priority
     while (curr) {
         if (curr->teacher == docente && ore_classi[cla] - ore_classe_svolte[cla] > 0) {
             curr->priority = (double) (ore_classi_docenti[cla * INSEGNANTE_SZ + docente] -
@@ -132,41 +132,48 @@ void set_priority(elp *head, elp *tail, int giorno, int cla, int docente) {
         curr = curr->next;
     }
 
-    // If node wasn't found, or it's already at the tail, no repositioning needed
-    if (!curr || !curr->next) {
+    // If node wasn't found, nothing to do
+    if (!curr) {
         return;
     }
 
-    // 2. Check if it actually needs to move
-    // (Since priority decreased, it only needs to move forward if it's smaller than the next node)
-    if (curr->priority < curr->next->priority) {
-        // Detach curr from its current position
-        if (curr->prev) {
-            curr->prev->next = curr->next;
-        } else {
-            *head = curr->next; // It was the head, update head pointer
-        }
+    // 2. Detach curr from its current position
+    if (curr->prev) {
+        curr->prev->next = curr->next;
+    } else {
+        *head = curr->next; // curr was the head
+    }
+
+    if (curr->next) {
         curr->next->prev = curr->prev;
+    } else {
+        *tail = curr->prev; // curr was the tail
+    }
 
-        // Save a reference to scan forward starting from the next node
-        elp scan = curr->next;
+    // 3. Find the correct insertion spot from the beginning
+    // We assume the list is sorted in descending order (highest priority first)
+    elp scan = *head;
+    elp prev_scan = NULL;
 
-        // 3. Walk forward to find the correct insertion spot
-        // We stop when scan->next is NULL or scan->next has a smaller/equal priority
-        while (scan->next && scan->next->priority > curr->priority) {
-            scan = scan->next;
-        }
+    while (scan && scan->priority >= curr->priority) {
+        prev_scan = scan;
+        scan = scan->next;
+    }
 
-        // 4. Insert curr after 'scan'
-        curr->next = scan->next;
-        curr->prev = scan;
+    // 4. Insert curr into its new position (between prev_scan and scan)
+    curr->next = scan;
+    curr->prev = prev_scan;
 
-        if (scan->next) {
-            scan->next->prev = curr;
-        } else {
-            *tail = curr; // It reached the end of the list, update tail pointer
-        }
-        scan->next = curr;
+    if (prev_scan) {
+        prev_scan->next = curr;
+    } else {
+        *head = curr; // New highest priority element (new head)
+    }
+
+    if (scan) {
+        scan->prev = curr;
+    } else {
+        *tail = curr; // New lowest priority element (new tail)
     }
 }
 
