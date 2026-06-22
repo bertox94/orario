@@ -84,7 +84,7 @@ int *int_alloc(size_t len) {
 }
 
 
-void print_orario(const int pos) {
+void print_orario(const int pos, QueueItem queue[]) {
     if (n_gen_ok <= n_gen) return;
 
 
@@ -107,34 +107,22 @@ void print_orario(const int pos) {
     const int base3d_gci = giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ;
     if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
         for (int jj = 0; jj < actual_insegnanti; jj++) {
-            /* To test if memory holds
-            QueueItem new[INSEGNANTE_SZ];
-            printf("%d ", new[((int)&new)%INSEGNANTE_SZ]);
-            */
+            int max_idx = jj; // Track the INDEX of the maximum element, not just the value
 
-            for (int h = 0; h <= jj; h++) {
-                int max_idx = h;
-                for (int k = h + 1; k < actual_insegnanti; k++) {
-                    if (queue[k].priority > queue[max_idx].priority) {
-                        // just ">" since equal priority will be placed in near positions
-                        max_idx = k; // Found a higher priority, record its position
-                    }
-                }
-
-                // ONLY SWAP ONCE after finding the true maximum for this position
-                if (max_idx != h) {
-                    QueueItem tmp = queue[h];
-                    queue[h] = queue[max_idx];
-                    queue[max_idx] = tmp;
+            for (int k = jj + 1; k < actual_insegnanti; k++) {
+                // k can start at jj + 1
+                if (queue[k].priority > queue[max_idx].priority) {
+                    max_idx = k; // Found a higher priority, record its position
                 }
             }
-            /*
-                        for (int k = 0; k <= jj; k++) {
-                            for (int l = k + 1; l < INSEGNANTE_SZ; l++) {
-                                assert(queue[k].priority >= queue[l].priority);
-                            }
-                        }
-            */
+
+            // ONLY SWAP ONCE after finding the true maximum for this position
+            if (max_idx != jj) {
+                QueueItem tmp = queue[jj];
+                queue[jj] = queue[max_idx];
+                queue[max_idx] = tmp;
+            }
+
             int j = queue[jj].teacher;
             //print_priority_queue(); // Printed once per outer loop pass
             if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
@@ -149,21 +137,19 @@ void print_orario(const int pos) {
                 ore_classe_svolte[cla]++;
                 ore_docenti_svolte[j]++;
                 ore_prof_giorno_classe[base3d_gci + j]++;
-                queue[jj].priority--;
-                //set_priority(&new.head, &new.tail, giorno, j);
 
 
+                QueueItem new[actual_insegnanti];
+                memcpy(new, queue, sizeof(QueueItem) * actual_insegnanti);
+                new[jj].priority--;
                 orario[pos] = j;
-                print_orario(pos + 1);
+                print_orario(pos + 1, new);
 
                 ore_classi_docenti_svolte[base2d_ci + j]--;
                 prof_gia_impegnato_giorno_ora[base3d_goi + j] = 0;
                 ore_classe_svolte[cla]--;
                 ore_docenti_svolte[j]--;
                 ore_prof_giorno_classe[base3d_gci + j]--;
-                for (int i = 0; i < actual_insegnanti; i++)
-                    if (queue[i].teacher == j)
-                        queue[i].priority++;
             }
         }
     }
@@ -172,7 +158,7 @@ void print_orario(const int pos) {
     if (ora >= PRIME_N_ORE_OBBLIGATORIE) {
         orario[pos] = -1;
         n_ore_buche[base2d_gc + cla]++;
-        print_orario(pos + 1);
+        print_orario(pos + 1, queue);
         n_ore_buche[base2d_gc + cla]--;
     }
 }
@@ -188,14 +174,15 @@ int main(void) {
     //imposta la lunghezza dell'orario
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
     //test(100);
+    QueueItem queue[actual_insegnanti];
 
-    initialize_queue_arr();
+    initialize_queue_arr(queue);
     //print_priority_queue();
 
     //f = fopen("orario.txt", "w");
     f = fopen("/Volumes/ESD-USB/orario.txt", "w");
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
-    print_orario(0);
+    print_orario(0, queue);
     fclose(f);
 
     const double elapsed = (clock() - start) / (double) CLOCKS_PER_SEC;

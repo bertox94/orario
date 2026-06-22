@@ -10,8 +10,6 @@
 #include <stdlib.h>
 
 #include "data_initialization/database_initializers.h"
-
-QueueItem queue[INSEGNANTE_SZ];
 /*
 int pop(int pos, elp *priority_queue, elp *tail) {
     assert(pos < actual_insegnanti);
@@ -339,7 +337,7 @@ head_tail_queue initialize_priority_queue(const int profs) {
 }
 */
 
-void initialize_queue_arr() {
+void initialize_queue_arr(QueueItem queue[]) {
     for (int i = 0; i < actual_insegnanti; i++) {
         QueueItem newItem = {.teacher = i, .priority = ore_docenti[i]};
 

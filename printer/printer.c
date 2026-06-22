@@ -101,7 +101,7 @@ void print_prioritt_queue(elp priority_queue, elp tail) {
     printf("------------\n");
 }
 */
-void print_priority_queue() {
+void print_priority_queue(QueueItem queue[]) {
     for (int i = 0; i < actual_insegnanti; i++) {
         if (i == 0) printf("Head: ");
         else if (i == actual_insegnanti - 1) printf("Tail: ");

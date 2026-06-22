@@ -9,11 +9,7 @@
 typedef struct el {
     int teacher;
     double priority;
-    struct el *prev;
-    struct el *next;
 } QueueItem, *elp;
 
-extern QueueItem queue[INSEGNANTE_SZ];
-
-void initialize_queue_arr();
+void initialize_queue_arr(QueueItem queue[]);
 #endif //UNTITLED_PRIO_QUEUE_H
