@@ -177,7 +177,7 @@ int main(void) {
     QueueItem queue[actual_insegnanti];
 
     initialize_queue_arr(queue);
-    //print_priority_queue();
+    print_priority_queue(queue);
 
     //f = fopen("orario.txt", "w");
     f = fopen("/Volumes/ESD-USB/orario.txt", "w");

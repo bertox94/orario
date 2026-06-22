@@ -96,7 +96,9 @@ void print_priority_queue(QueueItem queue[]) {
         if (i == 0) printf("Head: ");
         else if (i == actual_insegnanti - 1) printf("Tail: ");
         else printf("       ");
-        printf("%d)\t%s\t priority: %.2f\n", i, insegnanti[queue[i].teacher], queue[i].priority);
+        char str[MAX_STR_SZ_IN_DISPLAY];
+        copy_and_pad(str, insegnanti[queue[i].teacher], MAX_STR_SZ_IN_DISPLAY);
+        printf("%d)\t%s\t: %.2f\n", i, str, queue[i].priority);
     }
     printf("------------\n");
 }

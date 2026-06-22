@@ -178,7 +178,7 @@ void inizializza_dati() {
     set_ora_giornaliera(Ora_12);
     set_ora_giornaliera(Ora_13);
 
-/*    set_classe_insegnante_ore(Classe_3A, BanderaS, 2);
+    set_classe_insegnante_ore(Classe_3A, BanderaS, 2);
     set_classe_insegnante_ore(Classe_3A, TosadoriF, 3);
     set_classe_insegnante_ore(Classe_3A, BosioA, 6);
     set_classe_insegnante_ore(Classe_3A, CapuanoM, 5);
@@ -186,8 +186,20 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_3A, RovettaR, 4);
     set_classe_insegnante_ore(Classe_3A, GuidiA, 4);
     set_classe_insegnante_ore(Classe_3A, Marchione, 1);
-    set_classe_insegnante_ore(Classe_3A, SantonicolaA, 3);*/
+    set_classe_insegnante_ore(Classe_3A, SantonicolaA, 3);
 
+    set_classe_insegnante_ore(Classe_3B, Beltrami, 5);
+    set_classe_insegnante_ore(Classe_3B, SperandeoF,6);
+    set_classe_insegnante_ore(Classe_3B,RossiP, 4);
+    set_classe_insegnante_ore(Classe_3B,BanderaS,2);
+    set_classe_insegnante_ore(Classe_3B,GuidiA,3);
+    set_classe_insegnante_ore(Classe_3B,Marchione,1);
+    set_classe_insegnante_ore(Classe_3B,SpillerC,4);
+    set_classe_insegnante_ore(Classe_3B,RovettaR,4);
+    set_classe_insegnante_ore(Classe_3B,BurattiI,3);
+
+
+    
     set_classe_insegnante_ore(Classe_3E, Berno, 4);
     set_classe_insegnante_ore(Classe_3E, DalZovo, 6);
     set_classe_insegnante_ore(Classe_3E, Sciambarella, 3);

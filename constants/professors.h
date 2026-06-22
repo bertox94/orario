@@ -44,5 +44,10 @@ char MariniA[] = "A. Marini";
 char RovettaR[] = "R. Rovetta";
 char GuidiA[] = "A. Guidi";
 char SantonicolaA[] = "A. Santonicola";
+char Beltrami[] = "Beltrami";
+char SperandeoF[] = "F. Sperandeo";
+char RossiP[] = "P. Rossi";
+char SpillerC[] = "C. Spiller";
+char BurattiI[] = "I. Buratti";
 
 #endif //UNTITLED_PROFESSORS_H
