@@ -11,6 +11,8 @@
 
 #include "data_initialization/database_initializers.h"
 
+QueueItem queue[INSEGNANTE_SZ];
+
 int pop(int pos, elp *priority_queue, elp *tail) {
     assert(pos < actual_insegnanti);
 
@@ -175,11 +177,78 @@ void set_priority(elp *head, elp *tail, int giorno, int docente) {
         *tail = curr; // New lowest priority element (new tail)
     }
 }
+// Merges two subarrays of queue[].
+// First subarray is queue[l..m]
+// Second subarray is queue[m+1..r]
+void merge(QueueItem queue[], int l, int m, int r) {
+    int i, j, k;
+    int n1 = m - l + 1;
+    int n2 = r - m;
+
+    // Create temporary arrays
+    QueueItem* L = (QueueItem*)malloc(n1 * sizeof(QueueItem));
+    QueueItem* R = (QueueItem*)malloc(n2 * sizeof(QueueItem));
+
+    // Copy data to temp arrays L[] and R[]
+    for (i = 0; i < n1; i++)
+        L[i] = queue[l + i];
+    for (j = 0; j < n2; j++)
+        R[j] = queue[m + 1 + j];
+
+    // Merge the temp arrays back into queue[l..r]
+    i = 0; // Initial index of first subarray
+    j = 0; // Initial index of second subarray
+    k = l; // Initial index of merged subarray
+
+    while (i < n1 && j < n2) {
+        // Crucial Change: Use >= for descending order
+        if (L[i].priority >= R[j].priority) {
+            queue[k] = L[i];
+            i++;
+        } else {
+            queue[k] = R[j];
+            j++;
+        }
+        k++;
+    }
+
+    // Copy the remaining elements of L[], if there are any
+    while (i < n1) {
+        queue[k] = L[i];
+        i++;
+        k++;
+    }
+
+    // Copy the remaining elements of R[], if there are any
+    while (j < n2) {
+        queue[k] = R[j];
+        j++;
+        k++;
+    }
+
+    // Free allocated memory
+    free(L);
+    free(R);
+}
+
+// l is for left index and r is right index of the sub-array of queue to be sorted
+void mergeSort(int l, int r) {
+    if (l < r) {
+        // Same as (l+r)/2, but avoids overflow for large l and h
+        int m = l + (r - l) / 2;
+
+        // Sort first and second halves
+        mergeSort(l, m);
+        mergeSort(m + 1, r);
+
+        merge(queue, l, m, r);
+    }
+}
 
 head_tail_queue initialize_queue(const int num, const int maxelems) {
     if (num < maxelems) {
         // S -> aS
-        const elp curr = malloc(sizeof(el));
+        const elp curr = malloc(sizeof(QueueItem));
         curr->prev = NULL;
         curr->teacher = num;
         head_tail_queue ret = initialize_queue(num + 1, maxelems);
@@ -195,7 +264,7 @@ head_tail_queue initialize_queue(const int num, const int maxelems) {
 
 head_tail_queue copy_list(const elp curr) {
     if (curr != NULL) {
-        elp copy = malloc(sizeof(el));
+        elp copy = malloc(sizeof(QueueItem));
         copy->prev = NULL;
         copy->teacher = curr->teacher;
         const head_tail_queue ret = copy_list(curr->next);
@@ -220,6 +289,17 @@ void print_prioritt_queue(elp priority_queue, elp tail) {
     }
     printf("------------\n");
 }
+
+void print_priority_queue() {
+    for (int i = 0; i < actual_insegnanti; i++) {
+        if (i == 0) printf("Head: ");
+        else if (i == actual_insegnanti - 1) printf("Tail: ");
+        else printf("       ");
+        printf("%p: %s\t priority: %.2f\n", i, insegnanti[queue[i].teacher], queue[i].priority);
+    }
+    printf("------------\n");
+}
+
 
 head_tail_queue initialize_priority_queue(const int profs) {
     const head_tail_queue ret = initialize_queue(0, profs);
