@@ -36,5 +36,13 @@ char Pizzatti[] = "Pizzatti";
 char Torbol[] = "Torbol";
 char Caniato[] = "Caniato";
 char Cerini[] = "Cerini";
+char BanderaS[] = "S. Bandera";
+char TosadoriF[] = "F. Tosadori";
+char BosioA[] = "A. Bosio";
+char CapuanoM[] = "M. Capuano";
+char MariniA[] = "A. Marini";
+char RovettaR[] = "R. Rovetta";
+char GuidiA[] = "A. Guidi";
+char SantonicolaA[] = "A. Santonicola";
 
 #endif //UNTITLED_PROFESSORS_H

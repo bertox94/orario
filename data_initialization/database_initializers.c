@@ -13,6 +13,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../printer/printer.h"
+
 char giorni_settimana[GIORNO_SETTIMANA_SZ][MAX_LEN_WORDS];
 char ore_giornaliere[ORA_GIORNALIERA_SZ][MAX_LEN_WORDS];
 char classe_sezione[CLASSE_SEZIONE_SZ][MAX_LEN_WORDS];
@@ -176,6 +178,15 @@ void inizializza_dati() {
     set_ora_giornaliera(Ora_12);
     set_ora_giornaliera(Ora_13);
 
+    set_classe_insegnante_ore(Classe_3A, BanderaS, 2);
+    set_classe_insegnante_ore(Classe_3A, TosadoriF, 3);
+    set_classe_insegnante_ore(Classe_3A, BosioA, 6);
+    set_classe_insegnante_ore(Classe_3A, CapuanoM, 5);
+    set_classe_insegnante_ore(Classe_3A, MariniA, 4);
+    set_classe_insegnante_ore(Classe_3A, RovettaR, 4);
+    set_classe_insegnante_ore(Classe_3A, GuidiA, 4);
+    set_classe_insegnante_ore(Classe_3A, Marchione, 1);
+    set_classe_insegnante_ore(Classe_3A, SantonicolaA, 3);
 
     set_classe_insegnante_ore(Classe_3E, Berno, 4);
     set_classe_insegnante_ore(Classe_3E, DalZovo, 6);
@@ -233,6 +244,27 @@ void inizializza_dati() {
     }
 }
 
+void copy_and_pad_dupl(char *dest, const char *src, int maxlen) {
+    int src_len = strlen(src);
+    int copy_len = src_len;
+
+    // 1. Determine how much to copy (leave 1 slot for the null terminator)
+    if (copy_len > maxlen - 1) {
+        copy_len = maxlen - 1;
+    }
+
+    // 2. Copy the actual string characters
+    memcpy(dest, src, copy_len);
+
+    // 3. Fill the remaining space with blank spaces ' '
+    for (int i = copy_len; i < maxlen - 1; i++) {
+        dest[i] = ' ';
+    }
+
+    // 4. Always force a null terminator at the very end
+    dest[maxlen - 1] = '\0';
+}
+
 void stampa_dati() {
     printf("Giorni settimana: ");
     for (int i = 0; i < actual_giorni_settimana - 1; i++)
@@ -246,17 +278,23 @@ void stampa_dati() {
         printf("%s\n", ore_giornaliere[actual_ore_giornaliere - 1]);
     printf("Ore classe:\n");
     for (int i = 0; i < actual_classi_sezione; i++)
-        printf("Classe %s: %d ore\n", classe_sezione[i], ore_classi[i]);
+        printf("Classe %s:\t%d ore\n", classe_sezione[i], ore_classi[i]);
     printf("-----------\n");
     printf("Ore insegnanti:\n");
-    for (int i = 0; i < actual_insegnanti; i++)
-        printf("Ins. %s: %d ore\n", insegnanti[i], ore_docenti[i]);
+    for (int i = 0; i < actual_insegnanti; i++) {
+        char str[MAX_STR_SZ_IN_DISPLAY];
+        copy_and_pad_dupl(str, insegnanti[i], MAX_STR_SZ_IN_DISPLAY);
+        printf("Ins. %s: %d ore\n", str, ore_docenti[i]);
+    }
     printf("-----------\n");
     printf("Ore insegnanti in classe:\n");
     for (int i = 0; i < actual_classi_sezione; i++) {
-        for (int j = 0; j < actual_insegnanti; j++)
+        for (int j = 0; j < actual_insegnanti; j++) {
+            char str[MAX_STR_SZ_IN_DISPLAY];
+            copy_and_pad_dupl(str, insegnanti[j], MAX_STR_SZ_IN_DISPLAY);
             if (get_ore_classi_insegnante(i, j) > 0)
-                printf("In %s %s\tha %d ore\n", classe_sezione[i], insegnanti[j], get_ore_classi_insegnante(i, j));
+                printf("In %s\t%s\tha %d ore\n", classe_sezione[i], str, get_ore_classi_insegnante(i, j));
+        }
         printf("\n");
     }
     printf("-----------\n");
