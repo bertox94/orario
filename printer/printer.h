@@ -8,4 +8,5 @@
 #define MAX_STR_SZ_IN_DISPLAY 18
 
 void print(const int orario[], const int pos, unsigned long long attempt);
+void print_priority_queue();
 #endif //UNTITLED_PRINTER_H

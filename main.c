@@ -12,7 +12,7 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 long long int n_gen = 0;
-long long int n_gen_ok = 10000000; //= SCHEDULES_PER_GB * 5;
+long long int n_gen_ok = 100000000; //= SCHEDULES_PER_GB * 5;
 int orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
     [0 ... GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1] = -1
 };
@@ -91,7 +91,7 @@ void print_orario(const int pos) {
     if (pos == orario_len) {
         if (verifica_ore_classe_materia()) {
             n_gen++;
-            //printf("%d ", n_gen);
+            printf("%lld ", n_gen);
             //print(orario, pos, n_gen);
         }
         return;
@@ -176,11 +176,8 @@ int main(void) {
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
     //test(100);
 
-    for (int i = 0; i < actual_insegnanti; i++) {
-        queue[i] = (QueueItem){i, ore_docenti[i]};
-    }
-    mergeSort(0, actual_insegnanti - 1);
-    print_priority_queue();
+    initialize_queue_arr();
+    //print_priority_queue();
 
     //f = fopen("orario.txt", "w");
     f = fopen("/Volumes/ESD-USB/orario.txt", "w");

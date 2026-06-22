@@ -5,6 +5,7 @@
 #include <time.h>
 
 #include "../data_initialization/database_initializers.h"
+#include "../prio_queue.h"
 //
 // Created by Alberto Tiraboschi on 20/06/2026.
 //
@@ -88,4 +89,24 @@ void print(const int orario[], const int pos, unsigned long long attempt) {
         }
     }
     printf("\n");
+}
+/*
+void print_prioritt_queue(elp priority_queue, elp tail) {
+    for (elp i = priority_queue; i != NULL; i = i->next) {
+        if (i == priority_queue) printf("Head: ");
+        else if (i == tail) printf("Tail: ");
+        else printf("       ");
+        printf("%p: %s\t priority: %.2f\n", i, insegnanti[i->teacher], i->priority);
+    }
+    printf("------------\n");
+}
+*/
+void print_priority_queue() {
+    for (int i = 0; i < actual_insegnanti; i++) {
+        if (i == 0) printf("Head: ");
+        else if (i == actual_insegnanti - 1) printf("Tail: ");
+        else printf("       ");
+        printf("%d)\t%s\t priority: %.2f\n", i, insegnanti[queue[i].teacher], queue[i].priority);
+    }
+    printf("------------\n");
 }
