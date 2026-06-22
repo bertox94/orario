@@ -39,27 +39,29 @@ void draw_horizontal_separator(int pos) {
 }
 
 // Helper 1: Prints the header block containing the current time and attempt number
-void print_header(unsigned long long attempt) {
+void print_header(unsigned long long attempt, FILE *f) {
+    f = f ? f : stdout;
     time_t current_time;
     time(&current_time);
-
-    printf("Current time: %s", ctime(&current_time));
-    printf("Orario n. %llu\n", attempt);
+    fprintf(f, "Current time: %s", ctime(&current_time));
+    fprintf(f, "Orario n. %llu\n", attempt);
 }
 
 // Helper 2: Prints the days of the week header row for a specific class
-void print_days_header(const int pos, int class_index) {
-    printf("\nClasse: %s, ore: %d\n", classe_sezione[class_index], ore_classi[class_index]);
-    printf("   |");
+void print_days_header(const int pos, int class_index, FILE *f) {
+    f = f ? f : stdout;
+    fprintf(f, "\nClasse: %s, ore: %d\n", classe_sezione[class_index], ore_classi[class_index]);
+    fprintf(f, "   |");
 
     for (int i = 0; i < actual_giorni_settimana; i++) {
-        printf("            %s            |", giorni_settimana[i]);
+        fprintf(f, "            %s            |", giorni_settimana[i]);
     }
-    printf("\n");
+    fprintf(f, "\n");
 }
 
-void print_row_prof(const int orario[], int pos, char ora[], int c, int o) {
-    printf(" %s|", ora);
+void print_row_prof(const int orario[], int pos, char ora[], int c, int o, FILE *f) {
+    f = f ? f : stdout;
+    fprintf(f, " %s|", ora);
     char formatted_str[MAX_STR_SZ_IN_DISPLAY];
     for (int g = 0; g < actual_giorni_settimana; g++) {
         int curr;
@@ -68,27 +70,28 @@ void print_row_prof(const int orario[], int pos, char ora[], int c, int o) {
         else curr = orario[p];
         copy_and_pad(formatted_str, curr == -1 ? "       --        " : insegnanti[curr],
                      MAX_STR_SZ_IN_DISPLAY);
-        printf("     %s     |", formatted_str);
+        fprintf(f, "     %s     |", formatted_str);
     }
-    printf("\n");
+    fprintf(f, "\n");
 }
 
 // Main Function: Clean, descriptive, and easy to read
-void print(const int orario[], const int pos, unsigned long long attempt) {
-    print_header(attempt);
+void print(const int orario[], const int pos, unsigned long long attempt, FILE *f) {
+    f = f ? f : stdout;
+    print_header(attempt, f);
 
     for (int c = 0; c < actual_classi_sezione; c++) {
-        print_days_header(pos, c);
+        print_days_header(pos, c, f);
         draw_horizontal_separator(pos);
 
         for (int o = 0; o < actual_ore_giornaliere; o++) {
             // Print the row label (the specific hour slot)
-            print_row_prof(orario, pos, ore_giornaliere[o], c, o);
+            print_row_prof(orario, pos, ore_giornaliere[o], c, o, f);
 
             draw_horizontal_separator(pos);
         }
     }
-    printf("\n");
+    fprintf(f, "\n");
 }
 
 void print_priority_queue(QueueItem queue[]) {
