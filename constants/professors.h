@@ -53,5 +53,31 @@ char MariniE[] = "E. Marini";
 char GelminiE[] = "E. Gelmini";
 char FuscoG[] = "G. Fusco";
 char PerghemE[] = "E. Perghem";
+char AvinoG[] = "G. Avino";
+char BorghettiF[] = "F. Borghetti";
+char LoMeleC[] = "C. Lo Mele";
+char YuC[] = "C. Yu";
+char IncorvaiaL[] = "L. Incorvaia";
+char PerliniM[] = "M. Perlini";
+char MariniAlice[] = "Alice Marini";
+char LavelliA[] = "A. Lavelli";
+char OrioS[] = "S. Orio";
+char RossiJ[] = "J. Rossi";
+char NegriL[] = "L. Negri";
+char PisatiM[] = "M. Pisati";
+char ViglioneL[] = "L. Viglione";
+char DorinP[] = "P. Dorin";
+char BottarelliF[] = "F. Bottarelli";
+char CarinoA[] = "A. Carino";
+char FalconeS[] = "S. Falcone";
+char ManessiF[] = "F. Manessi";
+char GrossoC[] = "C. Grosso";
+char PeressuttiPL[] = "PL. Peressutti";
+char CresciniG[] = "G. Crescini";
+char TonoliE[] = "E. Tonoli";
+char ZaniE[] = "E. Zani";
+char CultraroMR[] = "MR. Cultraro";
+char BoschettiS[] = "S. Boschetti";
+
 
 #endif //UNTITLED_PROFESSORS_H
