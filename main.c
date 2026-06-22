@@ -12,7 +12,7 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 long long int n_gen = 0;
-long long int n_gen_ok = 1000000; //SCHEDULES_PER_GB * 5;
+long long int n_gen_ok = 10000; //SCHEDULES_PER_GB * 5;
 int orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
     [0 ... GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1] = -1
 };
@@ -32,6 +32,19 @@ int g_ora(const int p) { return p / actual_classi_sezione % actual_ore_giornalie
 
 int g_classe(const int p) {
     return p % actual_classi_sezione;
+}
+
+/*End of block constraints*/
+int verifica_ore_classe_materia(void) {
+    for (int i = 0; i < CLASSE_SEZIONE_SZ * INSEGNANTE_SZ; i++)
+        if (ore_classi_docenti[i] != ore_classi_docenti_svolte[i]) {
+            printf("Wrong: Classe: %s, Teacher: %s %d but got %d\n",
+                   classe_sezione[i / INSEGNANTE_SZ % CLASSE_SEZIONE_SZ],
+                   insegnanti[i % INSEGNANTE_SZ],
+                   ore_classi_docenti[i], ore_classi_docenti_svolte[i]);
+            return 0;
+        }
+    return 1;
 }
 
 /*Progressive contraints*/
@@ -61,17 +74,13 @@ int activities_for_this_class_and_hour(int pos, int gio, const int ora, const in
     return 1;
 }
 
-/*End of block constraints*/
-int verifica_ore_classe_materia(void) {
-    for (int i = 0; i < CLASSE_SEZIONE_SZ * INSEGNANTE_SZ; i++)
-        if (ore_classi_docenti[i] != ore_classi_docenti_svolte[i]) {
-            printf("Wrong: Classe: %s, Teacher: %s %d but got %d\n",
-                   classe_sezione[i / INSEGNANTE_SZ % CLASSE_SEZIONE_SZ],
-                   insegnanti[i % INSEGNANTE_SZ],
-                   ore_classi_docenti[i], ore_classi_docenti_svolte[i]);
-            return 0;
-        }
-    return 1;
+int verifica_lezione_in_giorno(int pos, int base3d_gci, int insegnante) {
+    //no_teacher(x) -> True
+    //teacher(x,p) -> teacher(x, p+1)
+    if (ore_prof_giorno_classe[base3d_gci + insegnante] == 0) return 1;
+    // no need to check pos - actual_classi_sezione > 0 since the first hour has no teacher,
+    // so it would just have returned
+    return orario[pos - actual_classi_sezione] == insegnante;
 }
 
 int *int_alloc(size_t len) {
@@ -91,7 +100,7 @@ void print_orario(const int pos, QueueItem queue[]) {
     if (pos == orario_len) {
         if (verifica_ore_classe_materia()) {
             n_gen++;
-            //printf("%lld ", n_gen);
+            printf("%lld ", n_gen);
             //print(orario, pos, n_gen, f);
         }
         return;
@@ -131,6 +140,7 @@ void print_orario(const int pos, QueueItem queue[]) {
                 && ore_classi_docenti_svolte[base2d_ci + j] < ore_classi_docenti[base2d_ci + j]
                 //max 2 ore stesso prof in ciascuna classe ogni giorno, anche se non contigue
                 && ore_prof_giorno_classe[base3d_gci + j] < MAX_ORE_STESSA_MATERIA_GIORNO
+                && verifica_lezione_in_giorno(pos, base3d_gci, j)
                 && 1) {
                 ore_classi_docenti_svolte[base2d_ci + j]++;
                 prof_gia_impegnato_giorno_ora[base3d_goi + j] = 1;
