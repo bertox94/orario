@@ -100,7 +100,7 @@ void print_orario(const int pos, QueueItem queue[]) {
     if (pos == orario_len) {
         if (verifica_ore_classe_materia()) {
             n_gen++;
-            printf("%lld ", n_gen);
+            //printf("%lld ", n_gen);
             //print(orario, pos, n_gen, f);
         }
         return;
@@ -140,7 +140,7 @@ void print_orario(const int pos, QueueItem queue[]) {
                 && ore_classi_docenti_svolte[base2d_ci + j] < ore_classi_docenti[base2d_ci + j]
                 //max 2 ore stesso prof in ciascuna classe ogni giorno, anche se non contigue
                 && ore_prof_giorno_classe[base3d_gci + j] < MAX_ORE_STESSA_MATERIA_GIORNO
-                && verifica_lezione_in_giorno(pos, base3d_gci, j)
+                //&& verifica_lezione_in_giorno(pos, base3d_gci, j)
                 && 1) {
                 ore_classi_docenti_svolte[base2d_ci + j]++;
                 prof_gia_impegnato_giorno_ora[base3d_goi + j] = 1;
