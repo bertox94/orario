@@ -189,17 +189,26 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_3A, SantonicolaA, 3);
 
     set_classe_insegnante_ore(Classe_3B, Beltrami, 5);
-    set_classe_insegnante_ore(Classe_3B, SperandeoF,6);
-    set_classe_insegnante_ore(Classe_3B,RossiP, 4);
-    set_classe_insegnante_ore(Classe_3B,BanderaS,2);
-    set_classe_insegnante_ore(Classe_3B,GuidiA,3);
-    set_classe_insegnante_ore(Classe_3B,Marchione,1);
-    set_classe_insegnante_ore(Classe_3B,SpillerC,4);
-    set_classe_insegnante_ore(Classe_3B,RovettaR,4);
-    set_classe_insegnante_ore(Classe_3B,BurattiI,3);
+    set_classe_insegnante_ore(Classe_3B, SperandeoF, 6);
+    set_classe_insegnante_ore(Classe_3B, RossiP, 4);
+    set_classe_insegnante_ore(Classe_3B, BanderaS, 2);
+    set_classe_insegnante_ore(Classe_3B, GuidiA, 3);
+    set_classe_insegnante_ore(Classe_3B, Marchione, 1);
+    set_classe_insegnante_ore(Classe_3B, SpillerC, 4);
+    set_classe_insegnante_ore(Classe_3B, RovettaR, 4);
+    set_classe_insegnante_ore(Classe_3B, BurattiI, 3);
+
+    set_classe_insegnante_ore(Classe_3C, LancellottiO, 3);
+    set_classe_insegnante_ore(Classe_3C, Guerra, 6);
+    set_classe_insegnante_ore(Classe_3C, MariniE, 5);
+    set_classe_insegnante_ore(Classe_3C, Tosi, 4);
+    set_classe_insegnante_ore(Classe_3C, FuscoG, 3);
+    set_classe_insegnante_ore(Classe_3C, Quaini, 1);
+    set_classe_insegnante_ore(Classe_3C, Nicoletti, 2);
+    set_classe_insegnante_ore(Classe_3C, GelminiE, 4);
+    set_classe_insegnante_ore(Classe_3C, PerghemE, 4);
 
 
-    
     set_classe_insegnante_ore(Classe_3E, Berno, 4);
     set_classe_insegnante_ore(Classe_3E, DalZovo, 6);
     set_classe_insegnante_ore(Classe_3E, Sciambarella, 3);
@@ -228,7 +237,7 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_3H, Trivini, 3);
     set_classe_insegnante_ore(Classe_3H, Quaini, 1);
     set_classe_insegnante_ore(Classe_3H, Tiraboschi, 4);
-    set_classe_insegnante_ore(Classe_3H, Lancellotti, 3);
+    set_classe_insegnante_ore(Classe_3H, LancellottiO, 3);
 
     set_classe_insegnante_ore(Classe_4E, Berno, 4);
     set_classe_insegnante_ore(Classe_4E, Pizzatti, 6);

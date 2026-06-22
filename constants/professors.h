@@ -19,7 +19,7 @@ char Tosi[] = "Tosi";
 char Sannino[] = "Sannino";
 char Guerra[] = "Guerra";
 char Nicoletti[] = "Nicoletti";
-char Lancellotti[] = "Lancellotti";
+char LancellottiO[] = "O. Lancellotti";
 char Trivini[] = "Trivini";
 char Quaini[] = "Quaini";
 char Avolio[] = "Avolio";
@@ -49,5 +49,9 @@ char SperandeoF[] = "F. Sperandeo";
 char RossiP[] = "P. Rossi";
 char SpillerC[] = "C. Spiller";
 char BurattiI[] = "I. Buratti";
+char MariniE[] = "E. Marini";
+char GelminiE[] = "E. Gelmini";
+char FuscoG[] = "G. Fusco";
+char PerghemE[] = "E. Perghem";
 
 #endif //UNTITLED_PROFESSORS_H
