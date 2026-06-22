@@ -12,7 +12,7 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 long long int n_gen = 0;
-long long int n_gen_ok = 10000; //SCHEDULES_PER_GB * 5;
+long long int n_gen_ok = SCHEDULES_PER_GB * 2;
 int orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
     [0 ... GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1] = -1
 };
@@ -101,7 +101,7 @@ void print_orario(const int pos, QueueItem queue[]) {
         if (verifica_ore_classe_materia()) {
             n_gen++;
             //printf("%lld ", n_gen);
-            //print(orario, pos, n_gen, f);
+            print(orario, pos, n_gen, f);
         }
         return;
     }
