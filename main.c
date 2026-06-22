@@ -105,7 +105,7 @@ void print_orario(const int pos, QueueItem queue[]) {
         }
         return;
     }
-    //print(orario, pos, n_gen);
+    //print(orario, pos, n_gen,f);
 
     const int giorno = g_giorno(pos);
     const int ora = g_ora(pos);
