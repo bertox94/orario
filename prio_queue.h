@@ -9,7 +9,7 @@
 typedef struct el {
     int teacher;
     double priority;
-    struct el *prev;
+   struct el *prev;
     struct el *next;
 } QueueItem, *elp;
 
@@ -27,6 +27,8 @@ elp peek(elp priority_queue, int pos);
 void sort_queue_descending(head_tail_queue *q);
 
 void mergeSort(int l, int r);
+
+QueueItem quickSelect(int l, int r, int n, int* success);
 
 head_tail_queue initialize_priority_queue(const int class);
 

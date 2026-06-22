@@ -12,7 +12,7 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 long long int n_gen = 0;
-long long int n_gen_ok = 1000000; //= SCHEDULES_PER_GB * 5;
+long long int n_gen_ok = 10000000; //= SCHEDULES_PER_GB * 5;
 int orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
     [0 ... GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1] = -1
 };
@@ -107,8 +107,23 @@ void print_orario(const int pos) {
     const int base3d_gci = giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ;
     if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
         for (int jj = 0; jj < actual_insegnanti; jj++) {
-            mergeSort(0, actual_insegnanti - 1);
-            const int j = queue[jj].teacher;
+            int max_idx = jj; // Track the INDEX of the maximum element, not just the value
+
+            for (int k = jj + 1; k < actual_insegnanti; k++) {
+                // k can start at jj + 1
+                if (queue[k].priority > queue[max_idx].priority) {
+                    max_idx = k; // Found a higher priority, record its position
+                }
+            }
+
+            // ONLY SWAP ONCE after finding the true maximum for this position
+            if (max_idx != jj) {
+                QueueItem tmp = queue[jj];
+                queue[jj] = queue[max_idx];
+                queue[max_idx] = tmp;
+            }
+            int j = queue[jj].teacher;
+            //print_priority_queue(); // Printed once per outer loop pass
             if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
                 !prof_gia_impegnato_giorno_ora[base3d_goi + j]
                 // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
@@ -133,7 +148,9 @@ void print_orario(const int pos) {
                 ore_classe_svolte[cla]--;
                 ore_docenti_svolte[j]--;
                 ore_prof_giorno_classe[base3d_gci + j]--;
-                queue[jj].priority++;
+                for (int i = 0; i < actual_insegnanti; i++)
+                    if (queue[i].teacher == j)
+                        queue[i].priority++;
             }
         }
     }
@@ -172,7 +189,8 @@ int main(void) {
     fclose(f);
 
     const double elapsed = (clock() - start) / (double) CLOCKS_PER_SEC;
-    printf("Totale generati: %llu in %d m, %d s.", n_gen, (int) elapsed / 60, (int) elapsed % 60);
+    printf("Totale generati: %llu in %d m, %d s at %.0f KHz", n_gen, (int) elapsed / 60, (int) elapsed % 60,
+           n_gen / elapsed / 1000);
     fflush(stdout);
 
     return 0;

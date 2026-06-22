@@ -244,6 +244,56 @@ void mergeSort(int l, int r) {
         merge(queue, l, m, r);
     }
 }
+// Helper function to swap two QueueItem structures
+void swap(QueueItem* a, QueueItem* b) {
+    QueueItem t = *a;
+    *a = *b;
+    *b = t;
+}
+
+// Partition function based on QueueItem.priority
+int partition(QueueItem arr[], int l, int r) {
+    int pivot = arr[r].priority;
+    int i = l;
+    for (int j = l; j <= r - 1; j++) {
+        if (arr[j].priority <= pivot) {
+            swap(&arr[i], &arr[j]);
+            i++;
+        }
+    }
+    swap(&arr[i], &arr[r]);
+    return i;
+}
+
+// QuickSelect for QueueItem array (0-indexed)
+// 'n' is 0 for 1st min, 1 for 2nd min, etc.
+QueueItem quickSelect(int l, int r, int n, int* success) {
+    // Safety check: ensure n falls within the current subarray bounds
+    if (n >= 0 && n <= r - l) {
+        int index = partition(queue, l, r);
+
+        // Convert the pivot's absolute index to a relative 0-based position
+        int relative_position = index - l;
+
+        // Found the target element
+        if (relative_position == n) {
+            *success = 1;
+            return queue[index];
+        }
+
+        // Target is in the left partition
+        if (relative_position > n) {
+            return quickSelect(l, index - 1, n, success);
+        }
+
+        // Target is in the right partition (adjust n relative to the new subarray)
+        return quickSelect(index + 1, r, n - (relative_position + 1), success);
+    }
+
+    *success = 0;
+    QueueItem empty = {0, 0};
+    return empty;
+}
 
 head_tail_queue initialize_queue(const int num, const int maxelems) {
     if (num < maxelems) {
