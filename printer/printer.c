@@ -30,12 +30,13 @@ void copy_and_pad(char *dest, const char *src, int maxlen) {
     dest[maxlen - 1] = '\0';
 }
 
-void draw_horizontal_separator(int pos) {
-    printf("---+");
+void draw_horizontal_separator(FILE *f) {
+    f = f ? f : stdout;
+    fprintf(f, "---+");
     for (int i = 0; i < actual_giorni_settimana; i++) {
-        printf("---------------------------+");
+        fprintf(f, "---------------------------+");
     }
-    printf("\n");
+    fprintf(f, "\n");
 }
 
 // Helper 1: Prints the header block containing the current time and attempt number
@@ -82,13 +83,13 @@ void print(const int orario[], const int pos, unsigned long long attempt, FILE *
 
     for (int c = 0; c < actual_classi_sezione; c++) {
         print_days_header(pos, c, f);
-        draw_horizontal_separator(pos);
+        draw_horizontal_separator(f);
 
         for (int o = 0; o < actual_ore_giornaliere; o++) {
             // Print the row label (the specific hour slot)
             print_row_prof(orario, pos, ore_giornaliere[o], c, o, f);
 
-            draw_horizontal_separator(pos);
+            draw_horizontal_separator(f);
         }
     }
     fprintf(f, "\n");
