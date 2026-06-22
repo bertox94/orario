@@ -12,7 +12,7 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 long long int n_gen = 0;
-long long int n_gen_ok = 100000000; //= SCHEDULES_PER_GB * 5;
+long long int n_gen_ok = 10000000; //= SCHEDULES_PER_GB * 5;
 int orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
     [0 ... GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1] = -1
 };
@@ -107,21 +107,34 @@ void print_orario(const int pos) {
     const int base3d_gci = giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ;
     if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
         for (int jj = 0; jj < actual_insegnanti; jj++) {
-            int max_idx = jj; // Track the INDEX of the maximum element, not just the value
+            /* To test if memory holds
+            QueueItem new[INSEGNANTE_SZ];
+            printf("%d ", new[((int)&new)%INSEGNANTE_SZ]);
+            */
 
-            for (int k = jj + 1; k < actual_insegnanti; k++) {
-                // k can start at jj + 1
-                if (queue[k].priority > queue[max_idx].priority) {
-                    max_idx = k; // Found a higher priority, record its position
+            for (int h = 0; h <= jj; h++) {
+                int max_idx = h;
+                for (int k = h + 1; k < actual_insegnanti; k++) {
+                    if (queue[k].priority > queue[max_idx].priority) {
+                        // just ">" since equal priority will be placed in near positions
+                        max_idx = k; // Found a higher priority, record its position
+                    }
+                }
+
+                // ONLY SWAP ONCE after finding the true maximum for this position
+                if (max_idx != h) {
+                    QueueItem tmp = queue[h];
+                    queue[h] = queue[max_idx];
+                    queue[max_idx] = tmp;
                 }
             }
-
-            // ONLY SWAP ONCE after finding the true maximum for this position
-            if (max_idx != jj) {
-                QueueItem tmp = queue[jj];
-                queue[jj] = queue[max_idx];
-                queue[max_idx] = tmp;
-            }
+            /*
+                        for (int k = 0; k <= jj; k++) {
+                            for (int l = k + 1; l < INSEGNANTE_SZ; l++) {
+                                assert(queue[k].priority >= queue[l].priority);
+                            }
+                        }
+            */
             int j = queue[jj].teacher;
             //print_priority_queue(); // Printed once per outer loop pass
             if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
