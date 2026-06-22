@@ -13,7 +13,7 @@
 #define MAX_LEN_WORDS 50
 
 #define PRIME_N_ORE_OBBLIGATORIE 5
-#define MAX_ORE_STESSA_MATERIA_GIORNO 2
+#define MAX_ORE_STESSA_MATERIA_GIORNO 3
 
 extern char giorni_settimana[GIORNO_SETTIMANA_SZ][MAX_LEN_WORDS];
 extern char ore_giornaliere[ORA_GIORNALIERA_SZ][MAX_LEN_WORDS];
