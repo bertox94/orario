@@ -58,6 +58,8 @@ void set_classe_insegnante_ore(char cla[], char prof[], const int ore);
 
 int p_insegnante(const char in[]);
 
+int get_ore_classi_insegnante(int classe, int insegnante);
+
 void inizializza_dati();
 
 void stampa_dati();

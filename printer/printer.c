@@ -90,17 +90,7 @@ void print(const int orario[], const int pos, unsigned long long attempt) {
     }
     printf("\n");
 }
-/*
-void print_prioritt_queue(elp priority_queue, elp tail) {
-    for (elp i = priority_queue; i != NULL; i = i->next) {
-        if (i == priority_queue) printf("Head: ");
-        else if (i == tail) printf("Tail: ");
-        else printf("       ");
-        printf("%p: %s\t priority: %.2f\n", i, insegnanti[i->teacher], i->priority);
-    }
-    printf("------------\n");
-}
-*/
+
 void print_priority_queue(QueueItem queue[]) {
     for (int i = 0; i < actual_insegnanti; i++) {
         if (i == 0) printf("Head: ");
@@ -109,4 +99,39 @@ void print_priority_queue(QueueItem queue[]) {
         printf("%d)\t%s\t priority: %.2f\n", i, insegnanti[queue[i].teacher], queue[i].priority);
     }
     printf("------------\n");
+}
+
+void stampa_dati() {
+    printf("Giorni settimana: ");
+    for (int i = 0; i < actual_giorni_settimana - 1; i++)
+        printf("%s, ", giorni_settimana[i]);
+    if (actual_giorni_settimana - 1 > 0)
+        printf("%s\n", giorni_settimana[actual_giorni_settimana - 1]);
+    printf("Ore giornaliere: ");
+    for (int i = 0; i < actual_ore_giornaliere - 1; i++)
+        printf("%s, ", ore_giornaliere[i]);
+    if (actual_ore_giornaliere - 1 > 0)
+        printf("%s\n", ore_giornaliere[actual_ore_giornaliere - 1]);
+    printf("Ore classe:\n");
+    for (int i = 0; i < actual_classi_sezione; i++)
+        printf("Classe %s:\t%d ore\n", classe_sezione[i], ore_classi[i]);
+    printf("-----------\n");
+    printf("Ore insegnanti:\n");
+    for (int i = 0; i < actual_insegnanti; i++) {
+        char str[MAX_STR_SZ_IN_DISPLAY];
+        copy_and_pad(str, insegnanti[i], MAX_STR_SZ_IN_DISPLAY);
+        printf("Ins. %s: %d ore\n", str, ore_docenti[i]);
+    }
+    printf("-----------\n");
+    printf("Ore insegnanti in classe:\n");
+    for (int i = 0; i < actual_classi_sezione; i++) {
+        for (int j = 0; j < actual_insegnanti; j++) {
+            char str[MAX_STR_SZ_IN_DISPLAY];
+            copy_and_pad(str, insegnanti[j], MAX_STR_SZ_IN_DISPLAY);
+            if (get_ore_classi_insegnante(i, j) > 0)
+                printf("In %s\t%s\tha %d ore\n", classe_sezione[i], str, get_ore_classi_insegnante(i, j));
+        }
+        printf("\n");
+    }
+    printf("-----------\n");
 }
