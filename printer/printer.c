@@ -95,14 +95,14 @@ void print(const int orario[], const int pos, unsigned long long attempt, FILE *
     fprintf(f, "\n");
 }
 
-void print_priority_queue(QueueItem queue[]) {
+void print_priority_queue(QueueItem *queue[]) {
     for (int i = 0; i < actual_insegnanti; i++) {
         if (i == 0) printf("Head: ");
         else if (i == actual_insegnanti - 1) printf("Tail: ");
         else printf("       ");
         char str[MAX_STR_SZ_IN_DISPLAY];
-        copy_and_pad(str, insegnanti[queue[i].teacher], MAX_STR_SZ_IN_DISPLAY);
-        printf("%d)\t%s\t: %.2f\n", i, str, queue[i].priority);
+        copy_and_pad(str, insegnanti[queue[i]->teacher], MAX_STR_SZ_IN_DISPLAY);
+        printf("%d)\t%s\t: %.2f\n", i, str, queue[i]->priority);
     }
     printf("------------\n");
 }

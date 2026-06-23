@@ -12,7 +12,7 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 long long int n_gen = 0;
-long long int n_gen_ok = SCHEDULES_PER_GB;
+long long int n_gen_ok = 10 * SCHEDULES_PER_GB;
 int orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
     [0 ... GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1] = -1
 };
@@ -116,8 +116,8 @@ void print_orario(const int pos) {
     if (pos == orario_len) {
         if (verifica_ore_classe_materia()) {
             n_gen++;
-            printf("%lld ", n_gen);
-            print(orario, pos, n_gen, f);
+            //printf("%lld ", n_gen);
+            //print(orario, pos, n_gen, f);
         }
         return;
     }
@@ -132,33 +132,33 @@ void print_orario(const int pos) {
     const int base4d_queue = giorno * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + ora * CLASSE_SEZIONE_SZ *
                              INSEGNANTE_SZ + cla * INSEGNANTE_SZ;
     if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
-        const long long int jmax = base4d_queue + actual_insegnanti;
-        for (int jj = base4d_queue; jj < jmax; jj++) {
+        const long long int jjmax = base4d_queue + actual_insegnanti;
+        for (int jj = base4d_queue; jj < jjmax; jj++) {
             int max_idx = jj; // Track the INDEX of the maximum element, not just the value
 
-            for (int k = jj + 1; k < jmax; k++) {
+     /*       for (int p = base4d_queue; p < jj; p++) {
+                for (int q = p + 1; q < jjmax; q++) {
+                    if (!(queue_mul[p]->priority >= queue_mul[q]->priority))
+                        exit(-1);
+                }
+            }
+*/
+            for (int k = jj + 1; k < jjmax; k++) {
                 // k can start at jj + 1
-                if (queue_mul[k].priority > queue_mul[max_idx].priority) {
+                if (queue_mul[k]->priority > queue_mul[max_idx]->priority) {
                     max_idx = k; // Found a higher priority, record its position
                 }
             }
 
             // ONLY SWAP ONCE after finding the true maximum for this position
             if (max_idx != jj) {
-                QueueItem tmp = queue_mul[jj];
+                QueueItem *tmp = queue_mul[jj];
                 queue_mul[jj] = queue_mul[max_idx];
                 queue_mul[max_idx] = tmp;
             }
-            /*
-                        for (int p = base4d_queue; p <= jj; p++) {
-                            for (int q = p + 1; q < jmax; q++) {
-                                if (!(queue_mul[p].priority >= queue_mul[q].priority))
-                                    exit(-1);
-                            }
-                        }
-            */
-            int j = queue_mul[jj].teacher;
-            //print_priority_queue(); // Printed once per outer loop pass
+
+            int j = queue_mul[jj]->teacher;
+
             if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
                 !prof_gia_impegnato_giorno_ora[base3d_goi + j]
                 // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
@@ -172,7 +172,7 @@ void print_orario(const int pos) {
                 ore_classe_svolte[cla]++;
                 ore_docenti_svolte[j]++;
                 ore_prof_giorno_classe[base3d_gci + j]++;
-                queue_mul[jj].priority--;
+                queue_mul[jj]->priority--;
 
                 /* QueueItem new[actual_insegnanti];
                  memcpy(new, queue, sizeof(QueueItem) * actual_insegnanti);
@@ -181,7 +181,7 @@ void print_orario(const int pos) {
                 orario[pos] = j;
                 print_orario(pos + 1);
 
-                queue_mul[jj].priority++;
+                queue_mul[jj]->priority++;
                 ore_classi_docenti_svolte[base2d_ci + j]--;
                 prof_gia_impegnato_giorno_ora[base3d_goi + j] = 0;
                 ore_classe_svolte[cla]--;
@@ -207,12 +207,13 @@ int main(void) {
 
     printf("Program started at: %s\n", ctime(&currentTime));
     inizializza_dati();
+    stampa_dati();
     //imposta la lunghezza dell'orario
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
     //test(100);
 
     // if you initialize with less elements it will set the remaming elements to 0.
-    QueueItem queue[INSEGNANTE_SZ] = {0};
+    QueueItem *queue[INSEGNANTE_SZ] = {0};
 
     initialize_queue_arr(queue);
     print_priority_queue(queue);
@@ -234,13 +235,6 @@ int main(void) {
     for (size_t i = 0; i < num_blocks; i++) {
         memcpy(&queue_mul[i * INSEGNANTE_SZ], queue, sizeof(queue));
     }
-    /*
-
-    for (unsigned long long i = 0; i < size; i++) {
-        memcpy(queue_mul+i*INSEGNANTE_SZ, queue, INSEGNANTE_SZ*sizeof(QueueItem));
-    }
-*/
-    stampa_dati();
 
     //f = fopen("orario.txt", "w");
     f = fopen("orario.txt", "w");

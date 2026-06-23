@@ -337,17 +337,19 @@ head_tail_queue initialize_priority_queue(const int profs) {
 }
 */
 
-QueueItem *queue_mul;
+QueueItem **queue_mul;
 
-void initialize_queue_arr(QueueItem queue[]) {
+void initialize_queue_arr(QueueItem *queue[]) {
     for (int i = 0; i < actual_insegnanti; i++) {
-        QueueItem newItem = {.teacher = i, .priority = ore_docenti[i]};
+        QueueItem *newItem = malloc(sizeof(QueueItem));
+
+        *newItem = (QueueItem){i, ore_docenti[i]};
 
         // Find the correct position for newItem in the already initialized part of the array
         int j = i - 1;
 
         // Shift elements with smaller priorities to the right to make room
-        while (j >= 0 && queue[j].priority < newItem.priority) {
+        while (j >= 0 && queue[j]->priority < newItem->priority) {
             queue[j + 1] = queue[j];
             j--;
         }
