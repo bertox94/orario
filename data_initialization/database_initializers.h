@@ -46,8 +46,6 @@ extern int n_ore_buche[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ];
 extern int ore_prof_giorno_classe[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 //TODO: un prof vede una classe una sola volta al giorno
 
-extern int *queue_mul;
-
 void set_giorno_settimana(char giorno[]);
 
 void set_ora_giornaliera(char ora[]);

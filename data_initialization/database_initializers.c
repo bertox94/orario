@@ -37,8 +37,6 @@ int prof_gia_impegnato_giorno_ora[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INS
 int n_ore_buche[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ];
 int ore_prof_giorno_classe[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 
-int *queue_mul;
-
 /*
  * Conversions from string to id
  */
@@ -179,7 +177,7 @@ void inizializza_dati() {
     set_ora_giornaliera(Ora_11);
     set_ora_giornaliera(Ora_12);
     set_ora_giornaliera(Ora_13);
-
+/*
     set_classe_insegnante_ore(Classe_3A, BanderaS, 2);
     set_classe_insegnante_ore(Classe_3A, TosadoriF, 3);
     set_classe_insegnante_ore(Classe_3A, BosioA, 6);
@@ -286,7 +284,7 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_4E, Torbol, 2);
     set_classe_insegnante_ore(Classe_4E, Trivini, 3);
     set_classe_insegnante_ore(Classe_4E, Quaini, 1);
-    set_classe_insegnante_ore(Classe_4E, Alves, 3);
+    set_classe_insegnante_ore(Classe_4E, Alves, 3);*/
 
     set_classe_insegnante_ore(Classe_5E, Berno, 3);
     set_classe_insegnante_ore(Classe_5E, DalZovo, 6);

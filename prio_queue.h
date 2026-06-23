@@ -11,5 +11,7 @@ typedef struct el {
     double priority;
 } QueueItem, *elp;
 
+extern QueueItem *queue_mul;
+
 void initialize_queue_arr(QueueItem queue[]);
 #endif //UNTITLED_PRIO_QUEUE_H

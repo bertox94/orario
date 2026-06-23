@@ -337,6 +337,8 @@ head_tail_queue initialize_priority_queue(const int profs) {
 }
 */
 
+QueueItem *queue_mul;
+
 void initialize_queue_arr(QueueItem queue[]) {
     for (int i = 0; i < actual_insegnanti; i++) {
         QueueItem newItem = {.teacher = i, .priority = ore_docenti[i]};
