@@ -177,7 +177,7 @@ void inizializza_dati() {
     set_ora_giornaliera(Ora_11);
     set_ora_giornaliera(Ora_12);
     set_ora_giornaliera(Ora_13);
-/*
+
     set_classe_insegnante_ore(Classe_3A, BanderaS, 2);
     set_classe_insegnante_ore(Classe_3A, TosadoriF, 3);
     set_classe_insegnante_ore(Classe_3A, BosioA, 6);
@@ -206,7 +206,7 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_3C, Quaini, 1);
     set_classe_insegnante_ore(Classe_3C, Nicoletti, 2);
     set_classe_insegnante_ore(Classe_3C, GelminiE, 4);
-    set_classe_insegnante_ore(Classe_3C, PerghemE, 4);
+    set_classe_insegnante_ore(Classe_3C, PerghemE, 4); //30 KHz
 
     set_classe_insegnante_ore(Classe_3D, IncorvaiaL, 5);
     set_classe_insegnante_ore(Classe_3D, PerliniM, 4);
@@ -216,7 +216,7 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_3D, LoMeleC, 6);
     set_classe_insegnante_ore(Classe_3D, Quaini, 1);
     set_classe_insegnante_ore(Classe_3D, YuC, 4);
-    set_classe_insegnante_ore(Classe_3D, PisatiM, 2);
+    set_classe_insegnante_ore(Classe_3D, PisatiM, 2); //21 KHz
 
     set_classe_insegnante_ore(Classe_3E, Berno, 4);
     set_classe_insegnante_ore(Classe_3E, DalZovo, 6);
@@ -227,7 +227,7 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_3E, Quaini, 1);
     set_classe_insegnante_ore(Classe_3E, Tiraboschi, 4);
     set_classe_insegnante_ore(Classe_3E, Alves, 3);
-
+/*
     set_classe_insegnante_ore(Classe_3F, Sannino, 4);
     set_classe_insegnante_ore(Classe_3F, Bortolotti, 6);
     set_classe_insegnante_ore(Classe_3F, Ricciardi, 3);
@@ -284,7 +284,7 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_4E, Torbol, 2);
     set_classe_insegnante_ore(Classe_4E, Trivini, 3);
     set_classe_insegnante_ore(Classe_4E, Quaini, 1);
-    set_classe_insegnante_ore(Classe_4E, Alves, 3);*/
+    set_classe_insegnante_ore(Classe_4E, Alves, 3);
 
     set_classe_insegnante_ore(Classe_5E, Berno, 3);
     set_classe_insegnante_ore(Classe_5E, DalZovo, 6);
@@ -295,7 +295,7 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_5E, Cerini, 3);
     set_classe_insegnante_ore(Classe_5E, Alves, 3);
     set_classe_insegnante_ore(Classe_5E, Quaini, 1);
-
+*/
 
     for (int i = 0; i < actual_classi_sezione; i++) {
         assert(ore_classi[i] <= actual_giorni_settimana * actual_ore_giornaliere);

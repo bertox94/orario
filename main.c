@@ -12,7 +12,7 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 long long int n_gen = 0;
-long long int n_gen_ok = SCHEDULES_PER_GB * 2;
+long long int n_gen_ok = SCHEDULES_PER_GB;
 int orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
     [0 ... GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1] = -1
 };
@@ -100,12 +100,12 @@ void print_orario(const int pos) {
     if (pos == orario_len) {
         if (verifica_ore_classe_materia()) {
             n_gen++;
-            //printf("%lld ", n_gen);
+            printf("%lld ", n_gen);
             print(orario, pos, n_gen, f);
         }
         return;
     }
-    //print(orario, pos, n_gen, f);
+    //print(orario, pos, n_gen, NULL);
 
     const int giorno = g_giorno(pos);
     const int ora = g_ora(pos);
@@ -121,7 +121,7 @@ void print_orario(const int pos) {
         for (int jj = base4d_queue; jj < jmax; jj++) {
             int max_idx = jj; // Track the INDEX of the maximum element, not just the value
 
-            for (int k = jj + 1; k < actual_insegnanti; k++) {
+            for (int k = jj + 1; k < jmax; k++) {
                 // k can start at jj + 1
                 if (queue_mul[k].priority >= queue_mul[max_idx].priority) {
                     max_idx = k; // Found a higher priority, record its position
@@ -136,8 +136,9 @@ void print_orario(const int pos) {
             }
 
             for (int p = base4d_queue; p <= jj; p++) {
-                for (int q = p + 1; q < actual_insegnanti; q++) {
-                    assert(queue_mul[p].priority >= queue_mul[q].priority);
+                for (int q = p + 1; q < jmax; q++) {
+                    if (!(queue_mul[p].priority >= queue_mul[q].priority))
+                        exit(-1);
                 }
             }
 
@@ -192,22 +193,29 @@ int main(void) {
     //imposta la lunghezza dell'orario
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
     //test(100);
-    QueueItem queue[INSEGNANTE_SZ];
-    memset(queue, 0, sizeof(QueueItem) * INSEGNANTE_SZ);
+
+    // if you initialize with less elements it will set the remaming elements to 0.
+    QueueItem queue[INSEGNANTE_SZ] = {0};
 
     initialize_queue_arr(queue);
     print_priority_queue(queue);
 
-    queue_mul = malloc(
-        GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * sizeof(QueueItem));
+    // 2. Extracted the total dimension to avoid recalculating
+    const size_t num_blocks = GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ;
+    const size_t total_elements = num_blocks * INSEGNANTE_SZ;
 
-    unsigned long long size = GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ;
+    // 3. Type-safe malloc (no explicit cast needed in C, but use sizeof(*ptr))
+    queue_mul = malloc(total_elements * sizeof(*queue_mul));
 
-    for (int i = 0; i < GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ; i++) {
-        for (int j = 0; j < INSEGNANTE_SZ; j++) {
-            queue_mul[i * INSEGNANTE_SZ + j] = queue[j];
-            //printf("%d)\t%d %.0f\n",i * INSEGNANTE_SZ + j, queue_mul[i * INSEGNANTE_SZ + j].teacher, queue_mul[i * INSEGNANTE_SZ + j].priority);
-        }
+    if (queue_mul == NULL) {
+        // Always handle allocation failures!
+        fprintf(stderr, "Memory allocation failed\n");
+        return 0;
+    }
+
+    // 4. Highly optimized copying using memcpy instead of a nested loop
+    for (size_t i = 0; i < num_blocks; i++) {
+        memcpy(&queue_mul[i * INSEGNANTE_SZ], queue, sizeof(queue));
     }
     /*
 
