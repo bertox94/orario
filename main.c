@@ -92,6 +92,22 @@ int *int_alloc(size_t len) {
     return p;
 }
 
+void print_up_to(QueueItem arr[], int pos) {
+    for (int i = 0; i < pos; i++) {
+        printf("%d)\t %d %.0f ", i, arr[i].teacher, arr[i].priority);
+    }
+    printf("\n");
+}
+
+
+void debug(const int base3d_goi, const int base2d_ci, const int base3d_gci, int j) {
+    if (ore_classi_docenti[base2d_ci + j] == 0) return;
+    printf("Insegnante: %s\n", insegnanti[j]);
+    if (prof_gia_impegnato_giorno_ora[base3d_goi + j]) printf("Già impegnato ");
+    if (ore_classi_docenti_svolte[base2d_ci + j] >= ore_classi_docenti[base2d_ci + j]) printf("Ore eccessive ");
+    if (ore_prof_giorno_classe[base3d_gci + j] >= MAX_ORE_STESSA_MATERIA_GIORNO) printf("Già fatto n ore oggi ");
+    printf("\n");
+}
 
 void print_orario(const int pos) {
     if (n_gen_ok <= n_gen) return;
@@ -105,7 +121,6 @@ void print_orario(const int pos) {
         }
         return;
     }
-    //print(orario, pos, n_gen, NULL);
 
     const int giorno = g_giorno(pos);
     const int ora = g_ora(pos);
@@ -123,7 +138,7 @@ void print_orario(const int pos) {
 
             for (int k = jj + 1; k < jmax; k++) {
                 // k can start at jj + 1
-                if (queue_mul[k].priority >= queue_mul[max_idx].priority) {
+                if (queue_mul[k].priority > queue_mul[max_idx].priority) {
                     max_idx = k; // Found a higher priority, record its position
                 }
             }
@@ -134,14 +149,14 @@ void print_orario(const int pos) {
                 queue_mul[jj] = queue_mul[max_idx];
                 queue_mul[max_idx] = tmp;
             }
-
-            for (int p = base4d_queue; p <= jj; p++) {
-                for (int q = p + 1; q < jmax; q++) {
-                    if (!(queue_mul[p].priority >= queue_mul[q].priority))
-                        exit(-1);
-                }
-            }
-
+            /*
+                        for (int p = base4d_queue; p <= jj; p++) {
+                            for (int q = p + 1; q < jmax; q++) {
+                                if (!(queue_mul[p].priority >= queue_mul[q].priority))
+                                    exit(-1);
+                            }
+                        }
+            */
             int j = queue_mul[jj].teacher;
             //print_priority_queue(); // Printed once per outer loop pass
             if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
@@ -157,14 +172,16 @@ void print_orario(const int pos) {
                 ore_classe_svolte[cla]++;
                 ore_docenti_svolte[j]++;
                 ore_prof_giorno_classe[base3d_gci + j]++;
-
+                queue_mul[jj].priority--;
 
                 /* QueueItem new[actual_insegnanti];
                  memcpy(new, queue, sizeof(QueueItem) * actual_insegnanti);
                  new[jj].priority--;*/
+
                 orario[pos] = j;
                 print_orario(pos + 1);
 
+                queue_mul[jj].priority++;
                 ore_classi_docenti_svolte[base2d_ci + j]--;
                 prof_gia_impegnato_giorno_ora[base3d_goi + j] = 0;
                 ore_classe_svolte[cla]--;

@@ -206,7 +206,7 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_3C, Quaini, 1);
     set_classe_insegnante_ore(Classe_3C, Nicoletti, 2);
     set_classe_insegnante_ore(Classe_3C, GelminiE, 4);
-    set_classe_insegnante_ore(Classe_3C, PerghemE, 4); //30 KHz
+    set_classe_insegnante_ore(Classe_3C, PerghemE, 4); //50 KHz
 
     set_classe_insegnante_ore(Classe_3D, IncorvaiaL, 5);
     set_classe_insegnante_ore(Classe_3D, PerliniM, 4);
@@ -216,7 +216,7 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_3D, LoMeleC, 6);
     set_classe_insegnante_ore(Classe_3D, Quaini, 1);
     set_classe_insegnante_ore(Classe_3D, YuC, 4);
-    set_classe_insegnante_ore(Classe_3D, PisatiM, 2); //21 KHz
+    set_classe_insegnante_ore(Classe_3D, PisatiM, 2); //38 KHz
 
     set_classe_insegnante_ore(Classe_3E, Berno, 4);
     set_classe_insegnante_ore(Classe_3E, DalZovo, 6);
