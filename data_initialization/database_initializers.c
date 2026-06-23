@@ -277,6 +277,16 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_3Q, BoschettiS, 2);
     set_classe_insegnante_ore(Classe_3Q, PeressuttiPL, 1); //28 KHz
 
+    set_classe_insegnante_ore(Classe_4A, SperandeoF, 6);
+    set_classe_insegnante_ore(Classe_4A, MenapaceP, 7);
+    set_classe_insegnante_ore(Classe_4A, TosadoriF, 3);
+    set_classe_insegnante_ore(Classe_4A, GuidiA, 5);
+    set_classe_insegnante_ore(Classe_4A, DorinP, 4);
+    set_classe_insegnante_ore(Classe_4A, OrioS, 4);
+    set_classe_insegnante_ore(Classe_4A, Marchione, 1);
+    set_classe_insegnante_ore(Classe_4A, BanderaS, 2); //20 KHz
+
+
     set_classe_insegnante_ore(Classe_4E, Berno, 4);
     set_classe_insegnante_ore(Classe_4E, Pizzatti, 6);
     set_classe_insegnante_ore(Classe_4E, Sciambarella, 7);
@@ -284,7 +294,7 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_4E, Torbol, 2);
     set_classe_insegnante_ore(Classe_4E, Trivini, 3);
     set_classe_insegnante_ore(Classe_4E, Quaini, 1);
-    set_classe_insegnante_ore(Classe_4E, Alves, 3); //25 KHz
+    set_classe_insegnante_ore(Classe_4E, Alves, 3);
 
     set_classe_insegnante_ore(Classe_5E, Berno, 3);
     set_classe_insegnante_ore(Classe_5E, DalZovo, 6);
@@ -294,7 +304,7 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_5E, Caniato, 4);
     set_classe_insegnante_ore(Classe_5E, Cerini, 3);
     set_classe_insegnante_ore(Classe_5E, Alves, 3);
-    set_classe_insegnante_ore(Classe_5E, Quaini, 1); //22 KHz
+    set_classe_insegnante_ore(Classe_5E, Quaini, 1);
 
 
     for (int i = 0; i < actual_classi_sezione; i++) {

@@ -78,6 +78,7 @@ char TonoliE[] = "E. Tonoli";
 char ZaniE[] = "E. Zani";
 char CultraroMR[] = "MR. Cultraro";
 char BoschettiS[] = "S. Boschetti";
+char MenapaceP[] = "P. Menapace";
 
 
 #endif //UNTITLED_PROFESSORS_H
