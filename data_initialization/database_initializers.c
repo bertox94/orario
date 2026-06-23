@@ -286,7 +286,35 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_4A, Marchione, 1);
     set_classe_insegnante_ore(Classe_4A, BanderaS, 2); //20 KHz
 
+    set_classe_insegnante_ore(Classe_4B, CavallariM, 4);
+    set_classe_insegnante_ore(Classe_4B, MenapaceP, 3);
+    set_classe_insegnante_ore(Classe_4B, CapuanoM, 4);
+    set_classe_insegnante_ore(Classe_4B, DalZovo, 6);
+    set_classe_insegnante_ore(Classe_4B, RossiP, 5);
+    set_classe_insegnante_ore(Classe_4B, RovettaR, 4);
+    set_classe_insegnante_ore(Classe_4B, BurattiI, 3);
+    set_classe_insegnante_ore(Classe_4B, Marchione, 1);
+    set_classe_insegnante_ore(Classe_4B, BanderaS, 2);  //23 Khz
 
+    set_classe_insegnante_ore(Classe_4C, RossiJ, 4);
+    set_classe_insegnante_ore(Classe_4C, VivaG, 6);
+    set_classe_insegnante_ore(Classe_4C, BorghettiF, 3);
+    set_classe_insegnante_ore(Classe_4C, GelminiE, 5);
+    set_classe_insegnante_ore(Classe_4C, PerghemE, 5);
+    set_classe_insegnante_ore(Classe_4C, StefaniniR, 6);
+    set_classe_insegnante_ore(Classe_4C, PeressuttiPL, 1);
+    set_classe_insegnante_ore(Classe_4C, Nicoletti, 2); //20 KHz
+
+    set_classe_insegnante_ore(Classe_4D, GelminiE, 6);
+    set_classe_insegnante_ore(Classe_4D, CavallariM, 3);
+    set_classe_insegnante_ore(Classe_4D, AvinoG, 4);
+    set_classe_insegnante_ore(Classe_4D, LavelliA, 5);
+    set_classe_insegnante_ore(Classe_4D, MarchiD, 6);
+    set_classe_insegnante_ore(Classe_4D, FuscoG, 5);
+    set_classe_insegnante_ore(Classe_4D, Marchione, 1);
+    set_classe_insegnante_ore(Classe_4D, Nicoletti, 2); //18 KHz
+
+    /*
     set_classe_insegnante_ore(Classe_4E, Berno, 4);
     set_classe_insegnante_ore(Classe_4E, Pizzatti, 6);
     set_classe_insegnante_ore(Classe_4E, Sciambarella, 7);
@@ -304,7 +332,7 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_5E, Caniato, 4);
     set_classe_insegnante_ore(Classe_5E, Cerini, 3);
     set_classe_insegnante_ore(Classe_5E, Alves, 3);
-    set_classe_insegnante_ore(Classe_5E, Quaini, 1);
+    set_classe_insegnante_ore(Classe_5E, Quaini, 1);*/
 
 
     for (int i = 0; i < actual_classi_sezione; i++) {

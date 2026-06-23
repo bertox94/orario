@@ -16,5 +16,8 @@ char Classe_3K[] = "3K";
 char Classe_3Q[] = "3Q";
 char Classe_4E[] = "4E";
 char Classe_4A[] = "4A";
+char Classe_4B[] = "4B";
+char Classe_4C[] = "4C";
+char Classe_4D[] = "4D";
 char Classe_5E[] = "5E";
 #endif //UNTITLED_CLASS_H

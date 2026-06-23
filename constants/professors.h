@@ -79,6 +79,9 @@ char ZaniE[] = "E. Zani";
 char CultraroMR[] = "MR. Cultraro";
 char BoschettiS[] = "S. Boschetti";
 char MenapaceP[] = "P. Menapace";
-
+char CavallariM[] = "M. Cavallari";
+char VivaG[] = "G. Viva";
+char StefaniniR[] = "R. Stefanini";
+char MarchiD[] = "D. Marchi";
 
 #endif //UNTITLED_PROFESSORS_H
