@@ -8,7 +8,7 @@
 #include "data_initialization/database_initializers.h"
 #include "printer/printer.h"
 
-#define SCHEDULES_PER_GB 60500
+#define SCHEDULES_PER_GB 60000
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 long long int n_gen = 0;
@@ -101,7 +101,7 @@ void print_orario(const int pos, QueueItem queue[]) {
         if (verifica_ore_classe_materia()) {
             n_gen++;
             //printf("%lld ", n_gen);
-            print(orario, pos, n_gen, f);
+            print(orario, pos, n_gen, NULL);
         }
         return;
     }
@@ -180,7 +180,6 @@ int main(void) {
 
     printf("Program started at: %s\n", ctime(&currentTime));
     inizializza_dati();
-    stampa_dati();
     //imposta la lunghezza dell'orario
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
     //test(100);
@@ -188,6 +187,15 @@ int main(void) {
 
     initialize_queue_arr(queue);
     print_priority_queue(queue);
+    
+    queue_mul = int_alloc(GIORNO_SETTIMANA_SZ*ORA_GIORNALIERA_SZ*CLASSE_SEZIONE_SZ*INSEGNANTE_SZ);
+
+    unsigned long long size = GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ;
+    for (unsigned long long i = 0; i < size; i++) {
+        memcpy(queue_mul+i*INSEGNANTE_SZ, queue, INSEGNANTE_SZ);
+    }
+
+    stampa_dati();
 
     //f = fopen("orario.txt", "w");
     f = fopen("orario.txt", "w");
@@ -197,7 +205,7 @@ int main(void) {
 
     const double elapsed = (clock() - start) / (double) CLOCKS_PER_SEC;
     printf("Totale generati: %llu in %d m, %d s at %.0f KHz", n_gen, (int) elapsed / 60, (int) elapsed % 60,
-           n_gen / elapsed / 1000);
+           (double)n_gen / elapsed / 1000);
     fflush(stdout);
 
     return 0;
