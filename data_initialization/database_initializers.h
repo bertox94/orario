@@ -60,6 +60,8 @@ int p_insegnante(const char in[]);
 
 int get_ore_classi_insegnante(int classe, int insegnante);
 
+int get_ore_classi_insegnante_svolte(int classe, int insegnante);
+
 void inizializza_dati();
 
 void stampa_dati();

@@ -91,6 +91,13 @@ void print(const int orario[], const int pos, unsigned long long attempt, FILE *
 
             draw_horizontal_separator(f);
         }
+        for (int j = 0; j < actual_insegnanti; j++) {
+            char str[MAX_STR_SZ_IN_DISPLAY];
+            copy_and_pad(str, insegnanti[j], MAX_STR_SZ_IN_DISPLAY);
+            if (get_ore_classi_insegnante(c, j) > 0)
+                fprintf(f,"%s\tha svolto %d ore su %d\n", str, get_ore_classi_insegnante_svolte(c, j),
+                       get_ore_classi_insegnante(c, j));
+        }
     }
     fprintf(f, "\n");
 }
@@ -131,11 +138,12 @@ void stampa_dati() {
     printf("-----------\n");
     printf("Ore insegnanti in classe:\n");
     for (int i = 0; i < actual_classi_sezione; i++) {
+        printf("In %s:\n", classe_sezione[i]);
         for (int j = 0; j < actual_insegnanti; j++) {
             char str[MAX_STR_SZ_IN_DISPLAY];
             copy_and_pad(str, insegnanti[j], MAX_STR_SZ_IN_DISPLAY);
             if (get_ore_classi_insegnante(i, j) > 0)
-                printf("In %s\t%s\tha %d ore\n", classe_sezione[i], str, get_ore_classi_insegnante(i, j));
+                printf("%s\tha %d ore\n", str, get_ore_classi_insegnante(i, j));
         }
         printf("\n");
     }
