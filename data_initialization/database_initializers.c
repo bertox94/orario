@@ -290,7 +290,7 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_4A, Marchione, 1);
     set_classe_insegnante_ore(Classe_4A, BanderaS, 2); //20 KHz
 
-    /*  set_classe_insegnante_ore(Classe_4B, CavallariM, 4);
+/*      set_classe_insegnante_ore(Classe_4B, CavallariM, 4);
       set_classe_insegnante_ore(Classe_4B, MenapaceP, 3);
       set_classe_insegnante_ore(Classe_4B, CapuanoM, 4);
       set_classe_insegnante_ore(Classe_4B, DalZovo, 6);

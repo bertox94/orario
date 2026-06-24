@@ -13,7 +13,7 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 long long int n_gen = 0;
-long long int n_gen_ok = 10;//SCHEDULES_PER_GB;
+long long int n_gen_ok = SCHEDULES_PER_GB;
 int orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
     [0 ... GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1] = -1
 };
@@ -106,7 +106,7 @@ void debug(const int base3d_goi, const int base2d_ci, const int base3d_gci, int 
     printf("Insegnante: %s\n", insegnanti[j]);
     if (prof_gia_impegnato_giorno_ora[base3d_goi + j]) printf("Già impegnato ");
     if (ore_classi_docenti_svolte[base2d_ci + j] >= ore_classi_docenti[base2d_ci + j]) printf("Ore eccessive ");
-    if (ore_prof_giorno_classe[base3d_gci + j] >= MAX_ORE_STESSA_MATERIA_GIORNO) printf("Già fatto n ore oggi ");
+    if (ore_prof_giorno_classe[base3d_gci + j] >= MAX_ORE_STESSO_PROF_GIORNO) printf("Già fatto n ore oggi ");
     printf("\n");
 }
 
@@ -118,10 +118,12 @@ void print_orario(const int pos) {
         if (verifica_ore_classe_materia()) {
             n_gen++;
             //printf("%lld ", n_gen);
-            //print(orario, pos, n_gen, f);
+            print(orario, pos, n_gen, f);
         }
         return;
     }
+
+    //print(orario, pos, n_gen, NULL);
 
     const int giorno = g_giorno(pos);
     const int ora = g_ora(pos);
@@ -137,13 +139,13 @@ void print_orario(const int pos) {
         for (int jj = base4d_queue; jj < jjmax; jj++) {
             int max_idx = jj; // Track the INDEX of the maximum element, not just the value
 
-     /*       for (int p = base4d_queue; p < jj; p++) {
-                for (int q = p + 1; q < jjmax; q++) {
-                    if (!(queue_mul[p]->priority >= queue_mul[q]->priority))
-                        exit(-1);
-                }
-            }
-*/
+            /*       for (int p = base4d_queue; p < jj; p++) {
+                       for (int q = p + 1; q < jjmax; q++) {
+                           if (!(queue_mul[p]->priority >= queue_mul[q]->priority))
+                               exit(-1);
+                       }
+                   }
+       */
             for (int k = jj + 1; k < jjmax; k++) {
                 // k can start at jj + 1
                 if (queue_mul[k]->priority > queue_mul[max_idx]->priority) {
@@ -160,13 +162,22 @@ void print_orario(const int pos) {
 
             int j = queue_mul[jj]->teacher;
 
+            // in case the previous teacher needed two hours they must be done one after another
+            // maybe need a schedule like all the teachers
+            if (giorno == actual_giorni_settimana - 1 && ora > 0) {
+                int prev_prof = orario[pos - actual_classi_sezione];
+                if (prev_prof != -1 && ore_classi_docenti[base2d_ci + prev_prof] - ore_classi_docenti_svolte[
+                        base2d_ci + prev_prof] == 1) {
+                    j = prev_prof;
+                }
+            }
             if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
                 !prof_gia_impegnato_giorno_ora[base3d_goi + j]
                 // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
                 && ore_classi_docenti_svolte[base2d_ci + j] < ore_classi_docenti[base2d_ci + j]
                 //max 2 ore stesso prof in ciascuna classe ogni giorno, anche se non contigue
-                && ore_prof_giorno_classe[base3d_gci + j] < MAX_ORE_STESSA_MATERIA_GIORNO
-                //&& verifica_lezione_in_giorno(pos, base3d_gci, j)
+                && ore_prof_giorno_classe[base3d_gci + j] < MAX_ORE_STESSO_PROF_GIORNO
+                && verifica_lezione_in_giorno(pos, base3d_gci, j)
                 && 1) {
                 ore_classi_docenti_svolte[base2d_ci + j]++;
                 prof_gia_impegnato_giorno_ora[base3d_goi + j] = 1;
