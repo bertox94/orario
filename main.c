@@ -89,7 +89,8 @@ int sabato_esaurisci_priorita_subito(int giorno, int ora, int cla, int base2d_ci
     //check if max ore materia is bigger than 2
     if (giorno == actual_giorni_settimana - 1 && ora > 0) {
         int prev_prof = ultimo_prof_classe_in_giorno[base2d_gc + cla];
-        if (prev_prof != -1 && ore_classi_docenti[base2d_ci + prev_prof] - ore_classi_docenti_svolte[
+        //no need to check != -1 since we check already that ora > 0
+        if (ore_classi_docenti[base2d_ci + prev_prof] - ore_classi_docenti_svolte[
                 base2d_ci + prev_prof] == 1) {
             return prof == prev_prof;
         }
@@ -182,12 +183,8 @@ void print_orario(const int pos) {
                 ore_docenti_svolte[j]++;
                 ore_prof_giorno_classe[base3d_gci + j]++;
                 queue_mul[jj]->priority--;
-                int ultimo_prof_copy = ultimo_prof_classe_in_giorno[base2d_gc + cla];
+                const int ultimo_prof_copy = ultimo_prof_classe_in_giorno[base2d_gc + cla];
                 ultimo_prof_classe_in_giorno[base2d_gc + cla] = j;
-
-                /* QueueItem new[actual_insegnanti];
-                 memcpy(new, queue, sizeof(QueueItem) * actual_insegnanti);
-                 new[jj].priority--;*/
 
                 orario[pos] = j;
                 print_orario(pos + 1);

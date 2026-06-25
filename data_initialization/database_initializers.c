@@ -292,7 +292,7 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_4A, Marchione, 1);
     set_classe_insegnante_ore(Classe_4A, BanderaS, 2); //20 KHz
 
-/*      set_classe_insegnante_ore(Classe_4B, CavallariM, 4);
+      set_classe_insegnante_ore(Classe_4B, CavallariM, 4);
       set_classe_insegnante_ore(Classe_4B, MenapaceP, 3);
       set_classe_insegnante_ore(Classe_4B, CapuanoM, 4);
       set_classe_insegnante_ore(Classe_4B, DalZovo, 6);
@@ -320,7 +320,7 @@ void inizializza_dati() {
       set_classe_insegnante_ore(Classe_4D, Marchione, 1);
       set_classe_insegnante_ore(Classe_4D, Nicoletti, 2); //18 KHz
 
-      /*
+
       set_classe_insegnante_ore(Classe_4E, Berno, 4);
       set_classe_insegnante_ore(Classe_4E, Pizzatti, 6);
       set_classe_insegnante_ore(Classe_4E, Sciambarella, 7);
@@ -330,7 +330,7 @@ void inizializza_dati() {
       set_classe_insegnante_ore(Classe_4E, Quaini, 1);
       set_classe_insegnante_ore(Classe_4E, Alves, 3);
 
-      set_classe_insegnante_ore(Classe_5E, Berno, 3);
+  /*  set_classe_insegnante_ore(Classe_5E, Berno, 3);
       set_classe_insegnante_ore(Classe_5E, DalZovo, 6);
       set_classe_insegnante_ore(Classe_5E, Sciambarella, 4);
       set_classe_insegnante_ore(Classe_5E, Masetti, 6);
