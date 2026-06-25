@@ -81,17 +81,7 @@ int solo_lezioni_consecutive(int pos, int base3d_gci, int cla, int insegnante) {
     if (ore_prof_giorno_classe[base3d_gci + insegnante] == 0) return 1;
     // no need to check pos - actual_classi_sezione > 0 since the first hour has no teacher,
     // so it would just have returned
-    return orario[pos - actual_classi_sezione] == insegnante;
-}
-
-int sabato_esaurisci_priorita(int giorno, int ora, int base3d_gci, int cla, int insegnante) {
-    if (giorno == actual_giorni_settimana - 1 && ora > 0) {
-        int ultimo_prof = ultimo_prof_classe[cla];
-        if (ultimo_prof != -1 && ore_classe_svolte[base3d_gci + ultimo_prof] - ore_classi_docenti_svolte[
-                base3d_gci + ultimo_prof] > 0)
-            return ultimo_prof == insegnante;
-    }
-    return 1;
+    return ultimo_prof_classe[cla] == insegnante;
 }
 
 int *int_alloc(size_t len) {
@@ -127,13 +117,13 @@ void print_orario(const int pos) {
     if (pos == orario_len) {
         if (verifica_ore_classe_materia()) {
             n_gen++;
-            printf("%lld ", n_gen);
-            //print(orario, pos, n_gen, f);
+            //printf("%lld ", n_gen);
+            print(orario, pos, n_gen, f);
         }
         return;
     }
 
-    print(orario, pos, n_gen, NULL);
+    //print(orario, pos, n_gen, NULL);
 
     const int giorno = g_giorno(pos);
     const int ora = g_ora(pos);
@@ -187,8 +177,7 @@ void print_orario(const int pos) {
                 && ore_classi_docenti_svolte[base2d_ci + j] < ore_classi_docenti[base2d_ci + j]
                 //max 2 ore stesso prof in ciascuna classe ogni giorno, anche se non contigue
                 && ore_prof_giorno_classe[base3d_gci + j] < MAX_ORE_STESSO_PROF_GIORNO
-                && solo_lezioni_consecutive(pos, base2d_ci, cla, j)
-               // && sabato_esaurisci_priorita(giorno, ora, base2d_ci, cla, j)
+                && solo_lezioni_consecutive(pos, base3d_gci, cla, j)
                 && 1) {
                 ore_classi_docenti_svolte[base2d_ci + j]++;
                 prof_gia_impegnato_giorno_ora[base3d_goi + j] = 1;
