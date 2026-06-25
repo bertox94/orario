@@ -36,7 +36,9 @@ int ore_docenti_svolte[INSEGNANTE_SZ];
 int prof_gia_impegnato_giorno_ora[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ];
 int n_ore_buche[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ];
 int ore_prof_giorno_classe[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
-int ultimo_prof_classe[CLASSE_SEZIONE_SZ];
+int ultimo_prof_classe[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ] = {
+    [0 ... GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ - 1] = -1
+};
 /*
  * Conversions from string to id
  */
