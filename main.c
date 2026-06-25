@@ -81,16 +81,20 @@ int solo_lezioni_consecutive(int base2d_gc, int base3d_gci, int cla, int insegna
     if (ore_prof_giorno_classe[base3d_gci + insegnante] == 0) return 1;
     // no need to check pos - actual_classi_sezione > 0 since the first hour has no teacher,
     // so it would just have returned
-    return ultimo_prof_classe[base2d_gc+cla] == insegnante;
+    return ultimo_prof_classe_in_giorno[base2d_gc + cla] == insegnante;
 }
 
-int *int_alloc(size_t len) {
-    int *p = malloc(len * sizeof(int));
-    if (p == NULL) {
-        printf("Errore allocazione memoria\n");
-        exit(EXIT_FAILURE);
+int sabato_esaurisci_priorita_subito(int giorno, int ora, int cla, int base2d_ci, int base2d_gc, int prof) {
+    // maybe need a schedule like all the teachers
+    //check if max ore materia is bigger than 2
+    if (giorno == actual_giorni_settimana - 1 && ora > 0) {
+        int prev_prof = ultimo_prof_classe_in_giorno[base2d_gc + cla];
+        if (prev_prof != -1 && ore_classi_docenti[base2d_ci + prev_prof] - ore_classi_docenti_svolte[
+                base2d_ci + prev_prof] == 1) {
+            return prof == prev_prof;
+        }
     }
-    return p;
+    return 1;
 }
 
 void print_up_to(QueueItem arr[], int pos) {
@@ -117,7 +121,7 @@ void print_orario(const int pos) {
     if (pos == orario_len) {
         if (verifica_ore_classe_materia()) {
             n_gen++;
-            printf("%lld ", n_gen);
+            //printf("%lld ", n_gen);
             //print(orario, pos, n_gen, f);
         }
         return;
@@ -162,22 +166,15 @@ void print_orario(const int pos) {
 
             int j = queue_mul[jj]->teacher;
 
-            // in case the previous teacher needed two hours they must be done one after another
-            // maybe need a schedule like all the teachers
-            if (giorno == actual_giorni_settimana - 1 && ora > 0) {
-                int prev_prof = orario[pos - actual_classi_sezione];
-                if (prev_prof != -1 && ore_classi_docenti[base2d_ci + prev_prof] - ore_classi_docenti_svolte[
-                        base2d_ci + prev_prof] == 1) {
-                    j = prev_prof;
-                }
-            }
             if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
                 !prof_gia_impegnato_giorno_ora[base3d_goi + j]
                 // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
                 && ore_classi_docenti_svolte[base2d_ci + j] < ore_classi_docenti[base2d_ci + j]
                 //max 2 ore stesso prof in ciascuna classe ogni giorno, anche se non contigue
                 && ore_prof_giorno_classe[base3d_gci + j] < MAX_ORE_STESSO_PROF_GIORNO
+                // un prof non può ritornare in una classe dopo un altra lezione (da verificare con i laboratori)
                 && solo_lezioni_consecutive(base2d_gc, base3d_gci, cla, j)
+                && sabato_esaurisci_priorita_subito(giorno, ora, cla, base2d_ci, base2d_gc, j)
                 && 1) {
                 ore_classi_docenti_svolte[base2d_ci + j]++;
                 prof_gia_impegnato_giorno_ora[base3d_goi + j] = 1;
@@ -185,8 +182,8 @@ void print_orario(const int pos) {
                 ore_docenti_svolte[j]++;
                 ore_prof_giorno_classe[base3d_gci + j]++;
                 queue_mul[jj]->priority--;
-                int ultimo_prof_copy = ultimo_prof_classe[base2d_gc + cla];
-                ultimo_prof_classe[base2d_gc + cla] = j;
+                int ultimo_prof_copy = ultimo_prof_classe_in_giorno[base2d_gc + cla];
+                ultimo_prof_classe_in_giorno[base2d_gc + cla] = j;
 
                 /* QueueItem new[actual_insegnanti];
                  memcpy(new, queue, sizeof(QueueItem) * actual_insegnanti);
@@ -201,7 +198,7 @@ void print_orario(const int pos) {
                 ore_classe_svolte[cla]--;
                 ore_docenti_svolte[j]--;
                 ore_prof_giorno_classe[base3d_gci + j]--;
-                ultimo_prof_classe[base2d_gc + cla] = ultimo_prof_copy;
+                ultimo_prof_classe_in_giorno[base2d_gc + cla] = ultimo_prof_copy;
             }
         }
     }
