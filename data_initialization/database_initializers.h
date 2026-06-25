@@ -45,7 +45,7 @@ extern int n_ore_buche[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ];
 // tiene traccia delle ore svolte da un insegnante in un giorno e una classe (serve per non avere lezioni di tre ore con lo stesso insegnante)
 extern int ore_prof_giorno_classe[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 
-extern int ultimo_prof_classe[CLASSE_SEZIONE_SZ];
+extern int ultimo_prof_classe[GIORNO_SETTIMANA_SZ*CLASSE_SEZIONE_SZ];
 //TODO: un prof vede una classe una sola volta al giorno
 
 void set_giorno_settimana(char giorno[]);
