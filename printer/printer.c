@@ -76,8 +76,24 @@ void print_row_prof(const int orario[], int pos, char ora[], int c, int o, FILE 
     fprintf(f, "\n");
 }
 
+void print_row_cod(const int orario[], int pos, char ora[], int c, int o, FILE *f) {
+    f = f ? f : stdout;
+    fprintf(f, " %s|", ora);
+    char formatted_str[MAX_STR_SZ_IN_DISPLAY];
+    for (int g = 0; g < actual_giorni_settimana; g++) {
+        int curr;
+        int p = g * actual_ore_giornaliere * actual_classi_sezione + o * actual_classi_sezione + c;
+        if (p >= pos) curr = -1;
+        else curr = orario[p];
+        copy_and_pad(formatted_str, curr == -1 ? "       --        " : insegnanti[curr],
+                     MAX_STR_SZ_IN_DISPLAY);
+        fprintf(f, "     %s     |", formatted_str);
+    }
+    fprintf(f, "\n");
+}
+
 // Main Function: Clean, descriptive, and easy to read
-void print(const int orario[], const int pos, unsigned long long attempt, FILE *f) {
+void print(const teaching_slot orario[], const int pos, unsigned long long attempt, FILE *f) {
     f = f ? f : stdout;
     print_header(attempt, f);
 
@@ -88,6 +104,7 @@ void print(const int orario[], const int pos, unsigned long long attempt, FILE *
         for (int o = 0; o < actual_ore_giornaliere; o++) {
             // Print the row label (the specific hour slot)
             print_row_prof(orario, pos, ore_giornaliere[o], c, o, f);
+            print_row_cod(orario, pos, ore_giornaliere[o], c, o, f);
 
             draw_horizontal_separator(f);
         }
@@ -95,8 +112,8 @@ void print(const int orario[], const int pos, unsigned long long attempt, FILE *
             char str[MAX_STR_SZ_IN_DISPLAY];
             copy_and_pad(str, insegnanti[j], MAX_STR_SZ_IN_DISPLAY);
             if (get_ore_classi_insegnante(c, j) > 0)
-                fprintf(f,"%s\tha svolto %d ore su %d\n", str, get_ore_classi_insegnante_svolte(c, j),
-                       get_ore_classi_insegnante(c, j));
+                fprintf(f, "%s\tha svolto %d ore su %d\n", str, get_ore_classi_insegnante_svolte(c, j),
+                        get_ore_classi_insegnante(c, j));
         }
     }
     fprintf(f, "\n");

@@ -14,18 +14,15 @@
 
 long long int n_gen = 0;
 long long int n_gen_ok = SCHEDULES_PER_GB;
-int orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
-    [0 ... GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1] = -1
+teaching_slot orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
+    [0 ...
+        GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1
+    ] = (teaching_slot){-1, -1}
 };
 
 int orario_len;
 FILE *f;
 
-typedef struct {
-    int aula;
-    int materia;
-    int insegnante;
-} teaching_slot;
 
 int g_giorno(const int p) { return p / actual_classi_sezione / actual_ore_giornaliere % actual_giorni_settimana; }
 
@@ -169,7 +166,7 @@ void print_orario(const int pos) {
 
             if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
                 !prof_gia_impegnato_giorno_ora[base3d_goi + j]
-                // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
+                // controlla ore svolte per materia, verifica che siano inferiori a quelle totali
                 && ore_classi_docenti_svolte[base2d_ci + j] < ore_classi_docenti[base2d_ci + j]
                 //max 2 ore stesso prof in ciascuna classe ogni giorno, anche se non contigue
                 && ore_prof_giorno_classe[base3d_gci + j] < MAX_ORE_STESSO_PROF_GIORNO
@@ -186,7 +183,33 @@ void print_orario(const int pos) {
                 const int ultimo_prof_copy = ultimo_prof_classe_in_giorno[base2d_gc + cla];
                 ultimo_prof_classe_in_giorno[base2d_gc + cla] = j;
 
-                orario[pos] = j;
+
+                for (int i = 0; i < actual_insegnanti; i++) {
+                    if ( //docente e codocente non possono essere la stessa persona
+                        i != j
+                        //verifica che il codocente sia con il docente
+                        && classi_docenti_codocenti[cla * INSEGNANTE_SZ * INSEGNANTE_SZ + j * INSEGNANTE_SZ + i]
+                        && ore_classi_docenti_svolte[base2d_ci + i] < ore_classi_docenti[base2d_ci + i]
+                        && !prof_gia_impegnato_giorno_ora[base3d_goi + i]) {
+                        ore_classi_docenti_svolte[base2d_ci + i]++;
+                        prof_gia_impegnato_giorno_ora[base3d_goi + i] = 1;
+                        ore_classe_svolte[cla]++;
+                        ore_docenti_svolte[i]++;
+                        ore_prof_giorno_classe[base3d_gci + i]++;
+
+                        orario[pos] = (teaching_slot){j, i};
+                        print_orario(pos + 1);
+
+                        ore_classi_docenti_svolte[base2d_ci + i]--;
+                        prof_gia_impegnato_giorno_ora[base3d_goi + i] = 0;
+                        ore_classe_svolte[cla]--;
+                        ore_docenti_svolte[i]--;
+                        ore_prof_giorno_classe[base3d_gci + i]--;
+                    }
+                }
+
+
+                orario[pos] = (teaching_slot){j, -1};
                 print_orario(pos + 1);
 
                 queue_mul[jj]->priority++;
@@ -202,7 +225,7 @@ void print_orario(const int pos) {
 
 
     if (ora >= PRIME_N_ORE_OBBLIGATORIE) {
-        orario[pos] = -1;
+        orario[pos] = (teaching_slot){-1, -1};
         n_ore_buche[base2d_gc + cla]++;
         print_orario(pos + 1);
         n_ore_buche[base2d_gc + cla]--;
@@ -224,6 +247,7 @@ int main(void) {
     // if you initialize with less elements it will set the remaming elements to 0.
     QueueItem *queue[INSEGNANTE_SZ] = {0};
 
+    // Should do this while setting classi e insegnanti
     initialize_queue_arr(queue);
     print_priority_queue(queue);
 

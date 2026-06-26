@@ -32,6 +32,7 @@ int ore_classi[CLASSE_SEZIONE_SZ];
 int ore_classe_svolte[CLASSE_SEZIONE_SZ];
 int ore_docenti[INSEGNANTE_SZ];
 int ore_docenti_svolte[INSEGNANTE_SZ];
+int classi_docenti_codocenti[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ];
 
 int prof_gia_impegnato_giorno_ora[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ];
 int n_ore_buche[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ];
@@ -135,13 +136,21 @@ int get_ore_insegnante_settimanale(int insegnante) {
 
 /*
  * Set constraints from user
- */
+*/
 void set_classe_insegnante_ore(char cla[], char prof[], const int ore) {
     set_classe_sezione(cla);
     set_insegnante(prof);
     add_ore_classi_insegnante(p_classe_sezione(cla), p_insegnante(prof), ore);
     add_ore_classi_settimanale(p_classe_sezione(cla), ore);
     add_ore_insegnante_settimanale(p_insegnante(prof), ore);
+}
+
+void set_classe_insegnante_ore_cod(char cla[], char prof[], const int ore, char cod[], const int ore_cod) {
+    set_classe_insegnante_ore(cla, prof, ore);
+    set_classe_insegnante_ore(cla, cod, ore_cod);
+    classi_docenti_codocenti[p_classe_sezione(cla) * INSEGNANTE_SZ * INSEGNANTE_SZ
+                             + p_insegnante(prof) * INSEGNANTE_SZ
+                             + p_insegnante(cod)] = 1;
 }
 
 /*
@@ -227,9 +236,9 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_3E, Berno, 4);
     set_classe_insegnante_ore(Classe_3E, DalZovo, 6);
     set_classe_insegnante_ore(Classe_3E, Sciambarella, 3);
-    set_classe_insegnante_ore(Classe_3E, Masetti, 6);
+    set_classe_insegnante_ore_cod(Classe_3E, Masetti, 6, Moretti, 3);
     set_classe_insegnante_ore(Classe_3E, Nicoletti, 2);
-    set_classe_insegnante_ore(Classe_3E, Trivini, 3);
+    set_classe_insegnante_ore_cod(Classe_3E, Trivini, 3, Avolio, 2);
     set_classe_insegnante_ore(Classe_3E, Quaini, 1);
     set_classe_insegnante_ore(Classe_3E, Tiraboschi, 4);
     set_classe_insegnante_ore(Classe_3E, Alves, 3); //130 KHz
@@ -292,53 +301,53 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_4A, Marchione, 1);
     set_classe_insegnante_ore(Classe_4A, BanderaS, 2); //20 KHz
 
-      set_classe_insegnante_ore(Classe_4B, CavallariM, 4);
-      set_classe_insegnante_ore(Classe_4B, MenapaceP, 3);
-      set_classe_insegnante_ore(Classe_4B, CapuanoM, 4);
-      set_classe_insegnante_ore(Classe_4B, DalZovo, 6);
-      set_classe_insegnante_ore(Classe_4B, RossiP, 5);
-      set_classe_insegnante_ore(Classe_4B, RovettaR, 4);
-      set_classe_insegnante_ore(Classe_4B, BurattiI, 3);
-      set_classe_insegnante_ore(Classe_4B, Marchione, 1);
-      set_classe_insegnante_ore(Classe_4B, BanderaS, 2);  //23 Khz
+    set_classe_insegnante_ore(Classe_4B, CavallariM, 4);
+    set_classe_insegnante_ore(Classe_4B, MenapaceP, 3);
+    set_classe_insegnante_ore(Classe_4B, CapuanoM, 4);
+    set_classe_insegnante_ore(Classe_4B, DalZovo, 6);
+    set_classe_insegnante_ore(Classe_4B, RossiP, 5);
+    set_classe_insegnante_ore(Classe_4B, RovettaR, 4);
+    set_classe_insegnante_ore(Classe_4B, BurattiI, 3);
+    set_classe_insegnante_ore(Classe_4B, Marchione, 1);
+    set_classe_insegnante_ore(Classe_4B, BanderaS, 2); //23 Khz
 
-      set_classe_insegnante_ore(Classe_4C, RossiJ, 4);
-      set_classe_insegnante_ore(Classe_4C, VivaG, 6);
-      set_classe_insegnante_ore(Classe_4C, BorghettiF, 3);
-      set_classe_insegnante_ore(Classe_4C, GelminiE, 5);
-      set_classe_insegnante_ore(Classe_4C, PerghemE, 5);
-      set_classe_insegnante_ore(Classe_4C, StefaniniR, 6);
-      set_classe_insegnante_ore(Classe_4C, PeressuttiPL, 1);
-      set_classe_insegnante_ore(Classe_4C, Nicoletti, 2); //20 KHz
+    set_classe_insegnante_ore(Classe_4C, RossiJ, 4);
+    set_classe_insegnante_ore(Classe_4C, VivaG, 6);
+    set_classe_insegnante_ore(Classe_4C, BorghettiF, 3);
+    set_classe_insegnante_ore(Classe_4C, GelminiE, 5);
+    set_classe_insegnante_ore(Classe_4C, PerghemE, 5);
+    set_classe_insegnante_ore(Classe_4C, StefaniniR, 6);
+    set_classe_insegnante_ore(Classe_4C, PeressuttiPL, 1);
+    set_classe_insegnante_ore(Classe_4C, Nicoletti, 2); //20 KHz
 
-      set_classe_insegnante_ore(Classe_4D, GelminiE, 6);
-      set_classe_insegnante_ore(Classe_4D, CavallariM, 3);
-      set_classe_insegnante_ore(Classe_4D, AvinoG, 4);
-      set_classe_insegnante_ore(Classe_4D, LavelliA, 5);
-      set_classe_insegnante_ore(Classe_4D, MarchiD, 6);
-      set_classe_insegnante_ore(Classe_4D, FuscoG, 5);
-      set_classe_insegnante_ore(Classe_4D, Marchione, 1);
-      set_classe_insegnante_ore(Classe_4D, Nicoletti, 2); //18 KHz
+    set_classe_insegnante_ore(Classe_4D, GelminiE, 6);
+    set_classe_insegnante_ore(Classe_4D, CavallariM, 3);
+    set_classe_insegnante_ore(Classe_4D, AvinoG, 4);
+    set_classe_insegnante_ore(Classe_4D, LavelliA, 5);
+    set_classe_insegnante_ore(Classe_4D, MarchiD, 6);
+    set_classe_insegnante_ore(Classe_4D, FuscoG, 5);
+    set_classe_insegnante_ore(Classe_4D, Marchione, 1);
+    set_classe_insegnante_ore(Classe_4D, Nicoletti, 2); //18 KHz
 
 
-      set_classe_insegnante_ore(Classe_4E, Berno, 4);
-      set_classe_insegnante_ore(Classe_4E, Pizzatti, 6);
-      set_classe_insegnante_ore(Classe_4E, Sciambarella, 7);
-      set_classe_insegnante_ore(Classe_4E, Masetti, 6);
-      set_classe_insegnante_ore(Classe_4E, Torbol, 2);
-      set_classe_insegnante_ore(Classe_4E, Trivini, 3);
-      set_classe_insegnante_ore(Classe_4E, Quaini, 1);
-      set_classe_insegnante_ore(Classe_4E, Alves, 3);
+    set_classe_insegnante_ore(Classe_4E, Berno, 4);
+    set_classe_insegnante_ore(Classe_4E, Pizzatti, 6);
+    set_classe_insegnante_ore(Classe_4E, Sciambarella, 7);
+    set_classe_insegnante_ore(Classe_4E, Masetti, 6);
+    set_classe_insegnante_ore(Classe_4E, Torbol, 2);
+    set_classe_insegnante_ore(Classe_4E, Trivini, 3);
+    set_classe_insegnante_ore(Classe_4E, Quaini, 1);
+    set_classe_insegnante_ore(Classe_4E, Alves, 3);
 
-  /*  set_classe_insegnante_ore(Classe_5E, Berno, 3);
-      set_classe_insegnante_ore(Classe_5E, DalZovo, 6);
-      set_classe_insegnante_ore(Classe_5E, Sciambarella, 4);
-      set_classe_insegnante_ore(Classe_5E, Masetti, 6);
-      set_classe_insegnante_ore(Classe_5E, Nicoletti, 2);
-      set_classe_insegnante_ore(Classe_5E, Caniato, 4);
-      set_classe_insegnante_ore(Classe_5E, Cerini, 3);
-      set_classe_insegnante_ore(Classe_5E, Alves, 3);
-      set_classe_insegnante_ore(Classe_5E, Quaini, 1);*/
+    /*  set_classe_insegnante_ore(Classe_5E, Berno, 3);
+        set_classe_insegnante_ore(Classe_5E, DalZovo, 6);
+        set_classe_insegnante_ore(Classe_5E, Sciambarella, 4);
+        set_classe_insegnante_ore(Classe_5E, Masetti, 6);
+        set_classe_insegnante_ore(Classe_5E, Nicoletti, 2);
+        set_classe_insegnante_ore(Classe_5E, Caniato, 4);
+        set_classe_insegnante_ore(Classe_5E, Cerini, 3);
+        set_classe_insegnante_ore(Classe_5E, Alves, 3);
+        set_classe_insegnante_ore(Classe_5E, Quaini, 1);*/
 
 
     for (int i = 0; i < actual_classi_sezione; i++) {
