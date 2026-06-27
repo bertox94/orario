@@ -142,7 +142,7 @@ void debug(const int base3d_goi, const int base2d_ci, const int base3d_gci, int 
 void print_orario(const int pos) {
     if (n_gen_ok <= n_gen) return;
 
-    print(orario, pos, n_gen,NULL);
+    //print(orario, pos, n_gen,NULL);
 
     if (pos == orario_len) {
         if (verifica_ore_classe_materia()) {
@@ -157,9 +157,9 @@ void print_orario(const int pos) {
     const int giorno = g_giorno(pos);
     const int ora = g_ora(pos);
     const int cla = g_classe(pos);
-    const int base3d_goi = giorno * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + ora * INSEGNANTE_SZ;
     const int base2d_ci = cla * INSEGNANTE_SZ;
     const int base2d_gc = giorno * CLASSE_SEZIONE_SZ;
+    const int base3d_goi = giorno * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + ora * INSEGNANTE_SZ;
     const int base3d_gci = giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ;
     const int base4d_queue = giorno * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + ora * CLASSE_SEZIONE_SZ *
                              INSEGNANTE_SZ + cla * INSEGNANTE_SZ;
@@ -210,24 +210,21 @@ void print_orario(const int pos) {
                 const int ultimo_prof_copy = ultimo_prof_classe_in_giorno[base2d_gc + cla];
                 ultimo_prof_classe_in_giorno[base2d_gc + cla] = j;
 
-
+                const int base3d_cii = cla * INSEGNANTE_SZ * INSEGNANTE_SZ + j * INSEGNANTE_SZ;
                 for (int i = 0; i < actual_insegnanti; i++) {
                     if ( //docente e codocente non possono essere la stessa persona
                         i != j
                         //verifica che il codocente sia con il docente
-                        && ore_classi_docenti_codocenti_svolte[
-                            cla * INSEGNANTE_SZ * INSEGNANTE_SZ + j * INSEGNANTE_SZ + i]
-                        < ore_classi_docenti_codocenti[cla * INSEGNANTE_SZ * INSEGNANTE_SZ + j * INSEGNANTE_SZ + i]
+                        && ore_classi_docenti_codocenti_svolte[base3d_cii + i]
+                        < ore_classi_docenti_codocenti[base3d_cii + i]
                         && !prof_gia_impegnato_giorno_ora[base3d_goi + i]) {
-                        ore_classi_docenti_codocenti_svolte[cla * INSEGNANTE_SZ * INSEGNANTE_SZ + j * INSEGNANTE_SZ + i]
-                                ++;
+                        ore_classi_docenti_codocenti_svolte[base3d_cii + i]++;
                         prof_gia_impegnato_giorno_ora[base3d_goi + i] = 1;
 
                         orario[pos] = (teaching_slot){j, i};
                         print_orario(pos + 1);
 
-                        ore_classi_docenti_codocenti_svolte[cla * INSEGNANTE_SZ * INSEGNANTE_SZ + j * INSEGNANTE_SZ + i]
-                                --;
+                        ore_classi_docenti_codocenti_svolte[base3d_cii + i]--;
                         prof_gia_impegnato_giorno_ora[base3d_goi + i] = 0;
                     }
                 }
