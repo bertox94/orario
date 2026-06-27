@@ -38,9 +38,7 @@ int ore_classi_docenti_codocenti_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSE
 int prof_gia_impegnato_giorno_ora[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ];
 int n_ore_buche[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ];
 int ore_prof_giorno_classe[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
-int ultimo_prof_classe_in_giorno[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ] = {
-    [0 ... GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ - 1] = -1
-};
+
 /*
  * Conversions from string to id
  */
@@ -273,7 +271,7 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_3K, PisatiM, 2);
     set_classe_insegnante_ore(Classe_3K, ManessiF, 2);
     set_classe_insegnante_ore(Classe_3K, GrossoC, 4);
-    set_classe_insegnante_ore(Classe_3K, PeressuttiPL, 1); //419 Hz
+    set_classe_insegnante_ore(Classe_3K, PeressuttiPL, 1); //440 Hz
 /*
     set_classe_insegnante_ore(Classe_3H, Tosi, 4);
     set_classe_insegnante_ore(Classe_3H, Guerra, 6);

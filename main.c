@@ -99,20 +99,20 @@ int activities_for_this_class_and_hour(int pos, int gio, const int ora, const in
     return 1;
 }
 
-int solo_lezioni_consecutive(int base2d_gc, int base3d_gci, int cla, int insegnante) {
+int solo_lezioni_consecutive(int pos, int base3d_gci, int insegnante) {
     //no_teacher(x) -> True
     //teacher(x,p) -> teacher(x, p+1)
     if (ore_prof_giorno_classe[base3d_gci + insegnante] == 0) return 1;
     // no need to check pos - actual_classi_sezione > 0 since the first hour has no teacher,
     // so it would just have returned
-    return ultimo_prof_classe_in_giorno[base2d_gc + cla] == insegnante;
+    return orario[pos - actual_classi_sezione].insegnante == insegnante;
 }
 
-int sabato_esaurisci_priorita_subito(int giorno, int ora, int cla, int base2d_ci, int base2d_gc, int prof) {
+int sabato_esaurisci_priorita_subito(int pos, int giorno, int ora, int base2d_ci, int prof) {
     // maybe need a schedule like all the teachers
     //check if max ore materia is bigger than 2
     if (giorno == actual_giorni_settimana - 1 && ora > 0) {
-        int prev_prof = ultimo_prof_classe_in_giorno[base2d_gc + cla];
+        int prev_prof = orario[pos - actual_classi_sezione].insegnante;
         //no need to check != -1 since we check already that ora > 0
         if (ore_classi_docenti[base2d_ci + prev_prof] - ore_classi_docenti_svolte[
                 base2d_ci + prev_prof] == 1) {
@@ -142,7 +142,7 @@ void debug(const int base3d_goi, const int base2d_ci, const int base3d_gci, int 
 void print_orario(const int pos) {
     if (n_gen_ok <= n_gen) return;
 
-    print(orario, pos, n_gen,NULL);
+    //print(orario, pos, n_gen,NULL);
 
     if (pos == orario_len) {
         if (verifica_ore_classe_materia()) {
@@ -198,8 +198,8 @@ void print_orario(const int pos) {
                 //max 2 ore stesso prof in ciascuna classe ogni giorno, anche se non contigue
                 && ore_prof_giorno_classe[base3d_gci + j] < MAX_ORE_STESSO_PROF_GIORNO
                 // un prof non può ritornare in una classe dopo un altra lezione (da verificare con i laboratori)
-                && solo_lezioni_consecutive(base2d_gc, base3d_gci, cla, j)
-                && sabato_esaurisci_priorita_subito(giorno, ora, cla, base2d_ci, base2d_gc, j)
+                && solo_lezioni_consecutive(pos, base3d_gci, j)
+                && sabato_esaurisci_priorita_subito(pos, giorno, ora, base2d_ci, j)
                 && 1) {
                 ore_classi_docenti_svolte[base2d_ci + j]++;
                 prof_gia_impegnato_giorno_ora[base3d_goi + j] = 1;
@@ -207,8 +207,6 @@ void print_orario(const int pos) {
                 ore_docenti_svolte[j]++;
                 ore_prof_giorno_classe[base3d_gci + j]++;
                 queue_mul[jj]->priority--;
-                const int ultimo_prof_copy = ultimo_prof_classe_in_giorno[base2d_gc + cla];
-                ultimo_prof_classe_in_giorno[base2d_gc + cla] = j;
 
                 const int base3d_cii = cla * INSEGNANTE_SZ * INSEGNANTE_SZ + j * INSEGNANTE_SZ;
                 for (int i = 0; i < actual_insegnanti; i++) {
@@ -239,7 +237,6 @@ void print_orario(const int pos) {
                 ore_classe_svolte[cla]--;
                 ore_docenti_svolte[j]--;
                 ore_prof_giorno_classe[base3d_gci + j]--;
-                ultimo_prof_classe_in_giorno[base2d_gc + cla] = ultimo_prof_copy;
             }
         }
     }
