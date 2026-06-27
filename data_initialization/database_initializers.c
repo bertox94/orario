@@ -252,7 +252,7 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_3F, Nicoletti, 2);
     set_classe_insegnante_ore_cod(Classe_3F, Trivini, 3, Avolio, 2);
     set_classe_insegnante_ore(Classe_3F, Quaini, 1);
-    set_classe_insegnante_ore_cod(Classe_3F, Tiraboschi, 4, Sistemi_e_Reti,2);
+    set_classe_insegnante_ore_cod(Classe_3F, Tiraboschi, 4, Barosi,2);
     set_classe_insegnante_ore(Classe_3F, Comelli, 3); //91 KHz
 
     set_classe_insegnante_ore(Classe_3G, MariniAlice, 2);
