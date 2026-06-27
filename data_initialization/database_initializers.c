@@ -207,7 +207,7 @@ void inizializza_dati() {
 
     set_classe_insegnante_ore_cod(Classe_3B, BeltramiA, 5, LorenzoniL, 4);
     set_classe_insegnante_ore(Classe_3B, SperandeoF, 6);
-    set_classe_insegnante_ore(Classe_3B, RossiP, 4);
+    set_classe_insegnante_ore_cod(Classe_3B, RossiP, 4, CalziD, 2);
     set_classe_insegnante_ore(Classe_3B, BanderaS, 2);
     set_classe_insegnante_ore_cod(Classe_3B, GuidiA, 3, MaioneA, 3);
     set_classe_insegnante_ore(Classe_3B, Marchione, 1);
@@ -217,17 +217,17 @@ void inizializza_dati() {
 
     set_classe_insegnante_ore(Classe_3C, LancellottiO, 3);
     set_classe_insegnante_ore(Classe_3C, Guerra, 6);
-    set_classe_insegnante_ore(Classe_3C, MariniE, 5);
-    set_classe_insegnante_ore(Classe_3C, Tosi, 4);
-    set_classe_insegnante_ore(Classe_3C, FuscoG, 3);
+    set_classe_insegnante_ore_cod(Classe_3C, MariniE, 5, Avolio, 2);
+    set_classe_insegnante_ore_cod(Classe_3C, Tosi, 4, Sannino, 1);
+    set_classe_insegnante_ore_cod(Classe_3C, FuscoG, 3, StranoS, 2);
     set_classe_insegnante_ore(Classe_3C, Quaini, 1);
     set_classe_insegnante_ore(Classe_3C, Nicoletti, 2);
-    set_classe_insegnante_ore(Classe_3C, GelminiE, 4);
-    set_classe_insegnante_ore(Classe_3C, PerghemE, 4);
+    set_classe_insegnante_ore_cod(Classe_3C, GelminiE, 4, DelCornoE, 2);
+    set_classe_insegnante_ore_cod(Classe_3C, PerghemE, 4, PasqualiniF, 2);
 
-    set_classe_insegnante_ore(Classe_3D, IncorvaiaL, 5);
-    set_classe_insegnante_ore(Classe_3D, PerliniM, 4);
-    set_classe_insegnante_ore(Classe_3D, FuscoG, 3);
+  /*  set_classe_insegnante_ore_cod(Classe_3D, IncorvaiaL, 5, PasqualiniF, 2);
+    set_classe_insegnante_ore_cod(Classe_3D, PerliniM, 4, DelCornoE, 2);
+    set_classe_insegnante_ore_cod(Classe_3D, FuscoG, 3, StranoS, 2);
     set_classe_insegnante_ore(Classe_3D, AvinoG, 4);
     set_classe_insegnante_ore(Classe_3D, BorghettiF, 3);
     set_classe_insegnante_ore(Classe_3D, LoMeleC, 6);

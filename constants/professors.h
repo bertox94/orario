@@ -86,5 +86,9 @@ char MarchiD[] = "D. Marchi";
 char FierravantiD[] = "D. Fierravanti";
 char MaioneA[] = "A. Maione";
 char LorenzoniL[] = "L. Lorenzoni";
+char CalziD[] = "D. Calzi";
+char PasqualiniF[] = "F. Pasqualini";
+char DelCornoE[] = "E. Del Corno";
+char StranoS[] = "S. Strano";
 
 #endif //UNTITLED_PROFESSORS_H

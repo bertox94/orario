@@ -13,7 +13,7 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 long long int n_gen = 0;
-long long int n_gen_ok = SCHEDULES_PER_GB;
+long long int n_gen_ok = SCHEDULES_PER_GB/10;
 teaching_slot orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
     [0 ...
         GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1
@@ -34,21 +34,41 @@ int g_classe(const int p) {
 
 /*End of block constraints*/
 int verifica_ore_classe_materia(void) {
-    for (int i = 0; i < CLASSE_SEZIONE_SZ * INSEGNANTE_SZ; i++)
-        if (ore_classi_docenti[i] != ore_classi_docenti_svolte[i]) {
-            printf("Wrong: Classe: %s, Teacher: %s %d but got %d\n",
-                   classe_sezione[i / INSEGNANTE_SZ % CLASSE_SEZIONE_SZ],
-                   insegnanti[i % INSEGNANTE_SZ],
-                   ore_classi_docenti[i], ore_classi_docenti_svolte[i]);
-            return 0;
+    // 1. Check standard teacher hours (2D array flattened logic)
+    int idx_2d = 0;
+    for (int c = 0; c < CLASSE_SEZIONE_SZ; c++) {
+        for (int t = 0; t < INSEGNANTE_SZ; t++) {
+            if (ore_classi_docenti[idx_2d] != ore_classi_docenti_svolte[idx_2d]) {
+       /*         printf("Wrong: Classe: %s, Teacher: %s %d but got %d\n",
+                       classe_sezione[c],
+                       insegnanti[t],
+                       ore_classi_docenti[idx_2d],
+                       ore_classi_docenti_svolte[idx_2d]);*/
+                return 0;
+            }
+            idx_2d++;
         }
-    for (int i = 0; i < CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ; i++)
-        if (ore_classi_docenti_codocenti[i] != ore_classi_docenti_codocenti_svolte[i]) {
-            printf("Wrong: Codocente: %s, Teacher: %s %d but got %d\n",
-                   insegnanti[i % INSEGNANTE_SZ],
-                   insegnanti[i / INSEGNANTE_SZ % INSEGNANTE_SZ],
-                   ore_classi_docenti_codocenti[i], ore_classi_docenti_codocenti_svolte[i]);
+    }
+
+    // 2. Check co-teacher hours (3D array flattened logic)
+    int idx_3d = 0;
+    for (int c = 0; c < CLASSE_SEZIONE_SZ; c++) {
+        for (int t1 = 0; t1 < INSEGNANTE_SZ; t1++) {
+            for (int t2 = 0; t2 < INSEGNANTE_SZ; t2++) {
+                if (ore_classi_docenti_codocenti[idx_3d] != ore_classi_docenti_codocenti_svolte[idx_3d]) {
+                /*    printf("Wrong: Classe: %s, Codocente: %s, Teacher: %s %d but got %d\n",
+                           classe_sezione[c],
+                           insegnanti[t2], // t2 matches (idx_3d % INSEGNANTE_SZ)
+                           insegnanti[t1], // t1 matches ((idx_3d / INSEGNANTE_SZ) % INSEGNANTE_SZ)
+                           ore_classi_docenti_codocenti[idx_3d],
+                           ore_classi_docenti_codocenti_svolte[idx_3d]);*/
+                    return 0;
+                }
+                idx_3d++;
+            }
         }
+    }
+
     return 1;
 }
 
@@ -126,8 +146,8 @@ void print_orario(const int pos) {
     if (pos == orario_len) {
         if (verifica_ore_classe_materia()) {
             n_gen++;
-            printf("%lld ", n_gen);
-            print(orario, pos, n_gen, NULL);
+            //printf("%lld ", n_gen);
+            //print(orario, pos, n_gen, NULL);
         }
         return;
     }
@@ -280,8 +300,8 @@ int main(void) {
     fclose(f);
 
     const double elapsed = (clock() - start) / (double) CLOCKS_PER_SEC;
-    printf("Totale generati: %llu in %d m, %d s at %.0f KHz", n_gen, (int) elapsed / 60, (int) elapsed % 60,
-           (double) n_gen / elapsed / 1000);
+    printf("Totale generati: %llu in %d m, %d s at %.0f Hz", n_gen, (int) elapsed / 60, (int) elapsed % 60,
+           (double) n_gen / elapsed);
     fflush(stdout);
 
     return 0;
