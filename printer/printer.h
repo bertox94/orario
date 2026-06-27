@@ -10,6 +10,6 @@
 
 #include "../prio_queue.h"
 
-void print(teaching_slot orario[], const int pos, unsigned long long attempt, FILE *f);
+void print(const teaching_slot orario[], const int pos, unsigned long long attempt, FILE *f);
 void print_priority_queue(QueueItem *queue[]);
 #endif //UNTITLED_PRINTER_H

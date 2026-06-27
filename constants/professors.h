@@ -83,5 +83,7 @@ char CavallariM[] = "M. Cavallari";
 char VivaG[] = "G. Viva";
 char StefaniniR[] = "R. Stefanini";
 char MarchiD[] = "D. Marchi";
+char FierravantiD[] = "D. Fierravanti";
+char MaioneA[] = "A. Maione";
 
 #endif //UNTITLED_PROFESSORS_H

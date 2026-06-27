@@ -60,7 +60,7 @@ void print_days_header(const int pos, int class_index, FILE *f) {
     fprintf(f, "\n");
 }
 
-void print_row_prof(const int orario[], int pos, char ora[], int c, int o, FILE *f) {
+void print_row_prof(const teaching_slot orario[], int pos, char ora[], int c, int o, FILE *f) {
     f = f ? f : stdout;
     fprintf(f, " %s|", ora);
     char formatted_str[MAX_STR_SZ_IN_DISPLAY];
@@ -68,7 +68,7 @@ void print_row_prof(const int orario[], int pos, char ora[], int c, int o, FILE 
         int curr;
         int p = g * actual_ore_giornaliere * actual_classi_sezione + o * actual_classi_sezione + c;
         if (p >= pos) curr = -1;
-        else curr = orario[p];
+        else curr = orario[p].insegnante;
         copy_and_pad(formatted_str, curr == -1 ? "       --        " : insegnanti[curr],
                      MAX_STR_SZ_IN_DISPLAY);
         fprintf(f, "     %s     |", formatted_str);
@@ -76,7 +76,7 @@ void print_row_prof(const int orario[], int pos, char ora[], int c, int o, FILE 
     fprintf(f, "\n");
 }
 
-void print_row_cod(const int orario[], int pos, char ora[], int c, int o, FILE *f) {
+void print_row_cod(const teaching_slot orario[], int pos, char ora[], int c, int o, FILE *f) {
     f = f ? f : stdout;
     fprintf(f, " %s|", ora);
     char formatted_str[MAX_STR_SZ_IN_DISPLAY];
@@ -84,7 +84,7 @@ void print_row_cod(const int orario[], int pos, char ora[], int c, int o, FILE *
         int curr;
         int p = g * actual_ore_giornaliere * actual_classi_sezione + o * actual_classi_sezione + c;
         if (p >= pos) curr = -1;
-        else curr = orario[p];
+        else curr = orario[p].codocente;
         copy_and_pad(formatted_str, curr == -1 ? "       --        " : insegnanti[curr],
                      MAX_STR_SZ_IN_DISPLAY);
         fprintf(f, "     %s     |", formatted_str);
@@ -120,9 +120,9 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
 }
 
 void print_priority_queue(QueueItem *queue[]) {
-    for (int i = 0; i < actual_insegnanti; i++) {
+    for (int i = 0; i < queue_sz; i++) {
         if (i == 0) printf("Head: ");
-        else if (i == actual_insegnanti - 1) printf("Tail: ");
+        else if (i == queue_sz - 1) printf("Tail: ");
         else printf("       ");
         char str[MAX_STR_SZ_IN_DISPLAY];
         copy_and_pad(str, insegnanti[queue[i]->teacher], MAX_STR_SZ_IN_DISPLAY);

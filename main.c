@@ -42,6 +42,13 @@ int verifica_ore_classe_materia(void) {
                    ore_classi_docenti[i], ore_classi_docenti_svolte[i]);
             return 0;
         }
+    for (int i = 0; i < CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ; i++)
+        if (ore_classi_docenti_codocenti[i] != ore_classi_docenti_codocenti_svolte[i]) {
+            printf("Wrong: Codocente: %s, Teacher: %s %d but got %d\n",
+                   insegnanti[i % INSEGNANTE_SZ],
+                   insegnanti[i / INSEGNANTE_SZ % INSEGNANTE_SZ],
+                   ore_classi_docenti_codocenti[i], ore_classi_docenti_codocenti_svolte[i]);
+        }
     return 1;
 }
 
@@ -120,12 +127,12 @@ void print_orario(const int pos) {
         if (verifica_ore_classe_materia()) {
             n_gen++;
             //printf("%lld ", n_gen);
-            //print(orario, pos, n_gen, f);
+            print(orario, pos, n_gen, f);
         }
         return;
     }
 
-    //print(orario, pos, n_gen, NULL);
+    //print(orario, pos, n_gen,NULL);
 
     const int giorno = g_giorno(pos);
     const int ora = g_ora(pos);
@@ -137,7 +144,7 @@ void print_orario(const int pos) {
     const int base4d_queue = giorno * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + ora * CLASSE_SEZIONE_SZ *
                              INSEGNANTE_SZ + cla * INSEGNANTE_SZ;
     if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
-        const long long int jjmax = base4d_queue + actual_insegnanti;
+        const long long int jjmax = base4d_queue + queue_sz;
         for (int jj = base4d_queue; jj < jjmax; jj++) {
             int max_idx = jj; // Track the INDEX of the maximum element, not just the value
 
@@ -188,23 +195,20 @@ void print_orario(const int pos) {
                     if ( //docente e codocente non possono essere la stessa persona
                         i != j
                         //verifica che il codocente sia con il docente
-                        && classi_docenti_codocenti[cla * INSEGNANTE_SZ * INSEGNANTE_SZ + j * INSEGNANTE_SZ + i]
-                        && ore_classi_docenti_svolte[base2d_ci + i] < ore_classi_docenti[base2d_ci + i]
+                        && ore_classi_docenti_codocenti_svolte[
+                            cla * INSEGNANTE_SZ * INSEGNANTE_SZ + j * INSEGNANTE_SZ + i]
+                        < ore_classi_docenti_codocenti[cla * INSEGNANTE_SZ * INSEGNANTE_SZ + j * INSEGNANTE_SZ + i]
                         && !prof_gia_impegnato_giorno_ora[base3d_goi + i]) {
-                        ore_classi_docenti_svolte[base2d_ci + i]++;
+                        ore_classi_docenti_codocenti_svolte[cla * INSEGNANTE_SZ * INSEGNANTE_SZ + j * INSEGNANTE_SZ + i]
+                                ++;
                         prof_gia_impegnato_giorno_ora[base3d_goi + i] = 1;
-                        ore_classe_svolte[cla]++;
-                        ore_docenti_svolte[i]++;
-                        ore_prof_giorno_classe[base3d_gci + i]++;
 
                         orario[pos] = (teaching_slot){j, i};
                         print_orario(pos + 1);
 
-                        ore_classi_docenti_svolte[base2d_ci + i]--;
+                        ore_classi_docenti_codocenti_svolte[cla * INSEGNANTE_SZ * INSEGNANTE_SZ + j * INSEGNANTE_SZ + i]
+                                --;
                         prof_gia_impegnato_giorno_ora[base3d_goi + i] = 0;
-                        ore_classe_svolte[cla]--;
-                        ore_docenti_svolte[i]--;
-                        ore_prof_giorno_classe[base3d_gci + i]--;
                     }
                 }
 
