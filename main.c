@@ -142,7 +142,7 @@ void debug(const int base3d_goi, const int base2d_ci, const int base3d_gci, int 
 void print_orario(const int pos) {
     if (n_gen_ok <= n_gen) return;
 
-    //print(orario, pos, n_gen,NULL);
+    print(orario, pos, n_gen,NULL);
 
     if (pos == orario_len) {
         if (verifica_ore_classe_materia()) {

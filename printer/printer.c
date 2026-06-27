@@ -120,7 +120,7 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
                                                      + j * INSEGNANTE_SZ
                                                      + i] > 0)
                         fprintf(f, "\t%s\tha svolto %d ore su %d\n", str,
-                                ore_classi_docenti_codocenti[c * INSEGNANTE_SZ * INSEGNANTE_SZ
+                                ore_classi_docenti_codocenti_svolte[c * INSEGNANTE_SZ * INSEGNANTE_SZ
                                                              + j * INSEGNANTE_SZ
                                                              + i],
                                 ore_classi_docenti_codocenti[c * INSEGNANTE_SZ * INSEGNANTE_SZ
