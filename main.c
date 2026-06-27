@@ -13,7 +13,7 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 long long int n_gen = 0;
-long long int n_gen_ok = SCHEDULES_PER_GB/10;
+long long int n_gen_ok = SCHEDULES_PER_GB / 10;
 teaching_slot orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
     [0 ...
         GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1
@@ -39,11 +39,11 @@ int verifica_ore_classe_materia(void) {
     for (int c = 0; c < CLASSE_SEZIONE_SZ; c++) {
         for (int t = 0; t < INSEGNANTE_SZ; t++) {
             if (ore_classi_docenti[idx_2d] != ore_classi_docenti_svolte[idx_2d]) {
-       /*         printf("Wrong: Classe: %s, Teacher: %s %d but got %d\n",
+                printf("Wrong: Classe: %s, Teacher: %s %d but got %d\n",
                        classe_sezione[c],
                        insegnanti[t],
                        ore_classi_docenti[idx_2d],
-                       ore_classi_docenti_svolte[idx_2d]);*/
+                       ore_classi_docenti_svolte[idx_2d]);
                 return 0;
             }
             idx_2d++;
@@ -56,12 +56,12 @@ int verifica_ore_classe_materia(void) {
         for (int t1 = 0; t1 < INSEGNANTE_SZ; t1++) {
             for (int t2 = 0; t2 < INSEGNANTE_SZ; t2++) {
                 if (ore_classi_docenti_codocenti[idx_3d] != ore_classi_docenti_codocenti_svolte[idx_3d]) {
-                /*    printf("Wrong: Classe: %s, Codocente: %s, Teacher: %s %d but got %d\n",
+                    printf("Wrong: Classe: %s, Codocente: %s, Teacher: %s %d but got %d\n",
                            classe_sezione[c],
                            insegnanti[t2], // t2 matches (idx_3d % INSEGNANTE_SZ)
                            insegnanti[t1], // t1 matches ((idx_3d / INSEGNANTE_SZ) % INSEGNANTE_SZ)
                            ore_classi_docenti_codocenti[idx_3d],
-                           ore_classi_docenti_codocenti_svolte[idx_3d]);*/
+                           ore_classi_docenti_codocenti_svolte[idx_3d]);
                     return 0;
                 }
                 idx_3d++;
@@ -142,6 +142,7 @@ void debug(const int base3d_goi, const int base2d_ci, const int base3d_gci, int 
 void print_orario(const int pos) {
     if (n_gen_ok <= n_gen) return;
 
+    print(orario, pos, n_gen,NULL);
 
     if (pos == orario_len) {
         if (verifica_ore_classe_materia()) {
@@ -152,7 +153,6 @@ void print_orario(const int pos) {
         return;
     }
 
-    //print(orario, pos, n_gen,NULL);
 
     const int giorno = g_giorno(pos);
     const int ora = g_ora(pos);
