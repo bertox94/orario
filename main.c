@@ -9,7 +9,7 @@
 #include "data_initialization/database_initializers.h"
 #include "printer/printer.h"
 
-#define SCHEDULES_PER_GB 60000
+#define SCHEDULES_PER_GB 55000
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 long long int n_gen = 0;
@@ -126,8 +126,8 @@ void print_orario(const int pos) {
     if (pos == orario_len) {
         if (verifica_ore_classe_materia()) {
             n_gen++;
-            //printf("%lld ", n_gen);
-            print(orario, pos, n_gen, f);
+            printf("%lld ", n_gen);
+            print(orario, pos, n_gen, NULL);
         }
         return;
     }
