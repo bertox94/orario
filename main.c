@@ -206,14 +206,13 @@ void print_orario(const int pos) {
                 // controlla ore svolte per materia, verifica che siano inferiori a quelle totali
                 //&& ore_classi_docenti_svolte[base2d_ci + item->teacher] < ore_classi_docenti[base2d_ci + item->teacher]
                 && (item->co_teacher != -1 || ore_classi_docenti_svolte[base2d_ci + item->teacher] <
-                    ore_classi_docenti[base2d_ci + item->teacher] - ore_classi_docenti[
-                        base2d_ci + item->co_teacher])
+                    ore_classi_docenti_alone[base2d_ci + item->teacher])
                 && (item->co_teacher == -1 ||
                     (!prof_gia_impegnato_giorno_ora[base3d_goi + item->co_teacher]
-                     && (ore_classi_docenti_svolte[base2d_ci + item->teacher] <
-                         ore_classi_docenti[base2d_ci + item->teacher]
-                         && ore_classi_docenti_svolte[base2d_ci + item->co_teacher] <
-                         ore_classi_docenti[base2d_ci + item->co_teacher])
+                     && ore_classi_docenti_svolte[base2d_ci + item->teacher] <
+                     ore_classi_docenti[base2d_ci + item->teacher]
+                     && ore_classi_docenti_svolte[base2d_ci + item->co_teacher] <
+                     ore_classi_docenti[base2d_ci + item->co_teacher]
                      && classi_docenti_codocenti[base3d_cii + item->teacher * INSEGNANTE_SZ + item->co_teacher]
                     )
                 )
