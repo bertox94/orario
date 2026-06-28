@@ -149,7 +149,7 @@ int assert_non_decreasing(const int base4d_queue, const long long int jjmax, int
     return 0;
 }
 
-int set_max_at(const long long int jjmax, int jj) {
+QueueItem *set_max_at(const long long int jjmax, int jj) {
     int max_idx = jj; // Track the INDEX of the maximum element, not just the value
 
     for (int k = jj + 1; k < jjmax; k++) {
@@ -166,8 +166,7 @@ int set_max_at(const long long int jjmax, int jj) {
         queue_mul[max_idx] = tmp;
     }
 
-    int j = queue_mul[jj]->teacher;
-    return j;
+    return queue_mul[jj];
 }
 
 void print_orario(const int pos) {
@@ -179,11 +178,12 @@ void print_orario(const int pos) {
         if (verifica_ore_classe_materia()) {
             n_gen++;
             //fprintf(f, "%lld ", n_gen);
-            print(orario, pos, n_gen, f);
+            //print(orario, pos, n_gen, f);
         }
+        print(orario, pos, n_gen, f);
         return;
     }
-
+    print(orario, pos, n_gen, f);
 
     const int giorno = g_giorno(pos);
     const int ora = g_ora(pos);
@@ -192,81 +192,50 @@ void print_orario(const int pos) {
     const int base2d_gc = giorno * CLASSE_SEZIONE_SZ;
     const int base3d_goi = giorno * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + ora * INSEGNANTE_SZ;
     const int base3d_gci = giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ;
-    const int base4d_queue = giorno * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + ora * CLASSE_SEZIONE_SZ *
-                             INSEGNANTE_SZ + cla * INSEGNANTE_SZ;
+    const int base4d_queue = giorno * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ + ora *
+                             CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ * INSEGNANTE_SZ;
     if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
-        const long long int jjmax = base4d_queue + actual_insegnanti;
+        const long long int jjmax = base4d_queue + queue_sz;
         for (int jj = base4d_queue; jj < jjmax; jj++) {
-            int j = set_max_at(jjmax, jj);
+            QueueItem *item = set_max_at(jjmax, jj);
 
             if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
-                !prof_gia_impegnato_giorno_ora[base3d_goi + j]
+                !prof_gia_impegnato_giorno_ora[base3d_goi + item->teacher]
+                && (item->co_teacher == -1 || !prof_gia_impegnato_giorno_ora[base3d_goi + item->co_teacher])
                 // controlla ore svolte per materia, verifica che siano inferiori a quelle totali
-                && ore_classi_docenti_svolte[base2d_ci + j] < ore_classi_docenti[base2d_ci + j]
+                && ore_classi_docenti_svolte[base2d_ci + item->teacher] < ore_classi_docenti[base2d_ci + item->teacher]
+                && (item->co_teacher == -1 || ore_classi_docenti_svolte[base2d_ci + item->co_teacher] <
+                    ore_classi_docenti[base2d_ci + item->co_teacher])
                 //max 2 ore stesso prof in ciascuna classe ogni giorno, anche se non contigue
                 //&& ore_prof_giorno_classe[base3d_gci + j] < MAX_ORE_STESSO_PROF_GIORNO
                 // un prof non può ritornare in una classe dopo un altra lezione (da verificare con i laboratori)
                 //&& solo_lezioni_consecutive(pos, base3d_gci, j)
                 //&& sabato_esaurisci_priorita_subito(pos, giorno, ora, base2d_ci, j)
                 && 1) {
-                const int base3d_cii = cla * INSEGNANTE_SZ * INSEGNANTE_SZ + j * INSEGNANTE_SZ;
-                for (int ii = jj + 1; ii < jjmax; ii++) {
-                    int i = set_max_at(jjmax, ii);
-
-
-                    if (
-                        //verifica che il codocente sia con il docente
-                        classi_docenti_codocenti[base3d_cii + i]
-                        && !prof_gia_impegnato_giorno_ora[base3d_goi + i]
-                        && ore_classi_docenti_svolte[base2d_ci + i] < ore_classi_docenti[base2d_ci + i]
-                        && 1) {
-                        ore_classi_docenti_svolte[base2d_ci + j]++;
-                        ore_classi_docenti_svolte[base2d_ci + i]++;
-                        prof_gia_impegnato_giorno_ora[base3d_goi + j] = 1;
-                        prof_gia_impegnato_giorno_ora[base3d_goi + i] = 1;
-                        ore_classe_svolte[cla]++;
-                        ore_docenti_svolte[j]++;
-                        ore_docenti_svolte[i]++;
-                        ore_prof_giorno_classe[base3d_gci + j]++;
-                        ore_prof_giorno_classe[base3d_gci + i]++;
-                        queue_mul[jj]->priority--;
-                        queue_mul[ii]->priority--;
-
-                        orario[pos] = (teaching_slot){j, i};
-                        print_orario(pos + 1);
-
-                        queue_mul[ii]->priority++;
-                        queue_mul[jj]->priority++;
-                        ore_prof_giorno_classe[base3d_gci + i]--;
-                        ore_prof_giorno_classe[base3d_gci + j]--;
-                        ore_docenti_svolte[i]--;
-                        ore_docenti_svolte[j]--;
-                        ore_classe_svolte[cla]--;
-                        prof_gia_impegnato_giorno_ora[base3d_goi + i] = 0;
-                        prof_gia_impegnato_giorno_ora[base3d_goi + j] = 0;
-                        ore_classi_docenti_svolte[base2d_ci + i]--;
-                        ore_classi_docenti_svolte[base2d_ci + j]--;
-                    }
+                ore_classi_docenti_svolte[base2d_ci + item->teacher]++;
+                prof_gia_impegnato_giorno_ora[base3d_goi + item->teacher] = 1;
+                ore_classe_svolte[cla]++;
+                ore_docenti_svolte[item->teacher]++;
+                if (item->co_teacher != -1) {
+                    ore_classi_docenti_svolte[base2d_ci + item->co_teacher]++;
+                    prof_gia_impegnato_giorno_ora[base3d_goi + item->co_teacher] = 1;
+                    ore_docenti_svolte[item->co_teacher]++;
                 }
-                if (classi_docenti_teorici[base2d_ci + j]) {
-                    ore_classi_docenti_svolte[base2d_ci + j]++;
-                    prof_gia_impegnato_giorno_ora[base3d_goi + j] = 1;
-                    ore_classe_svolte[cla]++;
-                    ore_docenti_svolte[j]++;
-                    ore_prof_giorno_classe[base3d_gci + j]++;
-                    queue_mul[jj]->priority--;
+                item->priority--;
 
+                orario[pos] = (teaching_slot){item->teacher, item->co_teacher};
+                print_orario(pos + 1);
 
-                    orario[pos] = (teaching_slot){j, -1};
-                    print_orario(pos + 1);
-
-                    queue_mul[jj]->priority++;
-                    ore_classi_docenti_svolte[base2d_ci + j]--;
-                    prof_gia_impegnato_giorno_ora[base3d_goi + j] = 0;
-                    ore_classe_svolte[cla]--;
-                    ore_docenti_svolte[j]--;
-                    ore_prof_giorno_classe[base3d_gci + j]--;
+                ore_classi_docenti_svolte[base2d_ci + item->teacher]--;
+                prof_gia_impegnato_giorno_ora[base3d_goi + item->teacher] = 0;
+                ore_classe_svolte[cla]--;
+                ore_docenti_svolte[item->teacher]--;
+                if (item->co_teacher != -1) {
+                    ore_classi_docenti_svolte[base2d_ci + item->co_teacher]--;
+                    prof_gia_impegnato_giorno_ora[base3d_goi + item->co_teacher] = 0;
+                    ore_docenti_svolte[item->co_teacher]--;
                 }
+                item->priority++;
             }
         }
     }
@@ -292,40 +261,40 @@ int main(void) {
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
     //test(100);
 
-    // if you initialize with less elements it will set the remaming elements to 0.
-    QueueItem *queue[INSEGNANTE_SZ] = {0};
+    /*  // if you initialize with less elements it will set the remaming elements to 0.
+      QueueItem *queue[INSEGNANTE_SZ] = {0};
 
-    // Should do this while setting classi e insegnanti
-    initialize_queue_arr(queue);
-    print_priority_queue(queue);
+      // Should do this while setting classi e insegnanti
+      initialize_queue_arr(queue);
+      print_priority_queue(queue);
 
-    // 2. Extracted the total dimension to avoid recalculating
-    const size_t num_blocks = GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ;
-    const size_t total_elements = num_blocks * INSEGNANTE_SZ;
+      // 2. Extracted the total dimension to avoid recalculating
+      const size_t num_blocks = GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ;
+      const size_t total_elements = num_blocks * INSEGNANTE_SZ;
 
-    // 3. Type-safe malloc (no explicit cast needed in C, but use sizeof(*ptr))
-    queue_mul = malloc(total_elements * sizeof(*queue_mul));
+      // 3. Type-safe malloc (no explicit cast needed in C, but use sizeof(*ptr))
+      queue_mul = malloc(total_elements * sizeof(*queue_mul));
 
-    if (queue_mul == NULL) {
-        // Always handle allocation failures!
-        fprintf(stderr, "Memory allocation failed\n");
-        return 0;
-    }
+      if (queue_mul == NULL) {
+          // Always handle allocation failures!
+          fprintf(stderr, "Memory allocation failed\n");
+          return 0;
+      }
 
-    // 4. Highly optimized copying using memcpy instead of a nested loop
-    for (size_t i = 0; i < num_blocks; i++) {
-        memcpy(&queue_mul[i * INSEGNANTE_SZ], queue, sizeof(queue));
-    }
+      // 4. Highly optimized copying using memcpy instead of a nested loop
+      for (size_t i = 0; i < num_blocks; i++) {
+          memcpy(&queue_mul[i * INSEGNANTE_SZ], queue, sizeof(queue));
+      }*/
 
-    f =fopen("orario.txt", "w");
+    f = fopen("orario.txt", "w");
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
     print_orario(0);
-    fclose(f);
 
     const double elapsed = (clock() - start) / (double) CLOCKS_PER_SEC;
     printf("Totale generati: %llu in %d m, %d s at %.0f Hz", n_gen, (int) elapsed / 60, (int) elapsed % 60,
            (double) n_gen / elapsed);
     fflush(stdout);
+    fclose(f);
 
     return 0;
 }

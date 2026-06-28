@@ -8,11 +8,12 @@
 
 typedef struct el {
     int teacher;
+    int co_teacher;
     double priority;
 } QueueItem, *elp;
 
 extern QueueItem **queue_mul;
-//extern int queue_sz;
+extern int queue_sz;
 
 void initialize_queue_arr(QueueItem *queue[]);
 #endif //UNTITLED_PRIO_QUEUE_H

@@ -90,5 +90,6 @@ char CalziD[] = "D. Calzi";
 char PasqualiniF[] = "F. Pasqualini";
 char DelCornoE[] = "E. Del Corno";
 char StranoS[] = "S. Strano";
+char SpacagnoPa[] = "Pa. Spacagno";
 
 #endif //UNTITLED_PROFESSORS_H

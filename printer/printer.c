@@ -125,6 +125,7 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
         }
     }
     fprintf(f, "\n");
+    fflush(f);
 }
 
 void print_priority_queue(QueueItem *queue[]) {

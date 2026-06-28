@@ -338,7 +338,7 @@ head_tail_queue initialize_priority_queue(const int profs) {
 */
 
 QueueItem **queue_mul;
-//int queue_sz;
+int queue_sz;
 
 void initialize_queue_arr(QueueItem *queue[]) {
     for (int i = 0; i < actual_insegnanti; i++) {
