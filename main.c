@@ -200,17 +200,23 @@ void print_orario(const int pos) {
         for (int jj = base4d_queue; jj < jjmax; jj++) {
             QueueItem *item = set_max_at(jjmax, jj);
 
-            if (item->priority > 0
-                // verifica che nella stessa ora ciascun prof non sia già in altre classi
-                && !prof_gia_impegnato_giorno_ora[base3d_goi + item->teacher]
-                && (item->co_teacher == -1 || !prof_gia_impegnato_giorno_ora[base3d_goi + item->co_teacher])
+            if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
+                !prof_gia_impegnato_giorno_ora[base3d_goi + item->teacher]
                 //verifica che si ha docente codocente adeguati in una classe
-                && (item->co_teacher == -1 || classi_docenti_codocenti[
-                        base3d_cii + item->teacher * INSEGNANTE_SZ + item->co_teacher])
                 // controlla ore svolte per materia, verifica che siano inferiori a quelle totali
-                && ore_classi_docenti_svolte[base2d_ci + item->teacher] < ore_classi_docenti[base2d_ci + item->teacher]
-                && (item->co_teacher == -1 || ore_classi_docenti_svolte[base2d_ci + item->co_teacher] <
-                    ore_classi_docenti[base2d_ci + item->co_teacher])
+                //&& ore_classi_docenti_svolte[base2d_ci + item->teacher] < ore_classi_docenti[base2d_ci + item->teacher]
+                && (item->co_teacher != -1 || ore_classi_docenti_svolte[base2d_ci + item->teacher] <
+                    ore_classi_docenti[base2d_ci + item->teacher] - ore_classi_docenti[
+                        base2d_ci + item->co_teacher])
+                && (item->co_teacher == -1 ||
+                    (!prof_gia_impegnato_giorno_ora[base3d_goi + item->co_teacher]
+                     && (ore_classi_docenti_svolte[base2d_ci + item->teacher] <
+                         ore_classi_docenti[base2d_ci + item->teacher]
+                         && ore_classi_docenti_svolte[base2d_ci + item->co_teacher] <
+                         ore_classi_docenti[base2d_ci + item->co_teacher])
+                     && classi_docenti_codocenti[base3d_cii + item->teacher * INSEGNANTE_SZ + item->co_teacher]
+                    )
+                )
                 //max 2 ore stesso prof in ciascuna classe ogni giorno, anche se non contigue
                 //&& ore_prof_giorno_classe[base3d_gci + j] < MAX_ORE_STESSO_PROF_GIORNO
                 // un prof non può ritornare in una classe dopo un altra lezione (da verificare con i laboratori)

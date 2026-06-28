@@ -27,6 +27,7 @@ int actual_classi_sezione;
 int actual_insegnanti;
 
 int ore_classi_docenti[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
+int ore_classi_docenti_alone[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 int ore_classi_docenti_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 int ore_classi[CLASSE_SEZIONE_SZ];
 int ore_classe_svolte[CLASSE_SEZIONE_SZ];
@@ -110,6 +111,10 @@ void add_ore_classi_insegnante(int classe, int insegnante, int ore) {
     ore_classi_docenti[classe * INSEGNANTE_SZ + insegnante] += ore;
 }
 
+void add_ore_classi_insegnante_lonely(int classe, int insegnante, int ore) {
+    ore_classi_docenti_alone[classe * INSEGNANTE_SZ + insegnante] += ore;
+}
+
 void add_ore_classi_settimanale(int classe, int ore) {
     ore_classi[classe] += ore;
 }
@@ -144,7 +149,7 @@ void add_to_queue(int prof, int cod, int priority) {
             && queue_mul[i]->co_teacher == cod) {
             queue_mul[i]->priority += priority;
             return;
-            }
+        }
     }
     QueueItem *new = malloc(sizeof(QueueItem));
     new->teacher = prof;
@@ -154,16 +159,17 @@ void add_to_queue(int prof, int cod, int priority) {
     for (int i = 1;
          i < GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ; i++) {
         queue_mul[i * INSEGNANTE_SZ * INSEGNANTE_SZ + queue_sz - 1] = queue_mul[queue_sz - 1];
-         }
+    }
 }
+
 void set_classe_insegnante_ore(char cla[], char prof[], const int ore) {
     set_classe_sezione(cla);
     set_insegnante(prof);
     classi_docenti_teorici[p_classe_sezione(cla) * INSEGNANTE_SZ + p_insegnante(prof)] = 1;
-    add_ore_classi_insegnante(p_classe_sezione(cla), p_insegnante(prof), ore);
+    add_ore_classi_insegnante_lonely(p_classe_sezione(cla), p_insegnante(prof), ore);
     add_ore_classi_settimanale(p_classe_sezione(cla), ore);
     add_ore_insegnante_settimanale(p_insegnante(prof), ore);
- add_to_queue(p_insegnante(prof), -1, ore);
+    add_to_queue(p_insegnante(prof), -1, ore);
     print_priority_queue(stdout);
 }
 
@@ -172,6 +178,7 @@ void set_classe_insegnante_ore_cod(char cla[], char prof[], const int ore, char 
     set_insegnante(prof);
     classi_docenti_teorici[p_classe_sezione(cla) * INSEGNANTE_SZ + p_insegnante(prof)] = 1;
     add_ore_classi_insegnante(p_classe_sezione(cla), p_insegnante(prof), ore);
+    add_ore_classi_insegnante_lonely(p_classe_sezione(cla), p_insegnante(prof), ore - ore_cod);
     add_ore_classi_settimanale(p_classe_sezione(cla), ore);
     add_ore_insegnante_settimanale(p_insegnante(prof), ore);
 
