@@ -39,35 +39,35 @@ int verifica_ore_classe_materia(void) {
     for (int c = 0; c < CLASSE_SEZIONE_SZ; c++) {
         for (int t = 0; t < INSEGNANTE_SZ; t++) {
             if (ore_classi_docenti[idx_2d] != ore_classi_docenti_svolte[idx_2d]) {
-                printf("Wrong: Classe: %s, Teacher: %s %d but got %d\n",
-                       classe_sezione[c],
-                       insegnanti[t],
-                       ore_classi_docenti[idx_2d],
-                       ore_classi_docenti_svolte[idx_2d]);
+                fprintf(f, "Wrong: Classe: %s, Teacher: %s %d but got %d\n",
+                        classe_sezione[c],
+                        insegnanti[t],
+                        ore_classi_docenti[idx_2d],
+                        ore_classi_docenti_svolte[idx_2d]);
                 return 0;
             }
             idx_2d++;
         }
     }
-
-    // 2. Check co-teacher hours (3D array flattened logic)
-    int idx_3d = 0;
-    for (int c = 0; c < CLASSE_SEZIONE_SZ; c++) {
-        for (int t1 = 0; t1 < INSEGNANTE_SZ; t1++) {
-            for (int t2 = 0; t2 < INSEGNANTE_SZ; t2++) {
-                if (ore_classi_docenti_codocenti[idx_3d] != ore_classi_docenti_codocenti_svolte[idx_3d]) {
-                    printf("Wrong: Classe: %s, Codocente: %s, Teacher: %s %d but got %d\n",
-                           classe_sezione[c],
-                           insegnanti[t2], // t2 matches (idx_3d % INSEGNANTE_SZ)
-                           insegnanti[t1], // t1 matches ((idx_3d / INSEGNANTE_SZ) % INSEGNANTE_SZ)
-                           ore_classi_docenti_codocenti[idx_3d],
-                           ore_classi_docenti_codocenti_svolte[idx_3d]);
-                    return 0;
+    /*
+        // 2. Check co-teacher hours (3D array flattened logic)
+        int idx_3d = 0;
+        for (int c = 0; c < CLASSE_SEZIONE_SZ; c++) {
+            for (int t1 = 0; t1 < INSEGNANTE_SZ; t1++) {
+                for (int t2 = 0; t2 < INSEGNANTE_SZ; t2++) {
+                    if (ore_classi_docenti_codocenti[idx_3d] != ore_classi_docenti_codocenti_svolte[idx_3d]) {
+                        printf("Wrong: Classe: %s, Codocente: %s, Teacher: %s %d but got %d\n",
+                               classe_sezione[c],
+                               insegnanti[t2], // t2 matches (idx_3d % INSEGNANTE_SZ)
+                               insegnanti[t1], // t1 matches ((idx_3d / INSEGNANTE_SZ) % INSEGNANTE_SZ)
+                               ore_classi_docenti_codocenti[idx_3d],
+                               ore_classi_docenti_codocenti_svolte[idx_3d]);
+                        return 0;
+                    }
+                    idx_3d++;
                 }
-                idx_3d++;
             }
-        }
-    }
+        }*/
 
     return 1;
 }
@@ -139,16 +139,47 @@ void debug(const int base3d_goi, const int base2d_ci, const int base3d_gci, int 
     printf("\n");
 }
 
+int assert_non_decreasing(const int base4d_queue, const long long int jjmax, int jj) {
+    for (int p = base4d_queue; p < jj; p++) {
+        for (int q = p + 1; q < jjmax; q++) {
+            if (!(queue_mul[p]->priority >= queue_mul[q]->priority))
+                exit(-1);
+        }
+    }
+    return 0;
+}
+
+int set_max_at(const long long int jjmax, int jj) {
+    int max_idx = jj; // Track the INDEX of the maximum element, not just the value
+
+    for (int k = jj + 1; k < jjmax; k++) {
+        // k can start at jj + 1
+        if (queue_mul[k]->priority > queue_mul[max_idx]->priority) {
+            max_idx = k; // Found a higher priority, record its position
+        }
+    }
+
+    // ONLY SWAP ONCE after finding the true maximum for this position
+    if (max_idx != jj) {
+        QueueItem *tmp = queue_mul[jj];
+        queue_mul[jj] = queue_mul[max_idx];
+        queue_mul[max_idx] = tmp;
+    }
+
+    int j = queue_mul[jj]->teacher;
+    return j;
+}
+
 void print_orario(const int pos) {
     if (n_gen_ok <= n_gen) return;
 
-    //print(orario, pos, n_gen,NULL);
+    //print(orario, pos, n_gen, f);
 
     if (pos == orario_len) {
         if (verifica_ore_classe_materia()) {
             n_gen++;
-            //printf("%lld ", n_gen);
-            //print(orario, pos, n_gen, NULL);
+            //fprintf(f, "%lld ", n_gen);
+            print(orario, pos, n_gen, f);
         }
         return;
     }
@@ -164,79 +195,78 @@ void print_orario(const int pos) {
     const int base4d_queue = giorno * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + ora * CLASSE_SEZIONE_SZ *
                              INSEGNANTE_SZ + cla * INSEGNANTE_SZ;
     if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
-        const long long int jjmax = base4d_queue + queue_sz;
+        const long long int jjmax = base4d_queue + actual_insegnanti;
         for (int jj = base4d_queue; jj < jjmax; jj++) {
-            int max_idx = jj; // Track the INDEX of the maximum element, not just the value
-
-            /*       for (int p = base4d_queue; p < jj; p++) {
-                       for (int q = p + 1; q < jjmax; q++) {
-                           if (!(queue_mul[p]->priority >= queue_mul[q]->priority))
-                               exit(-1);
-                       }
-                   }
-       */
-            for (int k = jj + 1; k < jjmax; k++) {
-                // k can start at jj + 1
-                if (queue_mul[k]->priority > queue_mul[max_idx]->priority) {
-                    max_idx = k; // Found a higher priority, record its position
-                }
-            }
-
-            // ONLY SWAP ONCE after finding the true maximum for this position
-            if (max_idx != jj) {
-                QueueItem *tmp = queue_mul[jj];
-                queue_mul[jj] = queue_mul[max_idx];
-                queue_mul[max_idx] = tmp;
-            }
-
-            int j = queue_mul[jj]->teacher;
+            int j = set_max_at(jjmax, jj);
 
             if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
                 !prof_gia_impegnato_giorno_ora[base3d_goi + j]
                 // controlla ore svolte per materia, verifica che siano inferiori a quelle totali
                 && ore_classi_docenti_svolte[base2d_ci + j] < ore_classi_docenti[base2d_ci + j]
                 //max 2 ore stesso prof in ciascuna classe ogni giorno, anche se non contigue
-                && ore_prof_giorno_classe[base3d_gci + j] < MAX_ORE_STESSO_PROF_GIORNO
+                //&& ore_prof_giorno_classe[base3d_gci + j] < MAX_ORE_STESSO_PROF_GIORNO
                 // un prof non può ritornare in una classe dopo un altra lezione (da verificare con i laboratori)
-                && solo_lezioni_consecutive(pos, base3d_gci, j)
-                && sabato_esaurisci_priorita_subito(pos, giorno, ora, base2d_ci, j)
+                //&& solo_lezioni_consecutive(pos, base3d_gci, j)
+                //&& sabato_esaurisci_priorita_subito(pos, giorno, ora, base2d_ci, j)
                 && 1) {
-                ore_classi_docenti_svolte[base2d_ci + j]++;
-                prof_gia_impegnato_giorno_ora[base3d_goi + j] = 1;
-                ore_classe_svolte[cla]++;
-                ore_docenti_svolte[j]++;
-                ore_prof_giorno_classe[base3d_gci + j]++;
-                queue_mul[jj]->priority--;
-
                 const int base3d_cii = cla * INSEGNANTE_SZ * INSEGNANTE_SZ + j * INSEGNANTE_SZ;
-                for (int i = 0; i < actual_insegnanti; i++) {
-                    if ( //docente e codocente non possono essere la stessa persona
-                        i != j
+                for (int ii = jj + 1; ii < jjmax; ii++) {
+                    int i = set_max_at(jjmax, ii);
+
+
+                    if (
                         //verifica che il codocente sia con il docente
-                        && ore_classi_docenti_codocenti_svolte[base3d_cii + i]
-                        < ore_classi_docenti_codocenti[base3d_cii + i]
-                        && !prof_gia_impegnato_giorno_ora[base3d_goi + i]) {
-                        ore_classi_docenti_codocenti_svolte[base3d_cii + i]++;
+                        classi_docenti_codocenti[base3d_cii + i]
+                        && !prof_gia_impegnato_giorno_ora[base3d_goi + i]
+                        && ore_classi_docenti_svolte[base2d_ci + i] < ore_classi_docenti[base2d_ci + i]
+                        && 1) {
+                        ore_classi_docenti_svolte[base2d_ci + j]++;
+                        ore_classi_docenti_svolte[base2d_ci + i]++;
+                        prof_gia_impegnato_giorno_ora[base3d_goi + j] = 1;
                         prof_gia_impegnato_giorno_ora[base3d_goi + i] = 1;
+                        ore_classe_svolte[cla]++;
+                        ore_docenti_svolte[j]++;
+                        ore_docenti_svolte[i]++;
+                        ore_prof_giorno_classe[base3d_gci + j]++;
+                        ore_prof_giorno_classe[base3d_gci + i]++;
+                        queue_mul[jj]->priority--;
+                        queue_mul[ii]->priority--;
 
                         orario[pos] = (teaching_slot){j, i};
                         print_orario(pos + 1);
 
-                        ore_classi_docenti_codocenti_svolte[base3d_cii + i]--;
+                        queue_mul[ii]->priority++;
+                        queue_mul[jj]->priority++;
+                        ore_prof_giorno_classe[base3d_gci + i]--;
+                        ore_prof_giorno_classe[base3d_gci + j]--;
+                        ore_docenti_svolte[i]--;
+                        ore_docenti_svolte[j]--;
+                        ore_classe_svolte[cla]--;
                         prof_gia_impegnato_giorno_ora[base3d_goi + i] = 0;
+                        prof_gia_impegnato_giorno_ora[base3d_goi + j] = 0;
+                        ore_classi_docenti_svolte[base2d_ci + i]--;
+                        ore_classi_docenti_svolte[base2d_ci + j]--;
                     }
                 }
+                if (classi_docenti_teorici[base2d_ci + j]) {
+                    ore_classi_docenti_svolte[base2d_ci + j]++;
+                    prof_gia_impegnato_giorno_ora[base3d_goi + j] = 1;
+                    ore_classe_svolte[cla]++;
+                    ore_docenti_svolte[j]++;
+                    ore_prof_giorno_classe[base3d_gci + j]++;
+                    queue_mul[jj]->priority--;
 
 
-                orario[pos] = (teaching_slot){j, -1};
-                print_orario(pos + 1);
+                    orario[pos] = (teaching_slot){j, -1};
+                    print_orario(pos + 1);
 
-                queue_mul[jj]->priority++;
-                ore_classi_docenti_svolte[base2d_ci + j]--;
-                prof_gia_impegnato_giorno_ora[base3d_goi + j] = 0;
-                ore_classe_svolte[cla]--;
-                ore_docenti_svolte[j]--;
-                ore_prof_giorno_classe[base3d_gci + j]--;
+                    queue_mul[jj]->priority++;
+                    ore_classi_docenti_svolte[base2d_ci + j]--;
+                    prof_gia_impegnato_giorno_ora[base3d_goi + j] = 0;
+                    ore_classe_svolte[cla]--;
+                    ore_docenti_svolte[j]--;
+                    ore_prof_giorno_classe[base3d_gci + j]--;
+                }
             }
         }
     }
@@ -287,8 +317,7 @@ int main(void) {
         memcpy(&queue_mul[i * INSEGNANTE_SZ], queue, sizeof(queue));
     }
 
-    //f = fopen("orario.txt", "w");
-    f = fopen("orario.txt", "w");
+    f =fopen("orario.txt", "w");
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
     print_orario(0);
     fclose(f);

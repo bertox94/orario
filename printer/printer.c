@@ -31,7 +31,6 @@ void copy_and_pad(char *dest, const char *src, int maxlen) {
 }
 
 void draw_horizontal_separator(FILE *f) {
-    f = f ? f : stdout;
     fprintf(f, "---+");
     for (int i = 0; i < actual_giorni_settimana; i++) {
         fprintf(f, "---------------------------+");
@@ -41,7 +40,6 @@ void draw_horizontal_separator(FILE *f) {
 
 // Helper 1: Prints the header block containing the current time and attempt number
 void print_header(unsigned long long attempt, FILE *f) {
-    f = f ? f : stdout;
     time_t current_time;
     time(&current_time);
     fprintf(f, "Current time: %s", ctime(&current_time));
@@ -50,7 +48,6 @@ void print_header(unsigned long long attempt, FILE *f) {
 
 // Helper 2: Prints the days of the week header row for a specific class
 void print_days_header(const int pos, int class_index, FILE *f) {
-    f = f ? f : stdout;
     fprintf(f, "\nClasse: %s, ore: %d\n", classe_sezione[class_index], ore_classi[class_index]);
     fprintf(f, "   |");
 
@@ -61,7 +58,6 @@ void print_days_header(const int pos, int class_index, FILE *f) {
 }
 
 void print_row_prof(const teaching_slot orario[], int pos, char ora[], int c, int o, FILE *f) {
-    f = f ? f : stdout;
     fprintf(f, " %s|", ora);
     char formatted_str[MAX_STR_SZ_IN_DISPLAY];
     for (int g = 0; g < actual_giorni_settimana; g++) {
@@ -77,7 +73,6 @@ void print_row_prof(const teaching_slot orario[], int pos, char ora[], int c, in
 }
 
 void print_row_cod(const teaching_slot orario[], int pos, char ora[], int c, int o, FILE *f) {
-    f = f ? f : stdout;
     fprintf(f, " %s|", ora);
     char formatted_str[MAX_STR_SZ_IN_DISPLAY];
     for (int g = 0; g < actual_giorni_settimana; g++) {
@@ -94,7 +89,6 @@ void print_row_cod(const teaching_slot orario[], int pos, char ora[], int c, int
 
 // Main Function: Clean, descriptive, and easy to read
 void print(const teaching_slot orario[], const int pos, unsigned long long attempt, FILE *f) {
-    f = f ? f : stdout;
     print_header(attempt, f);
 
     for (int c = 0; c < actual_classi_sezione; c++) {
@@ -116,16 +110,16 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
                         get_ore_classi_insegnante(c, j));
                 for (int i = 0; i < actual_insegnanti; i++) {
                     copy_and_pad(str, insegnanti[i], MAX_STR_SZ_IN_DISPLAY);
-                    if (ore_classi_docenti_codocenti[c * INSEGNANTE_SZ * INSEGNANTE_SZ
+                    /*if (ore_classi_docenti_codocenti[c * INSEGNANTE_SZ * INSEGNANTE_SZ
                                                      + j * INSEGNANTE_SZ
                                                      + i] > 0)
                         fprintf(f, "\t%s\tha svolto %d ore su %d\n", str,
                                 ore_classi_docenti_codocenti_svolte[c * INSEGNANTE_SZ * INSEGNANTE_SZ
-                                                             + j * INSEGNANTE_SZ
-                                                             + i],
+                                                                    + j * INSEGNANTE_SZ
+                                                                    + i],
                                 ore_classi_docenti_codocenti[c * INSEGNANTE_SZ * INSEGNANTE_SZ
                                                              + j * INSEGNANTE_SZ
-                                                             + i]);
+                                                             + i]);*/
                 }
             }
         }
@@ -134,9 +128,9 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
 }
 
 void print_priority_queue(QueueItem *queue[]) {
-    for (int i = 0; i < queue_sz; i++) {
+    for (int i = 0; i < actual_insegnanti; i++) {
         if (i == 0) printf("Head: ");
-        else if (i == queue_sz - 1) printf("Tail: ");
+        else if (i == actual_insegnanti - 1) printf("Tail: ");
         else printf("       ");
         char str[MAX_STR_SZ_IN_DISPLAY];
         copy_and_pad(str, insegnanti[queue[i]->teacher], MAX_STR_SZ_IN_DISPLAY);

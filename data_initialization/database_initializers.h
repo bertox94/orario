@@ -43,10 +43,11 @@ extern int ore_classe_svolte[CLASSE_SEZIONE_SZ];
 extern int ore_docenti[INSEGNANTE_SZ];
 // tiene traccia del numero di ore svolte da un docente fino a _pos_
 extern int ore_docenti_svolte[INSEGNANTE_SZ];
-// in una classe, le ore di codocenza di prof e cod
-extern int ore_classi_docenti_codocenti[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ];
-// le ore svolte di codocenza
-extern int ore_classi_docenti_codocenti_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ];
+// in una classe, gli abbinamenti docenti-codocenti
+extern int classi_docenti_codocenti[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ];
+// i docenti teorici
+extern int classi_docenti_teorici[CLASSE_SEZIONE_SZ*INSEGNANTE_SZ];
+//extern int ore_classi_docenti_codocenti_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ];
 
 // verifica che un prof, dato un giorno e un ora, stia facendo lezione, perciò nella stesso giorno e ora non può fare altro
 extern int prof_gia_impegnato_giorno_ora[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ];
