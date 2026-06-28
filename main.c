@@ -191,6 +191,7 @@ void print_orario(const int pos) {
     const int base2d_ci = cla * INSEGNANTE_SZ;
     const int base2d_gc = giorno * CLASSE_SEZIONE_SZ;
     const int base3d_goi = giorno * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + ora * INSEGNANTE_SZ;
+    const int base3d_cii = cla * INSEGNANTE_SZ * INSEGNANTE_SZ;
     const int base3d_gci = giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ;
     const int base4d_queue = giorno * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ + ora *
                              CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ * INSEGNANTE_SZ;
@@ -199,9 +200,13 @@ void print_orario(const int pos) {
         for (int jj = base4d_queue; jj < jjmax; jj++) {
             QueueItem *item = set_max_at(jjmax, jj);
 
-            if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
-                !prof_gia_impegnato_giorno_ora[base3d_goi + item->teacher]
+            if (item->priority > 0
+                // verifica che nella stessa ora ciascun prof non sia già in altre classi
+                && !prof_gia_impegnato_giorno_ora[base3d_goi + item->teacher]
                 && (item->co_teacher == -1 || !prof_gia_impegnato_giorno_ora[base3d_goi + item->co_teacher])
+                //verifica che si ha docente codocente adeguati in una classe
+                && (item->co_teacher == -1 || classi_docenti_codocenti[
+                        base3d_cii + item->teacher * INSEGNANTE_SZ + item->co_teacher])
                 // controlla ore svolte per materia, verifica che siano inferiori a quelle totali
                 && ore_classi_docenti_svolte[base2d_ci + item->teacher] < ore_classi_docenti[base2d_ci + item->teacher]
                 && (item->co_teacher == -1 || ore_classi_docenti_svolte[base2d_ci + item->co_teacher] <

@@ -125,19 +125,23 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
         }
     }
     fprintf(f, "\n");
+    print_priority_queue(f);
     fflush(f);
 }
 
-void print_priority_queue(QueueItem *queue[]) {
-    for (int i = 0; i < actual_insegnanti; i++) {
-        if (i == 0) printf("Head: ");
-        else if (i == actual_insegnanti - 1) printf("Tail: ");
-        else printf("       ");
+void print_priority_queue(FILE *f) {
+    for (int i = 0; i < queue_sz; i++) {
+        if (i == 0) fprintf(f,"Head: ");
+        else if (i == queue_sz - 1) fprintf(f,"Tail: ");
+        else fprintf(f,"       ");
         char str[MAX_STR_SZ_IN_DISPLAY];
-        copy_and_pad(str, insegnanti[queue[i]->teacher], MAX_STR_SZ_IN_DISPLAY);
-        printf("%d)\t%s\t: %.2f\n", i, str, queue[i]->priority);
+        char cod[MAX_STR_SZ_IN_DISPLAY] = "--               ";
+        copy_and_pad(str, insegnanti[queue_mul[i]->teacher], MAX_STR_SZ_IN_DISPLAY);
+        queue_mul[i]->co_teacher == -1 ? :
+                copy_and_pad(cod, insegnanti[queue_mul[i]->co_teacher], MAX_STR_SZ_IN_DISPLAY);
+        fprintf(f, "%d)\t%s %s: %.2f\n", i, str, cod, queue_mul[i]->priority);
     }
-    printf("------------\n");
+    fprintf(f,"------------\n");
 }
 
 void stampa_dati() {
