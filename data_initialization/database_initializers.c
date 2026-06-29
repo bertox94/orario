@@ -172,7 +172,7 @@ void set_classe_insegnante_ore(char cla[], char prof[], const int ore) {
     add_ore_classi_settimanale(p_classe_sezione(cla), ore);
     add_ore_insegnante_settimanale(p_insegnante(prof), ore);
     add_to_queue(p_insegnante(prof), -1, ore);
-    print_priority_queue(stdout);
+    print_priority_queue(stdout, 0, queue_sz);
 }
 
 void set_classe_insegnante_ore_cod(char cla[], char prof[], const int ore, char cod[], const int ore_cod) {
@@ -198,7 +198,7 @@ void set_classe_insegnante_ore_cod(char cla[], char prof[], const int ore, char 
         add_to_queue(p_insegnante(prof), -1, ore - ore_cod);
     }
     add_to_queue(p_insegnante(prof), p_insegnante(cod), ore_cod);
-    print_priority_queue(stdout);
+    print_priority_queue(stdout, 0, queue_sz);
 }
 
 /*
@@ -329,11 +329,11 @@ void inizializza_dati() {
     set_classe_insegnante_ore_cod(Classe_3H, Tosi, 4, Sannino, 1);
     set_classe_insegnante_ore(Classe_3H, Guerra, 6);
     set_classe_insegnante_ore_cod(Classe_3H, Manganelli, 3, Rizzi, 1);
-    set_classe_insegnante_ore_cod(Classe_3H, Tiraboschi, 6, Benedetto, 6);
+    set_classe_insegnante_ore_cod(Classe_3H, Tiraboschi, 6, Benedetto, 3);
     set_classe_insegnante_ore(Classe_3H, Nicoletti, 2);
     set_classe_insegnante_ore_cod(Classe_3H, Trivini, 3, Avolio, 2);
     set_classe_insegnante_ore(Classe_3H, Quaini, 1);
-    set_classe_insegnante_ore_cod(Classe_3H, Tiraboschi, 4, Barosi, 2);
+    set_classe_insegnante_ore_cod(Classe_3H, Tiraboschi, 4, Gagliano, 2);
     set_classe_insegnante_ore(Classe_3H, LancellottiO, 3); //38 KHz
 
     set_classe_insegnante_ore(Classe_3Q, CresciniG, 6);
@@ -345,7 +345,7 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_3Q, BoschettiS, 2);
     set_classe_insegnante_ore(Classe_3Q, PeressuttiPL, 1); //28 KHz
 
-    /*set_classe_insegnante_ore(Classe_4A, SperandeoF, 6);
+    set_classe_insegnante_ore(Classe_4A, SperandeoF, 6);
     set_classe_insegnante_ore_cod(Classe_4A, MenapaceP, 3, CalziD, 2);
     set_classe_insegnante_ore_cod(Classe_4A, MenapaceP, 4, FierravantiD, 2);
     set_classe_insegnante_ore(Classe_4A, TosadoriF, 3);

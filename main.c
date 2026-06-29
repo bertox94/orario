@@ -40,11 +40,11 @@ int verifica_ore_classe_materia(void) {
         for (int t = 0; t < INSEGNANTE_SZ; t++) {
             if (ore_classi_docenti[idx_2d] != ore_classi_docenti_svolte[idx_2d]
             ) {
-                fprintf(f, "Wrong: Classe: %s, Teacher: %s %d but got %d\n",
-                        classe_sezione[c],
-                        insegnanti[t],
-                        ore_classi_docenti[idx_2d],
-                        ore_classi_docenti_svolte[idx_2d]);
+                printf("Wrong: Classe: %s, Teacher: %s %d but got %d\n",
+                       classe_sezione[c],
+                       insegnanti[t],
+                       ore_classi_docenti[idx_2d],
+                       ore_classi_docenti_svolte[idx_2d]);
                 return 0;
             }
             idx_2d++;
@@ -173,18 +173,17 @@ QueueItem *set_max_at(const long long int jjmax, int jj) {
 void print_orario(const int pos) {
     if (n_gen_ok <= n_gen) return;
 
-    //print(orario, pos, n_gen, f);
 
     if (pos == orario_len) {
         if (verifica_ore_classe_materia()) {
             n_gen++;
-            //fprintf(f, "%lld ", n_gen);
-            print(orario, pos, n_gen, f);
+            //printf("%lld ", n_gen);
+            //print(orario, pos, n_gen, f);
         }
-        //print(orario, pos, n_gen, f);
+        print(orario, pos, n_gen, f);
         return;
     }
-    //print(orario, pos, n_gen, f);
+    print(orario, pos, n_gen, f);
 
     const int giorno = g_giorno(pos);
     const int ora = g_ora(pos);
@@ -202,6 +201,13 @@ void print_orario(const int pos) {
             QueueItem *item = set_max_at(jjmax, jj);
             char *teacher = insegnanti[item->teacher];
             char *co_teacher = item->co_teacher == -1 ? "--" : insegnanti[item->co_teacher];
+
+            if (item->priority == 0) {
+                // all the following have priority zero
+                break;
+            }
+            //print_priority_queue(f, base4d_queue, jjmax);
+            //assert_non_decreasing(base4d_queue, jjmax, jj);
 
             if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
                 !prof_gia_impegnato_giorno_ora[base3d_goi + item->teacher]
@@ -222,7 +228,8 @@ void print_orario(const int pos) {
                 // un prof non può ritornare in una classe dopo un altra lezione (da verificare con i laboratori)
                 //&& solo_lezioni_consecutive(pos, base3d_gci, j)
                 //&& sabato_esaurisci_priorita_subito(pos, giorno, ora, base2d_ci, j)
-                && 1) {
+                && 1
+            ) {
                 prof_gia_impegnato_giorno_ora[base3d_goi + item->teacher] = 1;
                 ore_classe_svolte[cla]++;
                 ore_classi_docenti_svolte[base2d_ci + item->teacher]++;

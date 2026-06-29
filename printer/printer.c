@@ -125,12 +125,12 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
         }
     }
     fprintf(f, "\n");
-    print_priority_queue(f);
+    //print_priority_queue(f, 0, queue_sz);
     fflush(f);
 }
 
-void print_priority_queue(FILE *f) {
-    for (int i = 0; i < queue_sz; i++) {
+void print_priority_queue(FILE *f, int start, int end) {
+    for (int i = start; i < end; i++) {
         if (i == 0) fprintf(f,"Head: ");
         else if (i == queue_sz - 1) fprintf(f,"Tail: ");
         else fprintf(f,"       ");
