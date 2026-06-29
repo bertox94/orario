@@ -36,6 +36,7 @@ extern int ore_classi_docenti[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 extern int ore_classi_docenti_alone[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 //associa ad ogni classe e insegnante le ore totali svolte fino a _pos_
 extern int ore_classi_docenti_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
+extern int ore_classi_docenti_alone_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 
 extern int ore_classi[CLASSE_SEZIONE_SZ];
 // tiene traccia delle svolte in totale in una classe fino a _pos_

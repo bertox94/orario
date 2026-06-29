@@ -38,7 +38,8 @@ int verifica_ore_classe_materia(void) {
     int idx_2d = 0;
     for (int c = 0; c < CLASSE_SEZIONE_SZ; c++) {
         for (int t = 0; t < INSEGNANTE_SZ; t++) {
-            if (ore_classi_docenti[idx_2d] != ore_classi_docenti_svolte[idx_2d]) {
+            if (ore_classi_docenti[idx_2d] != ore_classi_docenti_svolte[idx_2d]
+            ) {
                 fprintf(f, "Wrong: Classe: %s, Teacher: %s %d but got %d\n",
                         classe_sezione[c],
                         insegnanti[t],
@@ -178,12 +179,12 @@ void print_orario(const int pos) {
         if (verifica_ore_classe_materia()) {
             n_gen++;
             //fprintf(f, "%lld ", n_gen);
-            //print(orario, pos, n_gen, f);
+            print(orario, pos, n_gen, f);
         }
-        print(orario, pos, n_gen, f);
+        //print(orario, pos, n_gen, f);
         return;
     }
-    print(orario, pos, n_gen, f);
+    //print(orario, pos, n_gen, f);
 
     const int giorno = g_giorno(pos);
     const int ora = g_ora(pos);
@@ -199,18 +200,18 @@ void print_orario(const int pos) {
         const long long int jjmax = base4d_queue + queue_sz;
         for (int jj = base4d_queue; jj < jjmax; jj++) {
             QueueItem *item = set_max_at(jjmax, jj);
+            char *teacher = insegnanti[item->teacher];
+            char *co_teacher = item->co_teacher == -1 ? "--" : insegnanti[item->co_teacher];
 
             if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
                 !prof_gia_impegnato_giorno_ora[base3d_goi + item->teacher]
                 //verifica che si ha docente codocente adeguati in una classe
                 // controlla ore svolte per materia, verifica che siano inferiori a quelle totali
                 //&& ore_classi_docenti_svolte[base2d_ci + item->teacher] < ore_classi_docenti[base2d_ci + item->teacher]
-                && (item->co_teacher != -1 || ore_classi_docenti_svolte[base2d_ci + item->teacher] <
+                && (item->co_teacher != -1 || ore_classi_docenti_alone_svolte[base2d_ci + item->teacher] <
                     ore_classi_docenti_alone[base2d_ci + item->teacher])
                 && (item->co_teacher == -1 ||
                     (!prof_gia_impegnato_giorno_ora[base3d_goi + item->co_teacher]
-                     && ore_classi_docenti_svolte[base2d_ci + item->teacher] <
-                     ore_classi_docenti[base2d_ci + item->teacher]
                      && ore_classi_docenti_svolte[base2d_ci + item->co_teacher] <
                      ore_classi_docenti[base2d_ci + item->co_teacher]
                      && classi_docenti_codocenti[base3d_cii + item->teacher * INSEGNANTE_SZ + item->co_teacher]
@@ -222,10 +223,12 @@ void print_orario(const int pos) {
                 //&& solo_lezioni_consecutive(pos, base3d_gci, j)
                 //&& sabato_esaurisci_priorita_subito(pos, giorno, ora, base2d_ci, j)
                 && 1) {
-                ore_classi_docenti_svolte[base2d_ci + item->teacher]++;
                 prof_gia_impegnato_giorno_ora[base3d_goi + item->teacher] = 1;
                 ore_classe_svolte[cla]++;
-                ore_docenti_svolte[item->teacher]++;
+                ore_classi_docenti_svolte[base2d_ci + item->teacher]++;
+                if (item->co_teacher == -1) {
+                    ore_classi_docenti_alone_svolte[base2d_ci + item->teacher]++;
+                }
                 if (item->co_teacher != -1) {
                     ore_classi_docenti_svolte[base2d_ci + item->co_teacher]++;
                     prof_gia_impegnato_giorno_ora[base3d_goi + item->co_teacher] = 1;
@@ -236,6 +239,9 @@ void print_orario(const int pos) {
                 orario[pos] = (teaching_slot){item->teacher, item->co_teacher};
                 print_orario(pos + 1);
 
+                if (item->co_teacher == -1) {
+                    ore_classi_docenti_alone_svolte[base2d_ci + item->teacher]--;
+                }
                 ore_classi_docenti_svolte[base2d_ci + item->teacher]--;
                 prof_gia_impegnato_giorno_ora[base3d_goi + item->teacher] = 0;
                 ore_classe_svolte[cla]--;
