@@ -202,10 +202,6 @@ void print_orario(const int pos) {
             char *teacher = insegnanti[item->teacher];
             char *co_teacher = item->co_teacher == -1 ? "--" : insegnanti[item->co_teacher];
 
-            if (item->priority == 0) {
-                // all the following have priority zero
-                break;
-            }
             //print_priority_queue(f, base4d_queue, jjmax);
             //assert_non_decreasing(base4d_queue, jjmax, jj);
 
@@ -230,6 +226,7 @@ void print_orario(const int pos) {
                 //&& sabato_esaurisci_priorita_subito(pos, giorno, ora, base2d_ci, j)
                 && 1
             ) {
+                assert(item->priority > 0);
                 prof_gia_impegnato_giorno_ora[base3d_goi + item->teacher] = 1;
                 ore_classe_svolte[cla]++;
                 ore_classi_docenti_svolte[base2d_ci + item->teacher]++;
