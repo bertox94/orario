@@ -135,11 +135,8 @@ void print_priority_queue(FILE *f, int start, int end) {
         else if (i == queue_sz - 1) fprintf(f,"Tail: ");
         else fprintf(f,"       ");
         char str[MAX_STR_SZ_IN_DISPLAY];
-        char cod[MAX_STR_SZ_IN_DISPLAY] = "--               ";
         copy_and_pad(str, insegnanti[queue_mul[i]->teacher], MAX_STR_SZ_IN_DISPLAY);
-        queue_mul[i]->co_teacher == -1 ? :
-                copy_and_pad(cod, insegnanti[queue_mul[i]->co_teacher], MAX_STR_SZ_IN_DISPLAY);
-        fprintf(f, "%d)\t%s %s: %.2f\n", i, str, cod, queue_mul[i]->priority);
+        fprintf(f, "%d)\t%s : %.2f\n", i, str,queue_mul[i]->priority);
     }
     fprintf(f,"------------\n");
 }

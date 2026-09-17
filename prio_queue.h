@@ -8,7 +8,6 @@
 
 typedef struct el {
     int teacher;
-    int co_teacher;
     double priority;
 } QueueItem, *elp;
 

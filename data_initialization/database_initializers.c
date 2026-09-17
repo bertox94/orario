@@ -144,17 +144,15 @@ int get_ore_insegnante_settimanale(int insegnante) {
  * Set constraints from user
 */
 
-void add_to_queue(int prof, int cod, int priority) {
+void add_to_queue(int prof, int priority) {
     for (int i = 0; i < queue_sz; i++) {
-        if (queue_mul[i]->teacher == prof
-            && queue_mul[i]->co_teacher == cod) {
+        if (queue_mul[i]->teacher == prof) {
             queue_mul[i]->priority += priority;
             return;
         }
     }
     QueueItem *new = malloc(sizeof(QueueItem));
     new->teacher = prof;
-    new->co_teacher = cod;
     new->priority = priority;
     queue_mul[queue_sz++] = new;
     for (int i = 1;
@@ -171,7 +169,7 @@ void set_classe_insegnante_ore(char cla[], char prof[], const int ore) {
     add_ore_classi_insegnante(p_classe_sezione(cla), p_insegnante(prof), ore);
     add_ore_classi_settimanale(p_classe_sezione(cla), ore);
     add_ore_insegnante_settimanale(p_insegnante(prof), ore);
-    add_to_queue(p_insegnante(prof), -1, ore);
+    add_to_queue(p_insegnante(prof), ore);
     print_priority_queue(stdout, 0, queue_sz);
 }
 
@@ -195,9 +193,9 @@ void set_classe_insegnante_ore_cod(char cla[], char prof[], const int ore, char 
                                      + p_insegnante(prof)] = 1;
 
     if (ore - ore_cod > 0) {
-        add_to_queue(p_insegnante(prof), -1, ore - ore_cod);
+        add_to_queue(p_insegnante(prof), ore - ore_cod);
     }
-    add_to_queue(p_insegnante(prof), p_insegnante(cod), ore_cod);
+    add_to_queue(p_insegnante(prof), ore_cod);
     print_priority_queue(stdout, 0, queue_sz);
 }
 

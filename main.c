@@ -200,7 +200,6 @@ void print_orario(const int pos) {
         for (int jj = base4d_queue; jj < jjmax; jj++) {
             QueueItem *item = set_max_at(jjmax, jj);
             char *teacher = insegnanti[item->teacher];
-            char *co_teacher = item->co_teacher == -1 ? "--" : insegnanti[item->co_teacher];
 
             //print_priority_queue(f, base4d_queue, jjmax);
             //assert_non_decreasing(base4d_queue, jjmax, jj);
