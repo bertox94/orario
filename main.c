@@ -197,6 +197,7 @@ void print_orario(const int pos) {
                              CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ * INSEGNANTE_SZ;
     if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
         const long long int jjmax = base4d_queue + queue_sz;
+        //TODO: needs a second for codocenti, after that but inside main loop try with just the main teacher
         for (int jj = base4d_queue; jj < jjmax; jj++) {
             QueueItem *item = set_max_at(jjmax, jj);
             char *teacher = insegnanti[item->teacher];
