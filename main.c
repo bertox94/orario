@@ -150,6 +150,7 @@ int assert_non_decreasing(const int base4d_queue, const long long int jjmax, int
     return 0;
 }
 
+/*
 QueueItem *set_max_at_of_remaining(const long long int jjmax, int jj) {
     int max_idx = jj; // Track the INDEX of the maximum element, not just the value
 
@@ -168,6 +169,25 @@ QueueItem *set_max_at_of_remaining(const long long int jjmax, int jj) {
     }
 
     return queue_mul[jj];
+}
+*/
+
+// Comparison function for qsort
+int compare_queue_items(const void *a, const void *b) {
+    // Cast the void pointers to pointers to QueueItem*
+    const QueueItem *itemA = *(const QueueItem **) a;
+    const QueueItem *itemB = *(const QueueItem **) b;
+
+    // Sort by priority (descending: highest priority first)
+    if (itemA->priority < itemB->priority) return 1;
+    if (itemA->priority > itemB->priority) return -1;
+    return 0;
+}
+
+// Assuming you know the number of elements in the array, say 'n'
+void sort_queue_mul(size_t start, size_t n) {
+    // qsort has an average time complexity of O(N log N)
+    qsort(&queue_mul[start], n, sizeof(QueueItem *), compare_queue_items);
 }
 
 void print_orario(const int pos) {
@@ -195,11 +215,13 @@ void print_orario(const int pos) {
     const int base3d_gci = giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ;
     const int base4d_queue = giorno * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ + ora *
                              CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ * INSEGNANTE_SZ;
+
+    sort_queue_mul(base4d_queue, queue_sz);
+    print_priority_queue(stdout, 0, base4d_queue + queue_sz);
     if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
         const long long int queue_size = base4d_queue + queue_sz;
         for (int ii = base4d_queue; ii < queue_size; ii++) {
-            QueueItem *it = set_max_at_of_remaining(queue_size, ii);
-            print_priority_queue(stdout,0, queue_size);
+            QueueItem *it = queue_mul[base4d_queue + ii];
 
             //print_priority_queue(f, base4d_queue, jjmax);
             //assert_non_decreasing(base4d_queue, jjmax, jj);
@@ -222,8 +244,7 @@ void print_orario(const int pos) {
                 // assert(iitem->priority > 0);
 
                 for (int jj = ii + 1; jj < queue_size; jj++) {
-                    QueueItem *jt = set_max_at_of_remaining(queue_size, jj);
-                    print_priority_queue(stdout,0, queue_size);
+                    QueueItem *jt = queue_mul[base4d_queue + jj];
                     if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
                         !prof_gia_impegnato_giorno_ora[base3d_goi + jt->teacher]
                         //verifica che si ha docente codocente adeguati in una classe
