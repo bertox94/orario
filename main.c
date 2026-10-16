@@ -241,6 +241,7 @@ void print_orario(const int pos) {
                         prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 1;
                         ore_classe_svolte[cla]++;
                         ore_classi_docenti_svolte[base2d_ci + it->teacher]++;
+
                         orario[pos] = (teaching_slot){it->teacher, jt->teacher};
                         print_orario(pos + 1);
 
@@ -248,11 +249,9 @@ void print_orario(const int pos) {
                         prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 0;
                         ore_classe_svolte[cla]--;
                         ore_docenti_svolte[it->teacher]--;
-                        if (it->co_teacher != -1) {
-                            ore_classi_docenti_svolte[base2d_ci + it->co_teacher]--;
-                            prof_gia_impegnato_giorno_ora[base3d_goi + it->co_teacher] = 0;
-                            ore_docenti_svolte[it->co_teacher]--;
-                        }
+                        // ore_classi_docenti_svolte[base2d_ci + it->co_teacher]--;
+                        // prof_gia_impegnato_giorno_ora[base3d_goi + it->co_teacher] = 0;
+                        // ore_docenti_svolte[it->co_teacher]--;
                         it->priority++;
                     }
                 }
