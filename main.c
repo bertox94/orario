@@ -150,7 +150,7 @@ int assert_non_decreasing(const int base4d_queue, const long long int jjmax, int
     return 0;
 }
 
-QueueItem *set_max_at(const long long int jjmax, int jj) {
+QueueItem *set_max_at_of_remaining(const long long int jjmax, int jj) {
     int max_idx = jj; // Track the INDEX of the maximum element, not just the value
 
     for (int k = jj + 1; k < jjmax; k++) {
@@ -198,7 +198,8 @@ void print_orario(const int pos) {
     if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
         const long long int queue_size = base4d_queue + queue_sz;
         for (int ii = base4d_queue; ii < queue_size; ii++) {
-            QueueItem *it = set_max_at(queue_size, ii);
+            QueueItem *it = set_max_at_of_remaining(queue_size, ii);
+            print_priority_queue(stdout,0, queue_size);
 
             //print_priority_queue(f, base4d_queue, jjmax);
             //assert_non_decreasing(base4d_queue, jjmax, jj);
@@ -221,7 +222,8 @@ void print_orario(const int pos) {
                 // assert(iitem->priority > 0);
 
                 for (int jj = ii + 1; jj < queue_size; jj++) {
-                    QueueItem *jt = set_max_at(queue_size, jj);
+                    QueueItem *jt = set_max_at_of_remaining(queue_size, jj);
+                    print_priority_queue(stdout,0, queue_size);
                     if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
                         !prof_gia_impegnato_giorno_ora[base3d_goi + jt->teacher]
                         //verifica che si ha docente codocente adeguati in una classe
