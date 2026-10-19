@@ -217,7 +217,7 @@ void print_orario(const int pos) {
                              CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ * INSEGNANTE_SZ;
 
     sort_queue_mul(base4d_queue, queue_sz);
-    print_priority_queue(stdout, 0, base4d_queue + queue_sz);
+    print_priority_queue(stdout, base4d_queue, base4d_queue + queue_sz);
     if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
         const long long int queue_size = base4d_queue + queue_sz;
         for (int ii = base4d_queue; ii < queue_size; ii++) {
