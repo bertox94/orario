@@ -221,7 +221,7 @@ void print_orario(const int pos) {
     if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
         const long long int queue_size = base4d_queue + queue_sz;
         for (int ii = base4d_queue; ii < queue_size; ii++) {
-            QueueItem *it = queue_mul[base4d_queue + ii];
+            QueueItem *it = queue_mul[ii];
 
             //print_priority_queue(f, base4d_queue, jjmax);
             //assert_non_decreasing(base4d_queue, jjmax, jj);
@@ -244,7 +244,7 @@ void print_orario(const int pos) {
                 // assert(iitem->priority > 0);
 
                 for (int jj = ii + 1; jj < queue_size; jj++) {
-                    QueueItem *jt = queue_mul[base4d_queue + jj];
+                    QueueItem *jt = queue_mul[jj];
                     if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
                         !prof_gia_impegnato_giorno_ora[base3d_goi + jt->teacher]
                         //verifica che si ha docente codocente adeguati in una classe
