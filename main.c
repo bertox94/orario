@@ -217,7 +217,7 @@ void print_orario(const int pos) {
                              CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ * INSEGNANTE_SZ;
 
     sort_queue_mul(base4d_queue, queue_sz);
-    print_priority_queue(stdout, base4d_queue, base4d_queue + queue_sz);
+    //print_priority_queue(stdout, base4d_queue, base4d_queue + queue_sz);
     if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
         const long long int queue_size = base4d_queue + queue_sz;
         for (int ii = base4d_queue; ii < queue_size; ii++) {
@@ -248,6 +248,7 @@ void print_orario(const int pos) {
                     if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
                         !prof_gia_impegnato_giorno_ora[base3d_goi + jt->teacher]
                         //verifica che si ha docente codocente adeguati in una classe
+                        && classi_docenti_codocenti[base3d_cii + it->teacher * INSEGNANTE_SZ + jt->teacher]
                         // controlla ore svolte per materia, verifica che siano inferiori a quelle totali
                         //&& ore_classi_docenti_svolte[base2d_ci + item->teacher] < ore_classi_docenti[base2d_ci + item->teacher]
                         // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
@@ -261,29 +262,36 @@ void print_orario(const int pos) {
                         && 1
                     ) {
                         it->priority--;
+                        jt->priority--;
                         prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 1;
+                        prof_gia_impegnato_giorno_ora[base3d_goi + jt->teacher] = 1;
                         ore_classe_svolte[cla]++;
                         ore_classi_docenti_svolte[base2d_ci + it->teacher]++;
+                        ore_classi_docenti_svolte[base2d_ci + jt->teacher]++;
 
                         orario[pos] = (teaching_slot){it->teacher, jt->teacher};
                         print_orario(pos + 1);
 
-                        ore_classi_docenti_svolte[base2d_ci + it->teacher]--;
-                        prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 0;
-                        ore_classe_svolte[cla]--;
-                        ore_docenti_svolte[it->teacher]--;
-                        // ore_classi_docenti_svolte[base2d_ci + it->co_teacher]--;
-                        // prof_gia_impegnato_giorno_ora[base3d_goi + it->co_teacher] = 0;
-                        // ore_docenti_svolte[it->co_teacher]--;
                         it->priority++;
+                        jt->priority++;
+                        prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 0;
+                        prof_gia_impegnato_giorno_ora[base3d_goi + jt->teacher] = 0;
+                        ore_classe_svolte[cla]--;
+                        ore_classi_docenti_svolte[base2d_ci + it->teacher]--;
+                        ore_classi_docenti_svolte[base2d_ci + jt->teacher]--;
                     }
                 }
                 //non abbiamo trovato combinazioni di codocenza, but it needs to do hours alone the teacher
-                if (ore_classi_docenti_svolte[base2d_ci + it->teacher] < ore_classi_docenti_alone[
-                        base2d_ci + it->teacher]) {
-                    orario[pos] = (teaching_slot){it->teacher, -1};
-                    print_orario(pos + 1);
-                }
+                it->priority--;
+                prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 1;
+                ore_classe_svolte[cla]++;
+                ore_classi_docenti_svolte[base2d_ci + it->teacher]++;
+                orario[pos] = (teaching_slot){it->teacher, -1};
+                print_orario(pos + 1);
+                it->priority++;
+                prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 0;
+                ore_classe_svolte[cla]--;
+                ore_classi_docenti_svolte[base2d_ci + it->teacher]--;
             }
         }
     }
