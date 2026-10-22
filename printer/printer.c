@@ -64,7 +64,7 @@ void print_row_prof(const teaching_slot orario[], int pos, char ora[], int c, in
         int curr;
         int p = g * actual_ore_giornaliere * actual_classi_sezione + o * actual_classi_sezione + c;
         if (p >= pos) curr = -1;
-        else curr = orario[p].insegnante;
+        else curr = orario[p].insegnante1;
         copy_and_pad(formatted_str, curr == -1 ? "       --        " : insegnanti[curr],
                      MAX_STR_SZ_IN_DISPLAY);
         fprintf(f, "     %s     |", formatted_str);
@@ -79,7 +79,7 @@ void print_row_cod(const teaching_slot orario[], int pos, char ora[], int c, int
         int curr;
         int p = g * actual_ore_giornaliere * actual_classi_sezione + o * actual_classi_sezione + c;
         if (p >= pos) curr = -1;
-        else curr = orario[p].codocente;
+        else curr = orario[p].insegnante2;
         copy_and_pad(formatted_str, curr == -1 ? "       --        " : insegnanti[curr],
                      MAX_STR_SZ_IN_DISPLAY);
         fprintf(f, "     %s     |", formatted_str);

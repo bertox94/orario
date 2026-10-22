@@ -13,7 +13,7 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 long long int n_gen = 0;
-long long int n_gen_ok = SCHEDULES_PER_GB / 10;
+long long int n_gen_max = SCHEDULES_PER_GB / 1;
 teaching_slot orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
     [0 ...
         GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1
@@ -40,11 +40,11 @@ int verifica_ore_classe_materia(void) {
         for (int t = 0; t < INSEGNANTE_SZ; t++) {
             if (ore_classi_docenti[idx_2d] != ore_classi_docenti_svolte[idx_2d]
             ) {
-                printf("Wrong: Classe: %s, Teacher: %s %d but got %d\n",
-                       classe_sezione[c],
-                       insegnanti[t],
-                       ore_classi_docenti[idx_2d],
-                       ore_classi_docenti_svolte[idx_2d]);
+                fprintf(f, "Wrong: Classe: %s, Teacher: %s %d but got %d\n\n",
+                        classe_sezione[c],
+                        insegnanti[t],
+                        ore_classi_docenti[idx_2d],
+                        ore_classi_docenti_svolte[idx_2d]);
                 return 0;
             }
             idx_2d++;
@@ -106,14 +106,14 @@ int solo_lezioni_consecutive(int pos, int base3d_gci, int insegnante) {
     if (ore_prof_giorno_classe[base3d_gci + insegnante] == 0) return 1;
     // no need to check pos - actual_classi_sezione > 0 since the first hour has no teacher,
     // so it would just have returned
-    return orario[pos - actual_classi_sezione].insegnante == insegnante;
+    return orario[pos - actual_classi_sezione].insegnante1 == insegnante;
 }
 
 int sabato_esaurisci_priorita_subito(int pos, int giorno, int ora, int base2d_ci, int prof) {
     // maybe need a schedule like all the teachers
     //check if max ore materia is bigger than 2
     if (giorno == actual_giorni_settimana - 1 && ora > 0) {
-        int prev_prof = orario[pos - actual_classi_sezione].insegnante;
+        int prev_prof = orario[pos - actual_classi_sezione].insegnante1;
         //no need to check != -1 since we check already that ora > 0
         if (ore_classi_docenti[base2d_ci + prev_prof] - ore_classi_docenti_svolte[
                 base2d_ci + prev_prof] == 1) {
@@ -191,7 +191,7 @@ void sort_queue_mul(size_t start, size_t n) {
 }
 
 void print_orario(const int pos) {
-    if (n_gen_ok <= n_gen) return;
+    if (n_gen_max <= n_gen) return;
 
 
     if (pos == orario_len) {
@@ -261,37 +261,41 @@ void print_orario(const int pos) {
                         //&& sabato_esaurisci_priorita_subito(pos, giorno, ora, base2d_ci, j)
                         && 1
                     ) {
-                        it->priority--;
                         jt->priority--;
-                        prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 1;
-                        prof_gia_impegnato_giorno_ora[base3d_goi + jt->teacher] = 1;
+                        it->priority--;
                         ore_classe_svolte[cla]++;
-                        ore_classi_docenti_svolte[base2d_ci + it->teacher]++;
+                        prof_gia_impegnato_giorno_ora[base3d_goi + jt->teacher] = 1;
+                        prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 1;
                         ore_classi_docenti_svolte[base2d_ci + jt->teacher]++;
+                        ore_classi_docenti_svolte[base2d_ci + it->teacher]++;
 
                         orario[pos] = (teaching_slot){it->teacher, jt->teacher};
                         print_orario(pos + 1);
 
-                        it->priority++;
                         jt->priority++;
-                        prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 0;
-                        prof_gia_impegnato_giorno_ora[base3d_goi + jt->teacher] = 0;
+                        it->priority++;
                         ore_classe_svolte[cla]--;
-                        ore_classi_docenti_svolte[base2d_ci + it->teacher]--;
+                        prof_gia_impegnato_giorno_ora[base3d_goi + jt->teacher] = 0;
+                        prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 0;
                         ore_classi_docenti_svolte[base2d_ci + jt->teacher]--;
+                        ore_classi_docenti_svolte[base2d_ci + it->teacher]--;
                     }
                 }
-                //non abbiamo trovato combinazioni di codocenza, but it needs to do hours alone the teacher
-                it->priority--;
-                prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 1;
-                ore_classe_svolte[cla]++;
-                ore_classi_docenti_svolte[base2d_ci + it->teacher]++;
-                orario[pos] = (teaching_slot){it->teacher, -1};
-                print_orario(pos + 1);
-                it->priority++;
-                prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 0;
-                ore_classe_svolte[cla]--;
-                ore_classi_docenti_svolte[base2d_ci + it->teacher]--;
+                //non abbiamo trovato combinazioni di codocenza
+                if (classi_docenti_teorici[base2d_ci + it->teacher]) {
+                    it->priority--;
+                    prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 1;
+                    ore_classe_svolte[cla]++;
+                    ore_classi_docenti_svolte[base2d_ci + it->teacher]++;
+
+                    orario[pos] = (teaching_slot){it->teacher, -1};
+                    print_orario(pos + 1);
+
+                    it->priority++;
+                    prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 0;
+                    ore_classe_svolte[cla]--;
+                    ore_classi_docenti_svolte[base2d_ci + it->teacher]--;
+                }
             }
         }
     }

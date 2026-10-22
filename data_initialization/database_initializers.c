@@ -192,10 +192,11 @@ void set_classe_insegnante_ore_cod(char cla[], char prof[], const int ore, char 
                                      + p_insegnante(cod) * INSEGNANTE_SZ
                                      + p_insegnante(prof)] = 1;
 
-    if (ore - ore_cod > 0) {
+    /*if (ore - ore_cod > 0) {
         add_to_queue(p_insegnante(prof), ore - ore_cod);
-    }
-    add_to_queue(p_insegnante(prof), ore_cod);
+    }*/
+    add_to_queue(p_insegnante(cod),ore_cod);
+    add_to_queue(p_insegnante(prof), ore);
     print_priority_queue(stdout, 0, queue_sz);
 }
 

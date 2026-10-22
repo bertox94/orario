@@ -18,8 +18,8 @@
 typedef struct {
     //int aula;
     //int materia;
-    int insegnante;
-    int codocente;
+    int insegnante1;
+    int insegnante2;
 } teaching_slot;
 
 extern char giorni_settimana[GIORNO_SETTIMANA_SZ][MAX_LEN_WORDS];
