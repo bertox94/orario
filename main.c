@@ -219,6 +219,7 @@ void print_orario(const int pos) {
     sort_queue_mul(base4d_queue, queue_sz);
     //print_priority_queue(stdout, base4d_queue, base4d_queue + queue_sz);
     if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
+        ore_classe_svolte[cla]++;
         const long long int queue_size = base4d_queue + queue_sz;
         for (int ii = base4d_queue; ii < queue_size; ii++) {
             QueueItem *it = queue_mul[ii];
@@ -263,7 +264,6 @@ void print_orario(const int pos) {
                     ) {
                         jt->priority--;
                         it->priority--;
-                        ore_classe_svolte[cla]++;
                         prof_gia_impegnato_giorno_ora[base3d_goi + jt->teacher] = 1;
                         prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 1;
                         ore_classi_docenti_svolte[base2d_ci + jt->teacher]++;
@@ -274,7 +274,6 @@ void print_orario(const int pos) {
 
                         jt->priority++;
                         it->priority++;
-                        ore_classe_svolte[cla]--;
                         prof_gia_impegnato_giorno_ora[base3d_goi + jt->teacher] = 0;
                         prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 0;
                         ore_classi_docenti_svolte[base2d_ci + jt->teacher]--;
@@ -285,7 +284,6 @@ void print_orario(const int pos) {
                 if (classi_docenti_teorici[base2d_ci + it->teacher]) {
                     it->priority--;
                     prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 1;
-                    ore_classe_svolte[cla]++;
                     ore_classi_docenti_svolte[base2d_ci + it->teacher]++;
 
                     orario[pos] = (teaching_slot){it->teacher, -1};
@@ -293,11 +291,11 @@ void print_orario(const int pos) {
 
                     it->priority++;
                     prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 0;
-                    ore_classe_svolte[cla]--;
                     ore_classi_docenti_svolte[base2d_ci + it->teacher]--;
                 }
             }
         }
+        ore_classe_svolte[cla]--;
     }
 
 
