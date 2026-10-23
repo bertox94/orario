@@ -218,20 +218,15 @@ void print_orario(const int pos) {
     const int base2d_gc = giorno * CLASSE_SEZIONE_SZ;
     const int base3d_goi = giorno * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + ora * INSEGNANTE_SZ;
     const int base3d_cii = cla * INSEGNANTE_SZ * INSEGNANTE_SZ;
-    const int base3d_gci = giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ;
     const int base4d_queue = giorno * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ + ora *
                              CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ * INSEGNANTE_SZ;
 
     sort_queue_mul(base4d_queue, queue_sz);
-    //print_priority_queue(stdout, base4d_queue, base4d_queue + queue_sz);
     if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
         ore_classe_svolte[cla]++;
         const long long int queue_size = base4d_queue + queue_sz;
         for (int ii = base4d_queue; ii < queue_size; ii++) {
             QueueItem *it = queue_mul[ii];
-
-            //print_priority_queue(f, base4d_queue, jjmax);
-            //assert_non_decreasing(base4d_queue, jjmax, jj);
 
             if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
                 !prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher]

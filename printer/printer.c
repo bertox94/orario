@@ -106,9 +106,9 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
             char str[MAX_STR_SZ_IN_DISPLAY];
             copy_and_pad(str, insegnanti[j], MAX_STR_SZ_IN_DISPLAY);
             if (get_ore_classi_insegnante(c, j) > 0) {
-                fprintf(f, "%s\tha svolto %d ore su %d [%d]\n", str, get_ore_classi_insegnante_svolte(c, j),
-                get_ore_classi_insegnante(c, j), get_ore_classi_insegnante_svolte(c, j)==
-                get_ore_classi_insegnante(c, j));
+                int ore_i_s = get_ore_classi_insegnante_svolte(c, j);
+                int ore_i = get_ore_classi_insegnante(c, j);
+                fprintf(f, "%s\tha svolto %d ore su %d [%d]\n", str, ore_i_s, ore_i, ore_i_s == ore_i);
                 for (int i = 0; i < actual_insegnanti; i++) {
                     copy_and_pad(str, insegnanti[i], MAX_STR_SZ_IN_DISPLAY);
                     /*if (ore_classi_docenti_codocenti[c * INSEGNANTE_SZ * INSEGNANTE_SZ
@@ -132,14 +132,14 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
 
 void print_priority_queue(FILE *f, int start, int end) {
     for (int i = start; i < end; i++) {
-        if (i == start) fprintf(f,"Head: ");
-        else if (i == end - 1) fprintf(f,"Tail: ");
-        else fprintf(f,"       ");
+        if (i == start) fprintf(f, "Head: ");
+        else if (i == end - 1) fprintf(f, "Tail: ");
+        else fprintf(f, "       ");
         char str[MAX_STR_SZ_IN_DISPLAY];
         copy_and_pad(str, insegnanti[queue_mul[i]->teacher], MAX_STR_SZ_IN_DISPLAY);
-        fprintf(f, "%d)\t%s : %.2f\n", i, str,queue_mul[i]->priority);
+        fprintf(f, "%d)\t%s : %.2f\n", i, str, queue_mul[i]->priority);
     }
-    fprintf(f,"------------\n");
+    fprintf(f, "------------\n");
 }
 
 void stampa_dati() {
