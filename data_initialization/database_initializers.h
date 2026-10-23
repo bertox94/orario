@@ -13,7 +13,7 @@
 #define MAX_LEN_WORDS 50
 
 #define PRIME_N_ORE_OBBLIGATORIE 5
-#define MAX_ORE_STESSO_PROF_GIORNO 2
+#define MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO 3
 
 typedef struct {
     //int aula;

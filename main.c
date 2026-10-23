@@ -265,6 +265,47 @@ int deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(const int base2d_c
                base2d_ci + it->teacher];
 }
 
+int ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(int pos, int giorno, int cla, QueueItem *it) {
+    // Assuming start calculation based on your layout structure
+    int start = giorno * actual_ore_giornaliere * actual_classi_sezione;
+
+    // Fixed-size array instead of VLA (Variable Length Array).
+    // Since max distinct classes allowed is n, we only ever need n elements.
+    int classi[MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO];
+    int classi_sz = 0;
+
+    // Add the initial/current class
+    classi[classi_sz++] = cla;
+
+    for (int i = start; i < pos; i++) {
+        if (orario[i].insegnante1 == it->teacher || orario[i].insegnante2 == it->teacher) {
+            int current_class = g_classe(i);
+
+            // Check if the class is already recorded
+            int found = 0;
+            for (int j = 0; j < classi_sz; j++) {
+                if (classi[j] == current_class) {
+                    found = 1;
+                    break;
+                }
+            }
+
+            if (!found) {
+                // If we already have 'max_diff_class' distinct classes and find another one, fail early
+                if (classi_sz >= MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO) {
+                    return 0;
+                }
+                classi[classi_sz++] = current_class;
+            }
+
+            // Jump to the next hour slot (-1 to compensate for the loop's i++)
+            i = start + (g_ora(i) + 1) * actual_classi_sezione - 1;
+        }
+    }
+
+    return 1;
+}
+
 void print_orario(const int pos) {
     if (n_gen_max <= n_gen) return;
 
@@ -272,7 +313,7 @@ void print_orario(const int pos) {
     if (pos == orario_len) {
         //if (verifica_ore_classe_materia()) { //not needed ? all hours should match
         n_gen++;
-        //printf("%lld ", n_gen);
+        printf("%lld \n", n_gen);
         //print(orario, pos, n_gen, f);
         //  }
         return;
@@ -304,6 +345,8 @@ void print_orario(const int pos) {
                     giorno, ora, cla, it->teacher)
                 //se un prof ha due ore il sabato deve farle consecutive, altrimenti non la fa, essendo non contigue
                 && sabato_esaurisci_priorita_subito(pos, giorno, ora, base2d_ci, it->teacher)
+                //ogni docente fa al max MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO materie (classi) diverse ogni giorno
+                && ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(pos, giorno, cla, it)
                 && 1
             ) {
                 // assert(iitem->priority > 0);
@@ -319,6 +362,8 @@ void print_orario(const int pos) {
                         // poiche un prof se deve fare due ore no può farle spezzettate, e sabato è 'ulyimo giorno, non si puo mettere un altro prof,
                         // la seconda ora deve farla subito
                         && sabato_esaurisci_priorita_subito(pos, giorno, ora, base2d_ci, jt->teacher)
+                        //ogni docente fa al max MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO materie (classi) diverse ogni giorno
+                        && ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(pos, giorno, cla, jt)
                         && 1
                     ) {
                         prep_chiamata_ricorsiva_insieme(base2d_ci, base3d_goi, base3d_cii, it, jt);
@@ -386,7 +431,8 @@ int main(void) {
           memcpy(&queue_mul[i * INSEGNANTE_SZ], queue, sizeof(queue));
       }*/
 
-    f = stdout; //fopen("orario.txt", "w");
+    f = stdout;
+    //f = fopen("orario.txt", "w");
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
     print_orario(0);
 
