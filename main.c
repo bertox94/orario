@@ -180,11 +180,7 @@ void sort_queue_mul(size_t start, size_t n) {
     qsort(&queue_mul[start], n, sizeof(QueueItem *), compare_queue_items);
 }
 
-int teacher_was_in_class_before(size_t pos, int prof) {
-    int giorno = g_giorno(pos);
-    int ora = g_ora(pos);
-    int cla = g_classe(pos);
-
+int teacher_was_in_class_before(int giorno, int ora, int cla, int prof) {
     int start = giorno * actual_ore_giornaliere * actual_classi_sezione + cla;
 
     // controlla fino a
@@ -239,7 +235,7 @@ void print_orario(const int pos) {
                 && ore_classi_docenti_svolte[base2d_ci + it->teacher] < ore_classi_docenti[
                     base2d_ci + it->teacher]
                 // prof se fa due ore devono essere attaccate
-                && teacher_was_in_class_before(pos, it->teacher)
+                && teacher_was_in_class_before(giorno, ora, cla, it->teacher)
                 //&& sabato_esaurisci_priorita_subito(pos, giorno, ora, base2d_ci, j)
                 && 1
             ) {
@@ -257,7 +253,7 @@ void print_orario(const int pos) {
                         && ore_classi_docenti_svolte[base2d_ci + jt->teacher] < ore_classi_docenti[
                             base2d_ci + jt->teacher]
                         // prof se fa due ore devono essere attaccate
-                        && teacher_was_in_class_before(pos, jt->teacher)
+                        && teacher_was_in_class_before(giorno, ora, cla, jt->teacher)
                         //&& sabato_esaurisci_priorita_subito(pos, giorno, ora, base2d_ci, j)
                         && 1
                     ) {
