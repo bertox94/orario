@@ -170,8 +170,8 @@ void set_classe_insegnante_ore(char cla[], char prof[], const int ore) {
     set_classe_sezione(cla);
     set_insegnante(prof);
     classi_docenti_teorici[p_classe_sezione(cla) * INSEGNANTE_SZ + p_insegnante(prof)] = 1;
-    add_ore_classi_insegnante_lonely(p_classe_sezione(cla), p_insegnante(prof), ore);
     add_ore_classi_insegnante(p_classe_sezione(cla), p_insegnante(prof), ore);
+    add_ore_classi_insegnante_lonely(p_classe_sezione(cla), p_insegnante(prof), ore);
     add_ore_classi_settimanale(p_classe_sezione(cla), ore);
     add_ore_insegnante_settimanale(p_insegnante(prof), ore);
     add_to_queue(p_insegnante(prof), ore);
@@ -190,10 +190,6 @@ void set_classe_insegnante_ore_cod(char cla[], char prof[], const int ore, char 
     add_ore_classi_insegnante(p_classe_sezione(cla), p_insegnante(cod), ore_cod);
     add_ore_insegnante_settimanale(p_insegnante(cod), ore_cod);
     add_ore_classi_codocenza(p_classe_sezione(cla), p_insegnante(prof), p_insegnante(cod), ore_cod);
-
-    /*if (ore - ore_cod > 0) {
-        add_to_queue(p_insegnante(prof), ore - ore_cod);
-    }*/
     add_to_queue(p_insegnante(cod), ore_cod);
     add_to_queue(p_insegnante(prof), ore);
 }
