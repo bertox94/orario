@@ -106,8 +106,9 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
             char str[MAX_STR_SZ_IN_DISPLAY];
             copy_and_pad(str, insegnanti[j], MAX_STR_SZ_IN_DISPLAY);
             if (get_ore_classi_insegnante(c, j) > 0) {
-                fprintf(f, "%s\tha svolto %d ore su %d\n", str, get_ore_classi_insegnante_svolte(c, j),
-                        get_ore_classi_insegnante(c, j));
+                fprintf(f, "%s\tha svolto %d ore su %d [%d]\n", str, get_ore_classi_insegnante_svolte(c, j),
+                get_ore_classi_insegnante(c, j), get_ore_classi_insegnante_svolte(c, j)==
+                get_ore_classi_insegnante(c, j));
                 for (int i = 0; i < actual_insegnanti; i++) {
                     copy_and_pad(str, insegnanti[i], MAX_STR_SZ_IN_DISPLAY);
                     /*if (ore_classi_docenti_codocenti[c * INSEGNANTE_SZ * INSEGNANTE_SZ

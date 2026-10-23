@@ -13,7 +13,7 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 long long int n_gen = 0;
-long long int n_gen_max = SCHEDULES_PER_GB / 1;
+long long int n_gen_max = SCHEDULES_PER_GB / 10;
 teaching_slot orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
     [0 ...
         GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1
@@ -104,7 +104,7 @@ int activities_for_this_class_and_hour(int pos, int gio, const int ora, const in
 int sabato_esaurisci_priorita_subito(int pos, int giorno, int ora, int base2d_ci, int prof) {
     // maybe need a schedule like all the teachers
     if (giorno == actual_giorni_settimana - 1 && ora > 0) {
-        int prev_prof = orario[pos - actual_classi_sezione].insegnante1;
+        int prev_prof = orario[pos - actual_classi_sezione].insegnante1; // check insegnante2
         //no need to check != -1 since we check already that ora > 0
         if (ore_classi_docenti[base2d_ci + prev_prof] - ore_classi_docenti_svolte[
                 base2d_ci + prev_prof] == 1) {
@@ -180,7 +180,7 @@ void sort_queue_mul(size_t start, size_t n) {
     qsort(&queue_mul[start], n, sizeof(QueueItem *), compare_queue_items);
 }
 
-int teacher_was_in_class_before(int giorno, int ora, int cla, int prof) {
+int teacher_was_in_class_before_check(int giorno, int ora, int cla, int prof) {
     int start = giorno * actual_ore_giornaliere * actual_classi_sezione + cla;
 
     // controlla fino a
@@ -197,12 +197,12 @@ int teacher_was_in_class_before(int giorno, int ora, int cla, int prof) {
 void print_orario(const int pos) {
     if (n_gen_max <= n_gen) return;
 
-
+    print(orario, pos, n_gen, f);
     if (pos == orario_len) {
         if (verifica_ore_classe_materia()) {
             n_gen++;
             //printf("%lld ", n_gen);
-            print(orario, pos, n_gen, f);
+            //print(orario, pos, n_gen, f);
         }
         return;
     }
@@ -235,8 +235,8 @@ void print_orario(const int pos) {
                 && ore_classi_docenti_svolte[base2d_ci + it->teacher] < ore_classi_docenti[
                     base2d_ci + it->teacher]
                 // prof se fa due ore devono essere attaccate
-                && teacher_was_in_class_before(giorno, ora, cla, it->teacher)
-                //&& sabato_esaurisci_priorita_subito(pos, giorno, ora, base2d_ci, j)
+                && teacher_was_in_class_before_check(giorno, ora, cla, it->teacher)
+                && sabato_esaurisci_priorita_subito(pos, giorno, ora, base2d_ci, it->teacher)
                 && 1
             ) {
                 // assert(iitem->priority > 0);
@@ -253,8 +253,10 @@ void print_orario(const int pos) {
                         && ore_classi_docenti_svolte[base2d_ci + jt->teacher] < ore_classi_docenti[
                             base2d_ci + jt->teacher]
                         // prof se fa due ore devono essere attaccate
-                        && teacher_was_in_class_before(giorno, ora, cla, jt->teacher)
-                        //&& sabato_esaurisci_priorita_subito(pos, giorno, ora, base2d_ci, j)
+                        && teacher_was_in_class_before_check(giorno, ora, cla, jt->teacher)
+                        // poiche un prof se deve fare due ore no può farle spezzettate, e sabato è 'ulyimo giorno, non si puo mettere un altro prof,
+                        // la seconda ora deve farla subito
+                        && sabato_esaurisci_priorita_subito(pos, giorno, ora, base2d_ci, jt->teacher)
                         && 1
                     ) {
                         jt->priority--;
@@ -343,7 +345,7 @@ int main(void) {
           memcpy(&queue_mul[i * INSEGNANTE_SZ], queue, sizeof(queue));
       }*/
 
-    f = fopen("orario.txt", "w");
+    f = stdout;//fopen("orario.txt", "w");
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
     print_orario(0);
 
