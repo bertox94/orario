@@ -101,18 +101,8 @@ int activities_for_this_class_and_hour(int pos, int gio, const int ora, const in
     return 1;
 }
 
-int solo_lezioni_consecutive(int pos, int base3d_gci, int insegnante) {
-    //no_teacher(x) -> True
-    //teacher(x,p) -> teacher(x, p+1)
-    if (ore_prof_giorno_classe[base3d_gci + insegnante] == 0) return 1;
-    // no need to check pos - actual_classi_sezione > 0 since the first hour has no teacher,
-    // so it would just have returned
-    return orario[pos - actual_classi_sezione].insegnante1 == insegnante;
-}
-
 int sabato_esaurisci_priorita_subito(int pos, int giorno, int ora, int base2d_ci, int prof) {
     // maybe need a schedule like all the teachers
-    //check if max ore materia is bigger than 2
     if (giorno == actual_giorni_settimana - 1 && ora > 0) {
         int prev_prof = orario[pos - actual_classi_sezione].insegnante1;
         //no need to check != -1 since we check already that ora > 0
@@ -137,7 +127,6 @@ void debug(const int base3d_goi, const int base2d_ci, const int base3d_gci, int 
     printf("Insegnante: %s\n", insegnanti[j]);
     if (prof_gia_impegnato_giorno_ora[base3d_goi + j]) printf("Già impegnato ");
     if (ore_classi_docenti_svolte[base2d_ci + j] >= ore_classi_docenti[base2d_ci + j]) printf("Ore eccessive ");
-    if (ore_prof_giorno_classe[base3d_gci + j] >= MAX_ORE_STESSO_PROF_GIORNO) printf("Già fatto n ore oggi ");
     printf("\n");
 }
 
@@ -191,6 +180,24 @@ void sort_queue_mul(size_t start, size_t n) {
     qsort(&queue_mul[start], n, sizeof(QueueItem *), compare_queue_items);
 }
 
+int teacher_was_in_class_before(size_t pos, int prof) {
+    int giorno = g_giorno(pos);
+    int ora = g_ora(pos);
+    int cla = g_classe(pos);
+
+    int start = giorno * actual_ore_giornaliere * actual_classi_sezione + cla;
+
+    // controlla fino a
+    int end = giorno * actual_ore_giornaliere * actual_classi_sezione + (ora - 2) * actual_classi_sezione + cla;
+
+    for (int i = start; i <= end; i += actual_classi_sezione) {
+        if (orario[i].insegnante1 == prof || orario[i].insegnante2 == prof) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 void print_orario(const int pos) {
     if (n_gen_max <= n_gen) return;
 
@@ -228,16 +235,11 @@ void print_orario(const int pos) {
 
             if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
                 !prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher]
-                //verifica che si ha docente codocente adeguati in una classe
                 // controlla ore svolte per materia, verifica che siano inferiori a quelle totali
-                //&& ore_classi_docenti_svolte[base2d_ci + item->teacher] < ore_classi_docenti[base2d_ci + item->teacher]
-                // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
                 && ore_classi_docenti_svolte[base2d_ci + it->teacher] < ore_classi_docenti[
                     base2d_ci + it->teacher]
-                //max 2 ore stesso prof in ciascuna classe ogni giorno, anche se non contigue
-                //&& ore_prof_giorno_classe[base3d_gci + j] < MAX_ORE_STESSO_PROF_GIORNO
-                // un prof non può ritornare in una classe dopo un altra lezione (da verificare con i laboratori)
-                //&& solo_lezioni_consecutive(pos, base3d_gci, j)
+                // prof se fa due ore devono essere attaccate
+                && teacher_was_in_class_before(pos, it->teacher)
                 //&& sabato_esaurisci_priorita_subito(pos, giorno, ora, base2d_ci, j)
                 && 1
             ) {
@@ -254,10 +256,8 @@ void print_orario(const int pos) {
                         // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
                         && ore_classi_docenti_svolte[base2d_ci + jt->teacher] < ore_classi_docenti[
                             base2d_ci + jt->teacher]
-                        //max 2 ore stesso prof in ciascuna classe ogni giorno, anche se non contigue
-                        //&& ore_prof_giorno_classe[base3d_gci + j] < MAX_ORE_STESSO_PROF_GIORNO
-                        // un prof non può ritornare in una classe dopo un altra lezione (da verificare con i laboratori)
-                        //&& solo_lezioni_consecutive(pos, base3d_gci, j)
+                        // prof se fa due ore devono essere attaccate
+                        && teacher_was_in_class_before(pos, jt->teacher)
                         //&& sabato_esaurisci_priorita_subito(pos, giorno, ora, base2d_ci, j)
                         && 1
                     ) {

@@ -56,10 +56,6 @@ extern int prof_gia_impegnato_giorno_ora[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_S
 
 // tiene traccia se in un giorno e una classa c'è un ora buca
 extern int n_ore_buche[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ];
-// tiene traccia delle ore svolte da un insegnante in un giorno e una classe (serve per non avere lezioni di tre ore con lo stesso insegnante)
-extern int ore_prof_giorno_classe[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
-
-//TODO: un prof vede una classe una sola volta al giorno
 
 void set_giorno_settimana(char giorno[]);
 
