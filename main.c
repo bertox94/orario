@@ -103,14 +103,17 @@ int activities_for_this_class_and_hour(int pos, int gio, const int ora, const in
 }
 
 int sabato_esaurisci_priorita_subito(int pos, int giorno, int ora, int base2d_ci, int prof) {
-    // maybe need a schedule like all the teachers
     if (giorno == actual_giorni_settimana - 1 && ora > 0) {
-        int prev_prof = orario[pos - actual_classi_sezione].insegnante1; // check insegnante2
-        //no need to check != -1 since we check already that ora > 0
-        if (ore_classi_docenti[base2d_ci + prev_prof] - ore_classi_docenti_svolte[
-                base2d_ci + prev_prof] == 1) {
-            return prof == prev_prof;
-        }
+        int prev_prof1 = orario[pos - actual_classi_sezione].insegnante1;
+        int prev_prof2 = orario[pos - actual_classi_sezione].insegnante2;
+
+        return (prev_prof1 == -1
+                || ore_classi_docenti[base2d_ci + prev_prof1] - ore_classi_docenti_svolte[base2d_ci + prev_prof1] == 0
+                || prof == prev_prof1)
+               &&
+               (prev_prof2 == -1
+                || ore_classi_docenti[base2d_ci + prev_prof2] - ore_classi_docenti_svolte[base2d_ci + prev_prof2] == 0
+                || prof == prev_prof2);
     }
     return 1;
 }
