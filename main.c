@@ -14,7 +14,7 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 long long int n_gen = 0;
-long long int n_gen_max = SCHEDULES_PER_GB / 10;
+long long int n_gen_max = SCHEDULES_PER_GB / 1;
 teaching_slot orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
     [0 ...
         GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1
@@ -184,7 +184,8 @@ void sort_queue_mul(size_t start, size_t n) {
     qsort(&queue_mul[start], n, sizeof(QueueItem *), compare_queue_items);
 }
 
-int teacher_was_in_class_before_check(int giorno, int ora, int cla, int prof) {
+int prof_non_ha_ancora_insegnato_in_questa_classe_oppure_ha_insegnato_l_ora_precedente(
+    int giorno, int ora, int cla, int prof) {
     int start = giorno * actual_ore_giornaliere * actual_classi_sezione + cla;
 
     // controlla fino a
@@ -198,16 +199,74 @@ int teacher_was_in_class_before_check(int giorno, int ora, int cla, int prof) {
     return 1;
 }
 
+int prof_è_disponibile(const int base3d_goi, QueueItem *it) {
+    return !prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher];
+}
+
+int deve_ancora_svolgere_ore_in_questa_classe(const int base2d_ci, QueueItem *it) {
+    return ore_classi_docenti_svolte[base2d_ci + it->teacher] < ore_classi_docenti[
+               base2d_ci + it->teacher];
+}
+
+int docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(const int base3d_cii, const QueueItem *it,
+                                                                   const QueueItem *jt) {
+    const int p1 = fmin(it->teacher, jt->teacher);
+    const int p2 = fmax(it->teacher, jt->teacher);
+    return ore_classi_codocenza_svolte[base3d_cii + p1 * INSEGNANTE_SZ + p2] <
+           ore_classi_codocenza[base3d_cii + p1 * INSEGNANTE_SZ + p2];
+}
+
+void prep_chiamata_ricorsiva(const int base2d_ci, const int base3d_goi, QueueItem *it) {
+    it->priority--;
+    prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 1;
+    ore_classi_docenti_svolte[base2d_ci + it->teacher]++;
+    ore_classi_docenti_alone_svolte[base2d_ci + it->teacher]++;
+}
+
+void prep_chiamata_ricorsiva_insieme(const int base2d_ci, const int base3d_goi, const int base3d_cii, QueueItem *it,
+                                     QueueItem *jt) {
+    prep_chiamata_ricorsiva(base2d_ci, base3d_goi, it);
+    prep_chiamata_ricorsiva(base2d_ci, base3d_goi, jt);
+    const int p1 = fmin(it->teacher, jt->teacher);
+    const int p2 = fmax(it->teacher, jt->teacher);
+    ore_classi_codocenza_svolte[base3d_cii + p1 * INSEGNANTE_SZ + p2]++;
+}
+
+void post_chiamata_ricorsiva(const int base2d_ci, const int base3d_goi, QueueItem *it) {
+    it->priority++;
+    prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 0;
+    ore_classi_docenti_svolte[base2d_ci + it->teacher]--;
+    ore_classi_docenti_alone_svolte[base2d_ci + it->teacher]--;
+}
+
+void post_chiamata_ricorsiva_insieme(const int base2d_ci, const int base3d_goi, const int base3d_cii, QueueItem *it,
+                                     QueueItem *jt) {
+    post_chiamata_ricorsiva(base2d_ci, base3d_goi, it);
+    post_chiamata_ricorsiva(base2d_ci, base3d_goi, jt);
+    const int p1 = fmin(it->teacher, jt->teacher);
+    const int p2 = fmax(it->teacher, jt->teacher);
+    ore_classi_codocenza_svolte[base3d_cii + p1 * INSEGNANTE_SZ + p2]--;
+}
+
+int è_un_docente_che_insegna_solo(const int base2d_ci, QueueItem *it) {
+    return classi_docenti_teorici[base2d_ci + it->teacher];
+}
+
+int deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(const int base2d_ci, QueueItem *it) {
+    return ore_classi_docenti_alone_svolte[base2d_ci + it->teacher] < ore_classi_docenti_alone[
+               base2d_ci + it->teacher];
+}
+
 void print_orario(const int pos) {
     if (n_gen_max <= n_gen) return;
 
     //print(orario, pos, n_gen, f);
     if (pos == orario_len) {
-        if (verifica_ore_classe_materia()) {
-            n_gen++;
-            //printf("%lld ", n_gen);
-            print(orario, pos, n_gen, f);
-        }
+        //if (verifica_ore_classe_materia()) { not needed ? all hours should match
+        n_gen++;
+        //printf("%lld ", n_gen);
+        //print(orario, pos, n_gen, f);
+        //}
         return;
     }
 
@@ -229,12 +288,13 @@ void print_orario(const int pos) {
             QueueItem *it = queue_mul[ii];
 
             if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
-                !prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher]
+                prof_è_disponibile(base3d_goi, it)
                 // controlla ore svolte per materia, verifica che siano inferiori a quelle totali
-                && ore_classi_docenti_svolte[base2d_ci + it->teacher] < ore_classi_docenti[
-                    base2d_ci + it->teacher]
-                // prof se fa due ore devono essere attaccate
-                && teacher_was_in_class_before_check(giorno, ora, cla, it->teacher)
+                && deve_ancora_svolgere_ore_in_questa_classe(base2d_ci, it)
+                // un prof non puo vedere una classe due volte se non sono contigue
+                && prof_non_ha_ancora_insegnato_in_questa_classe_oppure_ha_insegnato_l_ora_precedente(
+                    giorno, ora, cla, it->teacher)
+                //se un prof ha due ore il sabato deve farle consecutive, altrimenti non la fa, essendo non contigue
                 && sabato_esaurisci_priorita_subito(pos, giorno, ora, base2d_ci, it->teacher)
                 && 1
             ) {
@@ -245,11 +305,11 @@ void print_orario(const int pos) {
                     int p1 = fmin(it->teacher, jt->teacher);
                     int p2 = fmax(it->teacher, jt->teacher);
                     if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
-                        !prof_gia_impegnato_giorno_ora[base3d_goi + jt->teacher]
-                        && ore_classi_codocenza_svolte[base3d_cii + p1 * INSEGNANTE_SZ + p2] <
-                        ore_classi_codocenza[base3d_cii + p1 * INSEGNANTE_SZ + p2]
+                        prof_è_disponibile(base3d_goi, jt)
+                        && docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(base3d_cii, it, jt)
                         // prof se fa due ore devono essere attaccate
-                        && teacher_was_in_class_before_check(giorno, ora, cla, jt->teacher)
+                        && prof_non_ha_ancora_insegnato_in_questa_classe_oppure_ha_insegnato_l_ora_precedente(
+                            giorno, ora, cla, jt->teacher)
                         // poiche un prof se deve fare due ore no può farle spezzettate, e sabato è 'ulyimo giorno, non si puo mettere un altro prof,
                         // la seconda ora deve farla subito
                         && sabato_esaurisci_priorita_subito(pos, giorno, ora, base2d_ci, jt->teacher)
@@ -276,9 +336,8 @@ void print_orario(const int pos) {
                     }
                 }
                 //non abbiamo trovato combinazioni di codocenza, verifica se all'insegnante mancano ore di docenza da solo
-                if (classi_docenti_teorici[base2d_ci + it->teacher]
-                    && ore_classi_docenti_alone_svolte[base2d_ci + it->teacher] < ore_classi_docenti_alone[
-                        base2d_ci + it->teacher]) {
+                if (è_un_docente_che_insegna_solo(base2d_ci, it)
+                    && deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(base2d_ci, it)) {
                     it->priority--;
                     prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 1;
                     ore_classi_docenti_svolte[base2d_ci + it->teacher]++;
