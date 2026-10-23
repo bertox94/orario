@@ -40,6 +40,7 @@ int verifica_ore_classe_materia(void) {
         for (int t = 0; t < INSEGNANTE_SZ; t++) {
             if (ore_classi_docenti[idx_2d] != ore_classi_docenti_svolte[idx_2d]
             ) {
+                print(orario, orario_len, n_gen, f);
                 fprintf(f, "Wrong: Classe: %s, Teacher: %s %d but got %d\n\n",
                         classe_sezione[c],
                         insegnanti[t],
@@ -198,12 +199,10 @@ void print_orario(const int pos) {
         if (verifica_ore_classe_materia()) {
             n_gen++;
             //printf("%lld ", n_gen);
-            //print(orario, pos, n_gen, f);
+            print(orario, pos, n_gen, f);
         }
-        print(orario, pos, n_gen, f);
         return;
     }
-    print(orario, pos, n_gen, f);
 
     const int giorno = g_giorno(pos);
     const int ora = g_ora(pos);
@@ -280,11 +279,14 @@ void print_orario(const int pos) {
                         ore_classi_docenti_svolte[base2d_ci + it->teacher]--;
                     }
                 }
-                //non abbiamo trovato combinazioni di codocenza
-                if (classi_docenti_teorici[base2d_ci + it->teacher]) {
+                //non abbiamo trovato combinazioni di codocenza, verifica se all'insegnante mancano ore di docenza da solo
+                if (classi_docenti_teorici[base2d_ci + it->teacher]
+                    && ore_classi_docenti_alone_svolte[base2d_ci + it->teacher] < ore_classi_docenti_alone[
+                        base2d_ci + it->teacher]) {
                     it->priority--;
                     prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 1;
                     ore_classi_docenti_svolte[base2d_ci + it->teacher]++;
+                    ore_classi_docenti_alone_svolte[base2d_ci + it->teacher]++;
 
                     orario[pos] = (teaching_slot){it->teacher, -1};
                     print_orario(pos + 1);
@@ -292,6 +294,7 @@ void print_orario(const int pos) {
                     it->priority++;
                     prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 0;
                     ore_classi_docenti_svolte[base2d_ci + it->teacher]--;
+                    ore_classi_docenti_alone_svolte[base2d_ci + it->teacher]--;
                 }
             }
         }

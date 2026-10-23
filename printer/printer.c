@@ -43,7 +43,7 @@ void print_header(unsigned long long attempt, FILE *f) {
     time_t current_time;
     time(&current_time);
     fprintf(f, "Current time: %s", ctime(&current_time));
-    fprintf(f, "Orario n. %llu\n", attempt);
+    fprintf(f, "Orari corretti: %llu\n", attempt);
 }
 
 // Helper 2: Prints the days of the week header row for a specific class
