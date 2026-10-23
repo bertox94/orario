@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <tgmath.h>
 #include <sys/time.h>
 
 #include "prio_queue.h"
@@ -197,12 +198,12 @@ int teacher_was_in_class_before_check(int giorno, int ora, int cla, int prof) {
 void print_orario(const int pos) {
     if (n_gen_max <= n_gen) return;
 
-    print(orario, pos, n_gen, f);
+    //print(orario, pos, n_gen, f);
     if (pos == orario_len) {
         if (verifica_ore_classe_materia()) {
             n_gen++;
             //printf("%lld ", n_gen);
-            //print(orario, pos, n_gen, f);
+            print(orario, pos, n_gen, f);
         }
         return;
     }
@@ -243,15 +244,12 @@ void print_orario(const int pos) {
 
                 for (int jj = ii + 1; jj < queue_size; jj++) {
                     QueueItem *jt = queue_mul[jj];
+                    int p1 = fmin(it->teacher, jt->teacher);
+                    int p2 = fmax(it->teacher, jt->teacher);
                     if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
                         !prof_gia_impegnato_giorno_ora[base3d_goi + jt->teacher]
-                        //verifica che si ha docente codocente adeguati in una classe
-                        && classi_docenti_codocenti[base3d_cii + it->teacher * INSEGNANTE_SZ + jt->teacher]
-                        // controlla ore svolte per materia, verifica che siano inferiori a quelle totali
-                        //&& ore_classi_docenti_svolte[base2d_ci + item->teacher] < ore_classi_docenti[base2d_ci + item->teacher]
-                        // controlla ore svolte per materia, verifica se non deve svolgerne altre da solo
-                        && ore_classi_docenti_svolte[base2d_ci + jt->teacher] < ore_classi_docenti[
-                            base2d_ci + jt->teacher]
+                        && ore_classi_codocenza_svolte[base3d_cii + p1 * INSEGNANTE_SZ + p2] <
+                        ore_classi_codocenza[base3d_cii + p1 * INSEGNANTE_SZ + p2]
                         // prof se fa due ore devono essere attaccate
                         && teacher_was_in_class_before_check(giorno, ora, cla, jt->teacher)
                         // poiche un prof se deve fare due ore no può farle spezzettate, e sabato è 'ulyimo giorno, non si puo mettere un altro prof,
@@ -265,6 +263,7 @@ void print_orario(const int pos) {
                         prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 1;
                         ore_classi_docenti_svolte[base2d_ci + jt->teacher]++;
                         ore_classi_docenti_svolte[base2d_ci + it->teacher]++;
+                        ore_classi_codocenza_svolte[base3d_cii + p1 * INSEGNANTE_SZ + p2]++;
 
                         orario[pos] = (teaching_slot){it->teacher, jt->teacher};
                         print_orario(pos + 1);
@@ -275,6 +274,7 @@ void print_orario(const int pos) {
                         prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 0;
                         ore_classi_docenti_svolte[base2d_ci + jt->teacher]--;
                         ore_classi_docenti_svolte[base2d_ci + it->teacher]--;
+                        ore_classi_codocenza_svolte[base3d_cii + p1 * INSEGNANTE_SZ + p2]--;
                     }
                 }
                 //non abbiamo trovato combinazioni di codocenza, verifica se all'insegnante mancano ore di docenza da solo
@@ -345,7 +345,7 @@ int main(void) {
           memcpy(&queue_mul[i * INSEGNANTE_SZ], queue, sizeof(queue));
       }*/
 
-    f = stdout;//fopen("orario.txt", "w");
+    f = stdout; //fopen("orario.txt", "w");
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
     print_orario(0);
 
