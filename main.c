@@ -313,8 +313,8 @@ void print_orario(const int pos) {
     if (pos == orario_len) {
         //if (verifica_ore_classe_materia()) { //not needed ? all hours should match
         n_gen++;
-        printf("%lld \n", n_gen);
-        //print(orario, pos, n_gen, f);
+        //printf("%lld \n", n_gen);
+        print(orario, pos, n_gen, f);
         //  }
         return;
     }
