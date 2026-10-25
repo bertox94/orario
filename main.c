@@ -256,7 +256,7 @@ void post_chiamata_ricorsiva_insieme(const int base2d_ci, const int base3d_goi, 
     ore_classi_codocenza_svolte[base3d_cii + p1 * INSEGNANTE_SZ + p2]--;
 }
 
-int è_un_docente_che_insegna_solo(const int base2d_ci, QueueItem *it) {
+int è_un_docente_che_insegna_da_solo_in_questa_classe(const int base2d_ci, QueueItem *it) {
     return classi_docenti_teorici[base2d_ci + it->teacher];
 }
 
@@ -373,7 +373,7 @@ void print_orario(const int pos) {
                     }
                 }
                 //non abbiamo trovato combinazioni di codocenza, verifica se all'insegnante mancano ore di docenza da solo
-                if (è_un_docente_che_insegna_solo(base2d_ci, it)
+                if (è_un_docente_che_insegna_da_solo_in_questa_classe(base2d_ci, it)
                     && deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(base2d_ci, it)) {
                     prep_chiamata_ricorsiva(base2d_ci, base3d_goi, it);
                     orario[pos] = (teaching_slot){it->teacher, -1};
