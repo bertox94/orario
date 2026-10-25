@@ -39,6 +39,7 @@ int classi_docenti_teorici[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 int ore_classi_codocenza[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ];
 int ore_classi_codocenza_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ];
 
+int ora_di_entrata_prof[INSEGNANTE_SZ];
 int prof_gia_impegnato_giorno_ora[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ];
 int n_ore_buche[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ];
 /*
@@ -395,6 +396,12 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_5E, Cerini, 3);
     set_classe_insegnante_ore(Classe_5E, Alves, 3);
     set_classe_insegnante_ore(Classe_5E, Quaini, 1);
+
+
+    // VINCOLI SU ORA DI ENTRATA
+    ora_di_entrata_prof[p_insegnante(Sciambarella)] = 1;
+    ora_di_entrata_prof[p_insegnante(Masetti)] = 1;
+    ora_di_entrata_prof[p_insegnante(Tiraboschi)] = 1;
 
 
     for (int i = 0; i < actual_classi_sezione; i++) {
