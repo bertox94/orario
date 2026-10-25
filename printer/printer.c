@@ -13,27 +13,25 @@ void copy_and_pad(char *dest, const char *src, int maxlen) {
     int src_len = strlen(src);
     int copy_len = src_len;
 
-    // 1. Determine how much to copy (leave 1 slot for the null terminator)
     if (copy_len > maxlen - 1) {
         copy_len = maxlen - 1;
     }
 
-    // 2. Copy the actual string characters
     memcpy(dest, src, copy_len);
 
-    // 3. Fill the remaining space with blank spaces ' '
     for (int i = copy_len; i < maxlen - 1; i++) {
         dest[i] = ' ';
     }
 
-    // 4. Always force a null terminator at the very end
     dest[maxlen - 1] = '\0';
 }
 
-void draw_horizontal_separator(FILE *f) {
-    fprintf(f, "---+");
-    for (int i = 0; i < actual_giorni_settimana; i++) {
-        fprintf(f, "---------------------------+");
+void draw_grid_separator(FILE *f) {
+    fprintf(f, "----------------+");
+    for (int g = 0; g < actual_giorni_settimana; g++) {
+        for (int o = 0; o < actual_ore_giornaliere; o++) {
+            fprintf(f, "---------------------------+");
+        }
     }
     fprintf(f, "\n");
 }
@@ -43,93 +41,100 @@ void print_header(unsigned long long attempt, FILE *f) {
     time_t current_time;
     time(&current_time);
     fprintf(f, "Current time: %s", ctime(&current_time));
-    fprintf(f, "Orari corretti: %llu\n", attempt);
+    fprintf(f, "Orari corretti: %llu\n\n", attempt);
 }
 
-// Helper 2: Prints the days of the week header row for a specific class
-void print_days_header(const int pos, int class_index, FILE *f) {
-    fprintf(f, "\nClasse: %s, ore: %d\n", classe_sezione[class_index], ore_classi[class_index]);
-    fprintf(f, "   |");
-
-    for (int i = 0; i < actual_giorni_settimana; i++) {
-        fprintf(f, "            %s            |", giorni_settimana[i]);
-    }
-    fprintf(f, "\n");
-}
-
-void print_row_prof(const teaching_slot orario[], int pos, char ora[], int c, int o, FILE *f) {
-    fprintf(f, " %s|", ora);
-    char formatted_str[MAX_STR_SZ_IN_DISPLAY];
-    for (int g = 0; g < actual_giorni_settimana; g++) {
-        int curr;
-        int p = g * actual_ore_giornaliere * actual_classi_sezione + o * actual_classi_sezione + c;
-        if (p >= pos) curr = -1;
-        else curr = orario[p].insegnante1;
-        copy_and_pad(formatted_str, curr == -1 ? "       --        " : insegnanti[curr],
-                     MAX_STR_SZ_IN_DISPLAY);
-        fprintf(f, "     %s     |", formatted_str);
-    }
-    fprintf(f, "\n");
-}
-
-void print_row_cod(const teaching_slot orario[], int pos, char ora[], int c, int o, FILE *f) {
-    fprintf(f, " %s|", ora);
-    char formatted_str[MAX_STR_SZ_IN_DISPLAY];
-    for (int g = 0; g < actual_giorni_settimana; g++) {
-        int curr;
-        int p = g * actual_ore_giornaliere * actual_classi_sezione + o * actual_classi_sezione + c;
-        if (p >= pos) curr = -1;
-        else curr = orario[p].insegnante2;
-        copy_and_pad(formatted_str, curr == -1 ? "       --        " : insegnanti[curr],
-                     MAX_STR_SZ_IN_DISPLAY);
-        fprintf(f, "     %s     |", formatted_str);
-    }
-    fprintf(f, "\n");
-}
-
-// Main Function: Clean, descriptive, and easy to read
+// Main Function: Prints classes as rows, and days/hours as columns
 void print(const teaching_slot orario[], const int pos, unsigned long long attempt, FILE *f) {
     print_header(attempt, f);
 
-    for (int c = 0; c < actual_classi_sezione; c++) {
-        print_days_header(pos, c, f);
-        draw_horizontal_separator(f);
-
+    // 1. Print Days header row
+    fprintf(f, "                |");
+    for (int g = 0; g < actual_giorni_settimana; g++) {
         for (int o = 0; o < actual_ore_giornaliere; o++) {
-            // Print the row label (the specific hour slot)
-            print_row_prof(orario, pos, ore_giornaliere[o], c, o, f);
-            print_row_cod(orario, pos, ore_giornaliere[o], c, o, f);
-
-            draw_horizontal_separator(f);
-        }
-        for (int j = 0; j < actual_insegnanti; j++) {
-            char str[MAX_STR_SZ_IN_DISPLAY];
-            copy_and_pad(str, insegnanti[j], MAX_STR_SZ_IN_DISPLAY);
-            if (get_ore_classi_insegnante(c, j) > 0) {
-                int ore_i_s = get_ore_classi_insegnante_svolte(c, j);
-                int ore_i = get_ore_classi_insegnante(c, j);
-                fprintf(f, "%s\tha svolto %d ore su %d [%d]\n", str, ore_i_s, ore_i, ore_i_s == ore_i);
-                for (int i = 0; i < actual_insegnanti; i++) {
-                    copy_and_pad(str, insegnanti[i], MAX_STR_SZ_IN_DISPLAY);
-                    /*if (ore_classi_docenti_codocenti[c * INSEGNANTE_SZ * INSEGNANTE_SZ
-                                                     + j * INSEGNANTE_SZ
-                                                     + i] > 0)
-                        fprintf(f, "\t%s\tha svolto %d ore su %d\n", str,
-                                ore_classi_docenti_codocenti_svolte[c * INSEGNANTE_SZ * INSEGNANTE_SZ
-                                                                    + j * INSEGNANTE_SZ
-                                                                    + i],
-                                ore_classi_docenti_codocenti[c * INSEGNANTE_SZ * INSEGNANTE_SZ
-                                                             + j * INSEGNANTE_SZ
-                                                             + i]);*/
-                }
-            }
+            char day_str[MAX_STR_SZ_IN_DISPLAY];
+            copy_and_pad(day_str, giorni_settimana[g], MAX_STR_SZ_IN_DISPLAY);
+            fprintf(f, "     %s     |", day_str);
         }
     }
     fprintf(f, "\n");
-    //print_priority_queue(f, 0, queue_sz);
+
+    // 2. Print Hours header row (sub-columns)
+    fprintf(f, "                |");
+    for (int g = 0; g < actual_giorni_settimana; g++) {
+        for (int o = 0; o < actual_ore_giornaliere; o++) {
+            char hour_str[MAX_STR_SZ_IN_DISPLAY];
+            copy_and_pad(hour_str, ore_giornaliere[o], MAX_STR_SZ_IN_DISPLAY);
+            fprintf(f, "     %s     |", hour_str);
+        }
+    }
+    fprintf(f, "\n");
+
+    draw_grid_separator(f);
+
+    // 3. Print each class as a row
+    for (int c = 0; c < actual_classi_sezione; c++) {
+        // Prepare class label (e.g., "Classe: 1A")
+        char class_label[MAX_STR_SZ_IN_DISPLAY];
+        snprintf(class_label, sizeof(class_label), "%s", classe_sezione[c]);
+        char formatted_class[15];
+        copy_and_pad(formatted_class, class_label, 15);
+
+        // --- Row for Insegnante 1 ---
+        fprintf(f, " %-14s |", formatted_class);
+        for (int g = 0; g < actual_giorni_settimana; g++) {
+            for (int o = 0; o < actual_ore_giornaliere; o++) {
+                int curr;
+                int p = g * actual_ore_giornaliere * actual_classi_sezione + o * actual_classi_sezione + c;
+                if (p >= pos) curr = -1;
+                else curr = orario[p].insegnante1;
+
+                char formatted_str[MAX_STR_SZ_IN_DISPLAY];
+                copy_and_pad(formatted_str, curr == -1 ? "       --        " : insegnanti[curr],
+                             MAX_STR_SZ_IN_DISPLAY);
+                fprintf(f, "     %s     |", formatted_str);
+            }
+        }
+        fprintf(f, "\n");
+
+        // --- Row for Insegnante 2 (Code/Codocenza) ---
+        fprintf(f, "                |");
+        for (int g = 0; g < actual_giorni_settimana; g++) {
+            for (int o = 0; o < actual_ore_giornaliere; o++) {
+                int curr;
+                int p = g * actual_ore_giornaliere * actual_classi_sezione + o * actual_classi_sezione + c;
+                if (p >= pos) curr = -1;
+                else curr = orario[p].insegnante2;
+
+                char formatted_str[MAX_STR_SZ_IN_DISPLAY];
+                copy_and_pad(formatted_str, curr == -1 ? "       --        " : insegnanti[curr],
+                             MAX_STR_SZ_IN_DISPLAY);
+                fprintf(f, "     %s     |", formatted_str);
+            }
+        }
+        fprintf(f, "\n");
+
+        draw_grid_separator(f);
+    }
+
+    // 4. Print Teacher workload summaries below the grid
+    fprintf(f, "\n--- Statistiche Insegnanti per Classe ---\n");
+    for (int c = 0; c < actual_classi_sezione; c++) {
+        fprintf(f, "\nClasse: %s\n", classe_sezione[c]);
+        for (int j = 0; j < actual_insegnanti; j++) {
+            if (get_ore_classi_insegnante(c, j) > 0) {
+                char str[MAX_STR_SZ_IN_DISPLAY];
+                copy_and_pad(str, insegnanti[j], MAX_STR_SZ_IN_DISPLAY);
+                int ore_i_s = get_ore_classi_insegnante_svolte(c, j);
+                int ore_i = get_ore_classi_insegnante(c, j);
+                fprintf(f, "%s\tha svolto %d ore su %d [%d]\n", str, ore_i_s, ore_i, ore_i_s == ore_i);
+            }
+        }
+    }
+
+    fprintf(f, "\n");
     fflush(f);
 }
-
 void print_priority_queue(FILE *f, int start, int end) {
     for (int i = start; i < end; i++) {
         if (i == start) fprintf(f,"Head: ");
