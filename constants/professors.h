@@ -5,7 +5,7 @@
 #ifndef UNTITLED_PROFESSORS_H
 #define UNTITLED_PROFESSORS_H
 char hjjsdlj[] = "hjjsdlj";
-char jhbksdjl[] = "jhbksdjl";
+char jhbksdjl[] = "p2";
 char hbskd[] = "hbskd";
 char jhbdsjksd[] = "jhbdsjksd";
 char jhsbdhjkl[] = "jhsbdhjkl";
@@ -31,7 +31,7 @@ char dshb[] = "dshb";
 char sdhbhkl[] = "sdhbhkl";
 char jdslk[] = "jdslk";
 char sdhk[] = "sdhk";
-char sdjhkjlo[] = "sdjhkjlo";
+char sdjhkjlo[] = "p1";
 char fsghs[] = "fsghs";
 char sdkjl[] = "sdkjl";
 char sdhbls[] = "sdhbls";

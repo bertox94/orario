@@ -401,7 +401,7 @@ void inizializza_dati() {
     // VINCOLI SU ORA DI ENTRATA
     ora_di_entrata_prof[p_insegnante(sdhusdc)] = 1;
     ora_di_entrata_prof[p_insegnante(jhkssdf)] = 1;
-    ora_di_entrata_prof[p_insegnante(jhbksdjl)] = 1;
+    ora_di_entrata_prof[p_insegnante(jhbksdjl)] = 2;
 
 
     for (int i = 0; i < actual_classi_sezione; i++) {
