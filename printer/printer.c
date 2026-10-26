@@ -117,34 +117,88 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
         draw_grid_separator(f);
     }
 
-    // 4. Print Teacher workload summaries below the grid
-    fprintf(f, "\n--- Statistiche Insegnanti per Classe ---\n");
+    // 4. Print Teacher workload summaries side-by-side per class
+    fprintf(f, "\n--- Statistiche Insegnanti per Classe (Side-by-Side) ---\n\n");
+
+    // Define fixed column width for each class block (e.g., 35 characters wide per class)
+    const int COL_WIDTH = 35;
+
+    // 1. Print Header Row with Class Names
     for (int c = 0; c < actual_classi_sezione; c++) {
-        fprintf(f, "\nClasse: %s\n", classe_sezione[c]);
+        char header_buf[64];
+        snprintf(header_buf, sizeof(header_buf), "Classe: %s", classe_sezione[c]);
+        fprintf(f, "%-*s | ", COL_WIDTH, header_buf);
+    }
+    fprintf(f, "\n");
+
+    // Print separator line matching the column widths
+    for (int c = 0; c < actual_classi_sezione; c++) {
+        for (int i = 0; i < COL_WIDTH; i++) fprintf(f, "-");
+        fprintf(f, "-+-");
+    }
+    fprintf(f, "\n");
+
+    // 2. Determine the maximum number of active teachers in any class
+    int max_active_teachers = 0;
+    for (int c = 0; c < actual_classi_sezione; c++) {
+        int count = 0;
         for (int j = 0; j < actual_insegnanti; j++) {
-            if (get_ore_classi_insegnante(c, j) > 0) {
-                char str[MAX_STR_SZ_IN_DISPLAY];
-                copy_and_pad(str, insegnanti[j], MAX_STR_SZ_IN_DISPLAY);
-                int ore_i_s = get_ore_classi_insegnante_svolte(c, j);
-                int ore_i = get_ore_classi_insegnante(c, j);
-                fprintf(f, "%s\tha svolto %d ore su %d [%d]\n", str, ore_i_s, ore_i, ore_i_s == ore_i);
-            }
+            if (get_ore_classi_insegnante(c, j) > 0) count++;
         }
+        if (count > max_active_teachers) max_active_teachers = count;
     }
 
+    // 3. Print each teacher row side-by-side across classes
+    for (int r = 0; r < max_active_teachers; r++) {
+        for (int c = 0; c < actual_classi_sezione; c++) {
+            int current_match = 0;
+            int printed = 0;
+
+            for (int j = 0; j < actual_insegnanti; j++) {
+                if (get_ore_classi_insegnante(c, j) > 0) {
+                    if (current_match == r) {
+                        int ore_i_s = get_ore_classi_insegnante_svolte(c, j);
+                        int ore_i = get_ore_classi_insegnante(c, j);
+
+                        char line_buf[64];
+                        // Format: "TeacherName: 5/10 [1]"
+                        snprintf(line_buf, sizeof(line_buf), "%-18s %2d/%2d [%d]",
+                                 insegnanti[j], ore_i_s, ore_i, ore_i_s == ore_i);
+
+                        fprintf(f, "%-*s | ", COL_WIDTH, line_buf);
+                        printed = 1;
+                        break;
+                    }
+                    current_match++;
+                }
+            }
+            if (!printed) {
+                // Empty padding block if this class has fewer teachers than max_active_teachers
+                char empty_buf[1] = "";
+                fprintf(f, "%-*s | ", COL_WIDTH, empty_buf);
+            }
+        }
+        fprintf(f, "\n");
+    }
+
+    // Print bottom separator
+    for (int c = 0; c < actual_classi_sezione; c++) {
+        for (int i = 0; i < COL_WIDTH; i++) fprintf(f, "-");
+        fprintf(f, "-+-");
+    }
     fprintf(f, "\n");
-    fflush(f);
 }
+
 void print_priority_queue(FILE *f, int start, int end) {
     for (int i = start; i < end; i++) {
-        if (i == start) fprintf(f,"Head: ");
-        else if (i == end - 1) fprintf(f,"Tail: ");
-        else fprintf(f,"       ");
+        if (i == start) fprintf(f, "Head: ");
+        else if (i == end - 1) fprintf(f, "Tail: ");
+        else fprintf(f, "       ");
         char str[MAX_STR_SZ_IN_DISPLAY];
         copy_and_pad(str, insegnanti[queue_mul[i]->teacher], MAX_STR_SZ_IN_DISPLAY);
-        fprintf(f, "%d)\t%s : %.2f\n", i, str,queue_mul[i]->priority);
+        fprintf(f, "%d)\t%s : %.2f\n", i, str, queue_mul[i]->priority);
     }
-    fprintf(f,"------------\n");
+    fprintf(f, "------------\n");
 }
 
 void stampa_dati() {
