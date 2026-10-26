@@ -4,10 +4,10 @@
 
 #ifndef UNTITLED_PROFESSORS_H
 #define UNTITLED_PROFESSORS_H
-char hjjsdlj[] = "hjjsdlj";
+char hjjsdlj[] = "p3";
 char jhbksdjl[] = "p2";
-char hbskd[] = "hbskd";
-char jhbdsjksd[] = "jhbdsjksd";
+char hbskd[] = "p4";
+char jhbdsjksd[] = "p5";
 char jhsbdhjkl[] = "jhsbdhjkl";
 char jhkssdf[] = "jhkssdf";
 char jhdsnlkllds[] = "jhdsnlkllds";
