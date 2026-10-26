@@ -381,7 +381,6 @@ void print_orario(const int pos) {
 
     sort_queue_mul(base4d_queue, queue_sz);
     if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
-        int found = 0;
         ore_classe_svolte[cla]++;
         const long long int queue_size = base4d_queue + queue_sz;
         for (int ii = base4d_queue; ii < queue_size; ii++) {
@@ -421,7 +420,6 @@ void print_orario(const int pos) {
                     ) {
                         prep_chiamata_ricorsiva_insieme(base2d_ci, base3d_goi, base3d_cii, it, jt);
                         orario[pos] = (teaching_slot){p1, p2};
-                        found = 1;
                         print_orario(pos + 1);
                         post_chiamata_ricorsiva_insieme(base2d_ci, base3d_goi, base3d_cii, it, jt);
                     }
@@ -433,21 +431,12 @@ void print_orario(const int pos) {
                     && 1) {
                     prep_chiamata_ricorsiva(base2d_ci, base3d_goi, it);
                     orario[pos] = (teaching_slot){p1, -1};
-                    found = 1;
                     print_orario(pos + 1);
                     post_chiamata_ricorsiva(base2d_ci, base3d_goi, it);
                 }
             }
         }
         ore_classe_svolte[cla]--;
-        if (!found) {
-            char hello_world[100];
-            // Prints "Hello world!" on hello_world
-            sprintf(hello_world, "Non è stato possibile assegnare alcun docente nel giorno: %s, ora: %s, classe: %s",
-                    giorni_settimana[giorno], ore_giornaliere[ora], classe_sezione[cla]);
-            perror(hello_world);
-            exit(1);
-        }
     }
 
 
@@ -457,6 +446,9 @@ void print_orario(const int pos) {
         print_orario(pos + 1);
         n_ore_buche[base2d_gc + cla]--;
     }
+
+    fprintf(f, "Backtrack prima di completare una programmazione in giorno: %s, ora: %s, classe: %s\n",
+            giorni_settimana[giorno], ore_giornaliere[ora], classe_sezione[cla]);
 }
 
 int main(void) {
@@ -498,7 +490,7 @@ int main(void) {
 
 
     f = fopen("orario.txt", "w");
-    //f = stdout;
+    f = stdout;
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
     print_orario(0);
 
