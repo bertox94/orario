@@ -242,43 +242,43 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_3A, Saredn, 2);
     set_classe_insegnante_ore(Classe_3A, sdjbkl, 3);
     set_classe_insegnante_ore(Classe_3A, dskds, 6);
-    set_classe_insegnante_ore_cod(Classe_3A, sdljjbl, 5, hsdlò, 3);
+    set_classe_insegnante_ore_cod(Classe_3A, sdljjbl, 5, hsdlo, 3);
     set_classe_insegnante_ore(Classe_3A, sfdgdfs, 4);
-    set_classe_insegnante_ore_cod(Classe_3A, dfkkjòsd, 4, dskjlò, 2);
-    set_classe_insegnante_ore_cod(Classe_3A, ksjd, 4, hjdlsò, 2);
-    set_classe_insegnante_ore(Classe_3A, sdjhkjlò, 1);
-    set_classe_insegnante_ore_cod(Classe_3A, kjhbusdkl, 3, kfdsòà, 3);
+    set_classe_insegnante_ore_cod(Classe_3A, dfkkjosd, 4, dskjlo, 2);
+    set_classe_insegnante_ore_cod(Classe_3A, ksjd, 4, hjdlso, 2);
+    set_classe_insegnante_ore(Classe_3A, sdjhkjlo, 1);
+    set_classe_insegnante_ore_cod(Classe_3A, kjhbusdkl, 3, kfdsoa, 3);
 
     set_classe_insegnante_ore_cod(Classe_3B, kjhbusdkl, 5, hksld, 4);
-    set_classe_insegnante_ore(Classe_3B, fdkjò, 6);
-    set_classe_insegnante_ore_cod(Classe_3B, jcxliòsd, 4, dskjlò, 2);
+    set_classe_insegnante_ore(Classe_3B, fdkjo, 6);
+    set_classe_insegnante_ore_cod(Classe_3B, jcxliosd, 4, dskjlo, 2);
     set_classe_insegnante_ore(Classe_3B, Saredn, 2);
-    set_classe_insegnante_ore_cod(Classe_3B, ksjd, 3, hsdlò, 3);
-    set_classe_insegnante_ore(Classe_3B, sdjhkjlò, 1);
-    set_classe_insegnante_ore_cod(Classe_3B, fudc, 4, jknsòsd, 1);
-    set_classe_insegnante_ore_cod(Classe_3B, dfkkjòsd, 4, hjdlsò, 2);
-    set_classe_insegnante_ore(Classe_3B, fviosòdà, 3);
+    set_classe_insegnante_ore_cod(Classe_3B, ksjd, 3, hsdlo, 3);
+    set_classe_insegnante_ore(Classe_3B, sdjhkjlo, 1);
+    set_classe_insegnante_ore_cod(Classe_3B, fudc, 4, jknsosd, 1);
+    set_classe_insegnante_ore_cod(Classe_3B, dfkkjosd, 4, hjdlso, 2);
+    set_classe_insegnante_ore(Classe_3B, fviosoda, 3);
 
 
-    set_classe_insegnante_ore(Classe_3C, ksdmòlf, 3);
+    set_classe_insegnante_ore(Classe_3C, ksdmolf, 3);
     set_classe_insegnante_ore(Classe_3C, lkjdns, 6);
     set_classe_insegnante_ore_cod(Classe_3C, fdhls, 5, sdkkkj, 2);
-    set_classe_insegnante_ore_cod(Classe_3C, kjsdlnkn, 4, jknsòsd, 1);
-    set_classe_insegnante_ore_cod(Classe_3C, ocsfg, 3, kjlidsòlà, 2);
+    set_classe_insegnante_ore_cod(Classe_3C, kjsdlnkn, 4, jknsosd, 1);
+    set_classe_insegnante_ore_cod(Classe_3C, ocsfg, 3, kjlidsola, 2);
     set_classe_insegnante_ore(Classe_3C, shdlnk, 1);
     set_classe_insegnante_ore(Classe_3C, sdils, 2);
-    set_classe_insegnante_ore_cod(Classe_3C, fdkjl, 4, hldsòfà, 2);
-    set_classe_insegnante_ore_cod(Classe_3C, yhosio, 4, sdliòà, 2);
+    set_classe_insegnante_ore_cod(Classe_3C, fdkjl, 4, hldsofa, 2);
+    set_classe_insegnante_ore_cod(Classe_3C, yhosio, 4, sdlioa, 2);
 
-    set_classe_insegnante_ore_cod(Classe_3D, jsdòo, 5, sdliòà, 2);
-    set_classe_insegnante_ore_cod(Classe_3D, jksdklò, 4, hldsòfà, 2);
-    set_classe_insegnante_ore_cod(Classe_3D, ocsfg, 3, kjlidsòlà, 2);
+    set_classe_insegnante_ore_cod(Classe_3D, jsdoo, 5, sdlioa, 2);
+    set_classe_insegnante_ore_cod(Classe_3D, jksdklo, 4, hldsofa, 2);
+    set_classe_insegnante_ore_cod(Classe_3D, ocsfg, 3, kjlidsola, 2);
     set_classe_insegnante_ore_cod(Classe_3D, fdjl, 4, fudc, 1);
-    set_classe_insegnante_ore(Classe_3D, dfjilòà, 3);
-    set_classe_insegnante_ore(Classe_3D, dfjò, 6);
+    set_classe_insegnante_ore(Classe_3D, dfjiloa, 3);
+    set_classe_insegnante_ore(Classe_3D, dfjo, 6);
     set_classe_insegnante_ore(Classe_3D, shdlnk, 1);
-    set_classe_insegnante_ore_cod(Classe_3D, lòdfàs, 4, hldsòfà, 2);
-    set_classe_insegnante_ore(Classe_3D, jkvklmòsdò, 2);
+    set_classe_insegnante_ore_cod(Classe_3D, lodfas, 4, hldsofa, 2);
+    set_classe_insegnante_ore(Classe_3D, jkvklmosdo, 2);
 
     set_classe_insegnante_ore(Classe_3E, dshb, 4);
     set_classe_insegnante_ore(Classe_3E, sdhyk, 6);
@@ -290,7 +290,7 @@ void inizializza_dati() {
     set_classe_insegnante_ore_cod(Classe_3E, jhbksdjl, 4, jhsbdhjkl, 2);
     set_classe_insegnante_ore(Classe_3E, hgsdj, 3); //130 KHz
 
-    set_classe_insegnante_ore(Classe_3F, jknsòsd, 4);
+    set_classe_insegnante_ore(Classe_3F, jknsosd, 4);
     set_classe_insegnante_ore(Classe_3F, sdhbhkl, 6);
     set_classe_insegnante_ore_cod(Classe_3F, hjjsdlj, 3, jhdsnlkllds, 1);
     set_classe_insegnante_ore_cod(Classe_3F, kjnsdu, 6, hjksdd, 3);
@@ -302,25 +302,25 @@ void inizializza_dati() {
 
     set_classe_insegnante_ore(Classe_3G, kjjkds, 2);
     set_classe_insegnante_ore(Classe_3G, sdljjbl, 5);
-    set_classe_insegnante_ore_cod(Classe_3G, sdjklòl, 4, sdliòà, 2);
+    set_classe_insegnante_ore_cod(Classe_3G, sdjklol, 4, sdlioa, 2);
     set_classe_insegnante_ore(Classe_3G, fsghs, 6);
-    set_classe_insegnante_ore_cod(Classe_3G, lljksdò, 3, fudc, 2);
-    set_classe_insegnante_ore_cod(Classe_3G, ljosd, 4, hjdlsò, 3);
-    set_classe_insegnante_ore(Classe_3G, sdjhkjlò, 1);
-    set_classe_insegnante_ore(Classe_3G, jòflò, 5);
-    set_classe_insegnante_ore(Classe_3G, jkvklmòsdò, 2); //65 KHz
+    set_classe_insegnante_ore_cod(Classe_3G, lljksdo, 3, fudc, 2);
+    set_classe_insegnante_ore_cod(Classe_3G, ljosd, 4, hjdlso, 3);
+    set_classe_insegnante_ore(Classe_3G, sdjhkjlo, 1);
+    set_classe_insegnante_ore(Classe_3G, joflo, 5);
+    set_classe_insegnante_ore(Classe_3G, jkvklmosdo, 2); //65 KHz
 
-    set_classe_insegnante_ore(Classe_3K, kojsdfòà, 4);
-    set_classe_insegnante_ore(Classe_3K, khjbdklskò, 4);
-    set_classe_insegnante_ore(Classe_3K, kmjsdoà, 6);
+    set_classe_insegnante_ore(Classe_3K, kojsdfoa, 4);
+    set_classe_insegnante_ore(Classe_3K, khjbdklsko, 4);
+    set_classe_insegnante_ore(Classe_3K, kmjsdoa, 6);
     set_classe_insegnante_ore(Classe_3K, fdj, 3);
-    set_classe_insegnante_ore(Classe_3K, mkjsdòlò, 6);
-    set_classe_insegnante_ore(Classe_3K, jkvklmòsdò, 2);
+    set_classe_insegnante_ore(Classe_3K, mkjsdolo, 6);
+    set_classe_insegnante_ore(Classe_3K, jkvklmosdo, 2);
     set_classe_insegnante_ore(Classe_3K, hjgasdkbl, 2);
     set_classe_insegnante_ore(Classe_3K, fdsj, 4);
     set_classe_insegnante_ore(Classe_3K, khsdubkhl, 1); //440 Hz
 
-    set_classe_insegnante_ore_cod(Classe_3H, kjsdlnkn, 4, jknsòsd, 1);
+    set_classe_insegnante_ore_cod(Classe_3H, kjsdlnkn, 4, jknsosd, 1);
     set_classe_insegnante_ore(Classe_3H, lkjdns, 6);
     set_classe_insegnante_ore_cod(Classe_3H, jhbdsjksd, 3, jhdsnlkllds, 1);
     set_classe_insegnante_ore_cod(Classe_3H, jhbksdjl, 6, kjhbdksl, 3);
@@ -328,40 +328,40 @@ void inizializza_dati() {
     set_classe_insegnante_ore_cod(Classe_3H, jndslnk, 3, sdkkkj, 2);
     set_classe_insegnante_ore(Classe_3H, shdlnk, 1);
     set_classe_insegnante_ore_cod(Classe_3H, jhbksdjl, 4, hsdl, 2);
-    set_classe_insegnante_ore(Classe_3H, ksdmòlf, 3); //38 KHz
+    set_classe_insegnante_ore(Classe_3H, ksdmolf, 3); //38 KHz
 
     set_classe_insegnante_ore(Classe_3Q, hsdblkjl, 6);
-    set_classe_insegnante_ore_cod(Classe_3Q, jsdòo, 7, hldsòfà, 4);
-    set_classe_insegnante_ore_cod(Classe_3Q, ocsfg, 4, hldsòfà, 2);
-    set_classe_insegnante_ore_cod(Classe_3Q, ubsdf, 6, jhlfòdà, 2);
+    set_classe_insegnante_ore_cod(Classe_3Q, jsdoo, 7, hldsofa, 4);
+    set_classe_insegnante_ore_cod(Classe_3Q, ocsfg, 4, hldsofa, 2);
+    set_classe_insegnante_ore_cod(Classe_3Q, ubsdf, 6, jhlfoda, 2);
     set_classe_insegnante_ore(Classe_3Q, jhdksdf, 5);
     set_classe_insegnante_ore(Classe_3Q, khdusf, 4);
     set_classe_insegnante_ore(Classe_3Q, hjdkls, 2);
     set_classe_insegnante_ore(Classe_3Q, khsdubkhl, 1); //28 KHz
 
-    set_classe_insegnante_ore(Classe_4A, fdkjò, 6);
-    set_classe_insegnante_ore_cod(Classe_4A, djhsljòfà, 3, dskjlò, 2);
-    set_classe_insegnante_ore_cod(Classe_4A, djhsljòfà, 4, hjdlsò, 2);
+    set_classe_insegnante_ore(Classe_4A, fdkjo, 6);
+    set_classe_insegnante_ore_cod(Classe_4A, djhsljofa, 3, dskjlo, 2);
+    set_classe_insegnante_ore_cod(Classe_4A, djhsljofa, 4, hjdlso, 2);
     set_classe_insegnante_ore(Classe_4A, sdjbkl, 3);
-    set_classe_insegnante_ore_cod(Classe_4A, ksjd, 5, kfdsòà, 5);
-    set_classe_insegnante_ore(Classe_4A, kojsdfòà, 4);
+    set_classe_insegnante_ore_cod(Classe_4A, ksjd, 5, kfdsoa, 5);
+    set_classe_insegnante_ore(Classe_4A, kojsdfoa, 4);
     set_classe_insegnante_ore(Classe_4A, ljosd, 4);
-    set_classe_insegnante_ore(Classe_4A, sdjhkjlò, 1);
+    set_classe_insegnante_ore(Classe_4A, sdjhkjlo, 1);
     set_classe_insegnante_ore(Classe_4A, Saredn, 2); //20 KHz
 
-    set_classe_insegnante_ore(Classe_4B, jhklòdfsd, 4);
-    set_classe_insegnante_ore_cod(Classe_4B, djhsljòfà, 3, dskjlò, 2);
+    set_classe_insegnante_ore(Classe_4B, jhklodfsd, 4);
+    set_classe_insegnante_ore_cod(Classe_4B, djhsljofa, 3, dskjlo, 2);
     set_classe_insegnante_ore(Classe_4B, sdljjbl, 4);
     set_classe_insegnante_ore(Classe_4B, sdhyk, 6);
-    set_classe_insegnante_ore_cod(Classe_4B, jcxliòsd, 5, hksld, 5);
-    set_classe_insegnante_ore_cod(Classe_4B, dfkkjòsd, 4, hjdlsò, 2);
-    set_classe_insegnante_ore(Classe_4B, fviosòdà, 3);
-    set_classe_insegnante_ore(Classe_4B, sdjhkjlò, 1);
+    set_classe_insegnante_ore_cod(Classe_4B, jcxliosd, 5, hksld, 5);
+    set_classe_insegnante_ore_cod(Classe_4B, dfkkjosd, 4, hjdlso, 2);
+    set_classe_insegnante_ore(Classe_4B, fviosoda, 3);
+    set_classe_insegnante_ore(Classe_4B, sdjhkjlo, 1);
     set_classe_insegnante_ore(Classe_4B, Saredn, 2); //23 Khz
 
-    set_classe_insegnante_ore(Classe_4C, lljksdò, 4);
-    set_classe_insegnante_ore(Classe_4C, jhdkslòf, 6);
-    set_classe_insegnante_ore(Classe_4C, dfjilòà, 3);
+    set_classe_insegnante_ore(Classe_4C, lljksdo, 4);
+    set_classe_insegnante_ore(Classe_4C, jhdkslof, 6);
+    set_classe_insegnante_ore(Classe_4C, dfjiloa, 3);
     set_classe_insegnante_ore(Classe_4C, fdkjl, 5);
     set_classe_insegnante_ore(Classe_4C, yhosio, 5);
     set_classe_insegnante_ore(Classe_4C, jklds, 6);
@@ -369,12 +369,12 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_4C, sdils, 2); //20 KHz
 
     set_classe_insegnante_ore(Classe_4D, fdkjl, 6);
-    set_classe_insegnante_ore(Classe_4D, jhklòdfsd, 3);
+    set_classe_insegnante_ore(Classe_4D, jhklodfsd, 3);
     set_classe_insegnante_ore(Classe_4D, fdjl, 4);
-    set_classe_insegnante_ore(Classe_4D, sdjklòl, 5);
-    set_classe_insegnante_ore(Classe_4D, kghsdljòf, 6);
+    set_classe_insegnante_ore(Classe_4D, sdjklol, 5);
+    set_classe_insegnante_ore(Classe_4D, kghsdljof, 6);
     set_classe_insegnante_ore(Classe_4D, ocsfg, 5);
-    set_classe_insegnante_ore(Classe_4D, sdjhkjlò, 1);
+    set_classe_insegnante_ore(Classe_4D, sdjhkjlo, 1);
     set_classe_insegnante_ore(Classe_4D, sdils, 2); //18 KHz
 
 
