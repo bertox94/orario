@@ -359,12 +359,12 @@ int verifica_ora_ingresso(const int prof, const int ora) {
 void print_orario(const int pos) {
     if (n_gen_max <= n_gen) return;
 
-    print(orario, pos, n_gen, f);
+    //print(orario, pos, n_gen, f);
     if (pos == orario_len) {
         //if (verifica_ore_classe_materia()) { //not needed ? all hours should match
         n_gen++;
-        printf("%lld \n", n_gen);
-        //print(orario, pos, n_gen, f);
+        //printf("%lld \n", n_gen);
+        print(orario, pos, n_gen, f);
         //  }
         return;
     }
@@ -449,6 +449,7 @@ void print_orario(const int pos) {
 
     fprintf(f, "Backtrack prima di completare una programmazione in giorno: %s, ora: %s, classe: %s\n",
             giorni_settimana[giorno], ore_giornaliere[ora], classe_sezione[cla]);
+    print(orario, pos, n_gen, f);
 }
 
 int main(void) {
@@ -490,7 +491,7 @@ int main(void) {
 
 
     f = fopen("orario.txt", "w");
-    f = stdout;
+    //f = stdout;
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
     print_orario(0);
 

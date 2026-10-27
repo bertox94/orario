@@ -4,24 +4,24 @@
 
 #ifndef UNTITLED_PROFESSORS_H
 #define UNTITLED_PROFESSORS_H
-char hjjsdlj[] = "p3";
-char jhbksdjl[] = "p2";
-char hbskd[] = "p4";
-char jhbdsjksd[] = "p5";
-char jhsbdhjkl[] = "p6";
-char jhkssdf[] = "p7";
-char jhdsnlkllds[] = "p8";
-char hjksdd[] = "p9";
-char kjnsdu[] = "p10";
-char hsdl[] = "hsdl";
-char kjhbdksl[] = "kjhbdksl";
-char kjsdlnkn[] = "kjsdlnkn";
-char jknsosd[] = "jknsosd";
-char lkjdns[] = "lkjdns";
-char sdils[] = "sdils";
-char ksdmolf[] = "ksdmolf";
-char jndslnk[] = "jndslnk";
-char shdlnk[] = "shdlnk";
+char Goku[] = "Goku";
+char Vegeta[] = "Vegeta";
+char Junior[] = "Junior";
+char Crillin[] = "Crillin";
+char Freezer[] = "Freezer";
+char Cell[] = "Cell";
+char MBu[] = "M. Bu";
+char Bulma[] = "Bulma";
+char Kiki[] = "Kiki";
+char Janemba[] = "Janemba";
+char Gogeta[] = "Gogeta";
+char Taipei[] = "Taipei";
+char MTartarughe[] = "M. Tartarughe";
+char Trunks[] = "Trunks";
+char Gohan[] = "Gohan";
+char Goten[] = "Goten";
+char Sandokan[] = "Sandokan";
+char Doraemon[] = "Doraemon";
 char sdkkkj[] = "sdkkkj";
 char sdhusdc[] = "sdhusdc";
 char hbdskj[] = "hbdskj";

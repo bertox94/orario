@@ -255,18 +255,18 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_3B, Saredn, 2);
     set_classe_insegnante_ore_cod(Classe_3B, ksjd, 3, hsdlo, 3);
     set_classe_insegnante_ore(Classe_3B, sdjhkjlo, 1);
-    set_classe_insegnante_ore_cod(Classe_3B, fudc, 4, jknsosd, 1);
+    set_classe_insegnante_ore_cod(Classe_3B, fudc, 4, MTartarughe, 1);
     set_classe_insegnante_ore_cod(Classe_3B, dfkkjosd, 4, hjdlso, 2);
     set_classe_insegnante_ore(Classe_3B, fviosoda, 3);
 
 
-    set_classe_insegnante_ore(Classe_3C, ksdmolf, 3);
-    set_classe_insegnante_ore(Classe_3C, lkjdns, 6);
+    set_classe_insegnante_ore(Classe_3C, Goten, 3);
+    set_classe_insegnante_ore(Classe_3C, Trunks, 6);
     set_classe_insegnante_ore_cod(Classe_3C, fdhls, 5, sdkkkj, 2);
-    set_classe_insegnante_ore_cod(Classe_3C, kjsdlnkn, 4, jknsosd, 1);
+    set_classe_insegnante_ore_cod(Classe_3C, Taipei, 4, MTartarughe, 1);
     set_classe_insegnante_ore_cod(Classe_3C, ocsfg, 3, kjlidsola, 2);
-    set_classe_insegnante_ore(Classe_3C, shdlnk, 1);
-    set_classe_insegnante_ore(Classe_3C, sdils, 2);
+    set_classe_insegnante_ore(Classe_3C, Doraemon, 1);
+    set_classe_insegnante_ore(Classe_3C, Gohan, 2);
     set_classe_insegnante_ore_cod(Classe_3C, fdkjl, 4, hldsofa, 2);
     set_classe_insegnante_ore_cod(Classe_3C, yhosio, 4, sdlioa, 2);
 
@@ -276,28 +276,28 @@ void inizializza_dati() {
     set_classe_insegnante_ore_cod(Classe_3D, fdjl, 4, fudc, 1);
     set_classe_insegnante_ore(Classe_3D, dfjiloa, 3);
     set_classe_insegnante_ore(Classe_3D, dfjo, 6);
-    set_classe_insegnante_ore(Classe_3D, shdlnk, 1);
+    set_classe_insegnante_ore(Classe_3D, Doraemon, 1);
     set_classe_insegnante_ore_cod(Classe_3D, lodfas, 4, hldsofa, 2);
     set_classe_insegnante_ore(Classe_3D, jkvklmosdo, 2);
 
     set_classe_insegnante_ore(Classe_3E, dshb, 4);
     set_classe_insegnante_ore(Classe_3E, sdhyk, 6);
-    set_classe_insegnante_ore_cod(Classe_3E, sdhusdc, 3, jhsbdhjkl, 1);
-    set_classe_insegnante_ore_cod(Classe_3E, jhkssdf, 6, hbdskj, 3);
-    set_classe_insegnante_ore(Classe_3E, sdils, 2);
-    set_classe_insegnante_ore_cod(Classe_3E, jndslnk, 3, sdkkkj, 2);
-    set_classe_insegnante_ore(Classe_3E, shdlnk, 1);
-    set_classe_insegnante_ore_cod(Classe_3E, jhbksdjl, 4, jhsbdhjkl, 2);
+    set_classe_insegnante_ore_cod(Classe_3E, sdhusdc, 3, Freezer, 1);
+    set_classe_insegnante_ore_cod(Classe_3E, Cell, 6, hbdskj, 3);
+    set_classe_insegnante_ore(Classe_3E, Gohan, 2);
+    set_classe_insegnante_ore_cod(Classe_3E, Sandokan, 3, sdkkkj, 2);
+    set_classe_insegnante_ore(Classe_3E, Doraemon, 1);
+    set_classe_insegnante_ore_cod(Classe_3E, Vegeta, 4, Freezer, 2);
     set_classe_insegnante_ore(Classe_3E, hgsdj, 3); //130 KHz
 
-    set_classe_insegnante_ore(Classe_3F, jknsosd, 4);
+    set_classe_insegnante_ore(Classe_3F, MTartarughe, 4);
     set_classe_insegnante_ore(Classe_3F, sdhbhkl, 6);
-    set_classe_insegnante_ore_cod(Classe_3F, hjjsdlj, 3, jhdsnlkllds, 1);
-    set_classe_insegnante_ore_cod(Classe_3F, kjnsdu, 6, hjksdd, 3);
-    set_classe_insegnante_ore(Classe_3F, sdils, 2);
-    set_classe_insegnante_ore_cod(Classe_3F, jndslnk, 3, sdkkkj, 2);
-    set_classe_insegnante_ore(Classe_3F, shdlnk, 1);
-    set_classe_insegnante_ore_cod(Classe_3F, jhbksdjl, 4, jhsbdhjkl, 2);
+    set_classe_insegnante_ore_cod(Classe_3F, Goku, 3, MBu, 1);
+    set_classe_insegnante_ore_cod(Classe_3F, Kiki, 6, Bulma, 3);
+    set_classe_insegnante_ore(Classe_3F, Gohan, 2);
+    set_classe_insegnante_ore_cod(Classe_3F, Sandokan, 3, sdkkkj, 2);
+    set_classe_insegnante_ore(Classe_3F, Doraemon, 1);
+    set_classe_insegnante_ore_cod(Classe_3F, Vegeta, 4, Freezer, 2);
     set_classe_insegnante_ore(Classe_3F, jdslk, 3); //91 KHz
 
     set_classe_insegnante_ore(Classe_3G, kjjkds, 2);
@@ -320,15 +320,15 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_3K, fdsj, 4);
     set_classe_insegnante_ore(Classe_3K, khsdubkhl, 1); //440 Hz
 
-    set_classe_insegnante_ore_cod(Classe_3H, kjsdlnkn, 4, jknsosd, 1);
-    set_classe_insegnante_ore(Classe_3H, lkjdns, 6);
-    set_classe_insegnante_ore_cod(Classe_3H, jhbdsjksd, 3, jhdsnlkllds, 1);
-    set_classe_insegnante_ore_cod(Classe_3H, jhbksdjl, 6, kjhbdksl, 3);
-    set_classe_insegnante_ore(Classe_3H, sdils, 2);
-    set_classe_insegnante_ore_cod(Classe_3H, jndslnk, 3, sdkkkj, 2);
-    set_classe_insegnante_ore(Classe_3H, shdlnk, 1);
-    set_classe_insegnante_ore_cod(Classe_3H, jhbksdjl, 4, hsdl, 2);
-    set_classe_insegnante_ore(Classe_3H, ksdmolf, 3); //38 KHz
+    set_classe_insegnante_ore_cod(Classe_3H, Taipei, 4, MTartarughe, 1);
+    set_classe_insegnante_ore(Classe_3H, Trunks, 6);
+    set_classe_insegnante_ore_cod(Classe_3H, Crillin, 3, MBu, 1);
+    set_classe_insegnante_ore_cod(Classe_3H, Vegeta, 6, Gogeta, 3);
+    set_classe_insegnante_ore(Classe_3H, Gohan, 2);
+    set_classe_insegnante_ore_cod(Classe_3H, Sandokan, 3, sdkkkj, 2);
+    set_classe_insegnante_ore(Classe_3H, Doraemon, 1);
+    set_classe_insegnante_ore_cod(Classe_3H, Vegeta, 4, Janemba, 2);
+    set_classe_insegnante_ore(Classe_3H, Goten, 3); //38 KHz
 
     set_classe_insegnante_ore(Classe_3Q, hsdblkjl, 6);
     set_classe_insegnante_ore_cod(Classe_3Q, jsdoo, 7, hldsofa, 4);
@@ -366,7 +366,7 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_4C, yhosio, 5);
     set_classe_insegnante_ore(Classe_4C, jklds, 6);
     set_classe_insegnante_ore(Classe_4C, khsdubkhl, 1);
-    set_classe_insegnante_ore(Classe_4C, sdils, 2); //20 KHz
+    set_classe_insegnante_ore(Classe_4C, Gohan, 2); //20 KHz
 
     set_classe_insegnante_ore(Classe_4D, fdkjl, 6);
     set_classe_insegnante_ore(Classe_4D, jhklodfsd, 3);
@@ -375,33 +375,33 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_4D, kghsdljof, 6);
     set_classe_insegnante_ore(Classe_4D, ocsfg, 5);
     set_classe_insegnante_ore(Classe_4D, sdjhkjlo, 1);
-    set_classe_insegnante_ore(Classe_4D, sdils, 2); //18 KHz
+    set_classe_insegnante_ore(Classe_4D, Gohan, 2); //18 KHz
 
 
     set_classe_insegnante_ore(Classe_4E, dshb, 4);
     set_classe_insegnante_ore(Classe_4E, fsghs, 6);
     set_classe_insegnante_ore(Classe_4E, sdhusdc, 7);
-    set_classe_insegnante_ore(Classe_4E, jhkssdf, 6);
+    set_classe_insegnante_ore(Classe_4E, Cell, 6);
     set_classe_insegnante_ore(Classe_4E, sdkjl, 2);
-    set_classe_insegnante_ore(Classe_4E, jndslnk, 3);
-    set_classe_insegnante_ore(Classe_4E, shdlnk, 1);
+    set_classe_insegnante_ore(Classe_4E, Sandokan, 3);
+    set_classe_insegnante_ore(Classe_4E, Doraemon, 1);
     set_classe_insegnante_ore(Classe_4E, hgsdj, 3);
 
     set_classe_insegnante_ore(Classe_5E, dshb, 3);
     set_classe_insegnante_ore(Classe_5E, sdhyk, 6);
     set_classe_insegnante_ore(Classe_5E, sdhusdc, 4);
-    set_classe_insegnante_ore(Classe_5E, jhkssdf, 6);
-    set_classe_insegnante_ore(Classe_5E, sdils, 2);
+    set_classe_insegnante_ore(Classe_5E, Cell, 6);
+    set_classe_insegnante_ore(Classe_5E, Gohan, 2);
     set_classe_insegnante_ore(Classe_5E, sdhbls, 4);
     set_classe_insegnante_ore(Classe_5E, dshbl, 3);
     set_classe_insegnante_ore(Classe_5E, hgsdj, 3);
-    set_classe_insegnante_ore(Classe_5E, shdlnk, 1);
+    set_classe_insegnante_ore(Classe_5E, Doraemon, 1);
 
 
     // VINCOLI SU ORA DI ENTRATA
     ora_di_entrata_prof[p_insegnante(sdhusdc)] = 1;
-    ora_di_entrata_prof[p_insegnante(jhkssdf)] = 1;
-    ora_di_entrata_prof[p_insegnante(jhbksdjl)] = 2;
+    ora_di_entrata_prof[p_insegnante(Cell)] = 1;
+    ora_di_entrata_prof[p_insegnante(Vegeta)] = 2;
 
 
     for (int i = 0; i < actual_classi_sezione; i++) {
