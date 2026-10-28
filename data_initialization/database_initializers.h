@@ -14,6 +14,7 @@
 
 #define PRIME_N_ORE_OBBLIGATORIE 5
 #define MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO 3
+#define MAX_ORE_PROF_IN_UNA_CLASSE 3
 
 typedef struct {
     //int aula;

@@ -379,8 +379,10 @@ void print_orario(const int pos) {
     const int base4d_queue = giorno * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ + ora *
                              CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ * INSEGNANTE_SZ;
 
+
     sort_queue_mul(base4d_queue, queue_sz);
     if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
+        int found_prof = 0;
         ore_classe_svolte[cla]++;
         const long long int queue_size = base4d_queue + queue_sz;
         for (int ii = base4d_queue; ii < queue_size; ii++) {
@@ -419,6 +421,7 @@ void print_orario(const int pos) {
                         && 1
                     ) {
                         prep_chiamata_ricorsiva_insieme(base2d_ci, base3d_goi, base3d_cii, it, jt);
+                        found_prof = 1;
                         orario[pos] = (teaching_slot){p1, p2};
                         print_orario(pos + 1);
                         post_chiamata_ricorsiva_insieme(base2d_ci, base3d_goi, base3d_cii, it, jt);
@@ -430,6 +433,7 @@ void print_orario(const int pos) {
                     && sabato_esaurisci_priorita_subito(pos, giorno, ora, base2d_ci, p1)
                     && 1) {
                     prep_chiamata_ricorsiva(base2d_ci, base3d_goi, it);
+                    found_prof = 1;
                     orario[pos] = (teaching_slot){p1, -1};
                     print_orario(pos + 1);
                     post_chiamata_ricorsiva(base2d_ci, base3d_goi, it);
@@ -437,6 +441,11 @@ void print_orario(const int pos) {
             }
         }
         ore_classe_svolte[cla]--;
+        if (!found_prof) {
+            fprintf(f, "Backtrack, non si è potuto scegiere alcun insegnante nel giorno: %s, ora: %s, classe: %s\n",
+                    giorni_settimana[giorno], ore_giornaliere[ora], classe_sezione[cla]);
+            print(orario, pos, n_gen, f);
+        }
     }
 
 
@@ -446,10 +455,6 @@ void print_orario(const int pos) {
         print_orario(pos + 1);
         n_ore_buche[base2d_gc + cla]--;
     }
-
-    fprintf(f, "Backtrack prima di completare una programmazione in giorno: %s, ora: %s, classe: %s\n",
-            giorni_settimana[giorno], ore_giornaliere[ora], classe_sezione[cla]);
-    print(orario, pos, n_gen, f);
 }
 
 int main(void) {
