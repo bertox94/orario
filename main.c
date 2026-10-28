@@ -6,7 +6,7 @@
 #include <tgmath.h>
 #include <sys/time.h>
 
-#include "prio_queue.h"
+#include "priority_queue/prio_queue.h"
 #include "data_initialization/database_initializers.h"
 #include "printer/printer.h"
 

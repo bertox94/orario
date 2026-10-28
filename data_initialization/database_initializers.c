@@ -150,22 +150,7 @@ int get_ore_insegnante_settimanale(int insegnante) {
  * Set constraints from user
 */
 
-void add_to_queue(int prof, int priority) {
-    for (int i = 0; i < queue_sz; i++) {
-        if (queue_mul[i]->teacher == prof) {
-            queue_mul[i]->priority += priority;
-            return;
-        }
-    }
-    QueueItem *new = malloc(sizeof(QueueItem));
-    new->teacher = prof;
-    new->priority = priority;
-    queue_mul[queue_sz++] = new;
-    for (int i = 1;
-         i < GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ; i++) {
-        queue_mul[i * INSEGNANTE_SZ * INSEGNANTE_SZ + queue_sz - 1] = queue_mul[queue_sz - 1];
-    }
-}
+
 
 void set_classe_insegnante_ore(char cla[], char prof[], const int ore) {
     set_classe_sezione(cla);

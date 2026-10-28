@@ -5,7 +5,7 @@
 #include <time.h>
 
 #include "../data_initialization/database_initializers.h"
-#include "../prio_queue.h"
+#include "../priority_queue/prio_queue.h"
 //
 // Created by Alberto Tiraboschi on 20/06/2026.
 //

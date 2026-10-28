@@ -4,7 +4,7 @@
 
 #ifndef UNTITLED_PRIO_QUEUE_H
 #define UNTITLED_PRIO_QUEUE_H
-#include "data_initialization/database_initializers.h"
+#include "../data_initialization/database_initializers.h"
 
 typedef struct el {
     int teacher;
@@ -14,5 +14,6 @@ typedef struct el {
 extern QueueItem **queue_mul;
 extern int queue_sz;
 
-void initialize_queue_arr(QueueItem *queue[]);
+void add_to_queue(int prof, int priority);
+
 #endif //UNTITLED_PRIO_QUEUE_H
