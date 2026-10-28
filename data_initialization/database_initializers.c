@@ -242,21 +242,21 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_3A, DMalfoy, 2);
     set_classe_insegnante_ore(Classe_3A, Voldemort, 3);
     set_classe_insegnante_ore(Classe_3A, Itachi, 6);
-    set_classe_insegnante_ore_cod(Classe_3A, Lupin, 5, hsdlo, 3);
+    set_classe_insegnante_ore_cod(Classe_3A, Lupin, 5, GVermilinguo, 3);
     set_classe_insegnante_ore(Classe_3A, Brook, 4);
-    set_classe_insegnante_ore_cod(Classe_3A, Ash, 4, dskjlo, 2);
-    set_classe_insegnante_ore_cod(Classe_3A, EJaeger, 4, hjdlso, 2);
+    set_classe_insegnante_ore_cod(Classe_3A, Ash, 4, Theoden, 2);
+    set_classe_insegnante_ore_cod(Classe_3A, EJaeger, 4, Denethor, 2);
     set_classe_insegnante_ore(Classe_3A, RWeasley, 1);
     set_classe_insegnante_ore_cod(Classe_3A, Mufasa, 3, MUchiha, 3);
 
-    set_classe_insegnante_ore_cod(Classe_3B, Mufasa, 5, hksld, 4);
+    set_classe_insegnante_ore_cod(Classe_3B, Mufasa, 5, Radagast, 4);
     set_classe_insegnante_ore(Classe_3B, Simba, 6);
-    set_classe_insegnante_ore_cod(Classe_3B, Nala, 4, dskjlo, 2);
+    set_classe_insegnante_ore_cod(Classe_3B, Nala, 4, Theoden, 2);
     set_classe_insegnante_ore(Classe_3B, DMalfoy, 2);
-    set_classe_insegnante_ore_cod(Classe_3B, EJaeger, 3, hsdlo, 3);
+    set_classe_insegnante_ore_cod(Classe_3B, EJaeger, 3, GVermilinguo, 3);
     set_classe_insegnante_ore(Classe_3B, RWeasley, 1);
     set_classe_insegnante_ore_cod(Classe_3B, Sarabi, 4, MTartarughe, 1);
-    set_classe_insegnante_ore_cod(Classe_3B, Ash, 4, hjdlso, 2);
+    set_classe_insegnante_ore_cod(Classe_3B, Ash, 4, Denethor, 2);
     set_classe_insegnante_ore(Classe_3B, Pumba, 3);
 
 
@@ -264,21 +264,21 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_3C, Trunks, 6);
     set_classe_insegnante_ore_cod(Classe_3C, Timon, 5, Jesus, 2);
     set_classe_insegnante_ore_cod(Classe_3C, Taipei, 4, MTartarughe, 1);
-    set_classe_insegnante_ore_cod(Classe_3C, Zazu, 3, kjlidsola, 2);
+    set_classe_insegnante_ore_cod(Classe_3C, Zazu, 3, Feanor, 2);
     set_classe_insegnante_ore(Classe_3C, Doraemon, 1);
     set_classe_insegnante_ore(Classe_3C, Gohan, 2);
-    set_classe_insegnante_ore_cod(Classe_3C, Rafiki, 4, hldsofa, 2);
-    set_classe_insegnante_ore_cod(Classe_3C, Jasmine, 4, sdlioa, 2);
+    set_classe_insegnante_ore_cod(Classe_3C, Rafiki, 4, Gothmog, 2);
+    set_classe_insegnante_ore_cod(Classe_3C, Jasmine, 4, Morgoth, 2);
 
-    set_classe_insegnante_ore_cod(Classe_3D, Mammolo, 5, sdlioa, 2);
-    set_classe_insegnante_ore_cod(Classe_3D, Sauron, 4, hldsofa, 2);
-    set_classe_insegnante_ore_cod(Classe_3D, Zazu, 3, kjlidsola, 2);
+    set_classe_insegnante_ore_cod(Classe_3D, Mammolo, 5, Morgoth, 2);
+    set_classe_insegnante_ore_cod(Classe_3D, Sauron, 4, Gothmog, 2);
+    set_classe_insegnante_ore_cod(Classe_3D, Zazu, 3, Feanor, 2);
     set_classe_insegnante_ore_cod(Classe_3D, Aladino, 4, Sarabi, 1);
     set_classe_insegnante_ore(Classe_3D, Biancaneve, 3);
     set_classe_insegnante_ore(Classe_3D, Dotto, 6);
     set_classe_insegnante_ore(Classe_3D, Doraemon, 1);
-    set_classe_insegnante_ore_cod(Classe_3D, Pisolo, 4, hldsofa, 2);
-    set_classe_insegnante_ore(Classe_3D, Arween, 2);
+    set_classe_insegnante_ore_cod(Classe_3D, Pisolo, 4, Gothmog, 2);
+    set_classe_insegnante_ore(Classe_3D, Arwen, 2);
 
     set_classe_insegnante_ore(Classe_3E, Jiraya, 4);
     set_classe_insegnante_ore(Classe_3E, Orochimaru, 6);
@@ -302,23 +302,23 @@ void inizializza_dati() {
 
     set_classe_insegnante_ore(Classe_3G, BBaggins, 2);
     set_classe_insegnante_ore(Classe_3G, Lupin, 5);
-    set_classe_insegnante_ore_cod(Classe_3G, SGamgee, 4, sdlioa, 2);
+    set_classe_insegnante_ore_cod(Classe_3G, SGamgee, 4, Morgoth, 2);
     set_classe_insegnante_ore(Classe_3G, HGranger, 6);
     set_classe_insegnante_ore_cod(Classe_3G, Pipino, 3, Sarabi, 2);
-    set_classe_insegnante_ore_cod(Classe_3G, Merry, 4, hjdlso, 3);
+    set_classe_insegnante_ore_cod(Classe_3G, Merry, 4, Denethor, 3);
     set_classe_insegnante_ore(Classe_3G, RWeasley, 1);
     set_classe_insegnante_ore(Classe_3G, Elrond, 5);
-    set_classe_insegnante_ore(Classe_3G, Arween, 2); //65 KHz
+    set_classe_insegnante_ore(Classe_3G, Arwen, 2); //65 KHz
 
     set_classe_insegnante_ore(Classe_3K, Saruman, 4);
     set_classe_insegnante_ore(Classe_3K, Gandalf, 4);
     set_classe_insegnante_ore(Classe_3K, Legolas, 6);
-    set_classe_insegnante_ore(Classe_3K, fdj, 3);
-    set_classe_insegnante_ore(Classe_3K, mkjsdolo, 6);
-    set_classe_insegnante_ore(Classe_3K, Arween, 2);
-    set_classe_insegnante_ore(Classe_3K, hjgasdkbl, 2);
-    set_classe_insegnante_ore(Classe_3K, fdsj, 4);
-    set_classe_insegnante_ore(Classe_3K, khsdubkhl, 1); //440 Hz
+    set_classe_insegnante_ore(Classe_3K, Aragorn, 3);
+    set_classe_insegnante_ore(Classe_3K, FBaggins, 6);
+    set_classe_insegnante_ore(Classe_3K, Arwen, 2);
+    set_classe_insegnante_ore(Classe_3K, Gimli, 2);
+    set_classe_insegnante_ore(Classe_3K, Glorfindel, 4);
+    set_classe_insegnante_ore(Classe_3K, Galadriel, 1); //440 Hz
 
     set_classe_insegnante_ore_cod(Classe_3H, Taipei, 4, MTartarughe, 1);
     set_classe_insegnante_ore(Classe_3H, Trunks, 6);
@@ -330,18 +330,18 @@ void inizializza_dati() {
     set_classe_insegnante_ore_cod(Classe_3H, Vegeta, 4, Janemba, 2);
     set_classe_insegnante_ore(Classe_3H, Goten, 3); //38 KHz
 
-    set_classe_insegnante_ore(Classe_3Q, hsdblkjl, 6);
-    set_classe_insegnante_ore_cod(Classe_3Q, Mammolo, 7, hldsofa, 4);
-    set_classe_insegnante_ore_cod(Classe_3Q, Zazu, 4, hldsofa, 2);
-    set_classe_insegnante_ore_cod(Classe_3Q, ubsdf, 6, jhlfoda, 2);
-    set_classe_insegnante_ore(Classe_3Q, jhdksdf, 5);
-    set_classe_insegnante_ore(Classe_3Q, khdusf, 4);
-    set_classe_insegnante_ore(Classe_3Q, hjdkls, 2);
-    set_classe_insegnante_ore(Classe_3Q, khsdubkhl, 1); //28 KHz
+    set_classe_insegnante_ore(Classe_3Q, Haldir, 6);
+    set_classe_insegnante_ore_cod(Classe_3Q, Mammolo, 7, Gothmog, 4);
+    set_classe_insegnante_ore_cod(Classe_3Q, Zazu, 4, Gothmog, 2);
+    set_classe_insegnante_ore_cod(Classe_3Q, Eomer, 6, Fingolfin, 2);
+    set_classe_insegnante_ore(Classe_3Q, Eowyn, 5);
+    set_classe_insegnante_ore(Classe_3Q, Celeborn, 4);
+    set_classe_insegnante_ore(Classe_3Q, Lurtz, 2);
+    set_classe_insegnante_ore(Classe_3Q, Galadriel, 1); //28 KHz
 
     set_classe_insegnante_ore(Classe_4A, Simba, 6);
-    set_classe_insegnante_ore_cod(Classe_4A, djhsljofa, 3, dskjlo, 2);
-    set_classe_insegnante_ore_cod(Classe_4A, djhsljofa, 4, hjdlso, 2);
+    set_classe_insegnante_ore_cod(Classe_4A, TBombadil, 3, Theoden, 2);
+    set_classe_insegnante_ore_cod(Classe_4A, TBombadil, 4, Denethor, 2);
     set_classe_insegnante_ore(Classe_4A, Voldemort, 3);
     set_classe_insegnante_ore_cod(Classe_4A, EJaeger, 5, MUchiha, 5);
     set_classe_insegnante_ore(Classe_4A, Saruman, 4);
@@ -349,30 +349,30 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_4A, RWeasley, 1);
     set_classe_insegnante_ore(Classe_4A, DMalfoy, 2); //20 KHz
 
-    set_classe_insegnante_ore(Classe_4B, jhklodfsd, 4);
-    set_classe_insegnante_ore_cod(Classe_4B, djhsljofa, 3, dskjlo, 2);
+    set_classe_insegnante_ore(Classe_4B, Boromir, 4);
+    set_classe_insegnante_ore_cod(Classe_4B, TBombadil, 3, Theoden, 2);
     set_classe_insegnante_ore(Classe_4B, Lupin, 4);
     set_classe_insegnante_ore(Classe_4B, Orochimaru, 6);
-    set_classe_insegnante_ore_cod(Classe_4B, Nala, 5, hksld, 5);
-    set_classe_insegnante_ore_cod(Classe_4B, Ash, 4, hjdlso, 2);
+    set_classe_insegnante_ore_cod(Classe_4B, Nala, 5, Radagast, 5);
+    set_classe_insegnante_ore_cod(Classe_4B, Ash, 4, Denethor, 2);
     set_classe_insegnante_ore(Classe_4B, Pumba, 3);
     set_classe_insegnante_ore(Classe_4B, RWeasley, 1);
     set_classe_insegnante_ore(Classe_4B, DMalfoy, 2); //23 Khz
 
     set_classe_insegnante_ore(Classe_4C, Pipino, 4);
-    set_classe_insegnante_ore(Classe_4C, jhdkslof, 6);
+    set_classe_insegnante_ore(Classe_4C, Faramir, 6);
     set_classe_insegnante_ore(Classe_4C, Biancaneve, 3);
     set_classe_insegnante_ore(Classe_4C, Rafiki, 5);
     set_classe_insegnante_ore(Classe_4C, Jasmine, 5);
-    set_classe_insegnante_ore(Classe_4C, jklds, 6);
-    set_classe_insegnante_ore(Classe_4C, khsdubkhl, 1);
+    set_classe_insegnante_ore(Classe_4C, Barbalbero, 6);
+    set_classe_insegnante_ore(Classe_4C, Galadriel, 1);
     set_classe_insegnante_ore(Classe_4C, Gohan, 2); //20 KHz
 
     set_classe_insegnante_ore(Classe_4D, Rafiki, 6);
-    set_classe_insegnante_ore(Classe_4D, jhklodfsd, 3);
+    set_classe_insegnante_ore(Classe_4D, Boromir, 3);
     set_classe_insegnante_ore(Classe_4D, Aladino, 4);
     set_classe_insegnante_ore(Classe_4D, SGamgee, 5);
-    set_classe_insegnante_ore(Classe_4D, kghsdljof, 6);
+    set_classe_insegnante_ore(Classe_4D, Isildur, 6);
     set_classe_insegnante_ore(Classe_4D, Zazu, 5);
     set_classe_insegnante_ore(Classe_4D, RWeasley, 1);
     set_classe_insegnante_ore(Classe_4D, Gohan, 2); //18 KHz
