@@ -11,7 +11,7 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 long long int n_gen = 0;
-long long int n_gen_max = SCHEDULES_PER_GB / 1;
+long long int n_gen_max = SCHEDULES_PER_GB / 5;
 teaching_slot orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
     [0 ...
         GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1
@@ -237,11 +237,10 @@ int prof_fa_al_max_n_ore(int giorno, int ora, int cla, int prof) {
 int prof_fa_ore_contigue(int giorno, int ora, int cla, int prof) {
     if (ore_fatte_da_un_prof_in_una_classe_in_giorno[
         giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + prof]) {
-        // ha già fatto un ora
-        /* if ()
-             }
-     if (giorno * actual_ore_giornaliere * actual_classi_sezione + (ora - 1) * actual_classi_sezione + cla >= giorno *
-         actual_ore_giornaliere * actual_classi_sezione + cla ||)*/
+        return orario[giorno * actual_ore_giornaliere * actual_classi_sezione + (ora - 1) * actual_classi_sezione + cla]
+               .insegnante1 == prof
+               || orario[giorno * actual_ore_giornaliere * actual_classi_sezione + (ora - 1) * actual_classi_sezione +
+                         cla].insegnante2 == prof;
     }
     return 1;
 }
@@ -298,12 +297,12 @@ void post_chiamata_ricorsiva_insieme(const int base2d_ci, const int base3d_goi, 
     prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 0;
     ore_classi_docenti_svolte[base2d_ci + it->teacher]--;
     ore_fatte_da_un_prof_in_una_classe_in_giorno[
-    giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + it->teacher]++;
+        giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + it->teacher]++;
     jt->priority++;
     prof_gia_impegnato_giorno_ora[base3d_goi + jt->teacher] = 0;
     ore_classi_docenti_svolte[base2d_ci + jt->teacher]--;
     ore_fatte_da_un_prof_in_una_classe_in_giorno[
-    giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + jt->teacher]++;
+        giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + jt->teacher]++;
     decrement_ore_classi_codocenza_svolte(cla, it->teacher, jt->teacher);
 }
 
@@ -443,7 +442,7 @@ void print_orario(const int pos) {
                     found_prof = 1;
                     orario[pos] = (teaching_slot){p1, -1};
                     print_orario(pos + 1);
-                    post_chiamata_ricorsiva(base2d_ci, base3d_goi, it,giorno,cla,p1);
+                    post_chiamata_ricorsiva(base2d_ci, base3d_goi, it, giorno, cla, p1);
                 }
             }
         }
