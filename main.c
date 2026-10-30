@@ -400,6 +400,7 @@ void print_orario(const int pos) {
                 //ogni docente fa al max MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO materie (classi) diverse ogni giorno
                 && ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(pos, giorno, cla, p1)
                 && verifica_ora_ingresso(p1, ora)
+                // NB. non e possibile verificare qua di esaurire ore il sabato
                 && 1
             ) {
                 // assert(iitem->priority > 0);
