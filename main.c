@@ -231,14 +231,23 @@ void sort_queue_mul(size_t start, size_t n) {
     qsort(&queue_mul[start], n, sizeof(QueueItem *), compare_queue_items);
 }
 
-int prof_fa_al_max_n_ore_contigue(
-    int giorno, int ora, int cla, int prof) {
+int prof_fa_al_max_n_ore(int giorno, int ora, int cla, int prof) {
+    return ore_fatte_da_un_prof_in_una_classe_in_giorno[
+               giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + prof] <
+           MAX_ORE_PROF_IN_UNA_CLASSE;
+}
+
+int prof_fa_ore_contigue(int giorno, int ora, int cla, int prof) {
+    if (ore_fatte_da_un_prof_in_una_classe_in_giorno[
+            giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + prof]) {
+        // ha già fatto un ora
+        if ()
+    }
     if (giorno * actual_ore_giornaliere * actual_classi_sezione + (ora - 1) * actual_classi_sezione + cla >= giorno *
-        actual_ore_giornaliere * actual_classi_sezione + cla || )
+        actual_ore_giornaliere * actual_classi_sezione + cla ||)
 
 
-        if (!ore_fatte_da_un_prof_in_una_classe_in_giorno[
-            giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + prof])
+        if (!)
             return 1;
 
     int start = giorno * actual_ore_giornaliere * actual_classi_sezione + (ora - 1) * actual_classi_sezione + cla;
@@ -257,6 +266,7 @@ int prof_fa_al_max_n_ore_contigue(
     }
     return 1;
 }
+
 
 int prof_è_disponibile(const int base3d_goi, int p1) {
     return !prof_gia_impegnato_giorno_ora[base3d_goi + p1];
@@ -420,8 +430,7 @@ void print_orario(const int pos) {
                 // controlla ore svolte per materia, verifica che siano inferiori a quelle totali
                 && deve_ancora_svolgere_ore_in_questa_classe(base2d_ci, p1)
                 // un prof non puo vedere una classe due volte se non sono contigue
-                && prof_fa_al_max_n_ore_contigue(
-                    giorno, ora, cla, p1)
+                && prof_fa_ore_contigue(giorno, ora, cla, p1)
                 //se un prof ha due ore il sabato deve farle consecutive, altrimenti non la fa, essendo non contigue
                 //ogni docente fa al max MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO materie (classi) diverse ogni giorno
                 && ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(pos, giorno, cla, p1)
@@ -437,8 +446,7 @@ void print_orario(const int pos) {
                         prof_è_disponibile(base3d_goi, p2)
                         && docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(base3d_cii, p1, p2)
                         // prof se fa due ore devono essere attaccate
-                        && prof_fa_al_max_n_ore_contigue(
-                            giorno, ora, cla, p2)
+                        && prof_fa_ore_contigue(giorno, ora, cla, p2)
                         // poiche un prof se deve fare due ore no può farle spezzettate, e sabato è 'ulyimo giorno, non si puo mettere un altro prof,
                         // la seconda ora deve farla subito
                         && sabato_esaurisci_priorita_subito_cod(pos, giorno, ora, base2d_ci, p1, p2)
