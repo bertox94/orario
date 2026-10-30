@@ -76,6 +76,14 @@ int get_ore_classi_insegnante(int classe, int insegnante);
 
 int get_ore_classi_insegnante_svolte(int classe, int insegnante);
 
+void increment_ore_classi_codocenza_svolte(int cla, int p1, int p2);
+
+void decrement_ore_classi_codocenza_svolte(int cla, int p1, int p2);
+
+int get_ore_insegnanti_codocenza_svolte_in_una_classe(int cla, int p1, int p2);
+
+int get_ore_insegnanti_codocenza_in_una_classe(int cla, int p1, int p2);
+
 void inizializza_dati();
 
 void stampa_dati();

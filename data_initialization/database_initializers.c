@@ -129,6 +129,26 @@ void add_ore_classi_codocenza(int cla, int p1, int p2, int ore) {
     ore_classi_codocenza[cla * INSEGNANTE_SZ * INSEGNANTE_SZ + p1 * INSEGNANTE_SZ + p2] += ore;
 }
 
+void increment_ore_classi_codocenza_svolte(const int cla, int p1, int p2) {
+    swap_min_first(&p1, &p2);
+    ore_classi_codocenza_svolte[cla * INSEGNANTE_SZ * INSEGNANTE_SZ + p1 * INSEGNANTE_SZ + p2]++;
+}
+
+void decrement_ore_classi_codocenza_svolte(const int cla, int p1, int p2) {
+    swap_min_first(&p1, &p2);
+    ore_classi_codocenza_svolte[cla * INSEGNANTE_SZ * INSEGNANTE_SZ + p1 * INSEGNANTE_SZ + p2]--;
+}
+
+int get_ore_insegnanti_codocenza_svolte_in_una_classe(const int cla, int p1, int p2) {
+    swap_min_first(&p1, &p2);
+    return ore_classi_codocenza_svolte[cla * INSEGNANTE_SZ * INSEGNANTE_SZ + p1 * INSEGNANTE_SZ + p2];
+}
+
+int get_ore_insegnanti_codocenza_in_una_classe(const int cla, int p1, int p2) {
+    swap_min_first(&p1, &p2);
+    return ore_classi_codocenza[cla * INSEGNANTE_SZ * INSEGNANTE_SZ + p1 * INSEGNANTE_SZ + p2];
+}
+
 int get_ore_classi_insegnante(int classe, int insegnante) {
     return ore_classi_docenti[classe * INSEGNANTE_SZ + insegnante];
 }
@@ -148,7 +168,6 @@ int get_ore_insegnante_settimanale(int insegnante) {
 /*
  * Set constraints from user
 */
-
 
 
 void set_classe_insegnante_ore(char cla[], char prof[], const int ore) {
