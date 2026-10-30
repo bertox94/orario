@@ -297,12 +297,12 @@ void post_chiamata_ricorsiva_insieme(const int base2d_ci, const int base3d_goi, 
     prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 0;
     ore_classi_docenti_svolte[base2d_ci + it->teacher]--;
     ore_fatte_da_un_prof_in_una_classe_in_giorno[
-        giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + it->teacher]++;
+        giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + it->teacher]--;
     jt->priority++;
     prof_gia_impegnato_giorno_ora[base3d_goi + jt->teacher] = 0;
     ore_classi_docenti_svolte[base2d_ci + jt->teacher]--;
     ore_fatte_da_un_prof_in_una_classe_in_giorno[
-        giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + jt->teacher]++;
+        giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + jt->teacher]--;
     decrement_ore_classi_codocenza_svolte(cla, it->teacher, jt->teacher);
 }
 
