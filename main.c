@@ -372,8 +372,8 @@ void print_orario(const int pos) {
     const int base2d_gc = giorno * CLASSE_SEZIONE_SZ;
     const int base3d_goi = giorno * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + ora * INSEGNANTE_SZ;
     const int base3d_cii = cla * INSEGNANTE_SZ * INSEGNANTE_SZ;
-    const int base4d_queue = giorno * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ + ora *
-                             CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ * INSEGNANTE_SZ;
+    const int base4d_queue = giorno * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + ora *
+                             CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ;
 
 
     sort_queue_mul(base4d_queue, queue_sz);

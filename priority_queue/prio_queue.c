@@ -24,8 +24,7 @@ void add_to_queue(int prof, int priority) {
     new->teacher = prof;
     new->priority = priority;
     queue_mul[queue_sz++] = new;
-    for (int i = 1;
-         i < GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ; i++) {
-        queue_mul[i * INSEGNANTE_SZ * INSEGNANTE_SZ + queue_sz - 1] = queue_mul[queue_sz - 1];
+    for (int i = 1; i < GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ; i++) {
+        queue_mul[i * INSEGNANTE_SZ + queue_sz - 1] = queue_mul[queue_sz - 1];
     }
 }
