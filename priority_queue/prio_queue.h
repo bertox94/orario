@@ -4,7 +4,6 @@
 
 #ifndef UNTITLED_PRIO_QUEUE_H
 #define UNTITLED_PRIO_QUEUE_H
-#include "../data_initialization/database_initializers.h"
 
 typedef struct el {
     int teacher;

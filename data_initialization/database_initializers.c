@@ -3,16 +3,16 @@
 //
 
 #include "../data_initialization/database_initializers.h"
+#include "../priority_queue/prio_queue.h"
 #include "../constants/days.h"
 #include "../constants/hours.h"
 #include "../constants/professors.h"
 #include "../constants/classes.h"
-#include "../constants/subjects.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <tgmath.h>
+#include "../utils.h"
 
 #include "../printer/printer.h"
 
@@ -124,9 +124,8 @@ void add_ore_insegnante_settimanale(int insegnante, int ore) {
     ore_docenti[insegnante] += ore;
 }
 
-void add_ore_classi_codocenza(int cla, int insegnante1, int insegnante2, int ore) {
-    int p1 = fmin(insegnante1, insegnante2);
-    int p2 = fmax(insegnante2, insegnante1);
+void add_ore_classi_codocenza(int cla, int p1, int p2, int ore) {
+    swap_min_first(&p1, &p2);
     ore_classi_codocenza[cla * INSEGNANTE_SZ * INSEGNANTE_SZ + p1 * INSEGNANTE_SZ + p2] += ore;
 }
 

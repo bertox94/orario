@@ -8,7 +8,7 @@
 #define MAX_STR_SZ_IN_DISPLAY 18
 #include <_stdio.h>
 
-#include "../priority_queue/prio_queue.h"
+#include "../data_initialization/database_initializers.h"
 
 void print(const teaching_slot orario[], const int pos, unsigned long long attempt, FILE *f);
 void print_priority_queue(FILE *f, int start, int end);

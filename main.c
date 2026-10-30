@@ -1,11 +1,8 @@
-#include <assert.h>
-#include <iso646.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <tgmath.h>
 #include <sys/time.h>
 
+#include "utils.h"
 #include "priority_queue/prio_queue.h"
 #include "data_initialization/database_initializers.h"
 #include "printer/printer.h"
@@ -254,10 +251,9 @@ int deve_ancora_svolgere_ore_in_questa_classe(const int base2d_ci, const int p1)
     return ore_classi_docenti_svolte[base2d_ci + p1] < ore_classi_docenti[base2d_ci + p1];
 }
 
-int docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(const int base3d_cii, const int prof1,
-                                                                   const int prof2) {
-    const int p1 = fmin(prof1, prof2);
-    const int p2 = fmax(prof1, prof2);
+int docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(const int base3d_cii, const int p1,
+                                                                   const int p2) {
+    swap_min_first(&p1, &p2);
     return ore_classi_codocenza_svolte[base3d_cii + p1 * INSEGNANTE_SZ + p2] <
            ore_classi_codocenza[base3d_cii + p1 * INSEGNANTE_SZ + p2];
 }

@@ -1,9 +1,8 @@
-#include "../printer/printer.h"
-
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 
+#include "../printer/printer.h"
 #include "../data_initialization/database_initializers.h"
 #include "../priority_queue/prio_queue.h"
 //

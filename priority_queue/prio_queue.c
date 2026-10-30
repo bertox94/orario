@@ -4,6 +4,7 @@
 
 
 #include "prio_queue.h"
+#include "../data_initialization/database_initializers.h"
 
 #include <stdlib.h>
 
