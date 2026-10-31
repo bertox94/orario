@@ -473,12 +473,12 @@ int main(void) {
     const clock_t start = clock();
 
     printf("Program started at: %s\n", ctime(&currentTime));
+    queue_mul = malloc(
+        sizeof(QueueItem *) * GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ);
     inizializza_dati();
     stampa_dati();
     //imposta la lunghezza dell'orario
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
-    queue_mul = malloc(
-        sizeof(QueueItem *) * GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ);
     f = fopen("orario.txt", "w");
     //f = stdout;
 
