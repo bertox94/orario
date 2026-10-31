@@ -65,9 +65,11 @@ int p_classe_sezione(char cla[]) {
 }
 
 int p_insegnante(const char in[]) {
-    for (int i = 0; i < actual_insegnanti; i++)
+    for (int i = 0; i < insegnanti_COUNT; i++)
         if (!strcmp(insegnanti[i], in))
             return i;
+    perror(in);
+    exit(-1);
     return -1;
 }
 
@@ -234,143 +236,142 @@ void inizializza_dati() {
     set_classe_insegnante_ore_cod("Classe_3BG", "Sarabi", 4, "MTartarughe", 1);
     set_classe_insegnante_ore_cod("Classe_3BG", "Ash", 4, "Denethor", 2);
     set_classe_insegnante_ore("Classe_3BG", "Pumba", 3);
-    
-    set_classe_insegnante_ore("Classe_3AI", Goten, 3);
-    set_classe_insegnante_ore("Classe_3AI", Trunks, 6);
-    set_classe_insegnante_ore_cod("Classe_3AI", Timon, 5, Jesus, 2);
-    set_classe_insegnante_ore_cod("Classe_3AI", Taipei, 4, MTartarughe, 1);
-    set_classe_insegnante_ore_cod("Classe_3AI", Zazu, 3, Feanor, 2);
-    set_classe_insegnante_ore("Classe_3AI", Doraemon, 1);
-    set_classe_insegnante_ore("Classe_3AI", Gohan, 2);
-    set_classe_insegnante_ore_cod("Classe_3AI", Rafiki, 4, Gothmog, 2);
-    set_classe_insegnante_ore_cod("Classe_3AI", Jasmine, 4, Morgoth, 2);
 
-    set_classe_insegnante_ore_cod("Classe_3BI", Mammolo, 5, Morgoth, 2);
-    set_classe_insegnante_ore_cod("Classe_3BI", Sauron, 4, Gothmog, 2);
-    set_classe_insegnante_ore_cod("Classe_3BI", Zazu, 3, Feanor, 2);
-    set_classe_insegnante_ore_cod("Classe_3BI", Aladino, 4, Sarabi, 1);
-    set_classe_insegnante_ore("Classe_3BI", Biancaneve, 3);
-    set_classe_insegnante_ore("Classe_3BI", Dotto, 6);
-    set_classe_insegnante_ore("Classe_3BI", Doraemon, 1);
-    set_classe_insegnante_ore_cod("Classe_3BI", Pisolo, 4, Gothmog, 2);
-    set_classe_insegnante_ore("Classe_3BI", Arwen, 2);
+    set_classe_insegnante_ore("Classe_3AI", "Goten", 3);
+    set_classe_insegnante_ore("Classe_3AI", "Trunks", 6);
+    set_classe_insegnante_ore_cod("Classe_3AI", "Timon", 5, "Jesus", 2);
+    set_classe_insegnante_ore_cod("Classe_3AI", "Taipei", 4, "M. Tartarughe", 1);
+    set_classe_insegnante_ore_cod("Classe_3AI", "Zazu", 3, "Feanor", 2);
+    set_classe_insegnante_ore("Classe_3AI", "Doraemon", 1);
+    set_classe_insegnante_ore("Classe_3AI", "Gohan", 2);
+    set_classe_insegnante_ore_cod("Classe_3AI", "Rafiki", 4, "Gothmog", 2);
+    set_classe_insegnante_ore_cod("Classe_3AI", "Jasmine", 4, "Morgoth", 2);
 
-    set_classe_insegnante_ore("Classe_3AM", Jiraya, 4);
-    set_classe_insegnante_ore("Classe_3AM", Orochimaru, 6);
-    set_classe_insegnante_ore_cod("Classe_3AM", Naruto, 3, Freezer, 1);
-    set_classe_insegnante_ore_cod("Classe_3AM", Cell, 6, Sasuke, 3);
-    set_classe_insegnante_ore("Classe_3AM", Gohan, 2);
-    set_classe_insegnante_ore_cod("Classe_3AM", Sandokan, 3, Jesus, 2);
-    set_classe_insegnante_ore("Classe_3AM", Doraemon, 1);
-    set_classe_insegnante_ore_cod("Classe_3AM", Vegeta, 4, Freezer, 2);
-    set_classe_insegnante_ore("Classe_3AM", Tsunade, 3); //130 KHz
+    set_classe_insegnante_ore_cod("Classe_3BI", "Mammolo", 5, "Morgoth", 2);
+    set_classe_insegnante_ore_cod("Classe_3BI", "Sauron", 4, "Gothmog", 2);
+    set_classe_insegnante_ore_cod("Classe_3BI", "Zazu", 3, "Feanor", 2);
+    set_classe_insegnante_ore_cod("Classe_3BI", "Aladino", 4, "Sarabi", 1);
+    set_classe_insegnante_ore("Classe_3BI", "Biancaneve", 3);
+    set_classe_insegnante_ore("Classe_3BI", "Dotto", 6);
+    set_classe_insegnante_ore("Classe_3BI", "Doraemon", 1);
+    set_classe_insegnante_ore_cod("Classe_3BI", "Pisolo", 4, "Gothmog", 2);
+    set_classe_insegnante_ore("Classe_3BI", "Arwen", 2);
 
-    set_classe_insegnante_ore("Classe_3BM", MTartarughe, 4);
-    set_classe_insegnante_ore("Classe_3BM", Sakura, 6);
-    set_classe_insegnante_ore_cod("Classe_3BM", Goku, 3, MBu, 1);
-    set_classe_insegnante_ore_cod("Classe_3BM", Chichi, 6, Bulma, 3);
-    set_classe_insegnante_ore("Classe_3BM", Gohan, 2);
-    set_classe_insegnante_ore_cod("Classe_3BM", Sandokan, 3, Jesus, 2);
-    set_classe_insegnante_ore("Classe_3BM", Doraemon, 1);
-    set_classe_insegnante_ore_cod("Classe_3BM", Vegeta, 4, Freezer, 2);
-    set_classe_insegnante_ore("Classe_3BM", HPotter, 3); //91 KHz
-    
-    set_classe_insegnante_ore("Classe_1BG", BBaggins, 2);
+    set_classe_insegnante_ore("Classe_3AM", "Jiraya", 4);
+    set_classe_insegnante_ore("Classe_3AM", "Orochimaru", 6);
+    set_classe_insegnante_ore_cod("Classe_3AM", "Naruto", 3, "Freezer", 1);
+    set_classe_insegnante_ore_cod("Classe_3AM", "Cell", 6, "Sasuke", 3);
+    set_classe_insegnante_ore("Classe_3AM", "Gohan", 2);
+    set_classe_insegnante_ore_cod("Classe_3AM", "Sandokan", 3, "Jesus", 2);
+    set_classe_insegnante_ore("Classe_3AM", "Doraemon", 1);
+    set_classe_insegnante_ore_cod("Classe_3AM", "Vegeta", 4, "Freezer", 2);
+    set_classe_insegnante_ore("Classe_3AM", "Tsunade", 3); //130 KHz
+
+    set_classe_insegnante_ore("Classe_3BM", "M. Tartarughe", 4);
+    set_classe_insegnante_ore("Classe_3BM", "Sakura", 6);
+    set_classe_insegnante_ore_cod("Classe_3BM", "Goku", 3, "M. Bu", 1);
+    set_classe_insegnante_ore_cod("Classe_3BM", "Chichi", 6, "Bulma", 3);
+    set_classe_insegnante_ore("Classe_3BM", "Gohan", 2);
+    set_classe_insegnante_ore_cod("Classe_3BM", "Sandokan", 3, "Jesus", 2);
+    set_classe_insegnante_ore("Classe_3BM", "Doraemon", 1);
+    set_classe_insegnante_ore_cod("Classe_3BM", "Vegeta", 4, "Freezer", 2);
+    set_classe_insegnante_ore("Classe_3BM", "H. Potter", 3); //91 KHz
+
+    set_classe_insegnante_ore("Classe_1BG", "B. Baggins", 2);
     set_classe_insegnante_ore("Classe_1BG", "Lupin", 5);
-    set_classe_insegnante_ore_cod("Classe_1BG", SGamgee, 4, Morgoth, 2);
-    set_classe_insegnante_ore("Classe_1BG", HGranger, 6);
-    set_classe_insegnante_ore_cod("Classe_1BG", Pipino, 3, Sarabi, 2);
-    set_classe_insegnante_ore_cod("Classe_1BG", Merry, 4, Denethor, 3);
-    set_classe_insegnante_ore("Classe_1BG", RWeasley, 1);
-    set_classe_insegnante_ore("Classe_1BG", Elrond, 5);
-    set_classe_insegnante_ore("Classe_1BG", Arwen, 2); //65 KHz
+    set_classe_insegnante_ore_cod("Classe_1BG", "S. Gamgee", 4, "Morgoth", 2);
+    set_classe_insegnante_ore("Classe_1BG", "H. Granger", 6);
+    set_classe_insegnante_ore_cod("Classe_1BG", "Pipino", 3, "Sarabi", 2);
+    set_classe_insegnante_ore_cod("Classe_1BG", "Merry", 4, "Denethor", 3);
+    set_classe_insegnante_ore("Classe_1BG", "R. Weasley", 1);
+    set_classe_insegnante_ore("Classe_1BG", "Elrond", 5);
+    set_classe_insegnante_ore("Classe_1BG", "Arwen", 2); //65 KHz
 
-    set_classe_insegnante_ore("Classe_1AI", Saruman, 4);
-    set_classe_insegnante_ore("Classe_1AI", Gandalf, 4);
-    set_classe_insegnante_ore("Classe_1AI", Legolas, 6);
-    set_classe_insegnante_ore("Classe_1AI", Aragorn, 3);
-    set_classe_insegnante_ore("Classe_1AI", FBaggins, 6);
-    set_classe_insegnante_ore("Classe_1AI", Arwen, 2);
-    set_classe_insegnante_ore("Classe_1AI", Gimli, 2);
-    set_classe_insegnante_ore("Classe_1AI", Glorfindel, 4);
-    set_classe_insegnante_ore("Classe_1AI", Galadriel, 1); //440 Hz
+    set_classe_insegnante_ore("Classe_1AI", "Saruman", 4);
+    set_classe_insegnante_ore("Classe_1AI", "Gandalf", 4);
+    set_classe_insegnante_ore("Classe_1AI", "Legolas", 6);
+    set_classe_insegnante_ore("Classe_1AI", "Aragorn", 3);
+    set_classe_insegnante_ore("Classe_1AI", "F. Baggins", 6);
+    set_classe_insegnante_ore("Classe_1AI", "Arwen", 2);
+    set_classe_insegnante_ore("Classe_1AI", "Gimli", 2);
+    set_classe_insegnante_ore("Classe_1AI", "Glorfindel", 4);
+    set_classe_insegnante_ore("Classe_1AI", "Galadriel", 1); //440 Hz
 
-    set_classe_insegnante_ore_cod("Classe_1BI", Taipei, 4, MTartarughe, 1);
-    set_classe_insegnante_ore("Classe_1BI", Trunks, 6);
-    set_classe_insegnante_ore_cod("Classe_1BI", Crillin, 3, MBu, 1);
-    set_classe_insegnante_ore_cod("Classe_1BI", Vegeta, 6, Gogeta, 3);
-    set_classe_insegnante_ore("Classe_1BI", Gohan, 2);
-    set_classe_insegnante_ore_cod("Classe_1BI", Sandokan, 3, Jesus, 2);
-    set_classe_insegnante_ore("Classe_1BI", Doraemon, 1);
-    set_classe_insegnante_ore_cod("Classe_1BI", Vegeta, 4, Janemba, 2);
-    set_classe_insegnante_ore("Classe_1BI", Goten, 3); //38 KHz
+    set_classe_insegnante_ore_cod("Classe_1BI", "Taipei", 4, "M. Tartarughe", 1);
+    set_classe_insegnante_ore("Classe_1BI", "Trunks", 6);
+    set_classe_insegnante_ore_cod("Classe_1BI", "Crillin", 3, "M. Bu", 1);
+    set_classe_insegnante_ore_cod("Classe_1BI", "Vegeta", 6, "Gogeta", 3);
+    set_classe_insegnante_ore("Classe_1BI", "Gohan", 2);
+    set_classe_insegnante_ore_cod("Classe_1BI", "Sandokan", 3, "Jesus", 2);
+    set_classe_insegnante_ore("Classe_1BI", "Doraemon", 1);
+    set_classe_insegnante_ore_cod("Classe_1BI", "Vegeta", 4, "Janemba", 2);
+    set_classe_insegnante_ore("Classe_1BI", "Goten", 3); //38 KHz
 
-    set_classe_insegnante_ore("Classe_1BM", Haldir, 6);
-    set_classe_insegnante_ore_cod("Classe_1BM", Mammolo, 7, Gothmog, 4);
-    set_classe_insegnante_ore_cod("Classe_1BM", Zazu, 4, Gothmog, 2);
-    set_classe_insegnante_ore_cod("Classe_1BM", Eomer, 6, Fingolfin, 2);
-    set_classe_insegnante_ore("Classe_1BM", Eowyn, 5);
-    set_classe_insegnante_ore("Classe_1BM", Celeborn, 4);
-    set_classe_insegnante_ore("Classe_1BM", Lurtz, 2);
-    set_classe_insegnante_ore("Classe_1BM", Galadriel, 1); //28 KHz
-    
-    set_classe_insegnante_ore("Classe_4AG", Simba, 6);
-    set_classe_insegnante_ore_cod("Classe_4AG", TBombadil, 3, Theoden, 2);
-    set_classe_insegnante_ore_cod("Classe_4AG", TBombadil, 4, Denethor, 2);
+    set_classe_insegnante_ore("Classe_1BM", "Haldir", 6);
+    set_classe_insegnante_ore_cod("Classe_1BM", "Mammolo", 7, "Gothmog", 4);
+    set_classe_insegnante_ore_cod("Classe_1BM", "Zazu", 4, "Gothmog", 2);
+    set_classe_insegnante_ore_cod("Classe_1BM", "Eomer", 6, "Fingolfin", 2);
+    set_classe_insegnante_ore("Classe_1BM", "Eowyn", 5);
+    set_classe_insegnante_ore("Classe_1BM", "Celeborn", 4);
+    set_classe_insegnante_ore("Classe_1BM", "Lurtz", 2);
+    set_classe_insegnante_ore("Classe_1BM", "Galadriel", 1); //28 KHz
+
+    set_classe_insegnante_ore("Classe_4AG", "Simba", 6);
+    set_classe_insegnante_ore_cod("Classe_4AG", "T. Bombadil", 3, "Theoden", 2);
+    set_classe_insegnante_ore_cod("Classe_4AG", "T. Bombadil", 4, "Denethor", 2);
     set_classe_insegnante_ore("Classe_4AG", "Voldemort", 3);
-    set_classe_insegnante_ore_cod("Classe_4AG", EJaeger, 5, MUchiha, 5);
-    set_classe_insegnante_ore("Classe_4AG", Saruman, 4);
-    set_classe_insegnante_ore("Classe_4AG", Merry, 4);
-    set_classe_insegnante_ore("Classe_4AG", RWeasley, 1);
+    set_classe_insegnante_ore_cod("Classe_4AG", "E. Jaeger", 5, "M. Uchiha", 5);
+    set_classe_insegnante_ore("Classe_4AG", "Saruman", 4);
+    set_classe_insegnante_ore("Classe_4AG", "Merry", 4);
+    set_classe_insegnante_ore("Classe_4AG", "R. Weasley", 1);
     set_classe_insegnante_ore("Classe_4AG", "D. Malfoy", 2); //20 KHz
 
-    set_classe_insegnante_ore("Classe_4BG", Boromir, 4);
-    set_classe_insegnante_ore_cod("Classe_4BG", TBombadil, 3, Theoden, 2);
+    set_classe_insegnante_ore("Classe_4BG", "Boromir", 4);
+    set_classe_insegnante_ore_cod("Classe_4BG", "T. Bombadil", 3, "Theoden", 2);
     set_classe_insegnante_ore("Classe_4BG", "Lupin", 4);
-    set_classe_insegnante_ore("Classe_4BG", Orochimaru, 6);
-    set_classe_insegnante_ore_cod("Classe_4BG", Nala, 5, Radagast, 5);
-    set_classe_insegnante_ore_cod("Classe_4BG", Ash, 4, Denethor, 2);
-    set_classe_insegnante_ore("Classe_4BG", Pumba, 3);
-    set_classe_insegnante_ore("Classe_4BG", RWeasley, 1);
+    set_classe_insegnante_ore("Classe_4BG", "Orochimaru", 6);
+    set_classe_insegnante_ore_cod("Classe_4BG", "Nala", 5, "Radagast", 5);
+    set_classe_insegnante_ore_cod("Classe_4BG", "Ash", 4, "Denethor", 2);
+    set_classe_insegnante_ore("Classe_4BG", "Pumba", 3);
+    set_classe_insegnante_ore("Classe_4BG", "R. Weasley", 1);
     set_classe_insegnante_ore("Classe_4BG", "D. Malfoy", 2); //23 Khz
 
-    set_classe_insegnante_ore("Classe_4AI", Pipino, 4);
-    set_classe_insegnante_ore("Classe_4AI", Faramir, 6);
-    set_classe_insegnante_ore("Classe_4AI", Biancaneve, 3);
-    set_classe_insegnante_ore("Classe_4AI", Rafiki, 5);
-    set_classe_insegnante_ore("Classe_4AI", Jasmine, 5);
-    set_classe_insegnante_ore("Classe_4AI", Barbalbero, 6);
-    set_classe_insegnante_ore("Classe_4AI", Galadriel, 1);
-    set_classe_insegnante_ore("Classe_4AI", Gohan, 2); //20 KHz
+    set_classe_insegnante_ore("Classe_4AI", "Pipino", 4);
+    set_classe_insegnante_ore("Classe_4AI", "Faramir", 6);
+    set_classe_insegnante_ore("Classe_4AI", "Biancaneve", 3);
+    set_classe_insegnante_ore("Classe_4AI", "Rafiki", 5);
+    set_classe_insegnante_ore("Classe_4AI", "Jasmine", 5);
+    set_classe_insegnante_ore("Classe_4AI", "Barbalbero", 6);
+    set_classe_insegnante_ore("Classe_4AI", "Galadriel", 1);
+    set_classe_insegnante_ore("Classe_4AI", "Gohan", 2); //20 KHz
 
-    set_classe_insegnante_ore("Classe_4BI", Rafiki, 6);
-    set_classe_insegnante_ore("Classe_4BI", Boromir, 3);
-    set_classe_insegnante_ore("Classe_4BI", Aladino, 4);
-    set_classe_insegnante_ore("Classe_4BI", SGamgee, 5);
-    set_classe_insegnante_ore("Classe_4BI", Isildur, 6);
-    set_classe_insegnante_ore("Classe_4BI", Zazu, 5);
-    set_classe_insegnante_ore("Classe_4BI", RWeasley, 1);
-    set_classe_insegnante_ore("Classe_4BI", Gohan, 2); //18 KHz
+    set_classe_insegnante_ore("Classe_4BI", "Rafiki", 6);
+    set_classe_insegnante_ore("Classe_4BI", "Boromir", 3);
+    set_classe_insegnante_ore("Classe_4BI", "Aladino", 4);
+    set_classe_insegnante_ore("Classe_4BI", "S. Gamgee", 5);
+    set_classe_insegnante_ore("Classe_4BI", "Isildur", 6);
+    set_classe_insegnante_ore("Classe_4BI", "Zazu", 5);
+    set_classe_insegnante_ore("Classe_4BI", "R. Weasley", 1);
+    set_classe_insegnante_ore("Classe_4BI", "Gohan", 2); //18 KHz
 
+    set_classe_insegnante_ore("Classe_4AM", "Jiraya", 4);
+    set_classe_insegnante_ore("Classe_4AM", "H. Granger", 6);
+    set_classe_insegnante_ore("Classe_4AM", "Naruto", 7);
+    set_classe_insegnante_ore("Classe_4AM", "Cell", 6);
+    set_classe_insegnante_ore("Classe_4AM", "M. C. Granitt", 2);
+    set_classe_insegnante_ore("Classe_4AM", "Sandokan", 3);
+    set_classe_insegnante_ore("Classe_4AM", "Doraemon", 1);
+    set_classe_insegnante_ore("Classe_4AM", "Tsunade", 3);
 
-    set_classe_insegnante_ore("Classe_4AM", Jiraya, 4);
-    set_classe_insegnante_ore("Classe_4AM", HGranger, 6);
-    set_classe_insegnante_ore("Classe_4AM", Naruto, 7);
-    set_classe_insegnante_ore("Classe_4AM", Cell, 6);
-    set_classe_insegnante_ore("Classe_4AM", MCGranitt, 2);
-    set_classe_insegnante_ore("Classe_4AM", Sandokan, 3);
-    set_classe_insegnante_ore("Classe_4AM", Doraemon, 1);
-    set_classe_insegnante_ore("Classe_4AM", Tsunade, 3);
-
-    set_classe_insegnante_ore("Classe_4BM", Jiraya, 3);
-    set_classe_insegnante_ore("Classe_4BM", Orochimaru, 6);
-    set_classe_insegnante_ore("Classe_4BM", Naruto, 4);
-    set_classe_insegnante_ore("Classe_4BM", Cell, 6);
-    set_classe_insegnante_ore("Classe_4BM", Gohan, 2);
-    set_classe_insegnante_ore("Classe_4BM", ASilente, 4);
-    set_classe_insegnante_ore("Classe_4BM", Hagrid, 3);
-    set_classe_insegnante_ore("Classe_4BM", Tsunade, 3);
-    set_classe_insegnante_ore("Classe_4BM", Doraemon, 1);
+    set_classe_insegnante_ore("Classe_4BM", "Jiraya", 3);
+    set_classe_insegnante_ore("Classe_4BM", "Orochimaru", 6);
+    set_classe_insegnante_ore("Classe_4BM", "Naruto", 4);
+    set_classe_insegnante_ore("Classe_4BM", "Cell", 6);
+    set_classe_insegnante_ore("Classe_4BM", "Gohan", 2);
+    set_classe_insegnante_ore("Classe_4BM", "A. Silente", 4);
+    set_classe_insegnante_ore("Classe_4BM", "Hagrid", 3);
+    set_classe_insegnante_ore("Classe_4BM", "Tsunade", 3);
+    set_classe_insegnante_ore("Classe_4BM", "Doraemon", 1);
 
 
     // VINCOLI SU ORA DI ENTRATA
