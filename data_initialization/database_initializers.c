@@ -240,8 +240,7 @@ void inizializza_dati() {
     set_ora_giornaliera(Ora_13);
 
     queue_mul = malloc(
-        sizeof(QueueItem *) * GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ *
-        INSEGNANTE_SZ);
+        sizeof(QueueItem *) * GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ);
 
     set_classe_insegnante_ore(Classe_3A, DMalfoy, 2);
     set_classe_insegnante_ore(Classe_3A, Voldemort, 3);
@@ -405,7 +404,7 @@ void inizializza_dati() {
     // VINCOLI SU ORA DI ENTRATA
     ora_di_entrata_prof[p_insegnante(Naruto)] = 1;
     ora_di_entrata_prof[p_insegnante(Cell)] = 1;
-    ora_di_entrata_prof[p_insegnante(Vegeta)] = 1;
+    ora_di_entrata_prof[p_insegnante(Vegeta)] = 2;
 
 
     for (int i = 0; i < actual_classi_sezione; i++) {
