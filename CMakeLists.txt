@@ -17,4 +17,8 @@ add_executable(untitled main.c
         priority_queue/prio_queue.c
         priority_queue/prio_queue.h
         utils.h
+        constants/hours.c
+        constants/classes.c
+        constants/days.c
+        constants/professors.c
 )

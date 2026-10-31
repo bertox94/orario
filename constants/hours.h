@@ -4,10 +4,9 @@
 
 #ifndef UNTITLED_HOURS_H
 #define UNTITLED_HOURS_H
-char Ora_08[] = "08";
-char Ora_09[] = "09";
-char Ora_10[] = "10";
-char Ora_11[] = "11";
-char Ora_12[] = "12";
-char Ora_13[] = "13";
+// Array of character names accessible across files
+extern const char ore_giornaliere[ORA_GIORNALIERA_SZ][MAX_LEN_WORDS];
+
+// Total number of elements in the array
+extern const int ore_giornaliere_COUNT;
 #endif //UNTITLED_HOURS_H

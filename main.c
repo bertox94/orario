@@ -3,6 +3,10 @@
 #include <sys/time.h>
 
 #include "utils.h"
+#include "constants/classes.h"
+#include "constants/days.h"
+#include "constants/hours.h"
+#include "constants/professors.h"
 #include "priority_queue/prio_queue.h"
 #include "data_initialization/database_initializers.h"
 #include "printer/printer.h"
@@ -473,37 +477,11 @@ int main(void) {
     stampa_dati();
     //imposta la lunghezza dell'orario
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
-    //test(100);
-
-    /*  // if you initialize with less elements it will set the remaming elements to 0.
-      QueueItem *queue[INSEGNANTE_SZ] = {0};
-
-      // Should do this while setting classi e insegnanti
-      initialize_queue_arr(queue);
-      print_priority_queue(queue);
-
-      // 2. Extracted the total dimension to avoid recalculating
-      const size_t num_blocks = GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ;
-      const size_t total_elements = num_blocks * INSEGNANTE_SZ;
-
-      // 3. Type-safe malloc (no explicit cast needed in C, but use sizeof(*ptr))
-      queue_mul = malloc(total_elements * sizeof(*queue_mul));
-
-      if (queue_mul == NULL) {
-          // Always handle allocation failures!
-          fprintf(stderr, "Memory allocation failed\n");
-          return 0;
-      }
-
-      // 4. Highly optimized copying using memcpy instead of a nested loop
-      for (size_t i = 0; i < num_blocks; i++) {
-          memcpy(&queue_mul[i * INSEGNANTE_SZ], queue, sizeof(queue));
-      }*/
-
-
+    queue_mul = malloc(
+        sizeof(QueueItem *) * GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ);
     f = fopen("orario.txt", "w");
     //f = stdout;
-    // al massimo ogni ora ci possono essere 2 prof in tutte le classi
+
     print_orario(0);
 
     const double elapsed = (clock() - start) / (double) CLOCKS_PER_SEC;

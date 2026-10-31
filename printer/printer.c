@@ -5,6 +5,13 @@
 #include "../printer/printer.h"
 #include "../data_initialization/database_initializers.h"
 #include "../priority_queue/prio_queue.h"
+#include "../constants/professors.h"
+#include "../constants/days.h"
+#include "../constants/classes.h"
+#include "../constants/hours.h"
+#include "../constants/rooms.h"
+#include "../constants/subjects.h"
+
 //
 // Created by Alberto Tiraboschi on 20/06/2026.
 //

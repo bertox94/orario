@@ -4,92 +4,13 @@
 
 #ifndef UNTITLED_PROFESSORS_H
 #define UNTITLED_PROFESSORS_H
-char Goku[] = "Goku";
-char Vegeta[] = "Vegeta";
-char Junior[] = "Junior";
-char Crillin[] = "Crillin";
-char Freezer[] = "Freezer";
-char Cell[] = "Cell";
-char MBu[] = "M. Bu";
-char Bulma[] = "Bulma";
-char Chichi[] = "Chichi";
-char Janemba[] = "Janemba";
-char Gogeta[] = "Gogeta";
-char Taipei[] = "Taipei";
-char MTartarughe[] = "M. Tartarughe";
-char Trunks[] = "Trunks";
-char Gohan[] = "Gohan";
-char Goten[] = "Goten";
-char Sandokan[] = "Sandokan";
-char Doraemon[] = "Doraemon";
-char Jesus[] = "Jesus";
-char Naruto[] = "Naruto";
-char Sasuke[] = "Sasuke";
-char Tsunade[] = "Tsunade";
-char Orochimaru[] = "Orochimaru";
-char Jiraya[] = "Jiraya";
-char Sakura[] = "Sakura";
-char HPotter[] = "H. Potter";
-char Piton[] = "Piton";
-char RWeasley[] = "R. Weasley";
-char HGranger[] = "H. Granger";
-char MCGranitt[] = "MC. Granitt";
-char ASilente[] = "A. Silente";
-char Hagrid[] = "Hagrid";
-char DMalfoy[] = "D. Malfoy";
-char Voldemort[] = "Voldemort";
-char Itachi[] = "Itachi";
-char Lupin[] = "Lupin";
-char Brook[] = "Brook";
-char Ash[] = "Ash";
-char EJaeger[] = "E. Jaeger";
-char MUchiha[] = "M. Uchiha";
-char Mufasa[] = "Mufasa";
-char Simba[] = "Simba";
-char Nala[] = "Scar";
-char Sarabi[] = "Sarabi";
-char Pumba[] = "Pumba";
-char Timon[] = "Timon";
-char Rafiki[] = "Rafiki";
-char Zazu[] = "Zazu";
-char Jasmine[] = "Jasmine";
-char Aladino[] = "Aladino";
-char Biancaneve[] = "Biancaneve";
-char Dotto[] = "Dotto";
-char Pisolo[] = "Pisolo";
-char Mammolo[] = "Mammolo";
-char Sauron[] = "Sauron";
-char BBaggins[] = "B. Baggins";
-char SGamgee[] = "S. Gamgee";
-char Merry[] = "Merry";
-char Pipino[] = "Pipino";
-char Elrond[] = "Elrond";
-char Arwen[] = "Arwen";
-char Gandalf[] = "Gandalf";
-char Saruman[] = "Saruman";
-char Legolas[] = "Legolas";
-char FBaggins[] = "F. Baggins";
-char Aragorn[] = "Aragorn";
-char Gimli[] = "Gimli";
-char Glorfindel[] = "Glorfindel";
-char Galadriel[] = "Galadriel";
-char Haldir[] = "Haldir";
-char Eomer[] = "Eomer";
-char Eowyn[] = "Eowyn";
-char Celeborn[] = "Celeborn";
-char Lurtz[] = "Lurtz";
-char TBombadil[] = "T. Bombadil";
-char Boromir[] = "Boromir";
-char Faramir[] = "Faramir";
-char Barbalbero[] = "Barbalbero";
-char Isildur[] = "Isildur";
-char Denethor[] = "Denethor";
-char GVermilinguo[] = "G. Vermilinguo";
-char Radagast[] = "Radagast";
-char Theoden[] = "Theoden";
-char Morgoth[] = "Morgoth";
-char Gothmog[] = "Gothmog";
-char Feanor[] = "Feanor";
-char Fingolfin[] = "Fingolfin";
 
-#endif //UNTITLED_PROFESSORS_H
+#include "../data_initialization/database_initializers.h"
+
+// Array of character names accessible across files
+extern const char insegnanti[INSEGNANTE_SZ][MAX_LEN_WORDS];
+
+// Total number of elements in the array
+extern const int insegnanti_COUNT;
+
+#endif // UNTITLED_PROFESSORS_H

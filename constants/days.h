@@ -4,11 +4,11 @@
 
 #ifndef UNTITLED_DAYS_H
 #define UNTITLED_DAYS_H
-char Lun[] = "Lun";
-char Mar[] = "Mar";
-char Mer[] = "Mer";
-char Gio[] = "Gio";
-char Ven[] = "Ven";
-char Sab[] = "Sab";
+#include "../data_initialization/database_initializers.h"
 
+// Array of character names accessible across files
+extern const char giorni_settimana[GIORNO_SETTIMANA_SZ][MAX_LEN_WORDS];
+
+// Total number of elements in the array
+extern const int giorni_settimana_COUNT;
 #endif //UNTITLED_DAYS_H

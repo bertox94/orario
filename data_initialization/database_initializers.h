@@ -23,11 +23,6 @@ typedef struct {
     int insegnante2;
 } teaching_slot;
 
-extern char giorni_settimana[GIORNO_SETTIMANA_SZ][MAX_LEN_WORDS];
-extern char ore_giornaliere[ORA_GIORNALIERA_SZ][MAX_LEN_WORDS];
-extern char classe_sezione[CLASSE_SEZIONE_SZ][MAX_LEN_WORDS];
-extern char insegnanti[INSEGNANTE_SZ][MAX_LEN_WORDS];
-
 extern int actual_giorni_settimana;
 extern int actual_ore_giornaliere;
 extern int actual_classi_sezione;
@@ -61,14 +56,6 @@ extern int ora_di_entrata_prof[INSEGNANTE_SZ];
 
 // tiene traccia se in un giorno e una classa c'è un ora buca
 extern int n_ore_buche[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ];
-
-void set_giorno_settimana(char giorno[]);
-
-void set_ora_giornaliera(char ora[]);
-
-void set_classe_sezione(char cla[]);
-
-void set_insegnante(char in[]);
 
 void set_classe_insegnante_ore(char cla[], char prof[], const int ore);
 
