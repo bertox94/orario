@@ -104,7 +104,7 @@ int sabato_esaurisci_priorita_subito_cod(int pos, int giorno, int ora, int base2
         int prev_prof1 = orario[pos - actual_classi_sezione].insegnante1;
         int prev_prof2 = orario[pos - actual_classi_sezione].insegnante2;
 
-        if (prev_prof1 != -1 && prev_prof2 == -1) {
+        if (prev_prof1 != -1 && prev_prof2 != -1) {
             if (ore_classi_docenti[base2d_ci + prev_prof1] - ore_classi_docenti_svolte[base2d_ci + prev_prof1] > 0
                 && ore_classi_docenti[base2d_ci + prev_prof2] - ore_classi_docenti_svolte[base2d_ci + prev_prof2] > 0) {
                 return prof1 == prev_prof1 && prof2 == prev_prof2
@@ -136,7 +136,7 @@ int sabato_esaurisci_priorita_subito(int pos, int giorno, int ora, int base2d_ci
         int prev_prof1 = orario[pos - actual_classi_sezione].insegnante1;
         int prev_prof2 = orario[pos - actual_classi_sezione].insegnante2;
 
-        if (prev_prof1 != -1 && prev_prof2 == -1) {
+        if (prev_prof1 != -1 && prev_prof2 != -1) {
             if (ore_classi_docenti[base2d_ci + prev_prof1] - ore_classi_docenti_svolte[base2d_ci + prev_prof1] > 0
                 && ore_classi_docenti[base2d_ci + prev_prof2] - ore_classi_docenti_svolte[base2d_ci + prev_prof2] > 0) {
                 return 0; // both docenti need to be there in this hour, so one will never complete the hours
