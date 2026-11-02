@@ -8,6 +8,8 @@
 //
 // Created by Alberto Tiraboschi on 20/06/2026.
 //
+// Copia src in dest tagliandolo o allungandolo con spazi a maxlen - 1 caratteri (piu' il terminatore):
+// tutte le celle della griglia hanno la stessa larghezza.
 void copy_and_pad(char *dest, const char *src, int maxlen) {
     int src_len = strlen(src);
     int copy_len = src_len;
@@ -25,6 +27,7 @@ void copy_and_pad(char *dest, const char *src, int maxlen) {
     dest[maxlen - 1] = '\0';
 }
 
+// Riga di separazione tra le righe della griglia: una colonna per l'etichetta della classe e una per ogni giorno/ora.
 void draw_grid_separator(FILE *f) {
     fprintf(f, "----------------+");
     for (int g = 0; g < actual_giorni_settimana; g++) {
@@ -79,6 +82,8 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
         char formatted_class[15];
         copy_and_pad(formatted_class, class_label, 15);
 
+        // Ogni classe occupa due righe: il primo docente dello slot e, sotto, il codocente (se c'e').
+        // Gli slot da pos in poi non sono ancora decisi in questo punto della ricerca: si stampano vuoti.
         // --- Row for Insegnante 1 ---
         fprintf(f, " %-14s |", formatted_class);
         for (int g = 0; g < actual_giorni_settimana; g++) {
@@ -160,7 +165,7 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
                         int ore_i = get_ore_classi_insegnante(c, j);
 
                         char line_buf[64];
-                        // Format: "TeacherName: 5/10 [1]"
+                        // Format: "TeacherName: 5/10 [1]" (ore svolte/ore totali nella classe, [1] = tutte svolte)
                         snprintf(line_buf, sizeof(line_buf), "%-18s %2d/%2d [%d]",
                                  insegnanti[j], ore_i_s, ore_i, ore_i_s == ore_i);
 
@@ -188,6 +193,8 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
     fprintf(f, "\n");
 }
 
+// Riepilogo dei dati su stdout: giorni, ore, ore di ogni classe, ore di ogni docente e ore di ogni docente per classe.
+// tests/casuali.py legge le righe "Classe ...: N ore" e "Ins. ...: N ore" per controllare i dati generati.
 void stampa_dati() {
     printf("Giorni settimana: ");
     for (int i = 0; i < actual_giorni_settimana - 1; i++)
@@ -240,6 +247,7 @@ void stampa_dati_su_file(FILE *fp) {
         fprintf(fp, "\n");
     }
 
+    // per ogni docente di una classe: ore da solo e ore con ogni codocente
     fprintf(fp, "\nLEZIONI PER CLASSE (ore totali del docente nella classe = da solo + in codocenza)\n");
     for (int c = 0; c < actual_classi_sezione; c++) {
         fprintf(fp, "%s:\n", classe_sezione[c]);
@@ -257,6 +265,7 @@ void stampa_dati_su_file(FILE *fp) {
         }
     }
 
+    // ogni coppia una volta sola (q > p)
     fprintf(fp, "\nCODOCENZE (classe: docente + docente = ore insieme)\n");
     int n_cod = 0;
     for (int c = 0; c < actual_classi_sezione; c++)

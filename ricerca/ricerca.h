@@ -5,7 +5,7 @@
 
 #include <stdio.h>
 
-#define SCHEDULES_PER_GB 55000
+#define SCHEDULES_PER_GB 55000 // orari completi per GB di orario.txt; il limite di default e' un quinto (circa 200 MB)
 
 extern long long int n_gen;          // orari completi trovati
 extern long long int n_gen_max;      // la ricerca si ferma dopo tanti orari completi

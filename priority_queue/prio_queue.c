@@ -14,6 +14,7 @@ int queue_sz;
 
 
 void add_to_queue(int prof, int priority) {
+    // docente gia' in coda: si sommano le ore (l'elemento e' condiviso, quindi vale per tutte le copie)
     for (int i = 0; i < queue_sz; i++) {
         if (queue_mul[i]->teacher == prof) {
             queue_mul[i]->priority += priority;
@@ -24,6 +25,7 @@ void add_to_queue(int prof, int priority) {
     new->teacher = prof;
     new->priority = priority;
     queue_mul[queue_sz++] = new;
+    // stesso elemento, nella stessa posizione, nella copia della coda di ogni altro slot
     for (int i = 1; i < GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ; i++) {
         queue_mul[i * INSEGNANTE_SZ + queue_sz - 1] = queue_mul[queue_sz - 1];
     }

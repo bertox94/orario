@@ -21,7 +21,7 @@ char ore_giornaliere[ORA_GIORNALIERA_SZ][MAX_LEN_WORDS];
 char classe_sezione[CLASSE_SEZIONE_SZ][MAX_LEN_WORDS];
 char insegnanti[INSEGNANTE_SZ][MAX_LEN_WORDS];
 
-// automatically initialized to zero since they are global
+// Variabili globali: partono tutte da zero (nessun dato, nessuna ora svolta).
 int actual_giorni_settimana;
 int actual_ore_giornaliere;
 int actual_classi_sezione;
@@ -36,7 +36,8 @@ int ore_fatte_da_un_prof_in_una_classe_in_giorno[GIORNO_SETTIMANA_SZ * CLASSE_SE
 int prof_gia_impegnato_giorno_ora[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ];
 int n_ore_buche[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ];
 /*
- * Conversions from string to id
+ * Conversions from string to id: indice del nome nel suo elenco, -1 se non c'e'. Ricerca lineare: si usano solo
+ * mentre si caricano i dati, non durante la ricerca.
  */
 int p_giorno(char g[]) {
     for (int i = 0; i < actual_giorni_settimana; i++)
@@ -67,7 +68,8 @@ int p_insegnante(const char in[]) {
 }
 
 /*
- * Append string to its array and increment respective size.
+ * Append string to its array and increment respective size. Un nome gia' presente non si aggiunge di nuovo:
+ * cosi' si puo' chiamare set_* per ogni lezione senza preoccuparsi dei doppioni.
  */
 
 void set_giorno_settimana(char giorno[]) {
@@ -99,7 +101,8 @@ void set_insegnante(char in[]) {
 }
 
 /*
- * Access and set constraints
+ * Access and set constraints: sommano ore alle tabelle dei dati (una stessa coppia classe-docente puo' comparire in
+ * piu' lezioni, e le ore si accumulano).
  */
 void add_ore_classi_insegnante(int classe, int insegnante, int ore) {
     classe_docente[classe * INSEGNANTE_SZ + insegnante].ore += ore;
@@ -117,6 +120,7 @@ void add_ore_insegnante_settimanale(int insegnante, int ore) {
     docente_info[insegnante].ore += ore;
 }
 
+// La coppia si registra sempre con il docente a indice minore prima, cosi' (p1, p2) e (p2, p1) sono la stessa voce.
 void add_ore_classi_codocenza(int cla, int p1, int p2, int ore) {
     swap_min_first(&p1, &p2);
     codocenza[cla * INSEGNANTE_SZ * INSEGNANTE_SZ + p1 * INSEGNANTE_SZ + p2].ore += ore;
@@ -131,7 +135,9 @@ int get_ore_classi_insegnante_svolte(int classe, int insegnante) {
 }
 
 /*
- * Set constraints from user
+ * Set constraints from user: una lezione (docente in una classe per un certo numero di ore a settimana).
+ * Aggiornano insieme tutte le tabelle: ore del docente nella classe, ore della classe, ore settimanali del docente,
+ * codocenze e coda dei docenti (la priorita' di un docente sono le sue ore settimanali, vedi add_to_queue).
 */
 
 void set_classe_insegnante_ore(char cla[], char prof[], const int ore) {
@@ -149,9 +155,11 @@ void set_classe_insegnante_ore_cod(char cla[], char prof[], const int ore, char 
     set_insegnante(prof);
     add_ore_classi_insegnante(p_classe_sezione(cla), p_insegnante(prof), ore);
     add_ore_classi_insegnante_lonely(p_classe_sezione(cla), p_insegnante(prof), ore - ore_cod);
+    // la classe ha `ore` ore: in ore_cod di queste ci sono due docenti, ma lo slot e' uno solo
     add_ore_classi_settimanale(p_classe_sezione(cla), ore);
     add_ore_insegnante_settimanale(p_insegnante(prof), ore);
 
+    // il codocente: le sue ore_cod nella classe sono tutte in coppia (nessuna da solo)
     set_insegnante(cod);
     add_ore_classi_insegnante(p_classe_sezione(cla), p_insegnante(cod), ore_cod);
     add_ore_insegnante_settimanale(p_insegnante(cod), ore_cod);
@@ -176,10 +184,12 @@ void inizializza_calendario() {
     set_ora_giornaliera(Ora_12);
     set_ora_giornaliera(Ora_13);
 
+    // una copia della coda dei docenti per ogni slot possibile (vedi prio_queue.h)
     queue_mul = malloc(
         sizeof(QueueItem *) * GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ);
 }
 
+// I dati reali: per ogni classe le sue lezioni (da solo o con codocente), poi le ore di ingresso dei docenti.
 void inizializza_dati() {
     inizializza_calendario();
 
@@ -339,11 +349,12 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_5E, Tsunade, 3);
     set_classe_insegnante_ore(Classe_5E, Doraemon, 1);
 
-    // VINCOLI SU ORA DI ENTRATA
+    // VINCOLI SU ORA DI ENTRATA (indice dell'ora: 1 = puo' iniziare dalla seconda ora)
     docente_info[p_insegnante(Naruto)].ora_entrata = 1;
     docente_info[p_insegnante(Cell)].ora_entrata = 1;
     docente_info[p_insegnante(Vegeta)].ora_entrata = 2;
 
+    // ogni classe deve stare nella settimana e riempire tutte le ore obbligatorie
     for (int i = 0; i < actual_classi_sezione; i++) {
         assert(classe_info[i].ore <= actual_giorni_settimana * actual_ore_giornaliere);
         assert(classe_info[i].ore >= PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana);

@@ -11,6 +11,12 @@
 
 /* ---- vincoli sullo slot / sulla classe ---- */
 
+// Si puo' mettere una lezione in questo slot? Si', se:
+//  - dopo averla messa restano ancora abbastanza ore alla classe per tutti gli slot obbligatori che seguono
+//    (slot_mancanti conta questo slot, se e' obbligatorio, e quelli obbligatori dei giorni dopo; oltre le ore
+//    obbligatorie conta uno slot in piu', l'ora che si consumerebbe adesso);
+//  - oggi la classe non ha gia' avuto un'ora buca (dopo una buca la giornata della classe e' finita).
+// Se no, lo slot puo' solo restare vuoto (vedi prova_ora_buca), cosa ammessa solo oltre le ore obbligatorie.
 static inline int activities_for_this_class_and_hour(const teaching_slot *slot) {
     const int gio = slot->giorno;
     const int ora = slot->ora;
@@ -34,6 +40,8 @@ static inline int activities_for_this_class_and_hour(const teaching_slot *slot) 
 
 // Regola del sabato (ultimo giorno): se nell'ora precedente c'erano docenti con ore ancora da fare in questa classe,
 // non si puo' cambiare: vanno completati subito. prof2 == -1 indica un docente che insegna da solo.
+// Perche': le ore di un docente in una classe in un giorno sono contigue, quindi se smette non puo' tornare oggi;
+// e il sabato non c'e' un giorno dopo in cui recuperarle. Ritorna 1 se (prof1, prof2) rispetta la regola.
 static inline int sabato_esaurisci_priorita_subito(int pos, int giorno, int ora, int base2d_ci, int prof1, int prof2) {
     if (giorno == actual_giorni_settimana - 1 && ora > 0) {
         const teaching_slot *prev = slot_precedente(giorno, ora, orario[pos].classe);
@@ -64,10 +72,13 @@ static inline int sabato_esaurisci_priorita_subito(int pos, int giorno, int ora,
 
 /* ---- vincoli su un singolo docente ---- */
 
+// Oggi in questa classe il docente ha fatto meno di MAX_ORE_PROF_IN_UNA_CLASSE ore.
 static inline int prof_fa_al_max_n_ore(const teaching_slot *slot, const int prof) {
     return ore_fatte_da_un_prof_in_una_classe_in_giorno[slot->base3d_gci + prof] < MAX_ORE_PROF_IN_UNA_CLASSE;
 }
 
+// Se oggi ha gia' fatto ore in questa classe, deve esserci stato anche nell'ora precedente (il blocco continua);
+// altrimenti il suo blocco e' finito e oggi non puo' tornare.
 static inline int prof_fa_ore_contigue(const teaching_slot *slot, const int prof) {
     if (ore_fatte_da_un_prof_in_una_classe_in_giorno[slot->base3d_gci + prof]) {
         const teaching_slot *prev = slot_precedente(slot->giorno, slot->ora, slot->classe);
@@ -76,10 +87,12 @@ static inline int prof_fa_ore_contigue(const teaching_slot *slot, const int prof
     return 1;
 }
 
+// Il docente non e' gia' in un'altra classe in questo giorno e ora.
 static inline int prof_è_disponibile(const int base3d_goi, int p1) {
     return !prof_gia_impegnato_giorno_ora[base3d_goi + p1];
 }
 
+// Gli restano ore (da solo o in coppia) in questa classe.
 static inline int deve_ancora_svolgere_ore_in_questa_classe(const int base2d_ci, const int p1) {
     return classe_docente[base2d_ci + p1].svolte < classe_docente[base2d_ci + p1].ore;
 }
@@ -94,18 +107,22 @@ static inline int idx_codocenza(const int cla, const int p1, const int p2) {
     return cla * INSEGNANTE_SZ * INSEGNANTE_SZ + lo * INSEGNANTE_SZ + hi;
 }
 
+// La coppia (p1, p2) ha ancora ore insieme in questa classe.
 static inline int docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(const int cla, const int p1, const int p2) {
     const int i = idx_codocenza(cla, p1, p2);
     return codocenza[i].svolte < codocenza[i].ore;
 }
 
+// Al docente restano ore da solo (senza codocente) in questa classe.
 static inline int deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(const int base2d_ci, const int prof) {
     return classe_docente[base2d_ci + prof].alone_svolte < classe_docente[
                base2d_ci + prof].alone;
 }
 
+// Mettendo il docente nella classe cla, oggi resta entro MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO classi diverse?
+// Scorre gli slot gia' decisi di oggi (da inizio giornata a pos) e conta le classi diverse in cui compare.
 static inline int ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(int pos, int giorno, int cla, const int prof) {
-    // Assuming start calculation based on your layout structure
+    // primo slot di oggi (gli slot sono in ordine giorno, ora, classe)
     int start = giorno * actual_ore_giornaliere * actual_classi_sezione;
 
     // Fixed-size array instead of VLA (Variable Length Array).
@@ -137,7 +154,8 @@ static inline int ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(int pos, int 
                 classi[classi_sz++] = current_class;
             }
 
-            // Jump to the next hour slot (-1 to compensate for the loop's i++)
+            // Jump to the next hour slot (-1 to compensate for the loop's i++): in un'ora il docente e' in una
+            // classe sola, inutile guardare le altre classi della stessa ora
             i = start + (orario[i].ora + 1) * actual_classi_sezione - 1;
         }
     }
@@ -145,6 +163,7 @@ static inline int ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(int pos, int 
     return 1;
 }
 
+// Il docente e' gia' entrato a quest'ora (ora_entrata e' l'indice della sua prima ora).
 static inline int verifica_ora_ingresso(const int prof, const int ora) {
     return ora >= docente_info[prof].ora_entrata;
 }
@@ -163,8 +182,23 @@ static inline int docente_idoneo(const teaching_slot *slot, const int pos, const
 
 
 /* ---- potatura: le ore che mancano stanno ancora nel tempo rimasto? ---- */
+// Condizioni necessarie su tutto il resto della settimana: se una non vale, il ramo non ha soluzioni e si scarta
+// subito, invece di scoprirlo molti slot dopo con milioni di marce indietro.
 
 // Controllo fatto a ogni inizio ora (vedi vincoli.c). Ritorna 0 se il ramo non puo' piu' avere soluzioni.
 int ore_rimaste_stanno_nel_tempo_rimasto(int giorno, int ora);
+
+// Elenca le lezioni (docente da solo o coppia) di ogni classe. Da chiamare una volta, dopo aver caricato i dati.
+void prepara_lezioni_delle_classi(void);
+
+// All'inizio dell'ora (giorno, ora): le lezioni che restano a ogni classe bastano per gli slot che deve riempire per
+// forza (ore obbligatorie e ore rimaste)? Se no ritorna 0 e scrive la classe, l'ora fino a cui non bastano, quanti slot
+// vanno riempiti e quante lezioni al massimo possono riempirli. All'inizio della settimana (0, 0) e' una verifica
+// preliminare dei dati.
+int lezioni_bastano_per_le_classi(int giorno, int ora, int *classe_ko, int *ora_ko, int *servono, int *possibili);
+
+// La stessa verifica per la sola classe dello slot, dall'ora dopo lo slot. Dipende solo da quella classe, quindi si fa
+// subito dopo averne deciso lo slot: cosi' una scelta sbagliata si scarta prima di provare gli slot delle altre classi.
+int lezioni_della_classe_bastano_dopo(const teaching_slot *slot);
 
 #endif //UNTITLED_VINCOLI_H

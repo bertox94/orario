@@ -4,6 +4,8 @@
 //
 // Created by Alberto Tiraboschi on 02/06/2026.
 //
+// Vecchia prova dei tempi: misura quanto ci mette gen() per lunghezze crescenti. Non e' piu' compilata
+// (non e' in CMakeLists.txt; gen, string_allocation e struct param non esistono piu').
 void test(int max) {
     struct timeval t1, t2;
     char *s = string_allocation(max + 1);

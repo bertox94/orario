@@ -4,6 +4,7 @@
 
 #ifndef UNTITLED_PROFESSORS_H
 #define UNTITLED_PROFESSORS_H
+// Nomi dei docenti dei dati reali. Inclusa solo da database_initializers.c.
 char Goku[] = "Goku";
 char Vegeta[] = "Vegeta";
 char Junior[] = "Junior";

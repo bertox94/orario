@@ -13,7 +13,6 @@
 extern long long int nodi;                // chiamate della ricerca
 extern int pos_max;                       // posizione piu' avanzata raggiunta
 extern long long int nodi_a_pos_max;      // a quale nodo e' stata raggiunta
-extern long long int rami_scartati_a_inizio_ora;
 extern double limite_secondi;             // se > 0 la ricerca si ferma dopo tanti secondi
 extern double inizio_ricerca;
 extern int interrotto_per_tempo;
@@ -39,6 +38,17 @@ static inline int diagnosi_nuovo_nodo(const int pos) {
     }
     return 0;
 }
+
+// Perche' un ramo viene scartato (potatura) prima di arrivare a una marcia indietro.
+enum {
+    SCARTATO_LEZIONI_DELLA_CLASSE, // alla classe non bastano piu' le lezioni per gli slot da riempire
+    SCARTATO_ORE_DEI_DOCENTI,      // le ore che mancano a un docente non stanno piu' nel tempo rimasto
+    N_MOTIVI_SCARTO
+};
+
+// Un ramo scartato dalla potatura; pos e' l'ultimo slot deciso, quello la cui scelta ha reso il ramo senza soluzioni
+// (o che per primo se ne accorge).
+void diagnosi_ramo_scartato(int pos, int motivo);
 
 // Un nodo in cui non si e' potuto scegliere nessun docente. base4d_queue/queue_size delimitano la coda dei docenti.
 void diagnosi_marcia_indietro(const teaching_slot *slot, int pos, int base4d_queue, int queue_size);

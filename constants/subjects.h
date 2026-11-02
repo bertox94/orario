@@ -4,6 +4,7 @@
 
 #ifndef UNTITLED_SUBJECTS_H
 #define UNTITLED_SUBJECTS_H
+// Nomi delle materie. Per ora non usati (l'orario assegna docenti, non materie).
 char Informatica[] = "Informatica";
 char Sistemi_e_Reti[] = "Sistemi e Reti";
 char TPSIT[] = "TPSIT";
