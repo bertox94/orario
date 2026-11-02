@@ -15,7 +15,7 @@ long long int n_gen_max = SCHEDULES_PER_GB / 5;
 teaching_slot orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
     [0 ...
         GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1
-    ] = (teaching_slot){-1, -1}
+    ] = (teaching_slot){-1, -1, -1, -1, -1}
 };
 
 int orario_len;
@@ -428,7 +428,7 @@ void print_orario(const int pos) {
                     ) {
                         prep_chiamata_ricorsiva_insieme(base2d_ci, base3d_goi, cla, it, jt, giorno);
                         found_prof = 1;
-                        orario[pos] = (teaching_slot){p1, p2};
+                        orario[pos] = (teaching_slot){p1, p2, giorno, ora, cla};
                         print_orario(pos + 1);
                         post_chiamata_ricorsiva_insieme(base2d_ci, base3d_goi, cla, it, jt, giorno);
                     }
@@ -440,7 +440,7 @@ void print_orario(const int pos) {
                     && 1) {
                     prep_chiamata_ricorsiva(base2d_ci, base3d_goi, it, giorno, cla, p1);
                     found_prof = 1;
-                    orario[pos] = (teaching_slot){p1, -1};
+                    orario[pos] = (teaching_slot){p1, -1, giorno, ora, cla};
                     print_orario(pos + 1);
                     post_chiamata_ricorsiva(base2d_ci, base3d_goi, it, giorno, cla, p1);
                 }
@@ -456,7 +456,7 @@ void print_orario(const int pos) {
 
 
     if (ora >= PRIME_N_ORE_OBBLIGATORIE) {
-        orario[pos] = (teaching_slot){-1, -1};
+        orario[pos] = (teaching_slot){-1, -1, giorno, ora, cla};
         n_ore_buche[base2d_gc + cla]++;
         print_orario(pos + 1);
         n_ore_buche[base2d_gc + cla]--;

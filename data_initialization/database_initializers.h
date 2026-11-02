@@ -21,6 +21,10 @@ typedef struct {
     //int materia;
     int insegnante1;
     int insegnante2;
+    // posizione dello slot nell'orario (-1 se lo slot non e' ancora stato assegnato)
+    int giorno;
+    int ora;
+    int classe;
 } teaching_slot;
 
 extern char giorni_settimana[GIORNO_SETTIMANA_SZ][MAX_LEN_WORDS];
