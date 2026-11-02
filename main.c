@@ -391,8 +391,10 @@ void print_orario(const int pos) {
         }
     }
 
-    if (ora >= PRIME_N_ORE_OBBLIGATORIE) {
-        // ora buca: lo slot e' gia' -1/-1 (vedi post_chiamata_*)
+    // ora buca (solo oltre le ore obbligatorie): lo slot e' gia' -1/-1 (vedi post_chiamata_*).
+    // Dopo la buca la classe non fa altre lezioni quel giorno: le ore che le mancano devono stare nei giorni dopo.
+    if (ora >= PRIME_N_ORE_OBBLIGATORIE
+        && classe_info[cla].ore - classe_info[cla].svolte <= (actual_giorni_settimana - giorno - 1) * actual_ore_giornaliere) {
         n_ore_buche[base2d_gc + cla]++;
         print_orario(pos + 1);
         n_ore_buche[base2d_gc + cla]--;
