@@ -336,58 +336,60 @@ static inline int docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe
 long long int n_assegnazioni = 0;
 
 // Operazioni comuni a ogni docente di un'assegnazione (da solo o in coppia) e il loro annullamento.
-// base2d_ci = cla * INSEGNANTE_SZ, base3d_gci = giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + base2d_ci.
-static inline void prep_chiamata_ric_basic(const int base2d_ci, const int base3d_goi, const int base3d_gci,
-                                           QueueItem *it) {
+static inline void prep_chiamata_ric_basic(const teaching_slot *slot, QueueItem *it) {
     const int p = it->teacher;
     it->priority--;
-    prof_gia_impegnato_giorno_ora[base3d_goi + p] = 1;
-    ore_classi_docenti_svolte[base2d_ci + p]++;
-    ore_fatte_da_un_prof_in_una_classe_in_giorno[base3d_gci + p]++;
+    prof_gia_impegnato_giorno_ora[slot->base3d_goi + p] = 1;
+    ore_classi_docenti_svolte[slot->base2d_ci + p]++;
+    ore_fatte_da_un_prof_in_una_classe_in_giorno[slot->base3d_gci + p]++;
 }
 
-static inline void post_chiamata_ric_basic(const int base2d_ci, const int base3d_goi, const int base3d_gci,
-                                           QueueItem *it) {
+static inline void post_chiamata_ric_basic(const teaching_slot *slot, QueueItem *it) {
     const int p = it->teacher;
     it->priority++;
-    prof_gia_impegnato_giorno_ora[base3d_goi + p] = 0;
-    ore_classi_docenti_svolte[base2d_ci + p]--;
-    ore_fatte_da_un_prof_in_una_classe_in_giorno[base3d_gci + p]--;
+    prof_gia_impegnato_giorno_ora[slot->base3d_goi + p] = 0;
+    ore_classi_docenti_svolte[slot->base2d_ci + p]--;
+    ore_fatte_da_un_prof_in_una_classe_in_giorno[slot->base3d_gci + p]--;
 }
 
-// Le funzioni prep/post fanno tutto l'aggiornamento di stato di un'assegnazione di uno slot (e il suo annullamento):
-// le operazioni per docente (basic), quelle specifiche (ore da solo, codocenza) e, una volta per slot,
-// il conteggio delle ore svolte dalla classe (ore_classe_svolte) e il contatore n_assegnazioni.
-static inline void prep_chiamata_ricorsiva(const int base2d_ci, const int base3d_goi, const int base3d_gci,
-                                           const int cla, QueueItem *it) {
-    prep_chiamata_ric_basic(base2d_ci, base3d_goi, base3d_gci, it);
-    ore_classi_docenti_alone_svolte[base2d_ci + it->teacher]++;
-    ore_classe_svolte[cla]++;
+// Le funzioni prep/post fanno tutto l'aggiornamento di stato di un'assegnazione di uno slot e il suo annullamento:
+// l'assegnazione dei docenti nello slot (insegnante1/insegnante2), le operazioni per docente (basic), quelle
+// specifiche (ore da solo, codocenza) e, una volta per slot, ore_classe_svolte e il contatore n_assegnazioni.
+// post rimette lo slot a "non assegnato" (-1, -1): uno slot fuori dal percorso corrente e' sempre -1/-1.
+static inline void prep_chiamata_ricorsiva(teaching_slot *slot, QueueItem *it) {
+    prep_chiamata_ric_basic(slot, it);
+    ore_classi_docenti_alone_svolte[slot->base2d_ci + it->teacher]++;
+    slot->insegnante1 = it->teacher;
+    slot->insegnante2 = -1;
+    ore_classe_svolte[slot->classe]++;
     n_assegnazioni++;
 }
 
-static inline void prep_chiamata_ricorsiva_insieme(const int base2d_ci, const int base3d_goi, const int base3d_gci,
-                                                   const int cla, QueueItem *it, QueueItem *jt) {
-    prep_chiamata_ric_basic(base2d_ci, base3d_goi, base3d_gci, it);
-    prep_chiamata_ric_basic(base2d_ci, base3d_goi, base3d_gci, jt);
-    ore_classi_codocenza_svolte[idx_codocenza(cla, it->teacher, jt->teacher)]++;
-    ore_classe_svolte[cla]++;
+static inline void prep_chiamata_ricorsiva_insieme(teaching_slot *slot, QueueItem *it, QueueItem *jt) {
+    prep_chiamata_ric_basic(slot, it);
+    prep_chiamata_ric_basic(slot, jt);
+    ore_classi_codocenza_svolte[idx_codocenza(slot->classe, it->teacher, jt->teacher)]++;
+    slot->insegnante1 = it->teacher;
+    slot->insegnante2 = jt->teacher;
+    ore_classe_svolte[slot->classe]++;
     n_assegnazioni++;
 }
 
-static inline void post_chiamata_ricorsiva(const int base2d_ci, const int base3d_goi, const int base3d_gci,
-                                           const int cla, QueueItem *it) {
-    post_chiamata_ric_basic(base2d_ci, base3d_goi, base3d_gci, it);
-    ore_classi_docenti_alone_svolte[base2d_ci + it->teacher]--;
-    ore_classe_svolte[cla]--;
+static inline void post_chiamata_ricorsiva(teaching_slot *slot, QueueItem *it) {
+    post_chiamata_ric_basic(slot, it);
+    ore_classi_docenti_alone_svolte[slot->base2d_ci + it->teacher]--;
+    slot->insegnante1 = -1;
+    slot->insegnante2 = -1;
+    ore_classe_svolte[slot->classe]--;
 }
 
-static inline void post_chiamata_ricorsiva_insieme(const int base2d_ci, const int base3d_goi, const int base3d_gci,
-                                                   const int cla, QueueItem *it, QueueItem *jt) {
-    post_chiamata_ric_basic(base2d_ci, base3d_goi, base3d_gci, it);
-    post_chiamata_ric_basic(base2d_ci, base3d_goi, base3d_gci, jt);
-    ore_classi_codocenza_svolte[idx_codocenza(cla, it->teacher, jt->teacher)]--;
-    ore_classe_svolte[cla]--;
+static inline void post_chiamata_ricorsiva_insieme(teaching_slot *slot, QueueItem *it, QueueItem *jt) {
+    post_chiamata_ric_basic(slot, it);
+    post_chiamata_ric_basic(slot, jt);
+    ore_classi_codocenza_svolte[idx_codocenza(slot->classe, it->teacher, jt->teacher)]--;
+    slot->insegnante1 = -1;
+    slot->insegnante2 = -1;
+    ore_classe_svolte[slot->classe]--;
 }
 
 int è_un_docente_che_insegna_da_solo_in_questa_classe(const int base2d_ci, const int prof) {
@@ -457,7 +459,7 @@ void print_orario(const int pos) {
         return;
     }
 
-    const teaching_slot *slot = &orario[pos];
+    teaching_slot *slot = &orario[pos];
     const int giorno = slot->giorno;
     const int ora = slot->ora;
     const int cla = slot->classe;
@@ -511,11 +513,9 @@ void print_orario(const int pos) {
                         && ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(pos, giorno, cla, p2)
                         && 1
                     ) {
-                        prep_chiamata_ricorsiva_insieme(base2d_ci, base3d_goi, base3d_gci, cla, it, jt);
-                        orario[pos].insegnante1 = p1;
-                        orario[pos].insegnante2 = p2;
+                        prep_chiamata_ricorsiva_insieme(slot, it, jt);
                         print_orario(pos + 1);
-                        post_chiamata_ricorsiva_insieme(base2d_ci, base3d_goi, base3d_gci, cla, it, jt);
+                        post_chiamata_ricorsiva_insieme(slot, it, jt);
                     }
                 }
                 //non abbiamo trovato combinazioni di codocenza, verifica se all'insegnante mancano ore di docenza da solo
@@ -523,11 +523,9 @@ void print_orario(const int pos) {
                     && deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(base2d_ci, p1)
                     && sabato_esaurisci_priorita_subito(pos, giorno, ora, base2d_ci, p1)
                     && 1) {
-                    prep_chiamata_ricorsiva(base2d_ci, base3d_goi, base3d_gci, cla, it);
-                    orario[pos].insegnante1 = p1;
-                    orario[pos].insegnante2 = -1;
+                    prep_chiamata_ricorsiva(slot, it);
                     print_orario(pos + 1);
-                    post_chiamata_ricorsiva(base2d_ci, base3d_goi, base3d_gci, cla, it);
+                    post_chiamata_ricorsiva(slot, it);
                 }
             }
         }
@@ -543,8 +541,7 @@ void print_orario(const int pos) {
 
 
     if (ora >= PRIME_N_ORE_OBBLIGATORIE) {
-        orario[pos].insegnante1 = -1;
-        orario[pos].insegnante2 = -1;
+        // ora buca: lo slot e' gia' -1/-1 (vedi post_chiamata_*)
         n_ore_buche[base2d_gc + cla]++;
         print_orario(pos + 1);
         n_ore_buche[base2d_gc + cla]--;
