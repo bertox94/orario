@@ -1,3 +1,4 @@
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -169,6 +170,11 @@ int main(const int argc, char **argv) {
     time(&currentTime);
     const clock_t start = clock();
     const Opzioni o = leggi_opzioni(argc, argv);
+    // Un file troppo grande per il limite del sistema (SIGXFSZ) o gzip che termina (SIGPIPE scrivendo nella pipe)
+    // terminerebbero il solver senza diagnosi ne' JSON. Ignorati, la scrittura fallisce con un errore che la ricerca
+    // nota (diagnosi_controllo_periodico) e si ferma in modo ordinato. Lo stesso vale per il disco pieno.
+    signal(SIGXFSZ, SIG_IGN);
+    signal(SIGPIPE, SIG_IGN);
     diagnosi_imposta(o.secondi_massimi, o.con_motivi);
     diagnosi_imposta_spazio(o.file_orario, o.mb_massimi);
 
@@ -192,8 +198,10 @@ int main(const int argc, char **argv) {
     if (stampa_backtrack == BACKTRACK_COMPATTO) stampa_intestazione_marce_compatte(file_orario);
     diagnosi_avvia();
     cerca_orario(0);
-    if (compresso) pclose(file_orario);
-    else fclose(file_orario);
+    // anche la chiusura scrive (l'ultimo buffer; per il .gz la fine del file compresso) e puo' fallire
+    if (ferror(file_orario)) errore_di_scrittura = 1;
+    if (compresso ? pclose(file_orario) != 0 : fclose(file_orario) != 0) errore_di_scrittura = 1;
+    file_orario = NULL;
 
     const double secondi = (clock() - start) / (double) CLOCKS_PER_SEC;
     stampa_risultati(secondi);

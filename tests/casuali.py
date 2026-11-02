@@ -122,7 +122,8 @@ def lancia(exe, caso, classi, timeout, cartella, backtrack=False, max_mb=4096):
     # esito: impossibile (verifica preliminare), trovato, nessuna soluzione (ricerca finita senza orari), non finito
     impossibile = re.search(r'Impossibile \(verifica preliminare\): ([^\n]*)', out)
     per_spazio = 'Interrotto per spazio' in out
-    interrotto = 'Interrotto per tempo' in out or per_spazio
+    scrittura = 'Errore di scrittura' in out
+    interrotto = 'Interrotto per tempo' in out or per_spazio or scrittura
     finito = finito and not interrotto
     m = re.search(r'Totale generati: (\d+)', out)
     marce = re.search(r'Marce indietro: (\d+)', out)
@@ -131,6 +132,8 @@ def lancia(exe, caso, classi, timeout, cartella, backtrack=False, max_mb=4096):
         esito, finito = 'impossibile', True
     elif per_spazio:
         esito = 'interrotto (file troppo grande)'
+    elif scrittura:
+        esito = 'interrotto (errore di scrittura)'
     elif errore:
         esito = 'interrotto (file troppo grande)' if backtrack else 'errore'
     errori, nc, nd = controlla_dati(out)

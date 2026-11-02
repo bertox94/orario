@@ -5,6 +5,7 @@
 #include <time.h>
 
 #include "../priority_queue/prio_queue.h"
+#include "ricerca.h"
 #include "vincoli.h"
 
 long long int nodi = 0;
@@ -14,6 +15,7 @@ double limite_secondi = 0;
 double inizio_ricerca;
 int interrotto_per_tempo = 0;
 int interrotto_per_spazio = 0;
+int errore_di_scrittura = 0;
 
 static const char *file_da_controllare = NULL; // il file degli orari, per il limite di spazio
 static long long int limite_byte = 0;          // 0 = nessun limite
@@ -71,6 +73,12 @@ int diagnosi_controllo_periodico(void) {
     struct stat st;
     if (limite_byte > 0 && stat(file_da_controllare, &st) == 0 && st.st_size > limite_byte) {
         interrotto_per_spazio = 1;
+        return 1;
+    }
+    // una scrittura nel file degli orari non e' riuscita: inutile continuare, ma la diagnosi si scrive comunque
+    // (il solver ignora SIGXFSZ e SIGPIPE apposta, vedi main.c, cosi' l'errore arriva qui invece di terminarlo)
+    if (file_orario && ferror(file_orario)) {
+        errore_di_scrittura = 1;
         return 1;
     }
     return 0;
@@ -257,6 +265,8 @@ void stampa_diagnosi(const long long int n_backtrack) {
     if (interrotto_per_tempo) printf("Interrotto per tempo\n");
     if (interrotto_per_spazio)
         printf("Interrotto per spazio: il file degli orari ha superato %.0f MB\n", limite_byte / 1024.0 / 1024.0);
+    if (errore_di_scrittura)
+        printf("Errore di scrittura del file degli orari (disco pieno o file troppo grande): il file e' incompleto\n");
     stampa_riepilogo(n_backtrack);
     stampa_slot_piu_frequenti(n_backtrack);
     stampa_docenti_scartati_piu_spesso();

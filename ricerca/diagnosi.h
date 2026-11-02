@@ -17,6 +17,8 @@ extern double limite_secondi;             // se > 0 la ricerca si ferma dopo tan
 extern double inizio_ricerca;
 extern int interrotto_per_tempo;
 extern int interrotto_per_spazio;         // il file degli orari ha superato il limite di --max-mb
+extern int errore_di_scrittura;           // non si e' piu' potuto scrivere il file degli orari (disco pieno, limite
+                                          // del sistema alla dimensione dei file, gzip terminato)
 
 double secondi_reali(void);
 
@@ -27,7 +29,7 @@ void diagnosi_imposta(double secondi, int con_motivi);
 // Per un file .gz conta la dimensione compressa, cioe' quella che occupa davvero.
 void diagnosi_imposta_spazio(const char *file, double mb);
 
-// Controlli che costano troppo per farli a ogni nodo (tempo, spazio): si fanno ogni 65536 nodi.
+// Controlli che costano troppo per farli a ogni nodo (tempo, spazio, errori di scrittura): si fanno ogni 65536 nodi.
 // Ritorna 1 se la ricerca va interrotta.
 int diagnosi_controllo_periodico(void);
 
