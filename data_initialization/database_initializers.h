@@ -50,7 +50,6 @@ typedef struct {
     int svolte;       // ore svolte fino a _pos_
     int alone;        // di cui da solo (senza codocente)
     int alone_svolte;
-    int teorico;      // 1 se ha ore da solo in questa classe
 } classe_docente_t;
 
 // Per ogni terna (classe, docente, codocente), prof a minore indice prima.

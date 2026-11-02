@@ -137,7 +137,6 @@ int get_ore_classi_insegnante_svolte(int classe, int insegnante) {
 void set_classe_insegnante_ore(char cla[], char prof[], const int ore) {
     set_classe_sezione(cla);
     set_insegnante(prof);
-    classe_docente[p_classe_sezione(cla) * INSEGNANTE_SZ + p_insegnante(prof)].teorico = 1;
     add_ore_classi_insegnante(p_classe_sezione(cla), p_insegnante(prof), ore);
     add_ore_classi_insegnante_lonely(p_classe_sezione(cla), p_insegnante(prof), ore);
     add_ore_classi_settimanale(p_classe_sezione(cla), ore);
@@ -148,7 +147,6 @@ void set_classe_insegnante_ore(char cla[], char prof[], const int ore) {
 void set_classe_insegnante_ore_cod(char cla[], char prof[], const int ore, char cod[], const int ore_cod) {
     set_classe_sezione(cla);
     set_insegnante(prof);
-    classe_docente[p_classe_sezione(cla) * INSEGNANTE_SZ + p_insegnante(prof)].teorico = 1;
     add_ore_classi_insegnante(p_classe_sezione(cla), p_insegnante(prof), ore);
     add_ore_classi_insegnante_lonely(p_classe_sezione(cla), p_insegnante(prof), ore - ore_cod);
     add_ore_classi_settimanale(p_classe_sezione(cla), ore);

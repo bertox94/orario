@@ -260,10 +260,6 @@ static inline void assegna_e_prosegui(teaching_slot *slot, const int pos, QueueI
     post_chiamata_ricorsiva(slot, it, jt);
 }
 
-int è_un_docente_che_insegna_da_solo_in_questa_classe(const int base2d_ci, const int prof) {
-    return classe_docente[base2d_ci + prof].teorico;
-}
-
 int deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(const int base2d_ci, const int prof) {
     return classe_docente[base2d_ci + prof].alone_svolte < classe_docente[
                base2d_ci + prof].alone;
@@ -374,8 +370,7 @@ void print_orario(const int pos) {
                     }
                 }
                 //non abbiamo trovato combinazioni di codocenza, verifica se all'insegnante mancano ore di docenza da solo
-                if (è_un_docente_che_insegna_da_solo_in_questa_classe(base2d_ci, p1)
-                    && deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(base2d_ci, p1)
+                if (deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(base2d_ci, p1)
                     && sabato_esaurisci_priorita_subito(pos, giorno, ora, base2d_ci, p1, -1)) {
                     assegna_e_prosegui(slot, pos, it, NULL);
                 }
