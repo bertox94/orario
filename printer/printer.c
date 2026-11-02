@@ -223,3 +223,50 @@ void stampa_dati() {
     }
     printf("-----------\n");
 }
+
+// Descrizione completa dei dati (classi, docenti, lezioni da soli e in codocenza) in forma leggibile.
+void stampa_dati_su_file(FILE *fp) {
+    fprintf(fp, "CLASSI (%d)\n", actual_classi_sezione);
+    for (int c = 0; c < actual_classi_sezione; c++)
+        fprintf(fp, "  %-6s %2d ore\n", classe_sezione[c], classe_info[c].ore);
+
+    fprintf(fp, "\nDOCENTI (%d)\n", actual_insegnanti);
+    for (int p = 0; p < actual_insegnanti; p++) {
+        int classi = 0;
+        for (int c = 0; c < actual_classi_sezione; c++)
+            if (classe_docente[c * INSEGNANTE_SZ + p].ore > 0) classi++;
+        fprintf(fp, "  %-8s %2d ore in %d classi", insegnanti[p], docente_info[p].ore, classi);
+        if (docente_info[p].ora_entrata > 0) fprintf(fp, ", puo' iniziare dall'ora di indice %d", docente_info[p].ora_entrata);
+        fprintf(fp, "\n");
+    }
+
+    fprintf(fp, "\nLEZIONI PER CLASSE (ore totali del docente nella classe = da solo + in codocenza)\n");
+    for (int c = 0; c < actual_classi_sezione; c++) {
+        fprintf(fp, "%s:\n", classe_sezione[c]);
+        for (int p = 0; p < actual_insegnanti; p++) {
+            const classe_docente_t *cd = &classe_docente[c * INSEGNANTE_SZ + p];
+            if (cd->ore <= 0) continue;
+            fprintf(fp, "  %-8s %2d ore: %2d da solo", insegnanti[p], cd->ore, cd->alone);
+            for (int q = 0; q < actual_insegnanti; q++) {
+                if (q == p) continue;
+                const int lo = p < q ? p : q, hi = p < q ? q : p;
+                const int ore = codocenza[c * INSEGNANTE_SZ * INSEGNANTE_SZ + lo * INSEGNANTE_SZ + hi].ore;
+                if (ore > 0) fprintf(fp, ", %d con %s", ore, insegnanti[q]);
+            }
+            fprintf(fp, "\n");
+        }
+    }
+
+    fprintf(fp, "\nCODOCENZE (classe: docente + docente = ore insieme)\n");
+    int n_cod = 0;
+    for (int c = 0; c < actual_classi_sezione; c++)
+        for (int p = 0; p < actual_insegnanti; p++)
+            for (int q = p + 1; q < actual_insegnanti; q++) {
+                const int ore = codocenza[c * INSEGNANTE_SZ * INSEGNANTE_SZ + p * INSEGNANTE_SZ + q].ore;
+                if (ore > 0) {
+                    fprintf(fp, "  %-6s %s + %s = %d ore\n", classe_sezione[c], insegnanti[p], insegnanti[q], ore);
+                    n_cod++;
+                }
+            }
+    fprintf(fp, "(%d coppie)\n", n_cod);
+}

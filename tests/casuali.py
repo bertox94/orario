@@ -8,7 +8,7 @@ Uso: tests/casuali.py [--da SEME] [--quanti N] [--classi K] [--prima SEC] [--dop
 2. Fase 2: i casi non finiti nella fase 1 girano di nuovo per al massimo --dopo secondi (default 600; 0 = salta).
 3. Fase 3: i casi ancora non finiti, e i --piu-lenti casi finiti con piu' marce indietro (default 3), vengono rilanciati
    con -b: il programma scrive in orario.txt l'orario parziale a ogni marcia indietro. I file vanno in
-   <out>/seme_<N>/ (default tests/risultati), ciascuno al massimo --max-mb megabyte (default 200).
+   <out>/seme_<N>/ (default tests/risultati): orario.txt (con -b) e dati.txt (descrizione del caso), orario.txt ciascuno al massimo --max-mb megabyte (default 200).
 
 Controlla anche che i dati generati rispettino i vincoli (classi 29..36 ore, docenti 5..24 ore): esce con 1 se no."""
 import argparse, os, re, resource, shutil, subprocess, sys, tempfile, time
@@ -40,7 +40,7 @@ def controlla_dati(out):
 def lancia(exe, seme, classi, timeout, cartella, backtrack=False, max_mb=200):
     """Esegue un caso nella sua cartella. Ritorna un dizionario con l'esito."""
     os.makedirs(cartella, exist_ok=True)
-    cmd = [exe, '--casuale', str(seme), '--classi', str(classi), '-n', '1'] + (['-b'] if backtrack else [])
+    cmd = [exe, '--casuale', str(seme), '--classi', str(classi), '-n', '1'] + (['-b', '--dati', 'dati.txt'] if backtrack else [])
     limite = max_mb * 2 ** 20
     t = time.time()
     try:
