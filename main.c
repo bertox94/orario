@@ -26,19 +26,21 @@ int g_classe(const int p) {
     return p % actual_classi_sezione;
 }
 
-// Dalla tripla (giorno, ora, classe) all'indice dello slot in orario[].
-// Serve perche' l'ordine delle classi dentro un'ora puo' cambiare (vedi randomizza_ordine_classi),
-// quindi la classe di uno slot NON si ricava dalla sua posizione: si legge dallo slot (orario[i].classe).
-int indice_slot[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ];
+// L'ordine delle classi e' lo stesso in ogni (giorno, ora): basta ricordare, per ogni classe, in che posizione
+// sta dentro il blocco di un'ora. Per questo indice_slot ha dimensione CLASSE_SEZIONE_SZ e non una per giorno e ora.
+int indice_slot[CLASSE_SEZIONE_SZ];
 
+// Dalla tripla (giorno, ora, classe) all'indice dello slot in orario[].
+// La classe di uno slot NON si ricava dalla sua posizione ma si legge dallo slot (orario[i].classe):
+// l'ordine delle classi puo' essere cambiato da randomizza_ordine_classi.
 int slot_di(const int giorno, const int ora, const int classe) {
-    return indice_slot[(giorno * actual_ore_giornaliere + ora) * actual_classi_sezione + classe];
+    return (giorno * actual_ore_giornaliere + ora) * actual_classi_sezione + indice_slot[classe];
 }
 
+// Ricava indice_slot dal primo blocco (tutti i blocchi hanno lo stesso ordine).
 static void ricostruisci_indice_slot(void) {
-    for (int p = 0; p < orario_len; p++) {
-        indice_slot[(orario[p].giorno * actual_ore_giornaliere + orario[p].ora) * actual_classi_sezione
-                    + orario[p].classe] = p;
+    for (int k = 0; k < actual_classi_sezione; k++) {
+        indice_slot[orario[k].classe] = k;
     }
 }
 
@@ -52,18 +54,21 @@ void inizializza_orario(void) {
     ricostruisci_indice_slot();
 }
 
-// OPZIONALE. Mescola l'ordine in cui le classi vengono considerate in ogni ora (giorno, ora).
-// Cambia solo il campo classe degli slot dentro ciascun blocco di actual_classi_sezione slot, quindi giorno e ora
-// di ogni slot restano gli stessi. Stesso seed = stesso ordine. Da chiamare dopo inizializza_orario().
+// OPZIONALE. Mescola l'ordine delle classi. L'ordine scelto e' unico e vale per ogni giorno e ora:
+// cambia solo il campo classe degli slot, giorno e ora di ogni slot restano gli stessi.
+// Stesso seed = stesso ordine. Da chiamare dopo inizializza_orario().
 void randomizza_ordine_classi(const unsigned int seed) {
+    int ordine[CLASSE_SEZIONE_SZ];
+    for (int k = 0; k < actual_classi_sezione; k++) ordine[k] = k;
     srand(seed);
-    for (int blocco = 0; blocco < orario_len; blocco += actual_classi_sezione) {
-        for (int k = actual_classi_sezione - 1; k > 0; k--) {
-            const int j = rand() % (k + 1);
-            const int tmp = orario[blocco + k].classe;
-            orario[blocco + k].classe = orario[blocco + j].classe;
-            orario[blocco + j].classe = tmp;
-        }
+    for (int k = actual_classi_sezione - 1; k > 0; k--) {
+        const int j = rand() % (k + 1);
+        const int tmp = ordine[k];
+        ordine[k] = ordine[j];
+        ordine[j] = tmp;
+    }
+    for (int p = 0; p < orario_len; p++) {
+        orario[p].classe = ordine[p % actual_classi_sezione];
     }
     ricostruisci_indice_slot();
 }
