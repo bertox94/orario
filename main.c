@@ -309,19 +309,22 @@ int ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(int pos, int giorno, int cl
     return 1;
 }
 
+int verifica_ora_ingresso(const int prof, const int ora) {
+    return ora >= docente_info[prof].ora_entrata;
+}
+
 // Vincoli comuni a ogni docente (il primo o il secondo di una coppia) per essere messo in questo slot.
 static inline int docente_idoneo(const teaching_slot *slot, const int pos, const int prof) {
-    // un prof fa al max n ore in una classe
-    return prof_fa_al_max_n_ore(slot, prof)
+    // non prima della sua ora di ingresso
+    return verifica_ora_ingresso(prof, slot->ora)
+           // un prof fa al max n ore in una classe
+           && prof_fa_al_max_n_ore(slot, prof)
            // se un prof fa piu' ore in una classe in un giorno, devono essere contigue
            && prof_fa_ore_contigue(slot, prof)
            // ogni docente fa al max MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO classi diverse ogni giorno
            && ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(pos, slot->giorno, slot->classe, prof);
 }
 
-int verifica_ora_ingresso(const int prof, const int ora) {
-    return ora >= docente_info[prof].ora_entrata;
-}
 
 void print_orario(const int pos) {
     if (n_gen_max <= n_gen) return;
@@ -355,7 +358,6 @@ void print_orario(const int pos) {
                 // ha ancora ore da fare in questa classe
                 && deve_ancora_svolgere_ore_in_questa_classe(base2d_ci, p1)
                 && docente_idoneo(slot, pos, p1)
-                && verifica_ora_ingresso(p1, ora)
             ) {
                 for (int jj = ii + 1; jj < queue_size; jj++) {
                     QueueItem *jt = queue_mul[jj];
