@@ -10,13 +10,14 @@
 #include "ricerca/diagnosi.h"
 #include "ricerca/ricerca.h"
 
-// Uso: ./untitled [seed] [-b] [--casuale SEME [--classi N]] [-n MAX] [--tempo SEC] [--motivi] [--dati FILE]
+// Uso: ./untitled [seed] [-b] [--casuale SEME [--classi N] [--ritardi]] [-n MAX] [--tempo SEC] [--motivi] [--dati FILE]
 //   seed: l'ordine delle classi viene mescolato (stesso seed = stesso ordine)
 //   -b / --backtrack: scrive in orario.txt anche ogni marcia indietro (riga "Backtrack" + griglia parziale).
 //                     Senza, orario.txt contiene solo gli orari completi e si va molto piu' veloci.
 //   --casuale SEME: invece dei dati del programma usa dati generati a caso (riproducibili con lo stesso SEME):
 //                   classi da 29 a 36 ore, docenti da 5 a 24 ore, con lezioni da soli e in codocenza.
 //   --classi N: numero di classi dei dati casuali (default 8)
+//   --ritardi: nei dati casuali alcuni docenti entrano in ritardo (ora di ingresso 1, 2 o 3)
 //   -n MAX: si ferma dopo MAX orari completi
 //   --tempo SEC: interrompe la ricerca dopo SEC secondi (la diagnosi viene stampata comunque)
 //   --motivi: nella diagnosi indica anche perche' i docenti vengono scartati negli slot con piu' marce indietro
@@ -27,6 +28,7 @@ typedef struct {
     int dati_casuali;            // 1 se i dati si generano a caso invece di usare quelli del programma
     unsigned long long seme_dati;
     int n_classi_casuali;
+    int con_ritardi;             // dati casuali: alcuni docenti entrano in ritardo
     const char *file_dati;       // dove scrivere la descrizione dei dati (NULL = da nessuna parte)
     double secondi_massimi;      // 0 = nessun limite di tempo
     int con_motivi;
@@ -43,6 +45,8 @@ static Opzioni leggi_opzioni(const int argc, char **argv) {
             o.seme_dati = strtoull(argv[++i], NULL, 10);
         } else if (!strcmp(argv[i], "--classi") && i + 1 < argc) {
             o.n_classi_casuali = atoi(argv[++i]);
+        } else if (!strcmp(argv[i], "--ritardi")) {
+            o.con_ritardi = 1;
         } else if (!strcmp(argv[i], "--dati") && i + 1 < argc) {
             o.file_dati = argv[++i];
         } else if (!strcmp(argv[i], "--motivi")) {
@@ -63,7 +67,7 @@ static Opzioni leggi_opzioni(const int argc, char **argv) {
 static void carica_dati(const Opzioni *o) {
     if (o->dati_casuali) {
         inizializza_calendario();
-        genera_dati_casuali(o->seme_dati, o->n_classi_casuali);
+        genera_dati_casuali(o->seme_dati, o->n_classi_casuali, o->con_ritardi);
     } else {
         inizializza_dati();
     }
@@ -79,7 +83,8 @@ static void scrivi_file_dati(const Opzioni *o) {
         return;
     }
     if (o->dati_casuali)
-        fprintf(fd, "Dati casuali: --casuale %llu --classi %d\n\n", o->seme_dati, o->n_classi_casuali);
+        fprintf(fd, "Dati casuali: --casuale %llu --classi %d%s\n\n", o->seme_dati, o->n_classi_casuali,
+                o->con_ritardi ? " --ritardi" : "");
     stampa_dati_su_file(fd);
     fclose(fd);
 }

@@ -119,7 +119,21 @@ static int tenta(const int n_classi, int *n_doc_usati) {
     return 1;
 }
 
-void genera_dati_casuali(const unsigned long long seed, const int n_classi) {
+// Dopo aver registrato i dati: alcuni docenti entrano in ritardo. L'ora di ingresso si abbassa finche' le ore
+// settimanali del docente stanno nelle ore che gli restano (da ingresso a fine giornata, per tutti i giorni).
+static void assegna_ore_di_ingresso(const int n_doc) {
+    for (int d = 0; d < n_doc; d++) {
+        if (rnd(1, 100) > 20) continue;
+        int ingresso = rnd(1, GEN_ORA_INGRESSO_MAX);
+        while (ingresso > 0 && carico[d] > (actual_ore_giornaliere - ingresso) * actual_giorni_settimana) ingresso--;
+        char nome[MAX_LEN_WORDS];
+        snprintf(nome, sizeof nome, "D%03d", d + 1);
+        const int p = p_insegnante(nome);
+        if (p >= 0) docente_info[p].ora_entrata = ingresso;
+    }
+}
+
+void genera_dati_casuali(const unsigned long long seed, const int n_classi, const int con_ritardi) {
     assert(n_classi >= 1 && n_classi <= CLASSE_SEZIONE_SZ);
     rng_state = seed * 0x9E3779B97F4A7C15ULL + 0x1234567ULL;
     if (!rng_state) rng_state = 1;
@@ -150,6 +164,9 @@ void genera_dati_casuali(const unsigned long long seed, const int n_classi) {
             }
         }
     }
+
+    // dopo tutto il resto, cosi' i dati senza ritardi di un seme non cambiano
+    if (con_ritardi) assegna_ore_di_ingresso(n_doc);
 
     for (int i = 0; i < actual_classi_sezione; i++) {
         assert(classe_info[i].ore >= PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana);
