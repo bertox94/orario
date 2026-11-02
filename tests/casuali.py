@@ -14,6 +14,9 @@ Per ogni caso c'e' una cartella <out>/seme_<N>/ (default tests/risultati) con:
    orario.txt          il primo orario trovato (se la ricerca e' finita)
    marce_indietro/orario.txt   solo per i casi della fase 3: orario parziale a ogni marcia indietro, ciascuno al massimo --max-mb megabyte (default 4096, 0 = senza limite).
 
+Per ogni caso lento o non finito stampa una diagnosi: se le marce indietro sono concentrate in pochi slot
+(LOCALIZZATA) il caso e' probabilmente impossibile o ha un blocco preciso; se sono sparse (diffusa) e' solo difficile.
+
 Controlla anche che i dati generati rispettino i vincoli (classi 29..36 ore, docenti 5..24 ore): esce con 1 se no."""
 import argparse, os, re, resource, shutil, subprocess, sys, tempfile, time
 from concurrent.futures import ThreadPoolExecutor
@@ -41,35 +44,66 @@ def controlla_dati(out):
     return errori, len(classi), len(docenti)
 
 
+def diagnosi(out):
+    """Legge la diagnosi stampata dal solver. Ritorna (riassunto breve, testo completo).
+
+    Se le marce indietro sono quasi tutte in pochi slot (e la ricerca non avanza piu'), il problema e' localizzato:
+    di solito il caso e' impossibile per costruzione, o la causa sta poco prima di quegli slot.
+    Se sono sparse su molti slot, la ricerca e' solo difficile."""
+    i = out.find('Diagnosi della ricerca')
+    if i < 0:
+        return '-', ''
+    testo = out[i:].split('Totale generati')[0].strip()
+    m = re.search(r'Marce indietro: (\d+) in (\d+) slot diversi', testo)
+    if not m or int(m.group(1)) == 0:
+        return 'nessuna marcia indietro', testo
+    quote = [float(x) for x in re.findall(r'marce \(([\d.]+)%\)', testo)]
+    primo = re.search(r'Slot piu\' frequente 1: posizione \d+ \(giorno (\S+), ora (\S+), classe (\S+)\)', testo)
+    ferma = re.search(r'raggiunta al nodo \d+ \(([\d.]+)% dei nodi\)', testo)
+    top3 = sum(quote[:3])
+    nome = '%s %s %s' % primo.groups() if primo else '?'
+    stato = 'LOCALIZZATA' if top3 >= 80 else 'diffusa'
+    senza_progressi = ferma and float(ferma.group(1)) < 5
+    return '%s: %s slot, top3 %.0f%%, piu\' frequente %s%s' % (
+        stato, m.group(2), top3, nome, ', senza avanzare' if senza_progressi else ''), testo
+
+
 def lancia(exe, seme, classi, timeout, cartella, backtrack=False, max_mb=4096):
     """Esegue un caso nella sua cartella. Ritorna un dizionario con l'esito."""
     os.makedirs(cartella, exist_ok=True)
     dati = os.path.join(os.path.dirname(cartella) if backtrack else cartella, 'dati.txt')
-    cmd = [exe, '--casuale', str(seme), '--classi', str(classi), '-n', '1', '--dati', dati] + (['-b'] if backtrack else [])
+    cmd = [exe, '--casuale', str(seme), '--classi', str(classi), '-n', '1', '--dati', dati,
+           '--tempo', str(max(timeout - 1, 0.5))] + (['-b'] if backtrack else [])
     limite = max_mb * 2 ** 20 if max_mb > 0 else resource.RLIM_INFINITY
     t = time.time()
     try:
-        r = subprocess.run(cmd, cwd=cartella, capture_output=True, text=True, timeout=timeout,
+        r = subprocess.run(cmd, cwd=cartella, capture_output=True, text=True, timeout=timeout + 30,
                            preexec_fn=lambda: resource.setrlimit(resource.RLIMIT_FSIZE, (limite, limite)))
         out, finito = r.stdout, r.returncode == 0
         errore = r.returncode != 0
     except subprocess.TimeoutExpired as e:
         out = e.stdout.decode() if isinstance(e.stdout, bytes) else (e.stdout or '')
         finito, errore = False, False
+    interrotto = 'Interrotto per tempo' in out
+    finito = finito and not interrotto
     m = re.search(r'Totale generati: (\d+)', out)
     marce = re.search(r'Marce indietro: (\d+)', out)
     esito = 'non finito' if not finito else ('trovato' if m and int(m.group(1)) > 0 else 'nessuna soluzione')
     if errore:
         esito = 'interrotto (file troppo grande)' if backtrack else 'errore'
     errori, nc, nd = controlla_dati(out)
+    d = diagnosi(out)
     return {'seme': seme, 'esito': esito, 'finito': finito, 'marce': int(marce.group(1)) if marce else None,
-            'sec': time.time() - t, 'classi': nc, 'docenti': nd, 'errori': errori}
+            'sec': time.time() - t, 'classi': nc, 'docenti': nd, 'errori': errori, 'diagnosi': d[0],
+            'dettaglio': d[1]}
 
 
 def stampa(fase, r):
     print('[%s] seme %4d: %2d classi, %3d docenti, %-18s marce %-9s %6.1fs %s' % (
         fase, r['seme'], r['classi'], r['docenti'], r['esito'], r['marce'] if r['marce'] is not None else '-',
         r['sec'], ('DATI NON VALIDI: ' + '; '.join(r['errori'])) if r['errori'] else ''), flush=True)
+    if r['esito'] == 'non finito' or (r['marce'] or 0) > 1000:
+        print('         diagnosi:', r['diagnosi'], flush=True)
 
 
 def main():
@@ -133,6 +167,8 @@ def main():
                 for nome, r in storia[s]:
                     fh.write('%s: %s, marce indietro %s, %.1f s\n' % (
                         nome, r['esito'], r['marce'] if r['marce'] is not None else 'non note', r['sec']))
+                    if r['dettaglio']:
+                        fh.write('  ' + r['dettaglio'].replace('\n', '\n  ') + '\n')
                     if r['errori']:
                         fh.write('  DATI NON VALIDI: %s\n' % '; '.join(r['errori']))
 

@@ -16,6 +16,21 @@ long long int n_gen = 0;
 long long int n_backtrack = 0; // quante volte non si e' potuto scegliere nessun docente per uno slot
 int stampa_backtrack = 0;      // se 1, ad ogni marcia indietro scrive la riga di avviso e la griglia parziale (lento)
 long long int n_gen_max = SCHEDULES_PER_GB / 5;
+
+static double secondi_reali(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec + ts.tv_nsec / 1e9;
+}
+
+// Diagnosi della ricerca (non influiscono sulla ricerca): servono a capire dove si blocca.
+long long int nodi = 0;                       // chiamate di print_orario
+int pos_max = -1;                             // posizione piu' avanzata raggiunta
+long long int nodi_a_pos_max = 0;             // a quale nodo e' stata raggiunta
+long long int marce_per_pos[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ]; // marce indietro per slot
+double limite_secondi = 0;                    // se > 0 la ricerca si ferma dopo tanti secondi (--tempo)
+int interrotto_per_tempo = 0;
+double inizio_ricerca; // secondi (orologio reale), vedi secondi_reali()
 teaching_slot orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ];
 
 int orario_len;
@@ -325,6 +340,17 @@ static inline int docente_idoneo(const teaching_slot *slot, const int pos, const
 
 void print_orario(const int pos) {
     if (n_gen_max <= n_gen) return;
+    nodi++;
+    if (pos > pos_max) {
+        pos_max = pos;
+        nodi_a_pos_max = nodi;
+    }
+    if (limite_secondi > 0 && (nodi & 0xFFFF) == 0
+        && secondi_reali() - inizio_ricerca > limite_secondi) {
+        interrotto_per_tempo = 1;
+        n_gen_max = 0; // tutte le chiamate tornano subito e lo stato viene annullato normalmente
+        return;
+    }
 
     if (pos == orario_len) {
         n_gen++;
@@ -378,6 +404,7 @@ void print_orario(const int pos) {
         }
         if (n_assegnazioni == assegnazioni_prima) {
             n_backtrack++;
+            marce_per_pos[pos]++;
             if (stampa_backtrack) {
                 fprintf(f, "Backtrack, non si è potuto scegiere alcun insegnante nel giorno: %s, ora: %s, classe: %s\n",
                         giorni_settimana[giorno], ore_giornaliere[ora], classe_sezione[cla]);
@@ -396,6 +423,34 @@ void print_orario(const int pos) {
     }
 }
 
+static void stampa_diagnosi(void) {
+    printf("\nDiagnosi della ricerca\n");
+    if (interrotto_per_tempo) printf("Interrotto per tempo\n");
+    printf("Nodi esplorati: %lld\n", nodi);
+    if (pos_max >= 0) {
+        const teaching_slot *s = &orario[pos_max < orario_len ? pos_max : orario_len - 1];
+        printf("Posizione piu' avanzata: %d su %d (giorno %s, ora %s, classe %s), raggiunta al nodo %lld (%.1f%% dei nodi)\n",
+               pos_max, orario_len, giorni_settimana[s->giorno], ore_giornaliere[s->ora], classe_sezione[s->classe],
+               nodi_a_pos_max, nodi ? 100.0 * nodi_a_pos_max / nodi : 0.0);
+    }
+    int distinti = 0;
+    for (int i = 0; i < orario_len; i++) if (marce_per_pos[i]) distinti++;
+    printf("Marce indietro: %lld in %d slot diversi\n", n_backtrack, distinti);
+    // i 5 slot con piu' marce indietro
+    char usato[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {0};
+    for (int k = 0; k < 5; k++) {
+        int best = -1;
+        for (int i = 0; i < orario_len; i++)
+            if (!usato[i] && marce_per_pos[i] && (best < 0 || marce_per_pos[i] > marce_per_pos[best])) best = i;
+        if (best < 0) break;
+        usato[best] = 1;
+        const teaching_slot *s = &orario[best];
+        printf("  Slot piu' frequente %d: posizione %d (giorno %s, ora %s, classe %s): %lld marce (%.1f%%)\n", k + 1, best,
+               giorni_settimana[s->giorno], ore_giornaliere[s->ora], classe_sezione[s->classe], marce_per_pos[best],
+               n_backtrack ? 100.0 * marce_per_pos[best] / n_backtrack : 0.0);
+    }
+}
+
 // Uso: ./untitled [seed] [-b] [--casuale SEME [--classi N]] [-n MAX]
 //   seed: l'ordine delle classi viene mescolato (stesso seed = stesso ordine)
 //   -b / --backtrack: scrive in orario.txt anche ogni marcia indietro (riga "Backtrack" + griglia parziale).
@@ -404,6 +459,7 @@ void print_orario(const int pos) {
 //                   classi da 29 a 36 ore, docenti da 5 a 24 ore, con lezioni da soli e in codocenza.
 //   --classi N: numero di classi dei dati casuali (default 8)
 //   -n MAX: si ferma dopo MAX orari completi
+//   --tempo SEC: interrompe la ricerca dopo SEC secondi (la diagnosi viene stampata comunque)
 //   --dati FILE: scrive in FILE la descrizione dei dati (classi, docenti, lezioni, codocenze)
 int main(int argc, char **argv) {
     time_t currentTime;
@@ -425,6 +481,8 @@ int main(int argc, char **argv) {
             n_classi_casuali = atoi(argv[++i]);
         } else if (!strcmp(argv[i], "--dati") && i + 1 < argc) {
             file_dati = argv[++i];
+        } else if (!strcmp(argv[i], "--tempo") && i + 1 < argc) {
+            limite_secondi = atof(argv[++i]);
         } else if (!strcmp(argv[i], "-n") && i + 1 < argc) {
             n_gen_max = atoll(argv[++i]);
         } else {
@@ -453,12 +511,14 @@ int main(int argc, char **argv) {
     inizializza_orario();
     if (usa_seed) randomizza_ordine_classi(seed);
 
+    inizio_ricerca = secondi_reali();
     f = fopen("orario.txt", "w");
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
     print_orario(0);
 
     const double elapsed = (clock() - start) / (double) CLOCKS_PER_SEC;
     printf("Marce indietro: %lld\n", n_backtrack);
+    stampa_diagnosi();
     printf("Totale generati: %llu in %d m, %d s at %.0f Hz", n_gen, (int) elapsed / 60, (int) elapsed % 60,
            (double) n_gen / elapsed);
     fflush(stdout);
