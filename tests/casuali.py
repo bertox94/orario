@@ -73,7 +73,7 @@ def lancia(exe, seme, classi, timeout, cartella, backtrack=False, max_mb=4096):
     os.makedirs(cartella, exist_ok=True)
     dati = os.path.join(os.path.dirname(cartella) if backtrack else cartella, 'dati.txt')
     cmd = [exe, '--casuale', str(seme), '--classi', str(classi), '-n', '1', '--dati', dati,
-           '--tempo', str(max(timeout - 1, 0.5))] + (['-b'] if backtrack else [])
+           '--tempo', str(max(timeout - 1, 0.5)), '--motivi'] + (['-b'] if backtrack else [])
     limite = max_mb * 2 ** 20 if max_mb > 0 else resource.RLIM_INFINITY
     t = time.time()
     try:

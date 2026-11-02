@@ -30,6 +30,20 @@ long long int nodi_a_pos_max = 0;             // a quale nodo e' stata raggiunta
 long long int marce_per_pos[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ]; // marce indietro per slot
 double limite_secondi = 0;                    // se > 0 la ricerca si ferma dopo tanti secondi (--tempo)
 int interrotto_per_tempo = 0;
+int diagnosi_motivi = 0;                      // se 1 (--motivi) a ogni marcia indietro registra perche' ogni docente e' stato scartato
+#define N_MOTIVI 7
+static const char *nome_motivo[N_MOTIVI] = {
+    "occupato in un'altra classe alla stessa ora",
+    "non ancora entrato (ora di ingresso)",
+    "gia' al massimo di ore in questa classe oggi",
+    "ore non contigue",
+    "gia' al massimo di classi diverse oggi",
+    "solo ore in codocenza e nessun codocente utilizzabile",
+    "bloccato dalla regola del sabato"
+};
+long long motivi_per_pos[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ][N_MOTIVI];
+long long docenti_per_pos[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ]; // docenti con ore da fare, sommati
+long long motivi_per_docente[INSEGNANTE_SZ][N_MOTIVI];
 double inizio_ricerca; // secondi (orologio reale), vedi secondi_reali()
 teaching_slot orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ];
 
@@ -338,6 +352,40 @@ static inline int docente_idoneo(const teaching_slot *slot, const int pos, const
 }
 
 
+// Chiamata solo con --motivi, in un nodo senza assegnazioni: per ogni docente che in questa classe ha ancora ore da fare
+// registra il primo motivo per cui non si e' potuto mettere in questo slot.
+static void analizza_marcia_indietro(const teaching_slot *slot, const int pos, const int base4d_queue,
+                                     const int queue_size) {
+    for (int ii = base4d_queue; ii < queue_size; ii++) {
+        const int p = queue_mul[ii]->teacher;
+        if (!deve_ancora_svolgere_ore_in_questa_classe(slot->base2d_ci, p)) continue;
+        int m;
+        if (!prof_è_disponibile(slot->base3d_goi, p)) m = 0;
+        else if (!verifica_ora_ingresso(p, slot->ora)) m = 1;
+        else if (!prof_fa_al_max_n_ore(slot, p)) m = 2;
+        else if (!prof_fa_ore_contigue(slot, p)) m = 3;
+        else if (!ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(pos, slot->giorno, slot->classe, p)) m = 4;
+        else if (deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(slot->base2d_ci, p)) m = 6;
+        else m = 5;
+        // idoneo e senza ore da solo: il motivo e' la mancanza di un codocente, a meno che esista un partner utilizzabile
+        // che la regola del sabato scarta
+        if (m == 5) {
+            for (int jj = base4d_queue; jj < queue_size; jj++) {
+                const int q = queue_mul[jj]->teacher;
+                if (q != p && prof_è_disponibile(slot->base3d_goi, q)
+                    && docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(slot->classe, p, q)
+                    && docente_idoneo(slot, pos, q)) {
+                    m = 6;
+                    break;
+                }
+            }
+        }
+        motivi_per_pos[pos][m]++;
+        motivi_per_docente[p][m]++;
+        docenti_per_pos[pos]++;
+    }
+}
+
 void print_orario(const int pos) {
     if (n_gen_max <= n_gen) return;
     nodi++;
@@ -405,6 +453,7 @@ void print_orario(const int pos) {
         if (n_assegnazioni == assegnazioni_prima) {
             n_backtrack++;
             marce_per_pos[pos]++;
+            if (diagnosi_motivi) analizza_marcia_indietro(slot, pos, base4d_queue, queue_size);
             if (stampa_backtrack) {
                 fprintf(f, "Backtrack, non si è potuto scegiere alcun insegnante nel giorno: %s, ora: %s, classe: %s\n",
                         giorni_settimana[giorno], ore_giornaliere[ora], classe_sezione[cla]);
@@ -448,6 +497,28 @@ static void stampa_diagnosi(void) {
         printf("  Slot piu' frequente %d: posizione %d (giorno %s, ora %s, classe %s): %lld marce (%.1f%%)\n", k + 1, best,
                giorni_settimana[s->giorno], ore_giornaliere[s->ora], classe_sezione[s->classe], marce_per_pos[best],
                n_backtrack ? 100.0 * marce_per_pos[best] / n_backtrack : 0.0);
+        if (diagnosi_motivi && docenti_per_pos[best]) {
+            printf("      motivi per cui i docenti con ore da fare in quella classe sono stati scartati (%.1f per marcia):\n",
+                   (double) docenti_per_pos[best] / marce_per_pos[best]);
+            for (int m = 0; m < N_MOTIVI; m++)
+                if (motivi_per_pos[best][m])
+                    printf("        %5.1f%%  %s\n", 100.0 * motivi_per_pos[best][m] / docenti_per_pos[best], nome_motivo[m]);
+        }
+    }
+    if (diagnosi_motivi) {
+        // i docenti scartati piu' spesso, in tutta la ricerca
+        printf("  Docenti scartati piu' spesso (docente: motivo, volte):\n");
+        char usato2[INSEGNANTE_SZ * N_MOTIVI] = {0};
+        for (int k = 0; k < 6; k++) {
+            int bp = -1, bm = -1;
+            for (int p = 0; p < actual_insegnanti; p++)
+                for (int m = 0; m < N_MOTIVI; m++)
+                    if (!usato2[p * N_MOTIVI + m] && motivi_per_docente[p][m]
+                        && (bp < 0 || motivi_per_docente[p][m] > motivi_per_docente[bp][bm])) { bp = p; bm = m; }
+            if (bp < 0) break;
+            usato2[bp * N_MOTIVI + bm] = 1;
+            printf("    %s: %s, %lld\n", insegnanti[bp], nome_motivo[bm], motivi_per_docente[bp][bm]);
+        }
     }
 }
 
@@ -460,6 +531,7 @@ static void stampa_diagnosi(void) {
 //   --classi N: numero di classi dei dati casuali (default 8)
 //   -n MAX: si ferma dopo MAX orari completi
 //   --tempo SEC: interrompe la ricerca dopo SEC secondi (la diagnosi viene stampata comunque)
+//   --motivi: nella diagnosi indica anche perche' i docenti vengono scartati negli slot con piu' marce indietro
 //   --dati FILE: scrive in FILE la descrizione dei dati (classi, docenti, lezioni, codocenze)
 int main(int argc, char **argv) {
     time_t currentTime;
@@ -481,6 +553,8 @@ int main(int argc, char **argv) {
             n_classi_casuali = atoi(argv[++i]);
         } else if (!strcmp(argv[i], "--dati") && i + 1 < argc) {
             file_dati = argv[++i];
+        } else if (!strcmp(argv[i], "--motivi")) {
+            diagnosi_motivi = 1;
         } else if (!strcmp(argv[i], "--tempo") && i + 1 < argc) {
             limite_secondi = atof(argv[++i]);
         } else if (!strcmp(argv[i], "-n") && i + 1 < argc) {
