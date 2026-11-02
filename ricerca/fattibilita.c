@@ -3,39 +3,23 @@
 #include <stdio.h>
 
 #include "../data_initialization/database_initializers.h"
+#include "vincoli.h"
 
-// Quante lezioni (ore di una classe) possono essere gia' cominciate all'ora k: quelle da solo di un docente entrato
-// entro k e quelle in coppia con entrambi i docenti entrati entro k.
-static int lezioni_possibili_entro_ora(const int classe, const int k) {
-    int n = 0;
-    for (int p = 0; p < actual_insegnanti; p++) {
-        if (docente_info[p].ora_entrata <= k) n += classe_docente[classe * INSEGNANTE_SZ + p].alone;
-        for (int q = p + 1; q < actual_insegnanti; q++) {
-            const int ore = codocenza[classe * INSEGNANTE_SZ * INSEGNANTE_SZ + p * INSEGNANTE_SZ + q].ore;
-            const int ingresso = docente_info[p].ora_entrata > docente_info[q].ora_entrata
-                                     ? docente_info[p].ora_entrata
-                                     : docente_info[q].ora_entrata;
-            if (ore > 0 && ingresso <= k) n += ore;
-        }
-    }
-    return n;
-}
-
-// Ogni classe deve avere una lezione in ognuna delle ore obbligatorie di ogni giorno: alla fine dell'ora k gli slot da
-// riempire sono (k + 1) * giorni, e si riempiono solo con lezioni di docenti gia' entrati.
+// Ogni classe deve avere una lezione in ognuna delle ore obbligatorie di ogni giorno, e tutte le sue ore devono stare
+// nella settimana. Fino all'ora k una lezione (docente da solo o coppia) cade solo dopo il suo ingresso, e in una classe
+// al massimo MAX_ORE_PROF_IN_UNA_CLASSE volte al giorno (vedi lezioni_bastano_per_le_classi).
 static int classi_hanno_lezioni_a_sufficienza(char *motivo, const size_t dim) {
-    for (int c = 0; c < actual_classi_sezione; c++) {
-        for (int k = 0; k < PRIME_N_ORE_OBBLIGATORIE && k < actual_ore_giornaliere; k++) {
-            const int servono = (k + 1) * actual_giorni_settimana;
-            const int ci_sono = lezioni_possibili_entro_ora(c, k);
-            if (ci_sono < servono) {
-                snprintf(motivo, dim, "classe %s: fino all'ora %s servono %d lezioni ma solo %d sono di docenti "
-                                      "(o coppie) gia' entrati", classe_sezione[c], ore_giornaliere[k], servono, ci_sono);
-                return 0;
-            }
-        }
-    }
-    return 1;
+    int c, k, servono, possibili;
+    if (lezioni_bastano_per_le_classi(0, 0, &c, &k, &servono, &possibili)) return 1;
+    if (k < PRIME_N_ORE_OBBLIGATORIE)
+        snprintf(motivo, dim, "classe %s: fino all'ora %s servono %d lezioni ma, con le ore di ingresso dei docenti e "
+                              "al massimo %d ore al giorno per docente nella classe, ne possono cadere al massimo %d",
+                 classe_sezione[c], ore_giornaliere[k], servono, MAX_ORE_PROF_IN_UNA_CLASSE, possibili);
+    else
+        snprintf(motivo, dim, "classe %s: %d ore ma, con le ore di ingresso dei docenti e al massimo %d ore al giorno "
+                              "per docente nella classe, ne possono stare nella settimana al massimo %d",
+                 classe_sezione[c], servono, MAX_ORE_PROF_IN_UNA_CLASSE, possibili);
+    return 0;
 }
 
 // A ogni ora obbligatoria tutte le classi fanno lezione insieme, con docenti diversi: servono almeno tanti docenti

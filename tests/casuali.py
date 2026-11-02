@@ -19,8 +19,9 @@ Per ogni caso c'e' una cartella tests/risultati/seme_<N>/ (o seme_<N>_ritardi/) 
    orario.txt          il primo orario trovato (se la ricerca e' finita)
    marce_indietro/orario.txt   solo per i casi non finiti: orario parziale a ogni marcia indietro
 
-Per ogni caso lento o non finito stampa una diagnosi: se le marce indietro sono concentrate in pochi slot
-(LOCALIZZATA) il caso e' probabilmente impossibile o ha un blocco preciso; se sono sparse (diffusa) e' solo difficile.
+Per ogni caso lento o non finito stampa una diagnosi: se i vicoli ciechi (marce indietro, o rami scartati dalla
+potatura se sono di piu') sono concentrati in pochi slot (LOCALIZZATA) il caso e' probabilmente impossibile o ha un
+blocco preciso; se sono sparsi (diffusa) e' solo difficile.
 
 Controlla anche che i dati generati rispettino i vincoli (classi 29..36 ore, docenti 5..24 ore): esce con 1 se no."""
 import argparse, os, re, resource, shutil, subprocess, sys, tempfile, time
@@ -66,18 +67,28 @@ def diagnosi(out):
     if i < 0:
         return '-', ''
     testo = out[i:].split('Totale generati')[0].strip()
+    # i vicoli ciechi sono le marce indietro oppure i rami scartati dalla potatura: si guarda i piu' numerosi
     m = re.search(r'Marce indietro: (\d+) in (\d+) slot diversi', testo)
-    if not m or int(m.group(1)) == 0:
+    s = re.search(r'Rami scartati: (\d+) dopo (\d+) slot diversi', testo)
+    marce = int(m.group(1)) if m else 0
+    rami = int(s.group(1)) if s else 0
+    if not marce and not rami:
         return 'nessuna marcia indietro', testo
-    quote = [float(x) for x in re.findall(r'marce \(([\d.]+)%\)', testo)]
-    primo = re.search(r'Slot piu\' frequente 1: posizione \d+ \(giorno (\S+), ora (\S+), classe (\S+)\)', testo)
+    if marce >= rami:
+        cosa, n_slot = 'marce', m.group(2)
+        quote = [float(x) for x in re.findall(r'marce \(([\d.]+)%\)', testo)]
+        primo = re.search(r'Slot piu\' frequente 1: posizione \d+ \(giorno (\S+), ora (\S+), classe (\S+)\)', testo)
+    else:
+        cosa, n_slot = 'rami scartati', s.group(2)
+        quote = [float(x) for x in re.findall(r'Rami scartati dopo lo slot \d: .*\(([\d.]+)%\)', testo)]
+        primo = re.search(r'Rami scartati dopo lo slot 1: posizione \d+ \(giorno (\S+), ora (\S+), classe (\S+)\)', testo)
     ferma = re.search(r'raggiunta al nodo \d+ \(([\d.]+)% dei nodi\)', testo)
     top3 = sum(quote[:3])
     nome = '%s %s %s' % primo.groups() if primo else '?'
     stato = 'LOCALIZZATA' if top3 >= 80 else 'diffusa'
     senza_progressi = ferma and float(ferma.group(1)) < 5
-    return '%s: %s slot, top3 %.0f%%, piu\' frequente %s%s' % (
-        stato, m.group(2), top3, nome, ', senza avanzare' if senza_progressi else ''), testo
+    return '%s (%s): %s slot, top3 %.0f%%, piu\' frequente %s%s' % (
+        stato, cosa, n_slot, top3, nome, ', senza avanzare' if senza_progressi else ''), testo
 
 
 def lancia(exe, caso, classi, timeout, cartella, backtrack=False, max_mb=4096):

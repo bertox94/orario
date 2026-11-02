@@ -10,6 +10,7 @@
 #include "ricerca/diagnosi.h"
 #include "ricerca/fattibilita.h"
 #include "ricerca/ricerca.h"
+#include "ricerca/vincoli.h"
 
 // Uso: ./untitled [seed] [-b] [--casuale SEME [--classi N] [--ritardi]] [-n MAX] [--tempo SEC] [--motivi] [--dati FILE] [--senza-verifica]
 //   seed: l'ordine delle classi viene mescolato (stesso seed = stesso ordine)
@@ -76,6 +77,7 @@ static void carica_dati(const Opzioni *o) {
     } else {
         inizializza_dati();
     }
+    prepara_lezioni_delle_classi();
     stampa_dati();
     fflush(stdout);
 }

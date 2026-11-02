@@ -167,4 +167,17 @@ static inline int docente_idoneo(const teaching_slot *slot, const int pos, const
 // Controllo fatto a ogni inizio ora (vedi vincoli.c). Ritorna 0 se il ramo non puo' piu' avere soluzioni.
 int ore_rimaste_stanno_nel_tempo_rimasto(int giorno, int ora);
 
+// Elenca le lezioni (docente da solo o coppia) di ogni classe. Da chiamare una volta, dopo aver caricato i dati.
+void prepara_lezioni_delle_classi(void);
+
+// All'inizio dell'ora (giorno, ora): le lezioni che restano a ogni classe bastano per gli slot che deve riempire per
+// forza (ore obbligatorie e ore rimaste)? Se no ritorna 0 e scrive la classe, l'ora fino a cui non bastano, quanti slot
+// vanno riempiti e quante lezioni al massimo possono riempirli. All'inizio della settimana (0, 0) e' una verifica
+// preliminare dei dati.
+int lezioni_bastano_per_le_classi(int giorno, int ora, int *classe_ko, int *ora_ko, int *servono, int *possibili);
+
+// La stessa verifica per la sola classe dello slot, dall'ora dopo lo slot. Dipende solo da quella classe, quindi si fa
+// subito dopo averne deciso lo slot: cosi' una scelta sbagliata si scarta prima di provare gli slot delle altre classi.
+int lezioni_della_classe_bastano_dopo(const teaching_slot *slot);
+
 #endif //UNTITLED_VINCOLI_H

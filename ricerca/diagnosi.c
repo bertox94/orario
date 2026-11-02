@@ -9,7 +9,6 @@
 long long int nodi = 0;
 int pos_max = -1;
 long long int nodi_a_pos_max = 0;
-long long int rami_scartati_a_inizio_ora = 0;
 double limite_secondi = 0;
 double inizio_ricerca;
 int interrotto_per_tempo = 0;
@@ -21,6 +20,13 @@ static long long int marce_per_pos[N_SLOT];                // marce indietro per
 static long long int motivi_per_pos[N_SLOT][N_MOTIVI];     // motivi di scarto per slot
 static long long int docenti_per_pos[N_SLOT];              // docenti con ore da fare, sommati
 static long long int motivi_per_docente[INSEGNANTE_SZ][N_MOTIVI];
+static long long int scartati_per_pos[N_SLOT][N_MOTIVI_SCARTO]; // rami scartati dopo lo slot, per motivo
+static long long int scartati[N_MOTIVI_SCARTO];
+
+static const char *nome_motivo_scarto[N_MOTIVI_SCARTO] = {
+    "alla classe non bastano piu' le lezioni per gli slot da riempire",
+    "le ore che mancano a un docente non stanno piu' nel tempo rimasto"
+};
 
 static const char *nome_motivo[N_MOTIVI] = {
     "occupato in un'altra classe alla stessa ora",
@@ -70,6 +76,11 @@ static int motivo_di_scarto(const teaching_slot *slot, const int pos, const int 
     return 5;
 }
 
+void diagnosi_ramo_scartato(const int pos, const int motivo) {
+    scartati_per_pos[pos][motivo]++;
+    scartati[motivo]++;
+}
+
 void diagnosi_marcia_indietro(const teaching_slot *slot, const int pos, const int base4d_queue, const int queue_size) {
     marce_per_pos[pos]++;
     if (!registra_motivi) return;
@@ -102,7 +113,35 @@ static void stampa_riepilogo(const long long int n_backtrack) {
     int distinti = 0;
     for (int i = 0; i < orario_len; i++) if (marce_per_pos[i]) distinti++;
     printf("Marce indietro: %lld in %d slot diversi\n", n_backtrack, distinti);
-    printf("Rami scartati a inizio ora (ore che mancano oltre il tempo rimasto): %lld\n", rami_scartati_a_inizio_ora);
+}
+
+static long long int scartati_nello_slot(const int pos) {
+    long long int n = 0;
+    for (int m = 0; m < N_MOTIVI_SCARTO; m++) n += scartati_per_pos[pos][m];
+    return n;
+}
+
+// Come per le marce indietro: se i rami scartati sono quasi tutti dopo pochi slot, la ricerca e' bloccata li'.
+static void stampa_rami_scartati(void) {
+    long long int totale = 0;
+    for (int m = 0; m < N_MOTIVI_SCARTO; m++) totale += scartati[m];
+    int distinti = 0;
+    for (int i = 0; i < orario_len; i++) if (scartati_nello_slot(i)) distinti++;
+    printf("Rami scartati: %lld dopo %d slot diversi\n", totale, distinti);
+    for (int m = 0; m < N_MOTIVI_SCARTO; m++)
+        if (scartati[m]) printf("  %lld: %s\n", scartati[m], nome_motivo_scarto[m]);
+    char usato[N_SLOT] = {0};
+    for (int k = 0; k < 5; k++) {
+        int best = -1;
+        for (int i = 0; i < orario_len; i++)
+            if (!usato[i] && scartati_nello_slot(i) && (best < 0 || scartati_nello_slot(i) > scartati_nello_slot(best)))
+                best = i;
+        if (best < 0) break;
+        usato[best] = 1;
+        printf("  Rami scartati dopo lo slot %d: posizione %d (", k + 1, best);
+        stampa_nome_slot(best);
+        printf("): %lld (%.1f%%)\n", scartati_nello_slot(best), 100.0 * scartati_nello_slot(best) / totale);
+    }
 }
 
 static void stampa_motivi_dello_slot(const int pos) {
@@ -162,4 +201,5 @@ void stampa_diagnosi(const long long int n_backtrack) {
     stampa_riepilogo(n_backtrack);
     stampa_slot_piu_frequenti(n_backtrack);
     stampa_docenti_scartati_piu_spesso();
+    stampa_rami_scartati();
 }
