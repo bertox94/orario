@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 """Prova il solver su dati casuali, in tre fasi.
 
-Uso: tests/casuali.py [--da SEME] [--quanti N] [--classi K] [--prima SEC] [--dopo SEC] [--piu-lenti M]
+Uso: tests/casuali.py [--da SEME] [--quanti N] [--classi K] [--prima SEC] [--dopo SEC]
                       [--jobs J] [--max-mb MB] [--out CARTELLA]
 
 1. Fase 1: ogni caso (seme da --da, --quanti casi) gira al massimo --prima secondi (default 60).
 2. Fase 2: i casi non finiti nella fase 1 girano di nuovo per al massimo --dopo secondi (default 600; 0 = salta).
-3. Fase 3: i casi ancora non finiti, e i --piu-lenti casi finiti con piu' marce indietro (default 3), vengono rilanciati
-   con -b: il programma scrive in orario.txt l'orario parziale a ogni marcia indietro.
+3. Fase 3: i casi ancora non finiti vengono rilanciati con -b (i casi che hanno trovato un orario non si rilanciano): il programma scrive in orario.txt l'orario parziale a ogni marcia indietro.
 
 Per ogni caso c'e' una cartella <out>/seme_<N>/ (default tests/risultati) con:
    dati.txt            descrizione del caso (classi, docenti, lezioni, codocenze)
@@ -80,7 +79,6 @@ def main():
     ap.add_argument('--classi', type=int, default=8)
     ap.add_argument('--prima', type=float, default=60, help='secondi massimi della fase 1')
     ap.add_argument('--dopo', type=float, default=600, help='secondi massimi della fase 2 (0 = salta)')
-    ap.add_argument('--piu-lenti', type=int, default=3, help='quanti casi finiti con piu\' marce indietro rilanciare')
     ap.add_argument('--jobs', type=int, default=max(1, (os.cpu_count() or 2) // 2))
     ap.add_argument('--max-mb', type=int, default=4096,
                     help='dimensione massima di ogni orario.txt nella fase 3, in MB (0 = nessun limite)')
@@ -111,11 +109,9 @@ def main():
                 stampa('2', r)
 
         ancora = [s for s in semi if not ris[s]['finito']]
-        lenti = sorted((s for s in semi if ris[s]['finito'] and ris[s]['marce']), key=lambda s: -ris[s]['marce'])
-        da_ristampare = ancora + lenti[:a.piu_lenti]
+        da_ristampare = ancora
         if da_ristampare:
-            print('\n== Fase 3: orario parziale a ogni marcia indietro per %d casi (%d non finiti, %d con piu\' marce '
-                  'indietro)' % (len(da_ristampare), len(ancora), len(da_ristampare) - len(ancora)))
+            print('\n== Fase 3: orario parziale a ogni marcia indietro per i %d casi non finiti' % len(da_ristampare))
             tempo = max(a.prima, a.dopo)
             os.makedirs(a.out, exist_ok=True)
             libero = shutil.disk_usage(a.out).free / 2 ** 20
