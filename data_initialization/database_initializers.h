@@ -25,6 +25,7 @@ typedef struct {
     int giorno;
     int ora;
     int classe;
+    long long int base_queue_mul;
 } teaching_slot;
 
 extern char giorni_settimana[GIORNO_SETTIMANA_SZ][MAX_LEN_WORDS];

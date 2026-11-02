@@ -57,7 +57,11 @@ static void ricostruisci_indice_slot(void) {
 // Va chiamata dopo che i dati sono stati inizializzati e orario_len e' noto.
 void inizializza_orario(void) {
     for (int p = 0; p < orario_len; p++) {
-        orario[p] = (teaching_slot){-1, -1, g_giorno(p), g_ora(p), g_classe(p)};
+        orario[p] = (teaching_slot){
+            -1, -1, g_giorno(p), g_ora(p), g_classe(p),
+            g_giorno(p) * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + g_ora(p) *
+            CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + g_classe(p) * INSEGNANTE_SZ
+        };
     }
     ricostruisci_indice_slot();
 }
@@ -441,9 +445,7 @@ void print_orario(const int pos) {
     const int base2d_ci = cla * INSEGNANTE_SZ;
     const int base2d_gc = giorno * CLASSE_SEZIONE_SZ;
     const int base3d_goi = giorno * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + ora * INSEGNANTE_SZ;
-    const int base4d_queue = giorno * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + ora *
-                             CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ;
-
+    const long long int base4d_queue = orario[pos].base_queue_mul;
 
     sort_queue_mul(base4d_queue, queue_sz);
     if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
