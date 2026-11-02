@@ -6,6 +6,7 @@
 #include "utils.h"
 #include "priority_queue/prio_queue.h"
 #include "data_initialization/database_initializers.h"
+#include "data_initialization/generatore.h"
 #include "printer/printer.h"
 
 #define SCHEDULES_PER_GB 55000
@@ -398,31 +399,51 @@ void print_orario(const int pos) {
     }
 }
 
-// Uso: ./untitled [seed] [-b]
+// Uso: ./untitled [seed] [-b] [--casuale SEME [--classi N]] [-n MAX]
 //   seed: l'ordine delle classi viene mescolato (stesso seed = stesso ordine)
 //   -b / --backtrack: scrive in orario.txt anche ogni marcia indietro (riga "Backtrack" + griglia parziale).
 //                     Senza, orario.txt contiene solo gli orari completi e si va molto piu' veloci.
+//   --casuale SEME: invece dei dati del programma usa dati generati a caso (riproducibili con lo stesso SEME):
+//                   classi da 29 a 36 ore, docenti da 5 a 24 ore, con lezioni da soli e in codocenza.
+//   --classi N: numero di classi dei dati casuali (default 8)
+//   -n MAX: si ferma dopo MAX orari completi
 int main(int argc, char **argv) {
     time_t currentTime;
     time(&currentTime); // Get the current time
     const clock_t start = clock();
 
-    printf("Program started at: %s\n", ctime(&currentTime));
-    inizializza_dati();
-    stampa_dati();
-    //imposta la lunghezza dell'orario
-    orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
-    inizializza_orario();
     int usa_seed = 0;
     unsigned int seed = 0;
+    int casuale = 0, n_classi_casuali = 8;
+    unsigned long long seme_dati = 0;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-b") || !strcmp(argv[i], "--backtrack")) {
             stampa_backtrack = 1;
+        } else if (!strcmp(argv[i], "--casuale") && i + 1 < argc) {
+            casuale = 1;
+            seme_dati = strtoull(argv[++i], NULL, 10);
+        } else if (!strcmp(argv[i], "--classi") && i + 1 < argc) {
+            n_classi_casuali = atoi(argv[++i]);
+        } else if (!strcmp(argv[i], "-n") && i + 1 < argc) {
+            n_gen_max = atoll(argv[++i]);
         } else {
             seed = (unsigned int) strtoul(argv[i], NULL, 10);
             usa_seed = 1;
         }
     }
+
+    printf("Program started at: %s\n", ctime(&currentTime));
+    if (casuale) {
+        inizializza_calendario();
+        genera_dati_casuali(seme_dati, n_classi_casuali);
+    } else {
+        inizializza_dati();
+    }
+    stampa_dati();
+    fflush(stdout);
+    //imposta la lunghezza dell'orario
+    orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
+    inizializza_orario();
     if (usa_seed) randomizza_ordine_classi(seed);
 
     f = fopen("orario.txt", "w");

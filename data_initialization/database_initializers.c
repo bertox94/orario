@@ -162,7 +162,8 @@ void set_classe_insegnante_ore_cod(char cla[], char prof[], const int ore, char 
     add_to_queue(p_insegnante(prof), ore);
 }
 
-void inizializza_dati() {
+// Giorni, ore e coda dei docenti: uguali per qualunque insieme di dati.
+void inizializza_calendario() {
     set_giorno_settimana(Lun);
     set_giorno_settimana(Mar);
     set_giorno_settimana(Mer);
@@ -179,6 +180,10 @@ void inizializza_dati() {
 
     queue_mul = malloc(
         sizeof(QueueItem *) * GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ);
+}
+
+void inizializza_dati() {
+    inizializza_calendario();
 
     set_classe_insegnante_ore(Classe_3A, DMalfoy, 2);
     set_classe_insegnante_ore(Classe_3A, Voldemort, 3);
