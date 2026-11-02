@@ -451,7 +451,7 @@ void print_orario(const int pos) {
     if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
         int found_prof = 0;
         ore_classe_svolte[cla]++;
-        const long long int queue_size = base4d_queue + queue_sz;
+        const int queue_size = base4d_queue + queue_sz;
         for (int ii = base4d_queue; ii < queue_size; ii++) {
             QueueItem *it = queue_mul[ii];
             const int p1 = it->teacher;
