@@ -22,6 +22,8 @@ add_executable(untitled main.c
         ricerca/vincoli.c
         ricerca/diagnosi.h
         ricerca/diagnosi.c
+        ricerca/fattibilita.h
+        ricerca/fattibilita.c
         printer/printer.h
         printer/printer.c
         priority_queue/prio_queue.c

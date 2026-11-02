@@ -3,7 +3,8 @@
 
 Uso: tests/casuali.py [--da SEME] [--quanti N] [--classi K]
   --da      primo seme (default 1)
-  --quanti  quanti casi provare (default 20)
+  --quanti  quanti semi provare (default 20); ogni seme si prova due volte: normale e con docenti che entrano in
+            ritardo (ora di ingresso 1, 2 o 3), quindi i casi sono il doppio
   --classi  quante classi ha ogni caso (default 8)
 
 1. Fase 1: ogni caso gira al massimo 1 minuto (si ferma al primo orario trovato).
@@ -12,7 +13,7 @@ Uso: tests/casuali.py [--da SEME] [--quanti N] [--classi K]
    ogni marcia indietro. Tutti i file delle marce indietro insieme occupano al massimo circa 20 GB (divisi in parti
    uguali tra i casi). I casi che hanno trovato un orario non si rilanciano.
 
-Per ogni caso c'e' una cartella tests/risultati/seme_<N>/ (cancellata a ogni esecuzione) con:
+Per ogni caso c'e' una cartella tests/risultati/seme_<N>/ (o seme_<N>_ritardi/) (cancellata a ogni esecuzione) con:
    dati.txt            descrizione del caso (classi, docenti, lezioni, codocenze)
    risultato.txt       esito di ogni fase, marce indietro, tempi, diagnosi
    orario.txt          il primo orario trovato (se la ricerca e' finita)
@@ -33,7 +34,7 @@ JOBS = max(1, (os.cpu_count() or 2) // 2)
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RADICE = os.path.dirname(AQUI)
 OUT = os.path.join(AQUI, 'risultati')
-FILES = ['main.c', 'orario/orario.c', 'ricerca/ricerca.c', 'ricerca/vincoli.c', 'ricerca/diagnosi.c',
+FILES = ['main.c', 'orario/orario.c', 'ricerca/ricerca.c', 'ricerca/vincoli.c', 'ricerca/diagnosi.c', 'ricerca/fattibilita.c',
          'data_initialization/database_initializers.c', 'data_initialization/generatore.c',
          'printer/printer.c', 'priority_queue/prio_queue.c']
 
@@ -79,12 +80,14 @@ def diagnosi(out):
         stato, m.group(2), top3, nome, ', senza avanzare' if senza_progressi else ''), testo
 
 
-def lancia(exe, seme, classi, timeout, cartella, backtrack=False, max_mb=4096):
+def lancia(exe, caso, classi, timeout, cartella, backtrack=False, max_mb=4096):
     """Esegue un caso nella sua cartella. Ritorna un dizionario con l'esito."""
+    seme, ritardi = caso
     os.makedirs(cartella, exist_ok=True)
     dati = os.path.join(os.path.dirname(cartella) if backtrack else cartella, 'dati.txt')
     cmd = [exe, '--casuale', str(seme), '--classi', str(classi), '-n', '1', '--dati', dati,
-           '--tempo', str(max(timeout - 1, 0.5)), '--motivi'] + (['-b'] if backtrack else [])
+           '--tempo', str(max(timeout - 1, 0.5)), '--motivi'] + (['--ritardi'] if ritardi else []) + \
+          (['-b'] if backtrack else [])
     limite = max_mb * 2 ** 20 if max_mb > 0 else resource.RLIM_INFINITY
     t = time.time()
     try:
@@ -95,54 +98,66 @@ def lancia(exe, seme, classi, timeout, cartella, backtrack=False, max_mb=4096):
     except subprocess.TimeoutExpired as e:
         out = e.stdout.decode() if isinstance(e.stdout, bytes) else (e.stdout or '')
         finito, errore = False, False
+    impossibile = re.search(r'Impossibile \(verifica preliminare\): ([^\n]*)', out)
     interrotto = 'Interrotto per tempo' in out
     finito = finito and not interrotto
     m = re.search(r'Totale generati: (\d+)', out)
     marce = re.search(r'Marce indietro: (\d+)', out)
     esito = 'non finito' if not finito else ('trovato' if m and int(m.group(1)) > 0 else 'nessuna soluzione')
-    if errore:
+    if impossibile:
+        esito, finito = 'impossibile', True
+    elif errore:
         esito = 'interrotto (file troppo grande)' if backtrack else 'errore'
     errori, nc, nd = controlla_dati(out)
-    d = diagnosi(out)
-    return {'seme': seme, 'esito': esito, 'finito': finito, 'marce': int(marce.group(1)) if marce else None,
+    if impossibile:
+        d = ('impossibile: ' + impossibile.group(1), 'Impossibile (verifica preliminare): ' + impossibile.group(1))
+    else:
+        d = diagnosi(out)
+    return {'caso': caso, 'esito': esito, 'finito': finito, 'marce': int(marce.group(1)) if marce else None,
             'sec': time.time() - t, 'classi': nc, 'docenti': nd, 'errori': errori, 'diagnosi': d[0],
             'dettaglio': d[1]}
 
 
 def stampa(fase, r):
-    print('[%s] seme %4d: %2d classi, %3d docenti, %-18s marce %-9s %6.1fs %s' % (
-        fase, r['seme'], r['classi'], r['docenti'], r['esito'], r['marce'] if r['marce'] is not None else '-',
+    print('[%s] %-15s: %2d classi, %3d docenti, %-18s marce %-9s %6.1fs %s' % (
+        fase, nome_caso(r['caso']), r['classi'], r['docenti'], r['esito'], r['marce'] if r['marce'] is not None else '-',
         r['sec'], ('DATI NON VALIDI: ' + '; '.join(r['errori'])) if r['errori'] else ''), flush=True)
-    if r['esito'] == 'non finito' or (r['marce'] or 0) > 1000:
+    if r['esito'] in ('non finito', 'impossibile') or (r['marce'] or 0) > 1000:
         print('         diagnosi:', r['diagnosi'], flush=True)
 
 
-def cartella_caso(seme):
-    return os.path.join(OUT, 'seme_%d' % seme)
+def nome_caso(caso):
+    seme, ritardi = caso
+    return 'seme %d%s' % (seme, ' ritardi' if ritardi else '')
 
 
-def fase1(pool, exe, semi, classi, ris, storia):
+def cartella_caso(caso):
+    seme, ritardi = caso
+    return os.path.join(OUT, 'seme_%d%s' % (seme, '_ritardi' if ritardi else ''))
+
+
+def fase1(pool, exe, casi, classi, ris, storia):
     print('== Fase 1: al massimo %g s per caso, %d in parallelo' % (PRIMA, JOBS))
-    for r in pool.map(lambda s: lancia(exe, s, classi, PRIMA, cartella_caso(s)), semi):
-        ris[r['seme']] = r
-        storia[r['seme']].append(('fase 1 (max %g s)' % PRIMA, r))
+    for r in pool.map(lambda s: lancia(exe, s, classi, PRIMA, cartella_caso(s)), casi):
+        ris[r['caso']] = r
+        storia[r['caso']].append(('fase 1 (max %g s)' % PRIMA, r))
         stampa('1', r)
 
 
-def fase2(pool, exe, semi, classi, ris, storia):
-    non_finiti = [s for s in semi if not ris[s]['finito']]
+def fase2(pool, exe, casi, classi, ris, storia):
+    non_finiti = [s for s in casi if not ris[s]['finito']]
     if not non_finiti:
         return
     print('\n== Fase 2: %d casi non finiti, al massimo %g s ciascuno' % (len(non_finiti), DOPO))
     for r in pool.map(lambda s: lancia(exe, s, classi, DOPO, cartella_caso(s)), non_finiti):
-        ris[r['seme']] = r
-        storia[r['seme']].append(('fase 2 (max %g s)' % DOPO, r))
+        ris[r['caso']] = r
+        storia[r['caso']].append(('fase 2 (max %g s)' % DOPO, r))
         stampa('2', r)
 
 
-def fase3(pool, exe, semi, classi, ris, storia):
+def fase3(pool, exe, casi, classi, ris, storia):
     """Rilancia con -b i casi ancora non finiti. Lo spazio TOTALE_MARCE_MB si divide in parti uguali tra i casi."""
-    da_ristampare = [s for s in semi if not ris[s]['finito']]
+    da_ristampare = [s for s in casi if not ris[s]['finito']]
     if not da_ristampare:
         return
     per_file_mb = max(1, TOTALE_MARCE_MB // len(da_ristampare))
@@ -155,17 +170,17 @@ def fase3(pool, exe, semi, classi, ris, storia):
     for r in pool.map(lambda s: lancia(exe, s, classi, DOPO, os.path.join(cartella_caso(s), 'marce_indietro'),
                                        backtrack=True, max_mb=per_file_mb), da_ristampare):
         stampa('3', r)
-        storia[r['seme']].append(('fase 3, con -b (max %g s)' % DOPO, r))
-        p = os.path.join(cartella_caso(r['seme']), 'marce_indietro', 'orario.txt')
+        storia[r['caso']].append(('fase 3, con -b (max %g s)' % DOPO, r))
+        p = os.path.join(cartella_caso(r['caso']), 'marce_indietro', 'orario.txt')
         if os.path.exists(p):
             print('         -> %s (%.1f MB)' % (os.path.relpath(p, RADICE), os.path.getsize(p) / 1e6))
 
 
-def scrivi_risultati(semi, classi, storia):
+def scrivi_risultati(casi, classi, storia):
     """Un file di sintesi per ogni caso."""
-    for s in semi:
+    for s in casi:
         with open(os.path.join(cartella_caso(s), 'risultato.txt'), 'w') as fh:
-            fh.write('Caso: --casuale %d --classi %d\n' % (s, classi))
+            fh.write('Caso: --casuale %d --classi %d%s\n' % (s[0], classi, ' --ritardi' if s[1] else ''))
             for nome, r in storia[s]:
                 fh.write('%s: %s, marce indietro %s, %.1f s\n' % (
                     nome, r['esito'], r['marce'] if r['marce'] is not None else 'non note', r['sec']))
@@ -175,11 +190,11 @@ def scrivi_risultati(semi, classi, storia):
                     fh.write('  DATI NON VALIDI: %s\n' % '; '.join(r['errori']))
 
 
-def riepilogo(semi, ris):
+def riepilogo(casi, ris):
     esiti = {}
-    for s in semi:
+    for s in casi:
         esiti[ris[s]['esito']] = esiti.get(ris[s]['esito'], 0) + 1
-    cattivi = sum(1 for s in semi if ris[s]['errori'])
+    cattivi = sum(1 for s in casi if ris[s]['errori'])
     print('\nRiepilogo:', esiti, '| dati non validi:', cattivi)
     return cattivi
 
@@ -191,17 +206,17 @@ def main():
     ap.add_argument('--classi', type=int, default=8, help='quante classi ha ogni caso')
     a = ap.parse_args()
 
-    semi = list(range(a.da, a.da + a.quanti))
+    casi = [(s, ritardi) for s in range(a.da, a.da + a.quanti) for ritardi in (False, True)]
     shutil.rmtree(OUT, ignore_errors=True)
-    ris, storia = {}, {s: [] for s in semi}  # esito dell'ultima fase e storia di tutte le fasi
+    ris, storia = {}, {s: [] for s in casi}  # esito dell'ultima fase e storia di tutte le fasi
     with tempfile.TemporaryDirectory() as tmp, ThreadPoolExecutor(JOBS) as pool:
         exe = os.path.join(tmp, 'solver')
         compila(exe)
-        fase1(pool, exe, semi, a.classi, ris, storia)
-        fase2(pool, exe, semi, a.classi, ris, storia)
-        fase3(pool, exe, semi, a.classi, ris, storia)
-        scrivi_risultati(semi, a.classi, storia)
-        sys.exit(1 if riepilogo(semi, ris) else 0)
+        fase1(pool, exe, casi, a.classi, ris, storia)
+        fase2(pool, exe, casi, a.classi, ris, storia)
+        fase3(pool, exe, casi, a.classi, ris, storia)
+        scrivi_risultati(casi, a.classi, storia)
+        sys.exit(1 if riepilogo(casi, ris) else 0)
 
 
 if __name__ == '__main__':

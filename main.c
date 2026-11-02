@@ -8,28 +8,33 @@
 #include "orario/orario.h"
 #include "printer/printer.h"
 #include "ricerca/diagnosi.h"
+#include "ricerca/fattibilita.h"
 #include "ricerca/ricerca.h"
 
-// Uso: ./untitled [seed] [-b] [--casuale SEME [--classi N]] [-n MAX] [--tempo SEC] [--motivi] [--dati FILE]
+// Uso: ./untitled [seed] [-b] [--casuale SEME [--classi N] [--ritardi]] [-n MAX] [--tempo SEC] [--motivi] [--dati FILE] [--senza-verifica]
 //   seed: l'ordine delle classi viene mescolato (stesso seed = stesso ordine)
 //   -b / --backtrack: scrive in orario.txt anche ogni marcia indietro (riga "Backtrack" + griglia parziale).
 //                     Senza, orario.txt contiene solo gli orari completi e si va molto piu' veloci.
 //   --casuale SEME: invece dei dati del programma usa dati generati a caso (riproducibili con lo stesso SEME):
 //                   classi da 29 a 36 ore, docenti da 5 a 24 ore, con lezioni da soli e in codocenza.
 //   --classi N: numero di classi dei dati casuali (default 8)
+//   --ritardi: nei dati casuali alcuni docenti entrano in ritardo (ora di ingresso 1, 2 o 3)
 //   -n MAX: si ferma dopo MAX orari completi
 //   --tempo SEC: interrompe la ricerca dopo SEC secondi (la diagnosi viene stampata comunque)
 //   --motivi: nella diagnosi indica anche perche' i docenti vengono scartati negli slot con piu' marce indietro
 //   --dati FILE: scrive in FILE la descrizione dei dati (classi, docenti, lezioni, codocenze)
+//   --senza-verifica: salta la verifica preliminare dei dati (che segnala i casi impossibili prima di cercare)
 typedef struct {
     int mescola_classi;          // 1 se e' stato dato un seed per l'ordine delle classi
     unsigned int seed_classi;
     int dati_casuali;            // 1 se i dati si generano a caso invece di usare quelli del programma
     unsigned long long seme_dati;
     int n_classi_casuali;
+    int con_ritardi;             // dati casuali: alcuni docenti entrano in ritardo
     const char *file_dati;       // dove scrivere la descrizione dei dati (NULL = da nessuna parte)
     double secondi_massimi;      // 0 = nessun limite di tempo
     int con_motivi;
+    int senza_verifica;          // 1 = non fare la verifica preliminare
 } Opzioni;
 
 static Opzioni leggi_opzioni(const int argc, char **argv) {
@@ -43,8 +48,12 @@ static Opzioni leggi_opzioni(const int argc, char **argv) {
             o.seme_dati = strtoull(argv[++i], NULL, 10);
         } else if (!strcmp(argv[i], "--classi") && i + 1 < argc) {
             o.n_classi_casuali = atoi(argv[++i]);
+        } else if (!strcmp(argv[i], "--ritardi")) {
+            o.con_ritardi = 1;
         } else if (!strcmp(argv[i], "--dati") && i + 1 < argc) {
             o.file_dati = argv[++i];
+        } else if (!strcmp(argv[i], "--senza-verifica")) {
+            o.senza_verifica = 1;
         } else if (!strcmp(argv[i], "--motivi")) {
             o.con_motivi = 1;
         } else if (!strcmp(argv[i], "--tempo") && i + 1 < argc) {
@@ -63,7 +72,7 @@ static Opzioni leggi_opzioni(const int argc, char **argv) {
 static void carica_dati(const Opzioni *o) {
     if (o->dati_casuali) {
         inizializza_calendario();
-        genera_dati_casuali(o->seme_dati, o->n_classi_casuali);
+        genera_dati_casuali(o->seme_dati, o->n_classi_casuali, o->con_ritardi);
     } else {
         inizializza_dati();
     }
@@ -79,9 +88,19 @@ static void scrivi_file_dati(const Opzioni *o) {
         return;
     }
     if (o->dati_casuali)
-        fprintf(fd, "Dati casuali: --casuale %llu --classi %d\n\n", o->seme_dati, o->n_classi_casuali);
+        fprintf(fd, "Dati casuali: --casuale %llu --classi %d%s\n\n", o->seme_dati, o->n_classi_casuali,
+                o->con_ritardi ? " --ritardi" : "");
     stampa_dati_su_file(fd);
     fclose(fd);
+}
+
+// Verifica preliminare dei dati: se violano una condizione necessaria il caso e' impossibile e non si cerca.
+static int caso_possibile(const Opzioni *o) {
+    char motivo[256];
+    if (o->senza_verifica || verifica_fattibilita(motivo, sizeof motivo)) return 1;
+    printf("Impossibile (verifica preliminare): %s\n", motivo);
+    fflush(stdout);
+    return 0;
 }
 
 static void prepara_orario(const Opzioni *o) {
@@ -108,6 +127,7 @@ int main(const int argc, char **argv) {
     printf("Program started at: %s\n", ctime(&currentTime));
     carica_dati(&o);
     scrivi_file_dati(&o);
+    if (!caso_possibile(&o)) return 0;
     prepara_orario(&o);
 
     diagnosi_avvia();
