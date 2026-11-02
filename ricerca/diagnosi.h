@@ -16,26 +16,32 @@ extern long long int nodi_a_pos_max;      // a quale nodo e' stata raggiunta
 extern double limite_secondi;             // se > 0 la ricerca si ferma dopo tanti secondi
 extern double inizio_ricerca;
 extern int interrotto_per_tempo;
+extern int interrotto_per_spazio;         // il file degli orari ha superato il limite di --max-mb
 
 double secondi_reali(void);
 
 // Imposta il limite di tempo (0 = nessuno) e se registrare anche i motivi di scarto dei docenti.
 void diagnosi_imposta(double secondi, int con_motivi);
 
+// Imposta il limite di spazio: la ricerca si ferma quando il file `file` supera `mb` MB sul disco (0 = nessun limite).
+// Per un file .gz conta la dimensione compressa, cioe' quella che occupa davvero.
+void diagnosi_imposta_spazio(const char *file, double mb);
+
+// Controlli che costano troppo per farli a ogni nodo (tempo, spazio): si fanno ogni 65536 nodi.
+// Ritorna 1 se la ricerca va interrotta.
+int diagnosi_controllo_periodico(void);
+
 // Da chiamare appena prima di cominciare la ricerca.
 void diagnosi_avvia(void);
 
-// Da chiamare all'ingresso di ogni nodo. Ritorna 1 se la ricerca va interrotta per il tempo scaduto.
+// Da chiamare all'ingresso di ogni nodo. Ritorna 1 se la ricerca va interrotta (tempo scaduto o spazio finito).
 static inline int diagnosi_nuovo_nodo(const int pos) {
     nodi++;
     if (pos > pos_max) {
         pos_max = pos;
         nodi_a_pos_max = nodi;
     }
-    if (limite_secondi > 0 && (nodi & 0xFFFF) == 0 && secondi_reali() - inizio_ricerca > limite_secondi) {
-        interrotto_per_tempo = 1;
-        return 1;
-    }
+    if ((nodi & 0xFFFF) == 0) return diagnosi_controllo_periodico();
     return 0;
 }
 

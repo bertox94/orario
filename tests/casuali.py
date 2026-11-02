@@ -104,11 +104,12 @@ def lancia(exe, caso, classi, timeout, cartella, backtrack=False, max_mb=4096):
     dati = os.path.join(os.path.dirname(cartella) if backtrack else cartella, 'dati.txt')
     cmd = [exe, '--casuale', str(seme), '--classi', str(classi), '-n', '1', '--dati', dati,
            '--tempo', str(max(timeout - 1, 0.5)), '--motivi'] + (['--ritardi'] if ritardi else []) + \
-          (['-b', '--orario', 'orario.txt.gz'] if backtrack else []) + ['--json', 'risultato.json']
-    # limite alla dimensione dei file scritti dal solver (con -b il file delle marce indietro puo' crescere di GB; il
-    # limite vale anche per gzip, che il solver avvia e che eredita i limiti): oltre, il sistema interrompe la scrittura
-    # e il caso risulta "interrotto (file troppo grande)"
-    limite = max_mb * 2 ** 20 if max_mb > 0 else resource.RLIM_INFINITY
+          (['-b', '--orario', 'orario.txt.gz', '--max-mb', str(max_mb)] if backtrack else []) + \
+          ['--json', 'risultato.json']
+    # Con -b il solver si ferma da solo quando il file delle marce indietro supera max_mb (--max-mb), e scrive comunque
+    # diagnosi e JSON. Il limite del sistema alla dimensione dei file e' solo una riserva, un po' piu' largo: se il
+    # solver non si fermasse, il sistema interromperebbe la scrittura (vale anche per gzip, che eredita i limiti).
+    limite = int(max_mb * 1.1 + 16) * 2 ** 20 if max_mb > 0 else resource.RLIM_INFINITY
     t = time.time()
     try:
         r = subprocess.run(cmd, cwd=cartella, capture_output=True, text=True, timeout=timeout + 30,
@@ -120,13 +121,16 @@ def lancia(exe, caso, classi, timeout, cartella, backtrack=False, max_mb=4096):
         finito, errore = False, False
     # esito: impossibile (verifica preliminare), trovato, nessuna soluzione (ricerca finita senza orari), non finito
     impossibile = re.search(r'Impossibile \(verifica preliminare\): ([^\n]*)', out)
-    interrotto = 'Interrotto per tempo' in out
+    per_spazio = 'Interrotto per spazio' in out
+    interrotto = 'Interrotto per tempo' in out or per_spazio
     finito = finito and not interrotto
     m = re.search(r'Totale generati: (\d+)', out)
     marce = re.search(r'Marce indietro: (\d+)', out)
     esito = 'non finito' if not finito else ('trovato' if m and int(m.group(1)) > 0 else 'nessuna soluzione')
     if impossibile:
         esito, finito = 'impossibile', True
+    elif per_spazio:
+        esito = 'interrotto (file troppo grande)'
     elif errore:
         esito = 'interrotto (file troppo grande)' if backtrack else 'errore'
     errori, nc, nd = controlla_dati(out)

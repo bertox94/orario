@@ -200,7 +200,7 @@ static void prova_slot_con_docenti(teaching_slot *slot, const int pos) {
 }
 
 void cerca_orario(const int pos) {
-    // gia' trovati abbastanza orari (o tempo scaduto, vedi sotto): si torna indietro senza fare nulla
+    // gia' trovati abbastanza orari (o tempo scaduto o spazio finito, vedi sotto): si torna indietro senza fare nulla
     if (n_gen_max <= n_gen) return;
     if (diagnosi_nuovo_nodo(pos)) {
         n_gen_max = 0; // tutte le chiamate tornano subito e lo stato viene annullato normalmente

@@ -16,7 +16,7 @@
 //   },
 //   "ordine_classi": [...],                     in che ordine la ricerca visita le classi dentro ogni ora
 //   "impossibile": null | "motivo",              motivo della verifica preliminare (allora non si e' cercato)
-//   "esito": {"orari_trovati", "interrotto_per_tempo", "secondi", "nodi", "marce_indietro",
+//   "esito": {"orari_trovati", "interrotto_per_tempo", "interrotto_per_spazio", "secondi", "nodi", "marce_indietro",
 //             "posizione_massima", "slot"},
 //   "orario": null | [g][o][c] = [docente, codocente]   primo orario trovato; -1 = nessuno (slot vuoto o da solo)
 //   "diagnosi": {

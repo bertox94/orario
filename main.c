@@ -27,6 +27,8 @@
 //   --backtrack-griglia: come -b, ma con la griglia parziale intera a ogni marcia (circa 30 KB per marcia: lento e
 //                        molto grande, solo per leggere il file a mano)
 //   --orario FILE: dove scrivere gli orari (default orario.txt); se FILE finisce in .gz si scrive compresso con gzip
+//   --max-mb MB: interrompe la ricerca quando il file degli orari supera MB megabyte sul disco (per -b); come con
+//                --tempo, la diagnosi e il JSON vengono scritti comunque
 //   --casuale SEME: invece dei dati del programma usa dati generati a caso (riproducibili con lo stesso SEME):
 //                   classi da 29 a 36 ore, docenti da 5 a 24 ore, con lezioni da soli e in codocenza.
 //   --classi N: numero di classi dei dati casuali (default 8)
@@ -47,6 +49,7 @@ typedef struct {
     int con_ritardi;             // dati casuali: alcuni docenti entrano in ritardo
     const char *file_dati;       // dove scrivere la descrizione dei dati (NULL = da nessuna parte)
     double secondi_massimi;      // 0 = nessun limite di tempo
+    double mb_massimi;           // 0 = nessun limite di spazio per il file degli orari
     int con_motivi;
     int senza_verifica;          // 1 = non fare la verifica preliminare
     const char *file_orario;     // dove scrivere gli orari (.gz = compresso)
@@ -64,6 +67,8 @@ static Opzioni leggi_opzioni(const int argc, char **argv) {
             stampa_backtrack = BACKTRACK_GRIGLIA;
         } else if (!strcmp(argv[i], "--orario") && i + 1 < argc) {
             o.file_orario = argv[++i];
+        } else if (!strcmp(argv[i], "--max-mb") && i + 1 < argc) {
+            o.mb_massimi = atof(argv[++i]);
         } else if (!strcmp(argv[i], "--json") && i + 1 < argc) {
             o.file_json = argv[++i];
         } else if (!strcmp(argv[i], "--casuale") && i + 1 < argc) {
@@ -165,6 +170,7 @@ int main(const int argc, char **argv) {
     const clock_t start = clock();
     const Opzioni o = leggi_opzioni(argc, argv);
     diagnosi_imposta(o.secondi_massimi, o.con_motivi);
+    diagnosi_imposta_spazio(o.file_orario, o.mb_massimi);
 
     printf("Program started at: %s\n", ctime(&currentTime));
     carica_dati(&o);

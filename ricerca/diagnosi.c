@@ -1,6 +1,7 @@
 #include "diagnosi.h"
 
 #include <stdio.h>
+#include <sys/stat.h>
 #include <time.h>
 
 #include "../priority_queue/prio_queue.h"
@@ -12,6 +13,10 @@ long long int nodi_a_pos_max = 0;
 double limite_secondi = 0;
 double inizio_ricerca;
 int interrotto_per_tempo = 0;
+int interrotto_per_spazio = 0;
+
+static const char *file_da_controllare = NULL; // il file degli orari, per il limite di spazio
+static long long int limite_byte = 0;          // 0 = nessun limite
 
 #define N_SLOT (GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ) // slot possibili, al massimo
 
@@ -49,6 +54,26 @@ double secondi_reali(void) {
 void diagnosi_imposta(const double secondi, const int con_motivi) {
     limite_secondi = secondi;
     registra_motivi = con_motivi;
+}
+
+void diagnosi_imposta_spazio(const char *file, const double mb) {
+    file_da_controllare = file;
+    limite_byte = (long long int) (mb * 1024 * 1024);
+}
+
+int diagnosi_controllo_periodico(void) {
+    if (limite_secondi > 0 && secondi_reali() - inizio_ricerca > limite_secondi) {
+        interrotto_per_tempo = 1;
+        return 1;
+    }
+    // la dimensione sul disco: quello che il solver (o gzip) ha gia' scritto. Puo' restare indietro di quello che e'
+    // ancora nei buffer, qualche centinaio di KB al massimo.
+    struct stat st;
+    if (limite_byte > 0 && stat(file_da_controllare, &st) == 0 && st.st_size > limite_byte) {
+        interrotto_per_spazio = 1;
+        return 1;
+    }
+    return 0;
 }
 
 void diagnosi_avvia(void) {
@@ -230,6 +255,8 @@ static void stampa_docenti_scartati_piu_spesso(void) {
 void stampa_diagnosi(const long long int n_backtrack) {
     printf("\nDiagnosi della ricerca\n");
     if (interrotto_per_tempo) printf("Interrotto per tempo\n");
+    if (interrotto_per_spazio)
+        printf("Interrotto per spazio: il file degli orari ha superato %.0f MB\n", limite_byte / 1024.0 / 1024.0);
     stampa_riepilogo(n_backtrack);
     stampa_slot_piu_frequenti(n_backtrack);
     stampa_docenti_scartati_piu_spesso();
