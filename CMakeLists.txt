@@ -14,6 +14,14 @@ add_executable(untitled main.c
         data_initialization/database_initializers.c
         data_initialization/generatore.h
         data_initialization/generatore.c
+        orario/orario.h
+        orario/orario.c
+        ricerca/ricerca.h
+        ricerca/ricerca.c
+        ricerca/vincoli.h
+        ricerca/vincoli.c
+        ricerca/diagnosi.h
+        ricerca/diagnosi.c
         printer/printer.h
         printer/printer.c
         priority_queue/prio_queue.c
