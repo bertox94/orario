@@ -27,8 +27,11 @@ potatura se sono di piu') sono concentrati in pochi slot (LOCALIZZATA) il caso e
 blocco preciso; se sono sparsi (diffusa) e' solo difficile.
 
 Controlla anche che i dati generati rispettino i vincoli (classi 29..36 ore, docenti 5..24 ore): esce con 1 se no."""
-import argparse, os, re, resource, shutil, subprocess, sys, tempfile, time
+import argparse, os, re, shutil, sys, tempfile, time
 from concurrent.futures import ThreadPoolExecutor
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from sito import solver  # compilazione, esecuzione e lettura dei risultati, in comune con il sito
 
 PRIMA = 60            # secondi massimi della fase 1
 DOPO = 600            # secondi massimi della fase 2 (e della fase 3)
@@ -38,17 +41,11 @@ JOBS = max(1, (os.cpu_count() or 2) // 2)  # casi in parallelo: meta' dei proces
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RADICE = os.path.dirname(AQUI)
 OUT = os.path.join(AQUI, 'risultati')
-FILES = ['main.c', 'orario/orario.c', 'ricerca/ricerca.c', 'ricerca/vincoli.c', 'ricerca/diagnosi.c', 'ricerca/fattibilita.c',
-         'data_initialization/database_initializers.c', 'data_initialization/generatore.c',
-         'data_initialization/json.c', 'data_initialization/dati_da_file.c',
-         'printer/printer.c', 'printer/risultati_json.c', 'priority_queue/prio_queue.c']
 
 
 def compila(dest):
-    """Compila il solver in dest, con gli stessi file del progetto CMake (FILES)."""
-    cmd = ['gcc', '-O2', '-std=gnu11', '-w', '-include', 'time.h'] + [os.path.join(RADICE, f) for f in FILES] + \
-          ['-o', dest]
-    subprocess.run(cmd, check=True)
+    """Compila il solver in dest (i sorgenti sono quelli di CMakeLists.txt, vedi sito/solver.py)."""
+    solver.compila(dest)
 
 
 def controlla_dati(out):
@@ -64,38 +61,7 @@ def controlla_dati(out):
     return errori, len(classi), len(docenti)
 
 
-def diagnosi(out):
-    """Legge la diagnosi stampata dal solver. Ritorna (riassunto breve, testo completo).
-
-    Se le marce indietro sono quasi tutte in pochi slot (e la ricerca non avanza piu'), il problema e' localizzato:
-    di solito il caso e' impossibile per costruzione, o la causa sta poco prima di quegli slot.
-    Se sono sparse su molti slot, la ricerca e' solo difficile."""
-    i = out.find('Diagnosi della ricerca')
-    if i < 0:
-        return '-', ''
-    testo = out[i:].split('Totale generati')[0].strip()
-    # i vicoli ciechi sono le marce indietro oppure i rami scartati dalla potatura: si guarda i piu' numerosi
-    m = re.search(r'Marce indietro: (\d+) in (\d+) slot diversi', testo)
-    s = re.search(r'Rami scartati: (\d+) dopo (\d+) slot diversi', testo)
-    marce = int(m.group(1)) if m else 0
-    rami = int(s.group(1)) if s else 0
-    if not marce and not rami:
-        return 'nessuna marcia indietro', testo
-    if marce >= rami:
-        cosa, n_slot = 'marce', m.group(2)
-        quote = [float(x) for x in re.findall(r'marce \(([\d.]+)%\)', testo)]
-        primo = re.search(r'Slot piu\' frequente 1: posizione \d+ \(giorno (\S+), ora (\S+), classe (\S+)\)', testo)
-    else:
-        cosa, n_slot = 'rami scartati', s.group(2)
-        quote = [float(x) for x in re.findall(r'Rami scartati dopo lo slot \d: .*\(([\d.]+)%\)', testo)]
-        primo = re.search(r'Rami scartati dopo lo slot 1: posizione \d+ \(giorno (\S+), ora (\S+), classe (\S+)\)', testo)
-    ferma = re.search(r'raggiunta al nodo \d+ \(([\d.]+)% dei nodi\)', testo)
-    top3 = sum(quote[:3])
-    nome = '%s %s %s' % primo.groups() if primo else '?'
-    stato = 'LOCALIZZATA' if top3 >= 80 else 'diffusa'
-    senza_progressi = ferma and float(ferma.group(1)) < 5
-    return '%s (%s): %s slot, top3 %.0f%%, piu\' frequente %s%s' % (
-        stato, cosa, n_slot, top3, nome, ', senza avanzare' if senza_progressi else ''), testo
+diagnosi = solver.diagnosi  # vedi sito/solver.py
 
 
 def lancia(exe, caso, classi, timeout, cartella, backtrack=False, max_mb=4096):
@@ -103,48 +69,17 @@ def lancia(exe, caso, classi, timeout, cartella, backtrack=False, max_mb=4096):
     seme, ritardi = caso
     os.makedirs(cartella, exist_ok=True)
     dati = os.path.join(os.path.dirname(cartella) if backtrack else cartella, 'dati.txt')
-    cmd = [exe, '--casuale', str(seme), '--classi', str(classi), '-n', '1', '--dati', dati,
-           '--tempo', str(max(timeout - 1, 0.5)), '--motivi'] + (['--ritardi'] if ritardi else []) + \
-          (['-b', '--orario', 'orario.txt.gz', '--max-mb', str(max_mb)] if backtrack else []) + \
-          ['--json', 'risultato.json']
     # Con -b il solver si ferma da solo quando il file delle marce indietro supera max_mb (--max-mb), e scrive comunque
-    # diagnosi e JSON. Il limite del sistema alla dimensione dei file e' solo una riserva, un po' piu' largo: se il
-    # solver non si fermasse, il sistema interromperebbe la scrittura (vale anche per gzip, che eredita i limiti).
-    limite = int(max_mb * 1.1 + 16) * 2 ** 20 if max_mb > 0 else resource.RLIM_INFINITY
-    t = time.time()
-    try:
-        r = subprocess.run(cmd, cwd=cartella, capture_output=True, text=True, timeout=timeout + 30,
-                           preexec_fn=lambda: resource.setrlimit(resource.RLIMIT_FSIZE, (limite, limite)))
-        out, finito = r.stdout, r.returncode == 0
-        errore = r.returncode != 0
-    except subprocess.TimeoutExpired as e:
-        out = e.stdout.decode() if isinstance(e.stdout, bytes) else (e.stdout or '')
-        finito, errore = False, False
-    # esito: impossibile (verifica preliminare), trovato, nessuna soluzione (ricerca finita senza orari), non finito
-    impossibile = re.search(r'Impossibile \(verifica preliminare\): ([^\n]*)', out)
-    per_spazio = 'Interrotto per spazio' in out
-    scrittura = 'Errore di scrittura' in out
-    interrotto = 'Interrotto per tempo' in out or per_spazio or scrittura
-    finito = finito and not interrotto
-    m = re.search(r'Totale generati: (\d+)', out)
-    marce = re.search(r'Marce indietro: (\d+)', out)
-    esito = 'non finito' if not finito else ('trovato' if m and int(m.group(1)) > 0 else 'nessuna soluzione')
-    if impossibile:
-        esito, finito = 'impossibile', True
-    elif per_spazio:
-        esito = 'interrotto (file troppo grande)'
-    elif scrittura:
-        esito = 'interrotto (errore di scrittura)'
-    elif errore:
-        esito = 'interrotto (file troppo grande)' if backtrack else 'errore'
-    errori, nc, nd = controlla_dati(out)
-    if impossibile:
-        d = ('impossibile: ' + impossibile.group(1), 'Impossibile (verifica preliminare): ' + impossibile.group(1))
-    else:
-        d = diagnosi(out)
-    return {'caso': caso, 'esito': esito, 'finito': finito, 'marce': int(marce.group(1)) if marce else None,
-            'sec': time.time() - t, 'classi': nc, 'docenti': nd, 'errori': errori, 'diagnosi': d[0],
-            'dettaglio': d[1]}
+    # diagnosi e JSON; il limite del sistema alla dimensione dei file resta solo come riserva (vedi sito/solver.py).
+    opzioni = {'tempo': max(timeout - 1, 0.5), 'motivi': True, 'backtrack': backtrack, 'max_mb': max_mb,
+               'file_dati': dati}
+    r = solver.esegui(exe, {'tipo': 'casuale', 'seme': seme, 'classi': classi, 'ritardi': ritardi}, opzioni, cartella)
+    esito = r['esito']
+    if esito == 'errore' and backtrack:
+        esito = 'interrotto (file troppo grande)'  # ucciso dal limite di riserva del sistema
+    errori, nc, nd = controlla_dati(r['uscita'])
+    return {'caso': caso, 'esito': esito, 'finito': r['finito'], 'marce': r['marce'], 'sec': r['secondi'],
+            'classi': nc, 'docenti': nd, 'errori': errori, 'diagnosi': r['diagnosi'], 'dettaglio': r['diagnosi_testo']}
 
 
 def stampa(fase, r):
