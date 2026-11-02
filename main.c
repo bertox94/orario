@@ -392,6 +392,10 @@ static void analizza_marcia_indietro(const teaching_slot *slot, const int pos, c
 //  - in totale puo' fare al massimo una lezione per ora, dalla sua ora di ingresso.
 long long int rami_scartati_a_inizio_ora = 0;
 
+static inline int docente_nello_slot(const teaching_slot *slot, const int prof) {
+    return slot->insegnante1 == prof || slot->insegnante2 == prof;
+}
+
 static int ore_rimaste_stanno_nel_tempo_rimasto(const int giorno, const int ora) {
     const int giorni_dopo = actual_giorni_settimana - giorno - 1;
     const int ore_oggi = actual_ore_giornaliere - ora; // ore di oggi non ancora cominciate (compresa questa)
@@ -405,6 +409,9 @@ static int ore_rimaste_stanno_nel_tempo_rimasto(const int giorno, const int ora)
             if (!rimaste) continue;
             int cap_oggi = MAX_ORE_PROF_IN_UNA_CLASSE - fatte_oggi[p];
             if (cap_oggi > ore_oggi) cap_oggi = ore_oggi;
+            // le ore in una classe in un giorno sono consecutive: se ne ha gia' fatte oggi ma nell'ora precedente
+            // non c'era, il suo blocco e' finito e oggi in questa classe non ne fa altre
+            if (fatte_oggi[p] > 0 && !docente_nello_slot(slot_precedente(giorno, ora, c), p)) cap_oggi = 0;
             if (rimaste > cap_oggi + MAX_ORE_PROF_IN_UNA_CLASSE * giorni_dopo) return 0;
             totale[p] += rimaste;
         }
