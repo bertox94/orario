@@ -40,6 +40,7 @@ RADICE = os.path.dirname(AQUI)
 OUT = os.path.join(AQUI, 'risultati')
 FILES = ['main.c', 'orario/orario.c', 'ricerca/ricerca.c', 'ricerca/vincoli.c', 'ricerca/diagnosi.c', 'ricerca/fattibilita.c',
          'data_initialization/database_initializers.c', 'data_initialization/generatore.c',
+         'data_initialization/json.c', 'data_initialization/dati_da_file.c',
          'printer/printer.c', 'printer/risultati_json.c', 'priority_queue/prio_queue.c']
 
 

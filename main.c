@@ -5,10 +5,12 @@
 #include <time.h>
 
 #include "data_initialization/database_initializers.h"
+#include "data_initialization/dati_da_file.h"
 #include "data_initialization/generatore.h"
 #include "orario/orario.h"
 #include "printer/printer.h"
 #include "printer/risultati_json.h"
+#include "priority_queue/prio_queue.h"
 #include "ricerca/diagnosi.h"
 #include "ricerca/fattibilita.h"
 #include "ricerca/ricerca.h"
@@ -21,7 +23,8 @@
 // giorno, ora, classe. Prima di cercare si verificano alcune condizioni necessarie sui dati (ricerca/fattibilita.c).
 
 // Uso: ./untitled [seed] [-b | --backtrack-griglia] [--casuale SEME [--classi N] [--ritardi]] [-n MAX] [--tempo SEC]
-//                  [--motivi] [--dati FILE] [--senza-verifica] [--orario FILE] [--json FILE]
+//                  [--motivi] [--dati FILE] [--senza-verifica] [--orario FILE] [--json FILE] [--input FILE]
+//                  [--solo-verifica] [--progresso]
 //   seed: l'ordine delle classi viene mescolato (stesso seed = stesso ordine)
 //   -b / --backtrack: scrive nel file dell'orario anche ogni marcia indietro, in formato compatto (una riga con gli slot
 //                     cambiati, vedi printer.h). Senza, il file contiene solo gli orari completi.
@@ -40,6 +43,12 @@
 //   --dati FILE: scrive in FILE la descrizione dei dati (classi, docenti, lezioni, codocenze)
 //   --senza-verifica: salta la verifica preliminare dei dati (che segnala i casi impossibili prima di cercare)
 //   --json FILE: alla fine scrive in FILE dati, esito, primo orario trovato e diagnosi per slot, in JSON (per il sito)
+//   --input FILE: legge i dati da FILE (JSON, vedi data_initialization/dati_da_file.h) invece di usare quelli del
+//                 programma. Se i dati non vanno bene scrive "Errore nei dati: ..." ed esce con codice 2.
+//   --solo-verifica: fa solo la verifica preliminare (e scrive il JSON con i dati), senza cercare
+//   --progresso: durante la ricerca, circa ogni secondo, scrive su stdout una riga "PROGRESSO {json}" con nodi, marce
+//                indietro, posizione corrente e piu' avanzata e marce per slot (per seguire la ricerca dal sito)
+// Con il segnale SIGTERM (il pulsante "Ferma" del sito) la ricerca si ferma in modo ordinato, con diagnosi e JSON.
 // Le opzioni della riga di comando (n_gen_max e stampa_backtrack invece sono globali della ricerca).
 typedef struct {
     int mescola_classi;          // 1 se e' stato dato un seed per l'ordine delle classi
@@ -55,6 +64,9 @@ typedef struct {
     int senza_verifica;          // 1 = non fare la verifica preliminare
     const char *file_orario;     // dove scrivere gli orari (.gz = compresso)
     const char *file_json;       // dove scrivere i risultati in JSON (NULL = da nessuna parte)
+    const char *file_input;      // dati da leggere (NULL = dati del programma o casuali)
+    int solo_verifica;
+    int con_progresso;
 } Opzioni;
 
 static Opzioni leggi_opzioni(const int argc, char **argv) {
@@ -70,6 +82,12 @@ static Opzioni leggi_opzioni(const int argc, char **argv) {
             o.file_orario = argv[++i];
         } else if (!strcmp(argv[i], "--max-mb") && i + 1 < argc) {
             o.mb_massimi = atof(argv[++i]);
+        } else if (!strcmp(argv[i], "--input") && i + 1 < argc) {
+            o.file_input = argv[++i];
+        } else if (!strcmp(argv[i], "--solo-verifica")) {
+            o.solo_verifica = 1;
+        } else if (!strcmp(argv[i], "--progresso")) {
+            o.con_progresso = 1;
         } else if (!strcmp(argv[i], "--json") && i + 1 < argc) {
             o.file_json = argv[++i];
         } else if (!strcmp(argv[i], "--casuale") && i + 1 < argc) {
@@ -100,16 +118,27 @@ static Opzioni leggi_opzioni(const int argc, char **argv) {
 
 // Dati del programma oppure dati casuali; poi prepara l'elenco delle lezioni di ogni classe (serve alla verifica
 // preliminare e alla potatura) e stampa i dati.
-static void carica_dati(const Opzioni *o) {
-    if (o->dati_casuali) {
+// Ritorna 0 se i dati letti da file non vanno bene (il motivo e' gia' stampato).
+static int carica_dati(const Opzioni *o) {
+    if (o->file_input) {
+        char errore[512];
+        prepara_coda();
+        if (!carica_dati_da_file(o->file_input, errore, sizeof errore)) {
+            printf("Errore nei dati: %s\n", errore);
+            fflush(stdout);
+            return 0;
+        }
+    } else if (o->dati_casuali) {
         inizializza_calendario();
         genera_dati_casuali(o->seme_dati, o->n_classi_casuali, o->con_ritardi);
     } else {
         inizializza_dati();
     }
     prepara_lezioni_delle_classi();
+    ricorda_ordine_iniziale_coda();
     stampa_dati();
     fflush(stdout);
+    return 1;
 }
 
 // Con --dati FILE: scrive in FILE la descrizione completa dei dati (e, per i dati casuali, come rigenerarli).
@@ -175,16 +204,24 @@ int main(const int argc, char **argv) {
     // nota (diagnosi_controllo_periodico) e si ferma in modo ordinato. Lo stesso vale per il disco pieno.
     signal(SIGXFSZ, SIG_IGN);
     signal(SIGPIPE, SIG_IGN);
+    // SIGTERM: fermarsi in modo ordinato (la ricerca lo nota nel controllo periodico)
+    signal(SIGTERM, diagnosi_richiesta_di_arresto);
     diagnosi_imposta(o.secondi_massimi, o.con_motivi);
     diagnosi_imposta_spazio(o.file_orario, o.mb_massimi);
+    diagnosi_imposta_progresso(o.con_progresso);
 
     printf("Program started at: %s\n", ctime(&currentTime));
-    carica_dati(&o);
+    if (!carica_dati(&o)) return 2;
     scrivi_file_dati(&o);
     prepara_orario(&o);
     char motivo[256];
     if (!caso_possibile(&o, motivo, sizeof motivo)) {
         scrivi_json(o.file_json, argc, argv, motivo, 0);
+        return 0;
+    }
+    if (o.solo_verifica) {
+        printf("Verifica preliminare superata\n");
+        scrivi_json(o.file_json, argc, argv, NULL, 0);
         return 0;
     }
 

@@ -122,6 +122,12 @@ int get_ore_classi_insegnante(int classe, int insegnante);
 
 int get_ore_classi_insegnante_svolte(int classe, int insegnante);
 
+// La coda dei docenti (va preparata prima di aggiungere lezioni; inizializza_calendario la prepara gia').
+void prepara_coda(void);
+
+// Dal nome all'indice della classe (-1 se non c'e').
+int p_classe_sezione(char cla[]);
+
 // Giorni, ore e coda dei docenti (va chiamata prima di aggiungere i dati).
 void inizializza_calendario();
 

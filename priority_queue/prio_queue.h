@@ -22,6 +22,12 @@ typedef struct el {
 extern QueueItem **queue_mul;
 extern int queue_sz; // quanti docenti ci sono nella coda
 
+// L'ordine della coda subito dopo il caricamento dei dati (la ricerca poi riordina le copie, compresa quella del primo
+// slot, che e' anche la coda originale). Lo scrive il JSON, per poter rifare la stessa ricerca (vedi dati_da_file.h).
+extern int ordine_iniziale_coda[];
+
+void ricorda_ordine_iniziale_coda(void);
+
 // Aggiunge `priority` ore al docente prof (inserendolo in tutte le copie della coda se non c'e' ancora).
 void add_to_queue(int prof, int priority);
 

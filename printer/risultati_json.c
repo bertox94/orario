@@ -4,6 +4,7 @@
 
 #include "../data_initialization/database_initializers.h"
 #include "../orario/orario.h"
+#include "../priority_queue/prio_queue.h"
 #include "../ricerca/diagnosi.h"
 #include "../ricerca/ricerca.h"
 #include "../ricerca/vincoli.h"
@@ -98,7 +99,11 @@ static void scrivi_dati(FILE *f) {
                 prima = 0;
             }
         }
-    fputs("\n    ]\n  },\n", f);
+    // ordine iniziale della coda dei docenti: a parita' di priorita' decide chi si prova prima, quindi serve per
+    // rifare esattamente la stessa ricerca rileggendo questi dati con --input
+    fputs("\n    ],\n    \"ordine_coda\": [", f);
+    for (int i = 0; i < queue_sz; i++) fprintf(f, i ? ", %d" : "%d", ordine_iniziale_coda[i]);
+    fputs("]\n  },\n", f);
 }
 
 static void scrivi_esito(FILE *f, const char *impossibile, const double secondi) {
@@ -108,11 +113,11 @@ static void scrivi_esito(FILE *f, const char *impossibile, const double secondi)
     if (impossibile) stringa(f, impossibile);
     else fputs("null", f);
     fprintf(f, ",\n  \"esito\": {\"orari_trovati\": %lld, \"interrotto_per_tempo\": %s, \"interrotto_per_spazio\": %s, "
-               "\"errore_di_scrittura\": %s, "
+               "\"errore_di_scrittura\": %s, \"interrotto_su_richiesta\": %s, "
                "\"secondi\": %.3f, "
                "\"nodi\": %lld, \"marce_indietro\": %lld, \"posizione_massima\": %d, \"slot\": %d},\n",
             n_gen, interrotto_per_tempo ? "true" : "false", interrotto_per_spazio ? "true" : "false",
-            errore_di_scrittura ? "true" : "false", secondi, nodi, n_backtrack, pos_max, orario_len);
+            errore_di_scrittura ? "true" : "false", interrotto_su_richiesta ? "true" : "false", secondi, nodi, n_backtrack, pos_max, orario_len);
 }
 
 // Il primo orario trovato, come [g][o][c] = [docente, codocente].

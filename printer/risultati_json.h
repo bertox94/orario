@@ -13,10 +13,12 @@
 //     "classi":  [{"nome", "ore"}],
 //     "docenti": [{"nome", "ore", "ingresso"}],   ingresso = indice della prima ora in cui puo' insegnare
 //     "lezioni": [{"classe", "docente", "codocente", "ore"}]   codocente null = da solo
+//     "ordine_coda": [...]                       ordine iniziale della coda dei docenti (per --input)
 //   },
 //   "ordine_classi": [...],                     in che ordine la ricerca visita le classi dentro ogni ora
 //   "impossibile": null | "motivo",              motivo della verifica preliminare (allora non si e' cercato)
-//   "esito": {"orari_trovati", "interrotto_per_tempo", "interrotto_per_spazio", "errore_di_scrittura", "secondi",
+//   "esito": {"orari_trovati", "interrotto_per_tempo", "interrotto_per_spazio", "errore_di_scrittura",
+//             "interrotto_su_richiesta", "secondi",
 //             "nodi", "marce_indietro",
 //             "posizione_massima", "slot"},
 //   "orario": null | [g][o][c] = [docente, codocente]   primo orario trovato; -1 = nessuno (slot vuoto o da solo)
