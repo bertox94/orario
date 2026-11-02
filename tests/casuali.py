@@ -1,18 +1,22 @@
 #!/usr/bin/env python3
 """Prova il solver su dati casuali, in tre fasi.
 
-Uso: tests/casuali.py [--da SEME] [--quanti N] [--classi K] [--prima SEC] [--dopo SEC]
-                      [--jobs J] [--max-mb MB] [--out CARTELLA]
+Uso: tests/casuali.py [--da SEME] [--quanti N] [--classi K]
+  --da      primo seme (default 1)
+  --quanti  quanti casi provare (default 20)
+  --classi  quante classi ha ogni caso (default 8)
 
-1. Fase 1: ogni caso (seme da --da, --quanti casi) gira al massimo --prima secondi (default 60).
-2. Fase 2: i casi non finiti nella fase 1 girano di nuovo per al massimo --dopo secondi (default 600; 0 = salta).
-3. Fase 3: i casi ancora non finiti vengono rilanciati con -b (i casi che hanno trovato un orario non si rilanciano): il programma scrive in orario.txt l'orario parziale a ogni marcia indietro.
+1. Fase 1: ogni caso gira al massimo 1 minuto (si ferma al primo orario trovato).
+2. Fase 2: i casi non finiti girano di nuovo per al massimo 10 minuti.
+3. Fase 3: i casi ancora non finiti vengono rilanciati con -b: il programma scrive in orario.txt l'orario parziale a
+   ogni marcia indietro. Tutti i file delle marce indietro insieme occupano al massimo circa 20 GB (divisi in parti
+   uguali tra i casi). I casi che hanno trovato un orario non si rilanciano.
 
-Per ogni caso c'e' una cartella <out>/seme_<N>/ (default tests/risultati) con:
+Per ogni caso c'e' una cartella tests/risultati/seme_<N>/ (cancellata a ogni esecuzione) con:
    dati.txt            descrizione del caso (classi, docenti, lezioni, codocenze)
-   risultato.txt       esito di ogni fase, marce indietro, tempi
+   risultato.txt       esito di ogni fase, marce indietro, tempi, diagnosi
    orario.txt          il primo orario trovato (se la ricerca e' finita)
-   marce_indietro/orario.txt   solo per i casi della fase 3: orario parziale a ogni marcia indietro, ciascuno al massimo --max-mb megabyte (default 4096, 0 = senza limite).
+   marce_indietro/orario.txt   solo per i casi non finiti: orario parziale a ogni marcia indietro
 
 Per ogni caso lento o non finito stampa una diagnosi: se le marce indietro sono concentrate in pochi slot
 (LOCALIZZATA) il caso e' probabilmente impossibile o ha un blocco preciso; se sono sparse (diffusa) e' solo difficile.
@@ -21,8 +25,14 @@ Controlla anche che i dati generati rispettino i vincoli (classi 29..36 ore, doc
 import argparse, os, re, resource, shutil, subprocess, sys, tempfile, time
 from concurrent.futures import ThreadPoolExecutor
 
+PRIMA = 60            # secondi massimi della fase 1
+DOPO = 600            # secondi massimi della fase 2 (e della fase 3)
+TOTALE_MARCE_MB = 20 * 1024  # spazio massimo di tutti i file delle marce indietro insieme
+JOBS = max(1, (os.cpu_count() or 2) // 2)
+
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RADICE = os.path.dirname(AQUI)
+OUT = os.path.join(AQUI, 'risultati')
 FILES = ['main.c', 'orario/orario.c', 'ricerca/ricerca.c', 'ricerca/vincoli.c', 'ricerca/diagnosi.c',
          'data_initialization/database_initializers.c', 'data_initialization/generatore.c',
          'printer/printer.c', 'priority_queue/prio_queue.c']
@@ -107,78 +117,91 @@ def stampa(fase, r):
         print('         diagnosi:', r['diagnosi'], flush=True)
 
 
+def cartella_caso(seme):
+    return os.path.join(OUT, 'seme_%d' % seme)
+
+
+def fase1(pool, exe, semi, classi, ris, storia):
+    print('== Fase 1: al massimo %g s per caso, %d in parallelo' % (PRIMA, JOBS))
+    for r in pool.map(lambda s: lancia(exe, s, classi, PRIMA, cartella_caso(s)), semi):
+        ris[r['seme']] = r
+        storia[r['seme']].append(('fase 1 (max %g s)' % PRIMA, r))
+        stampa('1', r)
+
+
+def fase2(pool, exe, semi, classi, ris, storia):
+    non_finiti = [s for s in semi if not ris[s]['finito']]
+    if not non_finiti:
+        return
+    print('\n== Fase 2: %d casi non finiti, al massimo %g s ciascuno' % (len(non_finiti), DOPO))
+    for r in pool.map(lambda s: lancia(exe, s, classi, DOPO, cartella_caso(s)), non_finiti):
+        ris[r['seme']] = r
+        storia[r['seme']].append(('fase 2 (max %g s)' % DOPO, r))
+        stampa('2', r)
+
+
+def fase3(pool, exe, semi, classi, ris, storia):
+    """Rilancia con -b i casi ancora non finiti. Lo spazio TOTALE_MARCE_MB si divide in parti uguali tra i casi."""
+    da_ristampare = [s for s in semi if not ris[s]['finito']]
+    if not da_ristampare:
+        return
+    per_file_mb = max(1, TOTALE_MARCE_MB // len(da_ristampare))
+    print('\n== Fase 3: orario parziale a ogni marcia indietro per i %d casi non finiti (al massimo %d MB ciascuno, '
+          '%d MB in tutto)' % (len(da_ristampare), per_file_mb, per_file_mb * len(da_ristampare)))
+    os.makedirs(OUT, exist_ok=True)
+    libero = shutil.disk_usage(OUT).free / 2 ** 20
+    if per_file_mb * len(da_ristampare) > libero:
+        print('ATTENZIONE: spazio libero %.0f MB, meno di quello che i file possono occupare' % libero)
+    for r in pool.map(lambda s: lancia(exe, s, classi, DOPO, os.path.join(cartella_caso(s), 'marce_indietro'),
+                                       backtrack=True, max_mb=per_file_mb), da_ristampare):
+        stampa('3', r)
+        storia[r['seme']].append(('fase 3, con -b (max %g s)' % DOPO, r))
+        p = os.path.join(cartella_caso(r['seme']), 'marce_indietro', 'orario.txt')
+        if os.path.exists(p):
+            print('         -> %s (%.1f MB)' % (os.path.relpath(p, RADICE), os.path.getsize(p) / 1e6))
+
+
+def scrivi_risultati(semi, classi, storia):
+    """Un file di sintesi per ogni caso."""
+    for s in semi:
+        with open(os.path.join(cartella_caso(s), 'risultato.txt'), 'w') as fh:
+            fh.write('Caso: --casuale %d --classi %d\n' % (s, classi))
+            for nome, r in storia[s]:
+                fh.write('%s: %s, marce indietro %s, %.1f s\n' % (
+                    nome, r['esito'], r['marce'] if r['marce'] is not None else 'non note', r['sec']))
+                if r['dettaglio']:
+                    fh.write('  ' + r['dettaglio'].replace('\n', '\n  ') + '\n')
+                if r['errori']:
+                    fh.write('  DATI NON VALIDI: %s\n' % '; '.join(r['errori']))
+
+
+def riepilogo(semi, ris):
+    esiti = {}
+    for s in semi:
+        esiti[ris[s]['esito']] = esiti.get(ris[s]['esito'], 0) + 1
+    cattivi = sum(1 for s in semi if ris[s]['errori'])
+    print('\nRiepilogo:', esiti, '| dati non validi:', cattivi)
+    return cattivi
+
+
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument('--da', type=int, default=1)
-    ap.add_argument('--quanti', type=int, default=20)
-    ap.add_argument('--classi', type=int, default=8)
-    ap.add_argument('--prima', type=float, default=60, help='secondi massimi della fase 1')
-    ap.add_argument('--dopo', type=float, default=600, help='secondi massimi della fase 2 (0 = salta)')
-    ap.add_argument('--jobs', type=int, default=max(1, (os.cpu_count() or 2) // 2))
-    ap.add_argument('--max-mb', type=int, default=4096,
-                    help='dimensione massima di ogni orario.txt nella fase 3, in MB (0 = nessun limite)')
-    ap.add_argument('--out', default=os.path.join(AQUI, 'risultati'))
+    ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
+    ap.add_argument('--da', type=int, default=1, help='primo seme')
+    ap.add_argument('--quanti', type=int, default=20, help='quanti casi provare')
+    ap.add_argument('--classi', type=int, default=8, help='quante classi ha ogni caso')
     a = ap.parse_args()
 
     semi = list(range(a.da, a.da + a.quanti))
-    shutil.rmtree(a.out, ignore_errors=True)
-    with tempfile.TemporaryDirectory() as tmp, ThreadPoolExecutor(a.jobs) as pool:
+    shutil.rmtree(OUT, ignore_errors=True)
+    ris, storia = {}, {s: [] for s in semi}  # esito dell'ultima fase e storia di tutte le fasi
+    with tempfile.TemporaryDirectory() as tmp, ThreadPoolExecutor(JOBS) as pool:
         exe = os.path.join(tmp, 'solver')
         compila(exe)
-        cart = lambda s: os.path.join(a.out, 'seme_%d' % s)  # un file/cartella per ogni caso
-        storia = {s: [] for s in semi}  # esiti di ogni fase, per risultato.txt
-
-        print('== Fase 1: al massimo %g s per caso, %d in parallelo' % (a.prima, a.jobs))
-        ris = {}
-        for r in pool.map(lambda s: lancia(exe, s, a.classi, a.prima, cart(s)), semi):
-            ris[r['seme']] = r
-            storia[r['seme']].append(('fase 1 (max %g s)' % a.prima, r))
-            stampa('1', r)
-
-        non_finiti = [s for s in semi if not ris[s]['finito']]
-        if non_finiti and a.dopo > 0:
-            print('\n== Fase 2: %d casi non finiti, al massimo %g s ciascuno' % (len(non_finiti), a.dopo))
-            for r in pool.map(lambda s: lancia(exe, s, a.classi, a.dopo, cart(s)), non_finiti):
-                ris[r['seme']] = r
-                storia[r['seme']].append(('fase 2 (max %g s)' % a.dopo, r))
-                stampa('2', r)
-
-        ancora = [s for s in semi if not ris[s]['finito']]
-        da_ristampare = ancora
-        if da_ristampare:
-            print('\n== Fase 3: orario parziale a ogni marcia indietro per i %d casi non finiti' % len(da_ristampare))
-            tempo = max(a.prima, a.dopo)
-            os.makedirs(a.out, exist_ok=True)
-            libero = shutil.disk_usage(a.out).free / 2 ** 20
-            massimo = len(da_ristampare) * a.max_mb if a.max_mb > 0 else float('inf')
-            if massimo > libero:
-                print('ATTENZIONE: spazio libero %.0f MB, i file potrebbero occupare fino a %s MB '
-                      '(%d casi in parallelo scrivono insieme)' % (libero, '?' if a.max_mb <= 0 else int(massimo), a.jobs))
-            for r in pool.map(lambda s: lancia(exe, s, a.classi, tempo, os.path.join(cart(s), 'marce_indietro'),
-                                               backtrack=True, max_mb=a.max_mb), da_ristampare):
-                stampa('3', r)
-                storia[r['seme']].append(('fase 3, con -b (max %g s)' % tempo, r))
-                p = os.path.join(cart(r['seme']), 'marce_indietro', 'orario.txt')
-                if os.path.exists(p):
-                    print('         -> %s (%.1f MB)' % (os.path.relpath(p, RADICE), os.path.getsize(p) / 1e6))
-
-        for s in semi:  # un file di sintesi per ogni caso
-            with open(os.path.join(cart(s), 'risultato.txt'), 'w') as fh:
-                fh.write('Caso: --casuale %d --classi %d\n' % (s, a.classi))
-                for nome, r in storia[s]:
-                    fh.write('%s: %s, marce indietro %s, %.1f s\n' % (
-                        nome, r['esito'], r['marce'] if r['marce'] is not None else 'non note', r['sec']))
-                    if r['dettaglio']:
-                        fh.write('  ' + r['dettaglio'].replace('\n', '\n  ') + '\n')
-                    if r['errori']:
-                        fh.write('  DATI NON VALIDI: %s\n' % '; '.join(r['errori']))
-
-        riep = {}
-        for s in semi:
-            riep[ris[s]['esito']] = riep.get(ris[s]['esito'], 0) + 1
-        cattivi = sum(1 for s in semi if ris[s]['errori'])
-        print('\nRiepilogo:', riep, '| dati non validi:', cattivi)
-        sys.exit(1 if cattivi else 0)
+        fase1(pool, exe, semi, a.classi, ris, storia)
+        fase2(pool, exe, semi, a.classi, ris, storia)
+        fase3(pool, exe, semi, a.classi, ris, storia)
+        scrivi_risultati(semi, a.classi, storia)
+        sys.exit(1 if riepilogo(semi, ris) else 0)
 
 
 if __name__ == '__main__':
