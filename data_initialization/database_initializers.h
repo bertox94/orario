@@ -44,31 +44,40 @@ extern int actual_ore_giornaliere;
 extern int actual_classi_sezione;
 extern int actual_insegnanti;
 
-extern int ore_classi_docenti[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
-extern int ore_classi_docenti_alone[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
-//associa ad ogni classe e insegnante le ore totali svolte fino a _pos_
-extern int ore_classi_docenti_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
-extern int ore_classi_docenti_alone_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
+// Per ogni coppia (classe, docente), indice classe * INSEGNANTE_SZ + docente.
+typedef struct {
+    int ore;          // ore totali da fare in questa classe
+    int svolte;       // ore svolte fino a _pos_
+    int alone;        // di cui da solo (senza codocente)
+    int alone_svolte;
+    int teorico;      // 1 se ha ore da solo in questa classe
+} classe_docente_t;
 
-extern int ore_classi[CLASSE_SEZIONE_SZ];
-// tiene traccia delle svolte in totale in una classe fino a _pos_
-extern int ore_classe_svolte[CLASSE_SEZIONE_SZ];
+// Per ogni terna (classe, docente, codocente), prof a minore indice prima.
+typedef struct {
+    int ore;
+    int svolte;
+} codocenza_t;
 
-extern int ore_docenti[INSEGNANTE_SZ];
-// tiene traccia del numero di ore svolte da un docente fino a _pos_
-extern int ore_docenti_svolte[INSEGNANTE_SZ];
-// i docenti teorici
-extern int classi_docenti_teorici[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
-// ore per classe docente e codocente, prof a minore indice prima
-extern int ore_classi_codocenza[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ];
-extern int ore_classi_codocenza_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ];
+typedef struct {
+    int ore;    // ore totali della classe
+    int svolte; // svolte in totale in una classe fino a _pos_
+} classe_t;
+
+typedef struct {
+    int ore;         // ore totali del docente
+    int ora_entrata; // prima ora in cui puo' fare lezione
+} docente_t;
+
+extern classe_docente_t classe_docente[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
+extern codocenza_t codocenza[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ];
+extern classe_t classe_info[CLASSE_SEZIONE_SZ];
+extern docente_t docente_info[INSEGNANTE_SZ];
 
 extern int ore_fatte_da_un_prof_in_una_classe_in_giorno[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 
 // verifica che un prof, dato un giorno e un ora, stia facendo lezione, perciò nella stesso giorno e ora non può fare altro
 extern int prof_gia_impegnato_giorno_ora[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ];
-
-extern int ora_di_entrata_prof[INSEGNANTE_SZ];
 
 // tiene traccia se in un giorno e una classa c'è un ora buca
 extern int n_ore_buche[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ];

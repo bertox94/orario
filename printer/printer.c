@@ -201,13 +201,13 @@ void stampa_dati() {
         printf("%s\n", ore_giornaliere[actual_ore_giornaliere - 1]);
     printf("Ore classe:\n");
     for (int i = 0; i < actual_classi_sezione; i++)
-        printf("Classe %s:\t%d ore\n", classe_sezione[i], ore_classi[i]);
+        printf("Classe %s:\t%d ore\n", classe_sezione[i], classe_info[i].ore);
     printf("-----------\n");
     printf("Ore insegnanti:\n");
     for (int i = 0; i < actual_insegnanti; i++) {
         char str[MAX_STR_SZ_IN_DISPLAY];
         copy_and_pad(str, insegnanti[i], MAX_STR_SZ_IN_DISPLAY);
-        printf("Ins. %s: %d ore\n", str, ore_docenti[i]);
+        printf("Ins. %s: %d ore\n", str, docente_info[i].ore);
     }
     printf("-----------\n");
     printf("Ore insegnanti in classe:\n");

@@ -100,7 +100,7 @@ int activities_for_this_class_and_hour(const teaching_slot *slot) {
     const int gio = slot->giorno;
     const int ora = slot->ora;
     const int cla = slot->classe;
-    int ore_rimanenti = ore_classi[cla] - ore_classe_svolte[cla];
+    int ore_rimanenti = classe_info[cla].ore - classe_info[cla].svolte;
     int slot_obligatori_gia_occupati = gio * PRIME_N_ORE_OBBLIGATORIE + MIN(ora, PRIME_N_ORE_OBBLIGATORIE - 1);
     int slot_minimi_da_riempire = PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana;
     int slot_mancanti = slot_minimi_da_riempire - slot_obligatori_gia_occupati;
@@ -125,8 +125,8 @@ int sabato_esaurisci_priorita_subito(int pos, int giorno, int ora, int base2d_ci
         // lo slot precedente ha sempre insegnante1 != -1 se ha insegnante2 != -1 (le coppie sono scritte insieme)
 
         if (prev_prof1 != -1 && prev_prof2 != -1) {
-            const int da_fare1 = ore_classi_docenti[base2d_ci + prev_prof1] - ore_classi_docenti_svolte[base2d_ci + prev_prof1] > 0;
-            const int da_fare2 = ore_classi_docenti[base2d_ci + prev_prof2] - ore_classi_docenti_svolte[base2d_ci + prev_prof2] > 0;
+            const int da_fare1 = classe_docente[base2d_ci + prev_prof1].ore - classe_docente[base2d_ci + prev_prof1].svolte > 0;
+            const int da_fare2 = classe_docente[base2d_ci + prev_prof2].ore - classe_docente[base2d_ci + prev_prof2].svolte > 0;
             if (da_fare1 && da_fare2) {
                 // entrambi devono esserci anche in quest'ora: possibile solo come la stessa coppia (mai da soli)
                 return prof1 == prev_prof1 && prof2 == prev_prof2
@@ -137,7 +137,7 @@ int sabato_esaurisci_priorita_subito(int pos, int giorno, int ora, int base2d_ci
                 return prof1 == prev_prof2 || prof2 == prev_prof2;
             }
         } else if (prev_prof1 != -1) {
-            if (ore_classi_docenti[base2d_ci + prev_prof1] - ore_classi_docenti_svolte[base2d_ci + prev_prof1] > 0) {
+            if (classe_docente[base2d_ci + prev_prof1].ore - classe_docente[base2d_ci + prev_prof1].svolte > 0) {
                 return prof1 == prev_prof1 || prof2 == prev_prof1;
             }
         }
@@ -180,10 +180,10 @@ int prof_è_disponibile(const int base3d_goi, int p1) {
 }
 
 int deve_ancora_svolgere_ore_in_questa_classe(const int base2d_ci, const int p1) {
-    return ore_classi_docenti_svolte[base2d_ci + p1] < ore_classi_docenti[base2d_ci + p1];
+    return classe_docente[base2d_ci + p1].svolte < classe_docente[base2d_ci + p1].ore;
 }
 
-// Posizione, in ore_classi_codocenza[_svolte], della coppia (p1, p2) nella classe cla (prof a indice minore prima).
+// Posizione, in codocenza[_svolte].ore, della coppia (p1, p2) nella classe cla (prof a indice minore prima).
 // Locale a main.c cosi' il compilatore la espande inline (le versioni in database_initializers.c sono in un'altra unita').
 static inline int idx_codocenza(const int cla, const int p1, const int p2) {
     const int lo = p1 < p2 ? p1 : p2;
@@ -193,7 +193,7 @@ static inline int idx_codocenza(const int cla, const int p1, const int p2) {
 
 static inline int docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(const int cla, const int p1, const int p2) {
     const int i = idx_codocenza(cla, p1, p2);
-    return ore_classi_codocenza_svolte[i] < ore_classi_codocenza[i];
+    return codocenza[i].svolte < codocenza[i].ore;
 }
 
 // Quante volte e' stato assegnato uno slot (in qualunque punto della ricerca). Serve a capire, senza una variabile
@@ -208,7 +208,7 @@ static inline void prep_chiamata_ric_basic(const teaching_slot *slot, QueueItem 
     const int p = it->teacher;
     it->priority--;
     prof_gia_impegnato_giorno_ora[slot->base3d_goi + p] = 1;
-    ore_classi_docenti_svolte[slot->base2d_ci + p]++;
+    classe_docente[slot->base2d_ci + p].svolte++;
     ore_fatte_da_un_prof_in_una_classe_in_giorno[slot->base3d_gci + p]++;
 }
 
@@ -216,26 +216,26 @@ static inline void post_chiamata_ric_basic(const teaching_slot *slot, QueueItem 
     const int p = it->teacher;
     it->priority++;
     prof_gia_impegnato_giorno_ora[slot->base3d_goi + p] = 0;
-    ore_classi_docenti_svolte[slot->base2d_ci + p]--;
+    classe_docente[slot->base2d_ci + p].svolte--;
     ore_fatte_da_un_prof_in_una_classe_in_giorno[slot->base3d_gci + p]--;
 }
 
 // Le funzioni prep/post fanno tutto l'aggiornamento di stato di un'assegnazione di uno slot e il suo annullamento:
 // l'assegnazione dei docenti nello slot (insegnante1/insegnante2), le operazioni per docente (basic), quelle
-// specifiche (ore da solo, codocenza) e, una volta per slot, ore_classe_svolte e il contatore n_assegnazioni.
+// specifiche (ore da solo, codocenza) e, una volta per slot, classe_info[].svolte e il contatore n_assegnazioni.
 // post rimette lo slot a "non assegnato" (-1, -1): uno slot fuori dal percorso corrente e' sempre -1/-1.
 // jt == NULL: it insegna da solo; altrimenti it e jt insegnano insieme (codocenza).
 static inline void prep_chiamata_ricorsiva(teaching_slot *slot, QueueItem *it, QueueItem *jt) {
     prep_chiamata_ric_basic(slot, it);
     if (jt) {
         prep_chiamata_ric_basic(slot, jt);
-        ore_classi_codocenza_svolte[idx_codocenza(slot->classe, it->teacher, jt->teacher)]++;
+        codocenza[idx_codocenza(slot->classe, it->teacher, jt->teacher)].svolte++;
     } else {
-        ore_classi_docenti_alone_svolte[slot->base2d_ci + it->teacher]++;
+        classe_docente[slot->base2d_ci + it->teacher].alone_svolte++;
     }
     slot->insegnante1 = it->teacher;
     slot->insegnante2 = jt ? jt->teacher : -1;
-    ore_classe_svolte[slot->classe]++;
+    classe_info[slot->classe].svolte++;
     n_assegnazioni++;
 }
 
@@ -243,13 +243,13 @@ static inline void post_chiamata_ricorsiva(teaching_slot *slot, QueueItem *it, Q
     post_chiamata_ric_basic(slot, it);
     if (jt) {
         post_chiamata_ric_basic(slot, jt);
-        ore_classi_codocenza_svolte[idx_codocenza(slot->classe, it->teacher, jt->teacher)]--;
+        codocenza[idx_codocenza(slot->classe, it->teacher, jt->teacher)].svolte--;
     } else {
-        ore_classi_docenti_alone_svolte[slot->base2d_ci + it->teacher]--;
+        classe_docente[slot->base2d_ci + it->teacher].alone_svolte--;
     }
     slot->insegnante1 = -1;
     slot->insegnante2 = -1;
-    ore_classe_svolte[slot->classe]--;
+    classe_info[slot->classe].svolte--;
 }
 
 // Assegna lo slot (da solo o in coppia), prosegue la ricerca e annulla.
@@ -260,12 +260,12 @@ static inline void assegna_e_prosegui(teaching_slot *slot, const int pos, QueueI
 }
 
 int è_un_docente_che_insegna_da_solo_in_questa_classe(const int base2d_ci, const int prof) {
-    return classi_docenti_teorici[base2d_ci + prof];
+    return classe_docente[base2d_ci + prof].teorico;
 }
 
 int deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(const int base2d_ci, const int prof) {
-    return ore_classi_docenti_alone_svolte[base2d_ci + prof] < ore_classi_docenti_alone[
-               base2d_ci + prof];
+    return classe_docente[base2d_ci + prof].alone_svolte < classe_docente[
+               base2d_ci + prof].alone;
 }
 
 int ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(int pos, int giorno, int cla, const int prof) {
@@ -320,7 +320,7 @@ static inline int docente_idoneo(const teaching_slot *slot, const int pos, const
 }
 
 int verifica_ora_ingresso(const int prof, const int ora) {
-    return ora >= ora_di_entrata_prof[prof];
+    return ora >= docente_info[prof].ora_entrata;
 }
 
 void print_orario(const int pos) {
