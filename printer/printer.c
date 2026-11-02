@@ -84,7 +84,7 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
         for (int g = 0; g < actual_giorni_settimana; g++) {
             for (int o = 0; o < actual_ore_giornaliere; o++) {
                 int curr;
-                int p = g * actual_ore_giornaliere * actual_classi_sezione + o * actual_classi_sezione + c;
+                int p = slot_di(g, o, c);
                 if (p >= pos) curr = -1;
                 else curr = orario[p].insegnante1;
 
@@ -101,7 +101,7 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
         for (int g = 0; g < actual_giorni_settimana; g++) {
             for (int o = 0; o < actual_ore_giornaliere; o++) {
                 int curr;
-                int p = g * actual_ore_giornaliere * actual_classi_sezione + o * actual_classi_sezione + c;
+                int p = slot_di(g, o, c);
                 if (p >= pos) curr = -1;
                 else curr = orario[p].insegnante2;
 
