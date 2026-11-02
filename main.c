@@ -12,11 +12,7 @@
 
 long long int n_gen = 0;
 long long int n_gen_max = SCHEDULES_PER_GB / 5;
-teaching_slot orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
-    [0 ...
-        GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1
-    ] = (teaching_slot){-1, -1, -1, -1, -1}
-};
+teaching_slot orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ];
 
 int orario_len;
 FILE *f;
@@ -28,6 +24,14 @@ int g_ora(const int p) { return p / actual_classi_sezione % actual_ore_giornalie
 
 int g_classe(const int p) {
     return p % actual_classi_sezione;
+}
+
+// Ogni slot conosce la propria posizione (giorno, ora, classe) fin dall'inizio; i docenti sono -1 = non assegnato.
+// Va chiamata dopo che i dati sono stati inizializzati e orario_len e' noto.
+void inizializza_orario(void) {
+    for (int p = 0; p < orario_len; p++) {
+        orario[p] = (teaching_slot){-1, -1, g_giorno(p), g_ora(p), g_classe(p)};
+    }
 }
 
 /*End of block constraints*/
@@ -473,6 +477,7 @@ int main(void) {
     stampa_dati();
     //imposta la lunghezza dell'orario
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
+    inizializza_orario();
     //test(100);
 
     /*  // if you initialize with less elements it will set the remaming elements to 0.
