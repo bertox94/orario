@@ -404,6 +404,7 @@ void print_orario(const int pos) {
 //                   classi da 29 a 36 ore, docenti da 5 a 24 ore, con lezioni da soli e in codocenza.
 //   --classi N: numero di classi dei dati casuali (default 8)
 //   -n MAX: si ferma dopo MAX orari completi
+//   --dati FILE: scrive in FILE la descrizione dei dati (classi, docenti, lezioni, codocenze)
 int main(int argc, char **argv) {
     time_t currentTime;
     time(&currentTime); // Get the current time
@@ -412,6 +413,7 @@ int main(int argc, char **argv) {
     int usa_seed = 0;
     unsigned int seed = 0;
     int casuale = 0, n_classi_casuali = 8;
+    const char *file_dati = NULL;
     unsigned long long seme_dati = 0;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-b") || !strcmp(argv[i], "--backtrack")) {
@@ -421,6 +423,8 @@ int main(int argc, char **argv) {
             seme_dati = strtoull(argv[++i], NULL, 10);
         } else if (!strcmp(argv[i], "--classi") && i + 1 < argc) {
             n_classi_casuali = atoi(argv[++i]);
+        } else if (!strcmp(argv[i], "--dati") && i + 1 < argc) {
+            file_dati = argv[++i];
         } else if (!strcmp(argv[i], "-n") && i + 1 < argc) {
             n_gen_max = atoll(argv[++i]);
         } else {
@@ -438,6 +442,12 @@ int main(int argc, char **argv) {
     }
     stampa_dati();
     fflush(stdout);
+    if (file_dati) {
+        FILE *fd = fopen(file_dati, "w");
+        if (casuale) fprintf(fd, "Dati casuali: --casuale %llu --classi %d\n\n", seme_dati, n_classi_casuali);
+        stampa_dati_su_file(fd);
+        fclose(fd);
+    }
     //imposta la lunghezza dell'orario
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
     inizializza_orario();
