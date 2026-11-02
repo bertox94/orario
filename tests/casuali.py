@@ -9,15 +9,18 @@ Uso: tests/casuali.py [--da SEME] [--quanti N] [--classi K]
 
 1. Fase 1: ogni caso gira al massimo 1 minuto (si ferma al primo orario trovato).
 2. Fase 2: i casi non finiti girano di nuovo per al massimo 10 minuti.
-3. Fase 3: i casi ancora non finiti vengono rilanciati con -b: il programma scrive in orario.txt l'orario parziale a
-   ogni marcia indietro. Tutti i file delle marce indietro insieme occupano al massimo circa 20 GB (divisi in parti
-   uguali tra i casi). I casi che hanno trovato un orario non si rilanciano.
+3. Fase 3: i casi ancora non finiti vengono rilanciati con -b: il programma scrive ogni marcia indietro in formato
+   compatto (una riga con gli slot cambiati, vedi printer/printer.h), compresso con gzip: circa 4 byte per marcia.
+   Tutti i file delle marce indietro insieme occupano al massimo circa 20 GB (divisi in parti uguali tra i casi).
+   I casi che hanno trovato un orario non si rilanciano.
 
 Per ogni caso c'e' una cartella tests/risultati/seme_<N>/ (o seme_<N>_ritardi/) (cancellata a ogni esecuzione) con:
    dati.txt            descrizione del caso (classi, docenti, lezioni, codocenze)
    risultato.txt       esito di ogni fase, marce indietro, tempi, diagnosi
    orario.txt          il primo orario trovato (se la ricerca e' finita)
-   marce_indietro/orario.txt   solo per i casi non finiti: orario parziale a ogni marcia indietro
+   risultato.json      dati, esito, primo orario e diagnosi per slot dell'ultima fase (vedi printer/risultati_json.h)
+   marce_indietro/orario.txt.gz   solo per i casi non finiti: le marce indietro in formato compatto
+   marce_indietro/risultato.json  come sopra, per la fase 3
 
 Per ogni caso lento o non finito stampa una diagnosi: se i vicoli ciechi (marce indietro, o rami scartati dalla
 potatura se sono di piu') sono concentrati in pochi slot (LOCALIZZATA) il caso e' probabilmente impossibile o ha un
@@ -37,7 +40,7 @@ RADICE = os.path.dirname(AQUI)
 OUT = os.path.join(AQUI, 'risultati')
 FILES = ['main.c', 'orario/orario.c', 'ricerca/ricerca.c', 'ricerca/vincoli.c', 'ricerca/diagnosi.c', 'ricerca/fattibilita.c',
          'data_initialization/database_initializers.c', 'data_initialization/generatore.c',
-         'printer/printer.c', 'priority_queue/prio_queue.c']
+         'printer/printer.c', 'printer/risultati_json.c', 'priority_queue/prio_queue.c']
 
 
 def compila(dest):
@@ -101,9 +104,10 @@ def lancia(exe, caso, classi, timeout, cartella, backtrack=False, max_mb=4096):
     dati = os.path.join(os.path.dirname(cartella) if backtrack else cartella, 'dati.txt')
     cmd = [exe, '--casuale', str(seme), '--classi', str(classi), '-n', '1', '--dati', dati,
            '--tempo', str(max(timeout - 1, 0.5)), '--motivi'] + (['--ritardi'] if ritardi else []) + \
-          (['-b'] if backtrack else [])
-    # limite alla dimensione dei file scritti dal solver (orario.txt con -b puo' crescere di GB): oltre, il sistema
-    # lo interrompe e il caso risulta "interrotto (file troppo grande)"
+          (['-b', '--orario', 'orario.txt.gz'] if backtrack else []) + ['--json', 'risultato.json']
+    # limite alla dimensione dei file scritti dal solver (con -b il file delle marce indietro puo' crescere di GB; il
+    # limite vale anche per gzip, che il solver avvia e che eredita i limiti): oltre, il sistema interrompe la scrittura
+    # e il caso risulta "interrotto (file troppo grande)"
     limite = max_mb * 2 ** 20 if max_mb > 0 else resource.RLIM_INFINITY
     t = time.time()
     try:
@@ -189,7 +193,7 @@ def fase3(pool, exe, casi, classi, ris, storia):
                                        backtrack=True, max_mb=per_file_mb), da_ristampare):
         stampa('3', r)
         storia[r['caso']].append(('fase 3, con -b (max %g s)' % DOPO, r))
-        p = os.path.join(cartella_caso(r['caso']), 'marce_indietro', 'orario.txt')
+        p = os.path.join(cartella_caso(r['caso']), 'marce_indietro', 'orario.txt.gz')
         if os.path.exists(p):
             print('         -> %s (%.1f MB)' % (os.path.relpath(p, RADICE), os.path.getsize(p) / 1e6))
 

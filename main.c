@@ -7,6 +7,7 @@
 #include "data_initialization/generatore.h"
 #include "orario/orario.h"
 #include "printer/printer.h"
+#include "printer/risultati_json.h"
 #include "ricerca/diagnosi.h"
 #include "ricerca/fattibilita.h"
 #include "ricerca/ricerca.h"
@@ -18,10 +19,14 @@
 // La ricerca e' una visita in profondita' con marcia indietro (ricerca/ricerca.c) che riempie gli slot in ordine:
 // giorno, ora, classe. Prima di cercare si verificano alcune condizioni necessarie sui dati (ricerca/fattibilita.c).
 
-// Uso: ./untitled [seed] [-b] [--casuale SEME [--classi N] [--ritardi]] [-n MAX] [--tempo SEC] [--motivi] [--dati FILE] [--senza-verifica]
+// Uso: ./untitled [seed] [-b | --backtrack-griglia] [--casuale SEME [--classi N] [--ritardi]] [-n MAX] [--tempo SEC]
+//                  [--motivi] [--dati FILE] [--senza-verifica] [--orario FILE] [--json FILE]
 //   seed: l'ordine delle classi viene mescolato (stesso seed = stesso ordine)
-//   -b / --backtrack: scrive in orario.txt anche ogni marcia indietro (riga "Backtrack" + griglia parziale).
-//                     Senza, orario.txt contiene solo gli orari completi e si va molto piu' veloci.
+//   -b / --backtrack: scrive nel file dell'orario anche ogni marcia indietro, in formato compatto (una riga con gli slot
+//                     cambiati, vedi printer.h). Senza, il file contiene solo gli orari completi.
+//   --backtrack-griglia: come -b, ma con la griglia parziale intera a ogni marcia (circa 30 KB per marcia: lento e
+//                        molto grande, solo per leggere il file a mano)
+//   --orario FILE: dove scrivere gli orari (default orario.txt); se FILE finisce in .gz si scrive compresso con gzip
 //   --casuale SEME: invece dei dati del programma usa dati generati a caso (riproducibili con lo stesso SEME):
 //                   classi da 29 a 36 ore, docenti da 5 a 24 ore, con lezioni da soli e in codocenza.
 //   --classi N: numero di classi dei dati casuali (default 8)
@@ -31,6 +36,7 @@
 //   --motivi: nella diagnosi indica anche perche' i docenti vengono scartati negli slot con piu' marce indietro
 //   --dati FILE: scrive in FILE la descrizione dei dati (classi, docenti, lezioni, codocenze)
 //   --senza-verifica: salta la verifica preliminare dei dati (che segnala i casi impossibili prima di cercare)
+//   --json FILE: alla fine scrive in FILE dati, esito, primo orario trovato e diagnosi per slot, in JSON (per il sito)
 // Le opzioni della riga di comando (n_gen_max e stampa_backtrack invece sono globali della ricerca).
 typedef struct {
     int mescola_classi;          // 1 se e' stato dato un seed per l'ordine delle classi
@@ -43,14 +49,23 @@ typedef struct {
     double secondi_massimi;      // 0 = nessun limite di tempo
     int con_motivi;
     int senza_verifica;          // 1 = non fare la verifica preliminare
+    const char *file_orario;     // dove scrivere gli orari (.gz = compresso)
+    const char *file_json;       // dove scrivere i risultati in JSON (NULL = da nessuna parte)
 } Opzioni;
 
 static Opzioni leggi_opzioni(const int argc, char **argv) {
     Opzioni o = {0};
     o.n_classi_casuali = 8;
+    o.file_orario = "orario.txt";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-b") || !strcmp(argv[i], "--backtrack")) {
-            stampa_backtrack = 1;
+            stampa_backtrack = BACKTRACK_COMPATTO;
+        } else if (!strcmp(argv[i], "--backtrack-griglia")) {
+            stampa_backtrack = BACKTRACK_GRIGLIA;
+        } else if (!strcmp(argv[i], "--orario") && i + 1 < argc) {
+            o.file_orario = argv[++i];
+        } else if (!strcmp(argv[i], "--json") && i + 1 < argc) {
+            o.file_json = argv[++i];
         } else if (!strcmp(argv[i], "--casuale") && i + 1 < argc) {
             o.dati_casuali = 1;
             o.seme_dati = strtoull(argv[++i], NULL, 10);
@@ -107,12 +122,25 @@ static void scrivi_file_dati(const Opzioni *o) {
 }
 
 // Verifica preliminare dei dati: se violano una condizione necessaria il caso e' impossibile e non si cerca.
-static int caso_possibile(const Opzioni *o) {
-    char motivo[256];
-    if (o->senza_verifica || verifica_fattibilita(motivo, sizeof motivo)) return 1;
+// Il motivo si scrive su stdout e resta in `motivo` (per il JSON).
+static int caso_possibile(const Opzioni *o, char *motivo, const size_t dimensione) {
+    motivo[0] = '\0';
+    if (o->senza_verifica || verifica_fattibilita(motivo, dimensione)) return 1;
     printf("Impossibile (verifica preliminare): %s\n", motivo);
     fflush(stdout);
     return 0;
+}
+
+// Apre il file degli orari. Se il nome finisce in .gz si scrive compresso: i dati passano per gzip (un processo a
+// parte, avviato da popen), cosi' sul disco arriva solo il file compresso. *compresso dice come va chiuso.
+static FILE *apri_file_orario(const char *nome, int *compresso) {
+    const size_t n = strlen(nome);
+    *compresso = n > 3 && !strcmp(nome + n - 3, ".gz");
+    if (!*compresso) return fopen(nome, "w");
+    if (strchr(nome, '\'')) return NULL; // il nome va tra apici nel comando: non deve contenerne
+    char comando[4096];
+    snprintf(comando, sizeof comando, "gzip -1 > '%s'", nome);
+    return popen(comando, "w");
 }
 
 // Uno slot per ogni (giorno, ora, classe), nell'ordine in cui la ricerca li riempie; con un seed le classi si mescolano.
@@ -141,15 +169,28 @@ int main(const int argc, char **argv) {
     printf("Program started at: %s\n", ctime(&currentTime));
     carica_dati(&o);
     scrivi_file_dati(&o);
-    if (!caso_possibile(&o)) return 0;
     prepara_orario(&o);
+    char motivo[256];
+    if (!caso_possibile(&o, motivo, sizeof motivo)) {
+        scrivi_json(o.file_json, argc, argv, motivo, 0);
+        return 0;
+    }
 
-    // la ricerca scrive in orario.txt gli orari completi (e con -b anche quelli parziali a ogni marcia indietro)
+    // la ricerca scrive nel file dell'orario gli orari completi (e con -b anche ogni marcia indietro)
+    int compresso;
+    file_orario = apri_file_orario(o.file_orario, &compresso);
+    if (!file_orario) {
+        fprintf(stderr, "Impossibile scrivere %s\n", o.file_orario);
+        return 1;
+    }
+    if (stampa_backtrack == BACKTRACK_COMPATTO) stampa_intestazione_marce_compatte(file_orario);
     diagnosi_avvia();
-    file_orario = fopen("orario.txt", "w");
     cerca_orario(0);
-    fclose(file_orario);
+    if (compresso) pclose(file_orario);
+    else fclose(file_orario);
 
-    stampa_risultati((clock() - start) / (double) CLOCKS_PER_SEC);
+    const double secondi = (clock() - start) / (double) CLOCKS_PER_SEC;
+    stampa_risultati(secondi);
+    scrivi_json(o.file_json, argc, argv, NULL, secondi);
     return 0;
 }

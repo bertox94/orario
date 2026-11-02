@@ -20,6 +20,8 @@ long long int n_gen_max = SCHEDULES_PER_GB / 5;
 long long int n_backtrack = 0;
 int stampa_backtrack = 0;
 FILE *file_orario;
+int primo_orario_1[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ];
+int primo_orario_2[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ];
 
 /* ---- coda dei docenti di uno slot ---- */
 
@@ -111,6 +113,11 @@ static inline void assegna_e_prosegui(teaching_slot *slot, const int pos, QueueI
 // Un orario completo: lo si conta e lo si scrive.
 static void registra_orario_completo(const int pos) {
     n_gen++;
+    if (n_gen == 1)
+        for (int i = 0; i < pos; i++) {
+            primo_orario_1[i] = orario[i].insegnante1;
+            primo_orario_2[i] = orario[i].insegnante2;
+        }
     print(orario, pos, n_gen, file_orario);
 }
 
@@ -118,7 +125,9 @@ static void registra_orario_completo(const int pos) {
 static void registra_marcia_indietro(const teaching_slot *slot, const int pos, const int queue_size) {
     n_backtrack++;
     diagnosi_marcia_indietro(slot, pos, slot->base4d_queue, queue_size);
-    if (stampa_backtrack) {
+    if (stampa_backtrack == BACKTRACK_COMPATTO) {
+        stampa_marcia_compatta(file_orario, orario, pos);
+    } else if (stampa_backtrack == BACKTRACK_GRIGLIA) {
         fprintf(file_orario, "Backtrack, non si è potuto scegiere alcun insegnante nel giorno: %s, ora: %s, classe: %s\n",
                 giorni_settimana[slot->giorno], ore_giornaliere[slot->ora], classe_sezione[slot->classe]);
         print(orario, pos, n_gen, file_orario);

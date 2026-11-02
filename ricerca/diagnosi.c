@@ -101,6 +101,24 @@ void diagnosi_marcia_indietro(const teaching_slot *slot, const int pos, const in
     }
 }
 
+/* ---- lettura dei contatori ---- */
+
+long long int diagnosi_marce_nello_slot(const int pos) { return marce_per_pos[pos]; }
+
+long long int diagnosi_scartati_nello_slot(const int pos, const int motivo_scarto) {
+    return scartati_per_pos[pos][motivo_scarto];
+}
+
+long long int diagnosi_motivo_nello_slot(const int pos, const int motivo) { return motivi_per_pos[pos][motivo]; }
+
+long long int diagnosi_motivo_del_docente(const int prof, const int motivo) { return motivi_per_docente[prof][motivo]; }
+
+int diagnosi_con_motivi(void) { return registra_motivi; }
+
+const char *diagnosi_nome_motivo(const int motivo) { return nome_motivo[motivo]; }
+
+const char *diagnosi_nome_motivo_scarto(const int motivo_scarto) { return nome_motivo_scarto[motivo_scarto]; }
+
 /* ---- stampa ---- */
 
 static void stampa_nome_slot(const int pos) {

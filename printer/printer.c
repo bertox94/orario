@@ -193,6 +193,45 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
     fprintf(f, "\n");
 }
 
+/* ---- marce indietro in formato compatto (vedi printer.h) ---- */
+
+// Gli slot dell'ultima riga B scritta: la riga successiva riscrive solo da dove cambiano.
+static int ultimi_1[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ];
+static int ultimi_2[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ];
+static int n_ultimi = 0;
+
+void stampa_intestazione_marce_compatte(FILE *f) {
+    fprintf(f, "# Marce indietro in formato compatto (vedi printer.h)\n");
+    fprintf(f, "# Riga \"B pos da s_da ... s_(pos-1)\": marcia indietro nello slot pos; gli slot da `da` a pos-1 come "
+               "scritto, quelli prima come nella riga B precedente. Slot: \"i\" docente, \"i+j\" coppia, \"-\" vuoto.\n");
+    fprintf(f, "# Gli orari completi sono scritti per intero, come senza -b.\n");
+    fprintf(f, "G %d %d %d\n", actual_giorni_settimana, actual_ore_giornaliere, actual_classi_sezione);
+    // ordine delle classi dentro ogni ora (lo stesso per tutte le ore)
+    fprintf(f, "K");
+    for (int k = 0; k < actual_classi_sezione; k++) fprintf(f, " %s", classe_sezione[orario[k].classe]);
+    fprintf(f, "\n");
+    // indice -> nome dei docenti (un docente per riga: i nomi possono contenere spazi)
+    for (int p = 0; p < actual_insegnanti; p++) fprintf(f, "D %d %s\n", p, insegnanti[p]);
+}
+
+void stampa_marcia_compatta(FILE *f, const teaching_slot orario[], const int pos) {
+    // primo slot diverso dall'ultima riga scritta (la ricerca cambia solo la coda del percorso)
+    int da = 0;
+    while (da < pos && da < n_ultimi && orario[da].insegnante1 == ultimi_1[da] && orario[da].insegnante2 == ultimi_2[da])
+        da++;
+    fprintf(f, "B %d %d", pos, da);
+    for (int i = da; i < pos; i++) {
+        const int a = orario[i].insegnante1, b = orario[i].insegnante2;
+        if (a < 0) fprintf(f, " -");
+        else if (b < 0) fprintf(f, " %d", a);
+        else fprintf(f, " %d+%d", a, b);
+        ultimi_1[i] = a;
+        ultimi_2[i] = b;
+    }
+    fprintf(f, "\n");
+    n_ultimi = pos;
+}
+
 // Riepilogo dei dati su stdout: giorni, ore, ore di ogni classe, ore di ogni docente e ore di ogni docente per classe.
 // tests/casuali.py legge le righe "Classe ...: N ore" e "Ins. ...: N ore" per controllare i dati generati.
 void stampa_dati() {

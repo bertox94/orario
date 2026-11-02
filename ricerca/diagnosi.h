@@ -53,6 +53,16 @@ void diagnosi_ramo_scartato(int pos, int motivo);
 // Un nodo in cui non si e' potuto scegliere nessun docente. base4d_queue/queue_size delimitano la coda dei docenti.
 void diagnosi_marcia_indietro(const teaching_slot *slot, int pos, int base4d_queue, int queue_size);
 
+// I contatori per slot (pos = posizione nell'orario) e per docente, per chi li vuole esportare (risultati_json.c).
+// I motivi (per slot e per docente) si contano solo con --motivi: diagnosi_con_motivi() dice se sono validi.
+long long int diagnosi_marce_nello_slot(int pos);
+long long int diagnosi_scartati_nello_slot(int pos, int motivo_scarto);
+long long int diagnosi_motivo_nello_slot(int pos, int motivo);
+long long int diagnosi_motivo_del_docente(int prof, int motivo);
+int diagnosi_con_motivi(void);
+const char *diagnosi_nome_motivo(int motivo);
+const char *diagnosi_nome_motivo_scarto(int motivo_scarto);
+
 // Scrive la diagnosi su stdout.
 void stampa_diagnosi(long long int n_backtrack);
 
