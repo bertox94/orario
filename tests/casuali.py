@@ -8,7 +8,7 @@ Uso: tests/casuali.py [--da SEME] [--quanti N] [--classi K] [--prima SEC] [--dop
 2. Fase 2: i casi non finiti nella fase 1 girano di nuovo per al massimo --dopo secondi (default 600; 0 = salta).
 3. Fase 3: i casi ancora non finiti, e i --piu-lenti casi finiti con piu' marce indietro (default 3), vengono rilanciati
    con -b: il programma scrive in orario.txt l'orario parziale a ogni marcia indietro. I file vanno in
-   <out>/seme_<N>/ (default tests/risultati): orario.txt (con -b) e dati.txt (descrizione del caso), orario.txt ciascuno al massimo --max-mb megabyte (default 200).
+   <out>/seme_<N>/ (default tests/risultati): orario.txt (con -b) e dati.txt (descrizione del caso), orario.txt ciascuno al massimo --max-mb megabyte (default 4096, 0 = senza limite).
 
 Controlla anche che i dati generati rispettino i vincoli (classi 29..36 ore, docenti 5..24 ore): esce con 1 se no."""
 import argparse, os, re, resource, shutil, subprocess, sys, tempfile, time
@@ -37,11 +37,11 @@ def controlla_dati(out):
     return errori, len(classi), len(docenti)
 
 
-def lancia(exe, seme, classi, timeout, cartella, backtrack=False, max_mb=200):
+def lancia(exe, seme, classi, timeout, cartella, backtrack=False, max_mb=4096):
     """Esegue un caso nella sua cartella. Ritorna un dizionario con l'esito."""
     os.makedirs(cartella, exist_ok=True)
     cmd = [exe, '--casuale', str(seme), '--classi', str(classi), '-n', '1'] + (['-b', '--dati', 'dati.txt'] if backtrack else [])
-    limite = max_mb * 2 ** 20
+    limite = max_mb * 2 ** 20 if max_mb > 0 else resource.RLIM_INFINITY
     t = time.time()
     try:
         r = subprocess.run(cmd, cwd=cartella, capture_output=True, text=True, timeout=timeout,
@@ -76,7 +76,8 @@ def main():
     ap.add_argument('--dopo', type=float, default=600, help='secondi massimi della fase 2 (0 = salta)')
     ap.add_argument('--piu-lenti', type=int, default=3, help='quanti casi finiti con piu\' marce indietro rilanciare')
     ap.add_argument('--jobs', type=int, default=max(1, (os.cpu_count() or 2) // 2))
-    ap.add_argument('--max-mb', type=int, default=200, help='dimensione massima di orario.txt nella fase 3')
+    ap.add_argument('--max-mb', type=int, default=4096,
+                    help='dimensione massima di ogni orario.txt nella fase 3, in MB (0 = nessun limite)')
     ap.add_argument('--out', default=os.path.join(AQUI, 'risultati'))
     a = ap.parse_args()
 
@@ -107,6 +108,12 @@ def main():
             print('\n== Fase 3: orario parziale a ogni marcia indietro per %d casi (%d non finiti, %d con piu\' marce '
                   'indietro)' % (len(da_ristampare), len(ancora), len(da_ristampare) - len(ancora)))
             tempo = max(a.prima, a.dopo)
+            os.makedirs(a.out, exist_ok=True)
+            libero = shutil.disk_usage(a.out).free / 2 ** 20
+            massimo = len(da_ristampare) * a.max_mb if a.max_mb > 0 else float('inf')
+            if massimo > libero:
+                print('ATTENZIONE: spazio libero %.0f MB, i file potrebbero occupare fino a %s MB '
+                      '(%d casi in parallelo scrivono insieme)' % (libero, '?' if a.max_mb <= 0 else int(massimo), a.jobs))
             for r in pool.map(lambda s: lancia(exe, s, a.classi, tempo, os.path.join(a.out, 'seme_%d' % s),
                                                backtrack=True, max_mb=a.max_mb), da_ristampare):
                 stampa('3', r)
