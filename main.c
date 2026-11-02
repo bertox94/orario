@@ -12,11 +12,7 @@
 
 long long int n_gen = 0;
 long long int n_gen_max = SCHEDULES_PER_GB / 5;
-teaching_slot orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
-    [0 ...
-        GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1
-    ] = (teaching_slot){-1, -1}
-};
+teaching_slot orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ];
 
 int orario_len;
 FILE *f;
@@ -28,6 +24,48 @@ int g_ora(const int p) { return p / actual_classi_sezione % actual_ore_giornalie
 
 int g_classe(const int p) {
     return p % actual_classi_sezione;
+}
+
+// Dalla tripla (giorno, ora, classe) all'indice dello slot in orario[].
+// Serve perche' l'ordine delle classi dentro un'ora puo' cambiare (vedi randomizza_ordine_classi),
+// quindi la classe di uno slot NON si ricava dalla sua posizione: si legge dallo slot (orario[i].classe).
+int indice_slot[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ];
+
+int slot_di(const int giorno, const int ora, const int classe) {
+    return indice_slot[(giorno * actual_ore_giornaliere + ora) * actual_classi_sezione + classe];
+}
+
+static void ricostruisci_indice_slot(void) {
+    for (int p = 0; p < orario_len; p++) {
+        indice_slot[(orario[p].giorno * actual_ore_giornaliere + orario[p].ora) * actual_classi_sezione
+                    + orario[p].classe] = p;
+    }
+}
+
+// Ogni slot conosce la propria posizione (giorno, ora, classe) fin dall'inizio; i docenti sono -1 = non assegnato.
+// Qui, e solo qui, giorno/ora/classe si ricavano dalla posizione (ordine iniziale: classi in ordine).
+// Va chiamata dopo che i dati sono stati inizializzati e orario_len e' noto.
+void inizializza_orario(void) {
+    for (int p = 0; p < orario_len; p++) {
+        orario[p] = (teaching_slot){-1, -1, g_giorno(p), g_ora(p), g_classe(p)};
+    }
+    ricostruisci_indice_slot();
+}
+
+// OPZIONALE. Mescola l'ordine in cui le classi vengono considerate in ogni ora (giorno, ora).
+// Cambia solo il campo classe degli slot dentro ciascun blocco di actual_classi_sezione slot, quindi giorno e ora
+// di ogni slot restano gli stessi. Stesso seed = stesso ordine. Da chiamare dopo inizializza_orario().
+void randomizza_ordine_classi(const unsigned int seed) {
+    srand(seed);
+    for (int blocco = 0; blocco < orario_len; blocco += actual_classi_sezione) {
+        for (int k = actual_classi_sezione - 1; k > 0; k--) {
+            const int j = rand() % (k + 1);
+            const int tmp = orario[blocco + k].classe;
+            orario[blocco + k].classe = orario[blocco + j].classe;
+            orario[blocco + j].classe = tmp;
+        }
+    }
+    ricostruisci_indice_slot();
 }
 
 /*End of block constraints*/
@@ -101,8 +139,9 @@ int activities_for_this_class_and_hour(int pos, int gio, const int ora, const in
 
 int sabato_esaurisci_priorita_subito_cod(int pos, int giorno, int ora, int base2d_ci, int prof1, int prof2) {
     if (giorno == actual_giorni_settimana - 1 && ora > 0) {
-        int prev_prof1 = orario[pos - actual_classi_sezione].insegnante1;
-        int prev_prof2 = orario[pos - actual_classi_sezione].insegnante2;
+        const teaching_slot *prev = &orario[slot_di(giorno, ora - 1, orario[pos].classe)];
+        int prev_prof1 = prev->insegnante1;
+        int prev_prof2 = prev->insegnante2;
 
         if (prev_prof1 != -1 && prev_prof2 != -1) {
             if (ore_classi_docenti[base2d_ci + prev_prof1] - ore_classi_docenti_svolte[base2d_ci + prev_prof1] > 0
@@ -133,8 +172,9 @@ int sabato_esaurisci_priorita_subito_cod(int pos, int giorno, int ora, int base2
 
 int sabato_esaurisci_priorita_subito(int pos, int giorno, int ora, int base2d_ci, int prof) {
     if (giorno == actual_giorni_settimana - 1 && ora > 0) {
-        int prev_prof1 = orario[pos - actual_classi_sezione].insegnante1;
-        int prev_prof2 = orario[pos - actual_classi_sezione].insegnante2;
+        const teaching_slot *prev = &orario[slot_di(giorno, ora - 1, orario[pos].classe)];
+        int prev_prof1 = prev->insegnante1;
+        int prev_prof2 = prev->insegnante2;
 
         if (prev_prof1 != -1 && prev_prof2 != -1) {
             if (ore_classi_docenti[base2d_ci + prev_prof1] - ore_classi_docenti_svolte[base2d_ci + prev_prof1] > 0
@@ -237,10 +277,8 @@ int prof_fa_al_max_n_ore(int giorno, int ora, int cla, int prof) {
 int prof_fa_ore_contigue(int giorno, int ora, int cla, int prof) {
     if (ore_fatte_da_un_prof_in_una_classe_in_giorno[
         giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + prof]) {
-        return orario[giorno * actual_ore_giornaliere * actual_classi_sezione + (ora - 1) * actual_classi_sezione + cla]
-               .insegnante1 == prof
-               || orario[giorno * actual_ore_giornaliere * actual_classi_sezione + (ora - 1) * actual_classi_sezione +
-                         cla].insegnante2 == prof;
+        const teaching_slot *prev = &orario[slot_di(giorno, ora - 1, cla)];
+        return prev->insegnante1 == prof || prev->insegnante2 == prof;
     }
     return 1;
 }
@@ -329,7 +367,7 @@ int ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(int pos, int giorno, int cl
 
     for (int i = start; i < pos; i++) {
         if (orario[i].insegnante1 == prof || orario[i].insegnante2 == prof) {
-            int current_class = g_classe(i);
+            int current_class = orario[i].classe;
 
             // Check if the class is already recorded
             int found = 0;
@@ -349,7 +387,7 @@ int ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(int pos, int giorno, int cl
             }
 
             // Jump to the next hour slot (-1 to compensate for the loop's i++)
-            i = start + (g_ora(i) + 1) * actual_classi_sezione - 1;
+            i = start + (orario[i].ora + 1) * actual_classi_sezione - 1;
         }
     }
 
@@ -373,9 +411,9 @@ void print_orario(const int pos) {
         return;
     }
 
-    const int giorno = g_giorno(pos);
-    const int ora = g_ora(pos);
-    const int cla = g_classe(pos);
+    const int giorno = orario[pos].giorno;
+    const int ora = orario[pos].ora;
+    const int cla = orario[pos].classe;
     const int base2d_ci = cla * INSEGNANTE_SZ;
     const int base2d_gc = giorno * CLASSE_SEZIONE_SZ;
     const int base3d_goi = giorno * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + ora * INSEGNANTE_SZ;
@@ -428,7 +466,8 @@ void print_orario(const int pos) {
                     ) {
                         prep_chiamata_ricorsiva_insieme(base2d_ci, base3d_goi, cla, it, jt, giorno);
                         found_prof = 1;
-                        orario[pos] = (teaching_slot){p1, p2};
+                        orario[pos].insegnante1 = p1;
+                        orario[pos].insegnante2 = p2;
                         print_orario(pos + 1);
                         post_chiamata_ricorsiva_insieme(base2d_ci, base3d_goi, cla, it, jt, giorno);
                     }
@@ -440,7 +479,8 @@ void print_orario(const int pos) {
                     && 1) {
                     prep_chiamata_ricorsiva(base2d_ci, base3d_goi, it, giorno, cla, p1);
                     found_prof = 1;
-                    orario[pos] = (teaching_slot){p1, -1};
+                    orario[pos].insegnante1 = p1;
+                    orario[pos].insegnante2 = -1;
                     print_orario(pos + 1);
                     post_chiamata_ricorsiva(base2d_ci, base3d_goi, it, giorno, cla, p1);
                 }
@@ -456,14 +496,16 @@ void print_orario(const int pos) {
 
 
     if (ora >= PRIME_N_ORE_OBBLIGATORIE) {
-        orario[pos] = (teaching_slot){-1, -1};
+        orario[pos].insegnante1 = -1;
+        orario[pos].insegnante2 = -1;
         n_ore_buche[base2d_gc + cla]++;
         print_orario(pos + 1);
         n_ore_buche[base2d_gc + cla]--;
     }
 }
 
-int main(void) {
+// Uso: ./untitled [seed]   (con seed: l'ordine delle classi in ogni ora viene mescolato)
+int main(int argc, char **argv) {
     time_t currentTime;
     time(&currentTime); // Get the current time
     const clock_t start = clock();
@@ -473,6 +515,8 @@ int main(void) {
     stampa_dati();
     //imposta la lunghezza dell'orario
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
+    inizializza_orario();
+    if (argc > 1) randomizza_ordine_classi((unsigned int) strtoul(argv[1], NULL, 10));
     //test(100);
 
     /*  // if you initialize with less elements it will set the remaming elements to 0.

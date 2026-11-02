@@ -10,6 +10,9 @@
 
 #include "../data_initialization/database_initializers.h"
 
+// indice in orario[] dello slot di (giorno, ora, classe); definita in main.c
+int slot_di(int giorno, int ora, int classe);
+
 void print(const teaching_slot orario[], const int pos, unsigned long long attempt, FILE *f);
 void print_priority_queue(FILE *f, int start, int end);
 #endif //UNTITLED_PRINTER_H
