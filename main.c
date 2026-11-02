@@ -6,6 +6,7 @@
 #include "utils.h"
 #include "priority_queue/prio_queue.h"
 #include "data_initialization/database_initializers.h"
+#include "data_initialization/generatore.h"
 #include "printer/printer.h"
 
 #define SCHEDULES_PER_GB 55000
@@ -259,10 +260,6 @@ static inline void assegna_e_prosegui(teaching_slot *slot, const int pos, QueueI
     post_chiamata_ricorsiva(slot, it, jt);
 }
 
-int è_un_docente_che_insegna_da_solo_in_questa_classe(const int base2d_ci, const int prof) {
-    return classe_docente[base2d_ci + prof].teorico;
-}
-
 int deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(const int base2d_ci, const int prof) {
     return classe_docente[base2d_ci + prof].alone_svolte < classe_docente[
                base2d_ci + prof].alone;
@@ -373,8 +370,7 @@ void print_orario(const int pos) {
                     }
                 }
                 //non abbiamo trovato combinazioni di codocenza, verifica se all'insegnante mancano ore di docenza da solo
-                if (è_un_docente_che_insegna_da_solo_in_questa_classe(base2d_ci, p1)
-                    && deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(base2d_ci, p1)
+                if (deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(base2d_ci, p1)
                     && sabato_esaurisci_priorita_subito(pos, giorno, ora, base2d_ci, p1, -1)) {
                     assegna_e_prosegui(slot, pos, it, NULL);
                 }
@@ -390,39 +386,61 @@ void print_orario(const int pos) {
         }
     }
 
-    if (ora >= PRIME_N_ORE_OBBLIGATORIE) {
-        // ora buca: lo slot e' gia' -1/-1 (vedi post_chiamata_*)
+    // ora buca (solo oltre le ore obbligatorie): lo slot e' gia' -1/-1 (vedi post_chiamata_*).
+    // Dopo la buca la classe non fa altre lezioni quel giorno: le ore che le mancano devono stare nei giorni dopo.
+    if (ora >= PRIME_N_ORE_OBBLIGATORIE
+        && classe_info[cla].ore - classe_info[cla].svolte <= (actual_giorni_settimana - giorno - 1) * actual_ore_giornaliere) {
         n_ore_buche[base2d_gc + cla]++;
         print_orario(pos + 1);
         n_ore_buche[base2d_gc + cla]--;
     }
 }
 
-// Uso: ./untitled [seed] [-b]
+// Uso: ./untitled [seed] [-b] [--casuale SEME [--classi N]] [-n MAX]
 //   seed: l'ordine delle classi viene mescolato (stesso seed = stesso ordine)
 //   -b / --backtrack: scrive in orario.txt anche ogni marcia indietro (riga "Backtrack" + griglia parziale).
 //                     Senza, orario.txt contiene solo gli orari completi e si va molto piu' veloci.
+//   --casuale SEME: invece dei dati del programma usa dati generati a caso (riproducibili con lo stesso SEME):
+//                   classi da 29 a 36 ore, docenti da 5 a 24 ore, con lezioni da soli e in codocenza.
+//   --classi N: numero di classi dei dati casuali (default 8)
+//   -n MAX: si ferma dopo MAX orari completi
 int main(int argc, char **argv) {
     time_t currentTime;
     time(&currentTime); // Get the current time
     const clock_t start = clock();
 
-    printf("Program started at: %s\n", ctime(&currentTime));
-    inizializza_dati();
-    stampa_dati();
-    //imposta la lunghezza dell'orario
-    orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
-    inizializza_orario();
     int usa_seed = 0;
     unsigned int seed = 0;
+    int casuale = 0, n_classi_casuali = 8;
+    unsigned long long seme_dati = 0;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-b") || !strcmp(argv[i], "--backtrack")) {
             stampa_backtrack = 1;
+        } else if (!strcmp(argv[i], "--casuale") && i + 1 < argc) {
+            casuale = 1;
+            seme_dati = strtoull(argv[++i], NULL, 10);
+        } else if (!strcmp(argv[i], "--classi") && i + 1 < argc) {
+            n_classi_casuali = atoi(argv[++i]);
+        } else if (!strcmp(argv[i], "-n") && i + 1 < argc) {
+            n_gen_max = atoll(argv[++i]);
         } else {
             seed = (unsigned int) strtoul(argv[i], NULL, 10);
             usa_seed = 1;
         }
     }
+
+    printf("Program started at: %s\n", ctime(&currentTime));
+    if (casuale) {
+        inizializza_calendario();
+        genera_dati_casuali(seme_dati, n_classi_casuali);
+    } else {
+        inizializza_dati();
+    }
+    stampa_dati();
+    fflush(stdout);
+    //imposta la lunghezza dell'orario
+    orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
+    inizializza_orario();
     if (usa_seed) randomizza_ordine_classi(seed);
 
     f = fopen("orario.txt", "w");

@@ -50,7 +50,6 @@ typedef struct {
     int svolte;       // ore svolte fino a _pos_
     int alone;        // di cui da solo (senza codocente)
     int alone_svolte;
-    int teorico;      // 1 se ha ore da solo in questa classe
 } classe_docente_t;
 
 // Per ogni terna (classe, docente, codocente), prof a minore indice prima.
@@ -92,11 +91,15 @@ void set_insegnante(char in[]);
 
 void set_classe_insegnante_ore(char cla[], char prof[], const int ore);
 
+void set_classe_insegnante_ore_cod(char cla[], char prof[], const int ore, char cod[], const int ore_cod);
+
 int p_insegnante(const char in[]);
 
 int get_ore_classi_insegnante(int classe, int insegnante);
 
 int get_ore_classi_insegnante_svolte(int classe, int insegnante);
+
+void inizializza_calendario();
 
 void inizializza_dati();
 
