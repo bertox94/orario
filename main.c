@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include <tgmath.h>
 #include <sys/time.h>
 
@@ -11,6 +12,8 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 long long int n_gen = 0;
+long long int n_backtrack = 0; // quante volte non si e' potuto scegliere nessun docente per uno slot
+int stampa_backtrack = 0;      // se 1, ad ogni marcia indietro scrive la riga di avviso e la griglia parziale (lento)
 long long int n_gen_max = SCHEDULES_PER_GB / 5;
 teaching_slot orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ];
 
@@ -498,9 +501,12 @@ void print_orario(const int pos) {
         }
         ore_classe_svolte[cla]--;
         if (!found_prof) {
-            fprintf(f, "Backtrack, non si è potuto scegiere alcun insegnante nel giorno: %s, ora: %s, classe: %s\n",
-                    giorni_settimana[giorno], ore_giornaliere[ora], classe_sezione[cla]);
-            print(orario, pos, n_gen, f);
+            n_backtrack++;
+            if (stampa_backtrack) {
+                fprintf(f, "Backtrack, non si è potuto scegiere alcun insegnante nel giorno: %s, ora: %s, classe: %s\n",
+                        giorni_settimana[giorno], ore_giornaliere[ora], classe_sezione[cla]);
+                print(orario, pos, n_gen, f);
+            }
         }
     }
 
@@ -514,7 +520,10 @@ void print_orario(const int pos) {
     }
 }
 
-// Uso: ./untitled [seed]   (con seed: l'ordine delle classi in ogni ora viene mescolato)
+// Uso: ./untitled [seed] [-b]
+//   seed: l'ordine delle classi viene mescolato (stesso seed = stesso ordine)
+//   -b / --backtrack: scrive in orario.txt anche ogni marcia indietro (riga "Backtrack" + griglia parziale).
+//                     Senza, orario.txt contiene solo gli orari completi e si va molto piu' veloci.
 int main(int argc, char **argv) {
     time_t currentTime;
     time(&currentTime); // Get the current time
@@ -526,7 +535,17 @@ int main(int argc, char **argv) {
     //imposta la lunghezza dell'orario
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
     inizializza_orario();
-    if (argc > 1) randomizza_ordine_classi((unsigned int) strtoul(argv[1], NULL, 10));
+    int usa_seed = 0;
+    unsigned int seed = 0;
+    for (int i = 1; i < argc; i++) {
+        if (!strcmp(argv[i], "-b") || !strcmp(argv[i], "--backtrack")) {
+            stampa_backtrack = 1;
+        } else {
+            seed = (unsigned int) strtoul(argv[i], NULL, 10);
+            usa_seed = 1;
+        }
+    }
+    if (usa_seed) randomizza_ordine_classi(seed);
     //test(100);
 
     /*  // if you initialize with less elements it will set the remaming elements to 0.
@@ -561,6 +580,7 @@ int main(int argc, char **argv) {
     print_orario(0);
 
     const double elapsed = (clock() - start) / (double) CLOCKS_PER_SEC;
+    printf("Marce indietro: %lld\n", n_backtrack);
     printf("Totale generati: %llu in %d m, %d s at %.0f Hz", n_gen, (int) elapsed / 60, (int) elapsed % 60,
            (double) n_gen / elapsed);
     fflush(stdout);
