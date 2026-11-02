@@ -4,6 +4,7 @@
 
 #ifndef UNTITLED_HOURS_H
 #define UNTITLED_HOURS_H
+// Nomi delle ore della giornata (ora di inizio). Inclusa solo da database_initializers.c.
 char Ora_08[] = "08";
 char Ora_09[] = "09";
 char Ora_10[] = "10";

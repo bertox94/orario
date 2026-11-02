@@ -6,6 +6,7 @@ teaching_slot orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_S
 int orario_len;
 int indice_slot[CLASSE_SEZIONE_SZ];
 
+// Giorno, ora e classe della posizione p nell'ordine iniziale (giorno, poi ora, poi classe).
 static int g_giorno(const int p) { return p / actual_classi_sezione / actual_ore_giornaliere % actual_giorni_settimana; }
 
 static int g_ora(const int p) { return p / actual_classi_sezione % actual_ore_giornaliere; }

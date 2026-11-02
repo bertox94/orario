@@ -5,6 +5,7 @@
 #ifndef UNTITLED_UTILS_H
 #define UNTITLED_UTILS_H
 
+// Ordina due indici in modo che *p1 <= *p2 (le coppie di docenti si registrano sempre col minore prima).
 static void swap_min_first(int *p1, int *p2) {
     if (*p1 > *p2) {
         const int temp = *p1;

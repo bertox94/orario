@@ -4,6 +4,7 @@
 
 #ifndef UNTITLED_ROOMS_H
 #define UNTITLED_ROOMS_H
+// Nomi delle aule. Per ora non usati (le aule non sono ancora un vincolo dell'orario).
 char PS15[] = "PS15";
 char PS16[] = "PS16";
 char INFO2[] = "INFO2";

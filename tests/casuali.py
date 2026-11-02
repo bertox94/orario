@@ -30,7 +30,7 @@ from concurrent.futures import ThreadPoolExecutor
 PRIMA = 60            # secondi massimi della fase 1
 DOPO = 600            # secondi massimi della fase 2 (e della fase 3)
 TOTALE_MARCE_MB = 20 * 1024  # spazio massimo di tutti i file delle marce indietro insieme
-JOBS = max(1, (os.cpu_count() or 2) // 2)
+JOBS = max(1, (os.cpu_count() or 2) // 2)  # casi in parallelo: meta' dei processori
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RADICE = os.path.dirname(AQUI)
@@ -41,12 +41,15 @@ FILES = ['main.c', 'orario/orario.c', 'ricerca/ricerca.c', 'ricerca/vincoli.c', 
 
 
 def compila(dest):
+    """Compila il solver in dest, con gli stessi file del progetto CMake (FILES)."""
     cmd = ['gcc', '-O2', '-std=gnu11', '-w', '-include', 'time.h'] + [os.path.join(RADICE, f) for f in FILES] + \
           ['-o', dest]
     subprocess.run(cmd, check=True)
 
 
 def controlla_dati(out):
+    """Controlla nell'output del solver che classi e docenti abbiano ore nei limiti. Ritorna (errori, n classi,
+    n docenti)."""
     errori = []
     classi = [int(m.group(1)) for m in re.finditer(r'^Classe \S+:\s+(\d+) ore', out, re.M)]
     docenti = [int(m.group(1)) for m in re.finditer(r'^Ins\. \S+\s*: (\d+) ore', out, re.M)]
@@ -99,6 +102,8 @@ def lancia(exe, caso, classi, timeout, cartella, backtrack=False, max_mb=4096):
     cmd = [exe, '--casuale', str(seme), '--classi', str(classi), '-n', '1', '--dati', dati,
            '--tempo', str(max(timeout - 1, 0.5)), '--motivi'] + (['--ritardi'] if ritardi else []) + \
           (['-b'] if backtrack else [])
+    # limite alla dimensione dei file scritti dal solver (orario.txt con -b puo' crescere di GB): oltre, il sistema
+    # lo interrompe e il caso risulta "interrotto (file troppo grande)"
     limite = max_mb * 2 ** 20 if max_mb > 0 else resource.RLIM_INFINITY
     t = time.time()
     try:
@@ -109,6 +114,7 @@ def lancia(exe, caso, classi, timeout, cartella, backtrack=False, max_mb=4096):
     except subprocess.TimeoutExpired as e:
         out = e.stdout.decode() if isinstance(e.stdout, bytes) else (e.stdout or '')
         finito, errore = False, False
+    # esito: impossibile (verifica preliminare), trovato, nessuna soluzione (ricerca finita senza orari), non finito
     impossibile = re.search(r'Impossibile \(verifica preliminare\): ([^\n]*)', out)
     interrotto = 'Interrotto per tempo' in out
     finito = finito and not interrotto
@@ -130,6 +136,7 @@ def lancia(exe, caso, classi, timeout, cartella, backtrack=False, max_mb=4096):
 
 
 def stampa(fase, r):
+    """Una riga per caso; per i casi non finiti, impossibili o con molte marce indietro anche la diagnosi."""
     print('[%s] %-15s: %2d classi, %3d docenti, %-18s marce %-9s %6.1fs %s' % (
         fase, nome_caso(r['caso']), r['classi'], r['docenti'], r['esito'], r['marce'] if r['marce'] is not None else '-',
         r['sec'], ('DATI NON VALIDI: ' + '; '.join(r['errori'])) if r['errori'] else ''), flush=True)
@@ -202,6 +209,7 @@ def scrivi_risultati(casi, classi, storia):
 
 
 def riepilogo(casi, ris):
+    """Quanti casi per esito. Ritorna quanti casi hanno dati non validi (se > 0 lo script esce con 1)."""
     esiti = {}
     for s in casi:
         esiti[ris[s]['esito']] = esiti.get(ris[s]['esito'], 0) + 1

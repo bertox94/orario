@@ -4,6 +4,7 @@
 
 #ifndef UNTITLED_CLASS_H
 #define UNTITLED_CLASS_H
+// Nomi delle classi dei dati reali. Inclusa solo da database_initializers.c.
 char Classe_3A[] = "3A";
 char Classe_3B[] = "3B";
 char Classe_3C[] = "3C";

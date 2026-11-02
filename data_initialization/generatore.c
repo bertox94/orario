@@ -19,9 +19,14 @@ static int rnd(const int lo, const int hi) {
     return lo + (int) (rng_next() % (unsigned long long) (hi - lo + 1));
 }
 
-#define MAX_LEZIONI 4000
+// Come si generano i dati: si inventano le lezioni di ogni classe (ore e, a volte, un codocente), poi si scelgono il
+// numero di docenti e a chi va ogni lezione. Se il risultato viola un vincolo (un docente troppo carico o troppo
+// scarico, nessuna lezione in codocenza...) si riprova da capo, fino a MAX_TENTATIVI volte.
+
+#define MAX_LEZIONI 4000   // lezioni generate in un tentativo, al massimo
 #define MAX_TENTATIVI 20000
 
+// Una lezione del piano: `ore` ore del docente prof nella classe, di cui ore_cod con il codocente cod.
 typedef struct {
     int classe;
     int prof;
@@ -32,7 +37,7 @@ typedef struct {
 
 static lezione_t lezioni[MAX_LEZIONI];
 static int n_lezioni;
-static int carico[INSEGNANTE_SZ];
+static int carico[INSEGNANTE_SZ]; // ore a settimana gia' assegnate a ogni docente (come docente e come codocente)
 
 // Sceglie il docente meno carico tra 3 candidati casuali che ci stia ancora con `ore` ore (!= escluso).
 static int scegli_docente(const int n_doc, const int ore, const int escluso) {
@@ -47,12 +52,14 @@ static int scegli_docente(const int n_doc, const int ore, const int escluso) {
 
 // Un tentativo: true se il piano rispetta tutti i vincoli.
 static int tenta(const int n_classi, int *n_doc_usati) {
+    // una classe deve avere almeno le ore obbligatorie di tutta la settimana (5 ore x 6 giorni)
     int min_classe = GEN_ORE_CLASSE_MIN;
     if (min_classe < PRIME_N_ORE_OBBLIGATORIE * 6) min_classe = PRIME_N_ORE_OBBLIGATORIE * 6;
 
     n_lezioni = 0;
     const int p_cod = rnd(15, 60); // percentuale di lezioni con codocente, diversa a ogni tentativo
-    int ore_totali = 0;
+    int ore_totali = 0; // ore di lavoro di tutti i docenti: un'ora in coppia vale due ore di lavoro
+    // 1. le lezioni di ogni classe: le sue ore si dividono in lezioni da 1 a 6 ore, ognuna forse con un codocente
     for (int c = 0; c < n_classi; c++) {
         int resto = rnd(min_classe, GEN_ORE_CLASSE_MAX);
         while (resto > 0) {
@@ -75,7 +82,7 @@ static int tenta(const int n_classi, int *n_doc_usati) {
         }
     }
 
-    // numero di docenti: media di ore tra 10 e 20, se possibile; altrimenti qualunque numero ammesso
+    // 2. numero di docenti: media di ore tra 10 e 20, se possibile; altrimenti qualunque numero ammesso
     int lo = (ore_totali + 19) / 20, hi = ore_totali / 10;
     const int abs_lo = (ore_totali + GEN_ORE_DOCENTE_MAX - 1) / GEN_ORE_DOCENTE_MAX;
     const int abs_hi = ore_totali / GEN_ORE_DOCENTE_MIN;
@@ -88,8 +95,11 @@ static int tenta(const int n_classi, int *n_doc_usati) {
     if (lo > hi || hi >= INSEGNANTE_SZ) return 0;
     const int n_doc = rnd(lo, hi);
 
+    // 3. a chi va ogni lezione: si mescolano le lezioni e si assegnano una per una al docente meno carico
+    //    tra pochi candidati casuali (e il codocente a un altro docente)
     for (int d = 0; d < n_doc; d++) carico[d] = 0;
     // le lezioni lunghe per prime: sono le piu' difficili da sistemare
+    // (in realta' qui l'ordine viene solo mescolato a caso, non ordinato per lunghezza)
     for (int i = 0; i < n_lezioni; i++) {
         const int j = rnd(i, n_lezioni - 1);
         const lezione_t t = lezioni[i];
@@ -108,6 +118,7 @@ static int tenta(const int n_classi, int *n_doc_usati) {
         }
     }
 
+    // 4. vincoli del piano: lezioni sia da soli sia in coppia, e ogni docente con almeno GEN_ORE_DOCENTE_MIN ore
     int con_cod = 0, senza_cod = 0;
     for (int i = 0; i < n_lezioni; i++) {
         if (lezioni[i].cod >= 0) con_cod++; else senza_cod++;
@@ -135,6 +146,8 @@ static void assegna_ore_di_ingresso(const int n_doc) {
 
 void genera_dati_casuali(const unsigned long long seed, const int n_classi, const int con_ritardi) {
     assert(n_classi >= 1 && n_classi <= CLASSE_SEZIONE_SZ);
+    // stato iniziale del generatore ricavato dal seme (mai 0, che per xorshift resterebbe 0 per sempre); i primi
+    // valori si scartano perche' con semi vicini sono ancora poco diversi
     rng_state = seed * 0x9E3779B97F4A7C15ULL + 0x1234567ULL;
     if (!rng_state) rng_state = 1;
     for (int i = 0; i < 8; i++) rng_next();
@@ -147,6 +160,7 @@ void genera_dati_casuali(const unsigned long long seed, const int n_classi, cons
         exit(1);
     }
 
+    // registra il piano nelle tabelle dei dati, con nomi C01, C02... per le classi e D001, D002... per i docenti
     // ordine di apparizione: per classe, nell'ordine generato
     for (int c = 0; c < n_classi; c++) {
         char cla[MAX_LEN_WORDS];
@@ -168,6 +182,7 @@ void genera_dati_casuali(const unsigned long long seed, const int n_classi, cons
     // dopo tutto il resto, cosi' i dati senza ritardi di un seme non cambiano
     if (con_ritardi) assegna_ore_di_ingresso(n_doc);
 
+    // ogni classe ha almeno le ore obbligatorie e non piu' di GEN_ORE_CLASSE_MAX
     for (int i = 0; i < actual_classi_sezione; i++) {
         assert(classe_info[i].ore >= PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana);
         assert(classe_info[i].ore <= GEN_ORE_CLASSE_MAX);

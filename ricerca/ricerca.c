@@ -9,6 +9,12 @@
 #include "diagnosi.h"
 #include "vincoli.h"
 
+// Come funziona: cerca_orario(pos) decide lo slot pos e chiama se stessa per pos + 1. Per ogni docente possibile
+// (da solo o con un codocente) aggiorna lo stato (prep_*), prosegue, e poi annulla esattamente quello che ha fatto
+// (post_*): cosi' tornando indietro lo stato e' sempre quello dello slot corrente. Uno slot senza docenti possibili
+// (e che non puo' restare vuoto) e' una marcia indietro. Prima di decidere uno slot, la potatura (vincoli.c) scarta
+// i rami che non possono piu' avere soluzioni.
+
 long long int n_gen = 0;
 long long int n_gen_max = SCHEDULES_PER_GB / 5;
 long long int n_backtrack = 0;
@@ -29,7 +35,9 @@ static int compare_queue_items(const void *a, const void *b) {
     return 0;
 }
 
-// Assuming you know the number of elements in the array, say 'n'
+// Ordina la copia della coda di uno slot (da start, n docenti) per priorita' decrescente: si prova prima chi ha piu'
+// ore ancora da fare. A parita' di priorita' l'ordine non e' fissato (qsort non e' stabile) e dipende da come la copia
+// era ordinata la volta prima: per questo cambiare la potatura puo' cambiare l'ordine in cui si trovano gli orari.
 static void sort_queue_mul(size_t start, size_t n) {
     // qsort has an average time complexity of O(N log N)
     qsort(&queue_mul[start], n, sizeof(QueueItem *), compare_queue_items);
@@ -183,6 +191,7 @@ static void prova_slot_con_docenti(teaching_slot *slot, const int pos) {
 }
 
 void cerca_orario(const int pos) {
+    // gia' trovati abbastanza orari (o tempo scaduto, vedi sotto): si torna indietro senza fare nulla
     if (n_gen_max <= n_gen) return;
     if (diagnosi_nuovo_nodo(pos)) {
         n_gen_max = 0; // tutte le chiamate tornano subito e lo stato viene annullato normalmente
@@ -205,6 +214,7 @@ void cerca_orario(const int pos) {
         return;
     }
 
+    // prima si provano i docenti (se nello slot puo' esserci lezione), poi lo slot vuoto (se ammesso)
     sort_queue_mul(slot->base4d_queue, queue_sz);
     if (activities_for_this_class_and_hour(slot)) prova_slot_con_docenti(slot, pos);
     prova_ora_buca(slot, pos);

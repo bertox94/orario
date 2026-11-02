@@ -12,6 +12,12 @@
 #include "ricerca/ricerca.h"
 #include "ricerca/vincoli.h"
 
+// Generatore di orari scolastici. Dati classi, docenti e quante ore fa ogni docente in ogni classe (da solo o in
+// codocenza), cerca un orario settimanale che rispetti le regole (ore obbligatorie, ore di ingresso, al massimo 3 ore
+// al giorno per docente in una classe e contigue, al massimo 3 classi al giorno per docente, regola del sabato...).
+// La ricerca e' una visita in profondita' con marcia indietro (ricerca/ricerca.c) che riempie gli slot in ordine:
+// giorno, ora, classe. Prima di cercare si verificano alcune condizioni necessarie sui dati (ricerca/fattibilita.c).
+
 // Uso: ./untitled [seed] [-b] [--casuale SEME [--classi N] [--ritardi]] [-n MAX] [--tempo SEC] [--motivi] [--dati FILE] [--senza-verifica]
 //   seed: l'ordine delle classi viene mescolato (stesso seed = stesso ordine)
 //   -b / --backtrack: scrive in orario.txt anche ogni marcia indietro (riga "Backtrack" + griglia parziale).
@@ -25,6 +31,7 @@
 //   --motivi: nella diagnosi indica anche perche' i docenti vengono scartati negli slot con piu' marce indietro
 //   --dati FILE: scrive in FILE la descrizione dei dati (classi, docenti, lezioni, codocenze)
 //   --senza-verifica: salta la verifica preliminare dei dati (che segnala i casi impossibili prima di cercare)
+// Le opzioni della riga di comando (n_gen_max e stampa_backtrack invece sono globali della ricerca).
 typedef struct {
     int mescola_classi;          // 1 se e' stato dato un seed per l'ordine delle classi
     unsigned int seed_classi;
@@ -62,6 +69,7 @@ static Opzioni leggi_opzioni(const int argc, char **argv) {
         } else if (!strcmp(argv[i], "-n") && i + 1 < argc) {
             n_gen_max = atoll(argv[++i]);
         } else {
+            // qualunque altro argomento e' il seed per l'ordine delle classi
             o.seed_classi = (unsigned int) strtoul(argv[i], NULL, 10);
             o.mescola_classi = 1;
         }
@@ -69,7 +77,8 @@ static Opzioni leggi_opzioni(const int argc, char **argv) {
     return o;
 }
 
-// Dati del programma oppure dati casuali; poi li stampa.
+// Dati del programma oppure dati casuali; poi prepara l'elenco delle lezioni di ogni classe (serve alla verifica
+// preliminare e alla potatura) e stampa i dati.
 static void carica_dati(const Opzioni *o) {
     if (o->dati_casuali) {
         inizializza_calendario();
@@ -82,6 +91,7 @@ static void carica_dati(const Opzioni *o) {
     fflush(stdout);
 }
 
+// Con --dati FILE: scrive in FILE la descrizione completa dei dati (e, per i dati casuali, come rigenerarli).
 static void scrivi_file_dati(const Opzioni *o) {
     if (!o->file_dati) return;
     FILE *fd = fopen(o->file_dati, "w");
@@ -105,12 +115,14 @@ static int caso_possibile(const Opzioni *o) {
     return 0;
 }
 
+// Uno slot per ogni (giorno, ora, classe), nell'ordine in cui la ricerca li riempie; con un seed le classi si mescolano.
 static void prepara_orario(const Opzioni *o) {
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
     inizializza_orario();
     if (o->mescola_classi) randomizza_ordine_classi(o->seed_classi);
 }
 
+// Alla fine: marce indietro, diagnosi, orari trovati e velocita' (orari completi al secondo).
 static void stampa_risultati(const double secondi) {
     printf("Marce indietro: %lld\n", n_backtrack);
     stampa_diagnosi(n_backtrack);
@@ -132,6 +144,7 @@ int main(const int argc, char **argv) {
     if (!caso_possibile(&o)) return 0;
     prepara_orario(&o);
 
+    // la ricerca scrive in orario.txt gli orari completi (e con -b anche quelli parziali a ogni marcia indietro)
     diagnosi_avvia();
     file_orario = fopen("orario.txt", "w");
     cerca_orario(0);
