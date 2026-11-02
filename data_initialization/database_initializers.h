@@ -25,6 +25,13 @@ typedef struct {
     int giorno;
     int ora;
     int classe;
+    // valori calcolati una volta sola da (giorno, ora, classe), per non rifare le moltiplicazioni a ogni nodo
+    // (vedi precalcola_slot in main.c)
+    int base2d_ci;    // classe * INSEGNANTE_SZ
+    int base2d_gc;    // giorno * CLASSE_SEZIONE_SZ
+    int base3d_gci;   // giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + classe * INSEGNANTE_SZ
+    int base3d_goi;   // giorno * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + ora * INSEGNANTE_SZ
+    int base4d_queue; // inizio della coda dei docenti di questo slot in queue_mul
 } teaching_slot;
 
 extern char giorni_settimana[GIORNO_SETTIMANA_SZ][MAX_LEN_WORDS];

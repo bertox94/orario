@@ -52,12 +52,24 @@ static void ricostruisci_indice_slot(void) {
     }
 }
 
+// Calcola i valori precompilati di uno slot a partire da giorno, ora e classe.
+// Va richiamata ogni volta che cambia uno di questi tre campi (cioe' in inizializza_orario e in randomizza_ordine_classi).
+static void precalcola_slot(teaching_slot *s) {
+    s->base2d_ci = s->classe * INSEGNANTE_SZ;
+    s->base2d_gc = s->giorno * CLASSE_SEZIONE_SZ;
+    s->base3d_gci = s->base2d_gc * INSEGNANTE_SZ + s->base2d_ci;
+    s->base3d_goi = s->giorno * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + s->ora * INSEGNANTE_SZ;
+    s->base4d_queue = s->giorno * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ
+                      + s->ora * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + s->classe * INSEGNANTE_SZ;
+}
+
 // Ogni slot conosce la propria posizione (giorno, ora, classe) fin dall'inizio; i docenti sono -1 = non assegnato.
 // Qui, e solo qui, giorno/ora/classe si ricavano dalla posizione (ordine iniziale: classi in ordine).
 // Va chiamata dopo che i dati sono stati inizializzati e orario_len e' noto.
 void inizializza_orario(void) {
     for (int p = 0; p < orario_len; p++) {
         orario[p] = (teaching_slot){-1, -1, g_giorno(p), g_ora(p), g_classe(p)};
+        precalcola_slot(&orario[p]);
     }
     ricostruisci_indice_slot();
 }
@@ -77,6 +89,7 @@ void randomizza_ordine_classi(const unsigned int seed) {
     }
     for (int p = 0; p < orario_len; p++) {
         orario[p].classe = ordine[p % actual_classi_sezione];
+        precalcola_slot(&orario[p]);
     }
     ricostruisci_indice_slot();
 }
@@ -124,7 +137,10 @@ int verifica_ore_classe_materia(void) {
 }
 
 /*Progressive contraints*/
-int activities_for_this_class_and_hour(int pos, int gio, const int ora, const int cla) {
+int activities_for_this_class_and_hour(const teaching_slot *slot) {
+    const int gio = slot->giorno;
+    const int ora = slot->ora;
+    const int cla = slot->classe;
     int ore_rimanenti = ore_classi[cla] - ore_classe_svolte[cla];
     int slot_obligatori_gia_occupati = gio * PRIME_N_ORE_OBBLIGATORIE + MIN(ora, PRIME_N_ORE_OBBLIGATORIE - 1);
     int slot_minimi_da_riempire = PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana;
@@ -134,7 +150,7 @@ int activities_for_this_class_and_hour(int pos, int gio, const int ora, const in
         return 0;
     }
     //se c'è almeno un ora buca, non mettere altre lezioni
-    if (n_ore_buche[gio * CLASSE_SEZIONE_SZ + cla] > 0)
+    if (n_ore_buche[slot->base2d_gc + cla] > 0)
         return 0;
 
     //le ore di lezione in ogni clase rimanenti per ogni insegnante devono essere <= a 2*giorni rimanenti
@@ -281,16 +297,13 @@ void sort_queue_mul(size_t start, size_t n) {
     qsort(&queue_mul[start], n, sizeof(QueueItem *), compare_queue_items);
 }
 
-int prof_fa_al_max_n_ore(int giorno, int ora, int cla, int prof) {
-    return ore_fatte_da_un_prof_in_una_classe_in_giorno[
-               giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + prof] <
-           MAX_ORE_PROF_IN_UNA_CLASSE;
+int prof_fa_al_max_n_ore(const teaching_slot *slot, const int prof) {
+    return ore_fatte_da_un_prof_in_una_classe_in_giorno[slot->base3d_gci + prof] < MAX_ORE_PROF_IN_UNA_CLASSE;
 }
 
-int prof_fa_ore_contigue(int giorno, int ora, int cla, int prof) {
-    if (ore_fatte_da_un_prof_in_una_classe_in_giorno[
-        giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + prof]) {
-        const teaching_slot *prev = slot_precedente(giorno, ora, cla);
+int prof_fa_ore_contigue(const teaching_slot *slot, const int prof) {
+    if (ore_fatte_da_un_prof_in_una_classe_in_giorno[slot->base3d_gci + prof]) {
+        const teaching_slot *prev = slot_precedente(slot->giorno, slot->ora, slot->classe);
         return prev->insegnante1 == prof || prev->insegnante2 == prof;
     }
     return 1;
@@ -444,19 +457,19 @@ void print_orario(const int pos) {
         return;
     }
 
-    const int giorno = orario[pos].giorno;
-    const int ora = orario[pos].ora;
-    const int cla = orario[pos].classe;
-    const int base2d_ci = cla * INSEGNANTE_SZ;
-    const int base2d_gc = giorno * CLASSE_SEZIONE_SZ;
-    const int base3d_gci = base2d_gc * INSEGNANTE_SZ + base2d_ci;
-    const int base3d_goi = giorno * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + ora * INSEGNANTE_SZ;
-    const int base4d_queue = giorno * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + ora *
-                             CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ;
+    const teaching_slot *slot = &orario[pos];
+    const int giorno = slot->giorno;
+    const int ora = slot->ora;
+    const int cla = slot->classe;
+    const int base2d_ci = slot->base2d_ci;
+    const int base2d_gc = slot->base2d_gc;
+    const int base3d_gci = slot->base3d_gci;
+    const int base3d_goi = slot->base3d_goi;
+    const int base4d_queue = slot->base4d_queue;
 
 
     sort_queue_mul(base4d_queue, queue_sz);
-    if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
+    if (activities_for_this_class_and_hour(slot)) {
         // se alla fine il contatore non e' cresciuto, questo nodo non ha assegnato nessun docente (marcia indietro)
         const long long int assegnazioni_prima = n_assegnazioni;
         const long long int queue_size = base4d_queue + queue_sz;
@@ -469,9 +482,9 @@ void print_orario(const int pos) {
                 // controlla ore svolte per materia, verifica che siano inferiori a quelle totali
                 && deve_ancora_svolgere_ore_in_questa_classe(base2d_ci, p1)
                 // un prof fa al max n ore in una classe
-                && prof_fa_al_max_n_ore(giorno, ora, cla, p1)
+                && prof_fa_al_max_n_ore(slot, p1)
                 // se un prof fa più ore in una classe in un giorno, devono essere contigue
-                && prof_fa_ore_contigue(giorno, ora, cla, p1)
+                && prof_fa_ore_contigue(slot, p1)
                 //se un prof ha due ore il sabato deve farle consecutive, altrimenti non la fa, essendo non contigue
                 //ogni docente fa al max MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO materie (classi) diverse ogni giorno
                 && ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(pos, giorno, cla, p1)
@@ -488,9 +501,9 @@ void print_orario(const int pos) {
                         prof_è_disponibile(base3d_goi, p2)
                         && docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(cla, p1, p2)
                         // un prof fa al max n ore in una classe
-                        && prof_fa_al_max_n_ore(giorno, ora, cla, p2)
+                        && prof_fa_al_max_n_ore(slot, p2)
                         // se un prof fa più ore in una classe in un giorno, devono essere contigue
-                        && prof_fa_ore_contigue(giorno, ora, cla, p2)
+                        && prof_fa_ore_contigue(slot, p2)
                         // poiche un prof se deve fare due ore no può farle spezzettate, e sabato è 'ulyimo giorno, non si puo mettere un altro prof,
                         // la seconda ora deve farla subito
                         && sabato_esaurisci_priorita_subito_cod(pos, giorno, ora, base2d_ci, p1, p2)
