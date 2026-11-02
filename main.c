@@ -343,6 +343,16 @@ int ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(int pos, int giorno, int cl
     return 1;
 }
 
+// Vincoli comuni a ogni docente (il primo o il secondo di una coppia) per essere messo in questo slot.
+static inline int docente_idoneo(const teaching_slot *slot, const int pos, const int prof) {
+    // un prof fa al max n ore in una classe
+    return prof_fa_al_max_n_ore(slot, prof)
+           // se un prof fa piu' ore in una classe in un giorno, devono essere contigue
+           && prof_fa_ore_contigue(slot, prof)
+           // ogni docente fa al max MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO classi diverse ogni giorno
+           && ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(pos, slot->giorno, slot->classe, prof);
+}
+
 int verifica_ora_ingresso(const int prof, const int ora) {
     return ora >= ora_di_entrata_prof[prof];
 }
@@ -375,38 +385,21 @@ void print_orario(const int pos) {
             QueueItem *it = queue_mul[ii];
             const int p1 = it->teacher;
 
-            if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
-                prof_è_disponibile(base3d_goi, p1)
-                // controlla ore svolte per materia, verifica che siano inferiori a quelle totali
+            if (prof_è_disponibile(base3d_goi, p1) // non e' gia' in un'altra classe nella stessa ora
+                // ha ancora ore da fare in questa classe
                 && deve_ancora_svolgere_ore_in_questa_classe(base2d_ci, p1)
-                // un prof fa al max n ore in una classe
-                && prof_fa_al_max_n_ore(slot, p1)
-                // se un prof fa più ore in una classe in un giorno, devono essere contigue
-                && prof_fa_ore_contigue(slot, p1)
-                //se un prof ha due ore il sabato deve farle consecutive, altrimenti non la fa, essendo non contigue
-                //ogni docente fa al max MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO materie (classi) diverse ogni giorno
-                && ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(pos, giorno, cla, p1)
+                && docente_idoneo(slot, pos, p1)
                 && verifica_ora_ingresso(p1, ora)
-                // NB. non e possibile verificare qua di esaurire ore il sabato (?)
-                && 1
             ) {
-
                 for (int jj = ii + 1; jj < queue_size; jj++) {
                     QueueItem *jt = queue_mul[jj];
                     const int p2 = jt->teacher;
-                    if ( // verifica che nella stessa ora ciascun prof non sia già in altre classi
-                        prof_è_disponibile(base3d_goi, p2)
+                    if (prof_è_disponibile(base3d_goi, p2)
                         && docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(cla, p1, p2)
-                        // un prof fa al max n ore in una classe
-                        && prof_fa_al_max_n_ore(slot, p2)
-                        // se un prof fa più ore in una classe in un giorno, devono essere contigue
-                        && prof_fa_ore_contigue(slot, p2)
-                        // poiche un prof se deve fare due ore no può farle spezzettate, e sabato è 'ulyimo giorno, non si puo mettere un altro prof,
-                        // la seconda ora deve farla subito
+                        // poiche un prof se deve fare due ore no può farle spezzettate, e sabato è l'ultimo giorno,
+                        // non si puo mettere un altro prof: la seconda ora deve farla subito
                         && sabato_esaurisci_priorita_subito_cod(pos, giorno, ora, base2d_ci, p1, p2)
-                        //ogni docente fa al max MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO materie (classi) diverse ogni giorno
-                        && ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(pos, giorno, cla, p2)
-                        && 1
+                        && docente_idoneo(slot, pos, p2)
                     ) {
                         prep_chiamata_ricorsiva_insieme(slot, it, jt);
                         print_orario(pos + 1);
