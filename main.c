@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
-#include <tgmath.h>
-#include <sys/time.h>
+#include <stdio.h>
+#include <time.h>
 
 #include "utils.h"
 #include "priority_queue/prio_queue.h"
@@ -19,7 +19,6 @@ teaching_slot orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_S
 
 int orario_len;
 FILE *f;
-
 
 int g_giorno(const int p) { return p / actual_classi_sezione / actual_ore_giornaliere % actual_giorni_settimana; }
 
@@ -95,46 +94,6 @@ void randomizza_ordine_classi(const unsigned int seed) {
 }
 
 /*End of block constraints*/
-int verifica_ore_classe_materia(void) {
-    // 1. Check standard teacher hours (2D array flattened logic)
-    int idx_2d = 0;
-    for (int c = 0; c < CLASSE_SEZIONE_SZ; c++) {
-        for (int t = 0; t < INSEGNANTE_SZ; t++) {
-            if (ore_classi_docenti[idx_2d] != ore_classi_docenti_svolte[idx_2d]
-            ) {
-                print(orario, orario_len, n_gen, f);
-                fprintf(f, "Wrong: Classe: %s, Teacher: %s %d but got %d\n\n",
-                        classe_sezione[c],
-                        insegnanti[t],
-                        ore_classi_docenti[idx_2d],
-                        ore_classi_docenti_svolte[idx_2d]);
-                return 0;
-            }
-            idx_2d++;
-        }
-    }
-    /*
-        // 2. Check co-teacher hours (3D array flattened logic)
-        int idx_3d = 0;
-        for (int c = 0; c < CLASSE_SEZIONE_SZ; c++) {
-            for (int t1 = 0; t1 < INSEGNANTE_SZ; t1++) {
-                for (int t2 = 0; t2 < INSEGNANTE_SZ; t2++) {
-                    if (ore_classi_docenti_codocenti[idx_3d] != ore_classi_docenti_codocenti_svolte[idx_3d]) {
-                        printf("Wrong: Classe: %s, Codocente: %s, Teacher: %s %d but got %d\n",
-                               classe_sezione[c],
-                               insegnanti[t2], // t2 matches (idx_3d % INSEGNANTE_SZ)
-                               insegnanti[t1], // t1 matches ((idx_3d / INSEGNANTE_SZ) % INSEGNANTE_SZ)
-                               ore_classi_docenti_codocenti[idx_3d],
-                               ore_classi_docenti_codocenti_svolte[idx_3d]);
-                        return 0;
-                    }
-                    idx_3d++;
-                }
-            }
-        }*/
-
-    return 1;
-}
 
 /*Progressive contraints*/
 int activities_for_this_class_and_hour(const teaching_slot *slot) {
@@ -153,16 +112,6 @@ int activities_for_this_class_and_hour(const teaching_slot *slot) {
     if (n_ore_buche[slot->base2d_gc + cla] > 0)
         return 0;
 
-    //le ore di lezione in ogni clase rimanenti per ogni insegnante devono essere <= a 2*giorni rimanenti
-    /*
-        int base2dc = cla * INSEGNANTE_SZ;
-        for (int i = 0; i < actual_insegnanti; i++) {
-            if (ore_insegnante_classi[base2dc + i] > 0
-                && ore_insegnante_classi[base2dc + i] - ore_classi_docenti_svolte[base2dc + i] >
-                MAX_ORE_STESSA_MATERIA_GIORNO * (actual_giorni_settimana - gio))
-                return 0;
-        }
-    */
     return 1;
 }
 
@@ -230,54 +179,6 @@ int sabato_esaurisci_priorita_subito(int pos, int giorno, int ora, int base2d_ci
     }
     return 1;
 }
-
-void print_up_to(QueueItem arr[], int pos) {
-    for (int i = 0; i < pos; i++) {
-        printf("%d)\t %d %.0f ", i, arr[i].teacher, arr[i].priority);
-    }
-    printf("\n");
-}
-
-
-void debug(const int base3d_goi, const int base2d_ci, const int base3d_gci, int j) {
-    if (ore_classi_docenti[base2d_ci + j] == 0) return;
-    printf("Insegnante: %s\n", insegnanti[j]);
-    if (prof_gia_impegnato_giorno_ora[base3d_goi + j]) printf("Già impegnato ");
-    if (ore_classi_docenti_svolte[base2d_ci + j] >= ore_classi_docenti[base2d_ci + j]) printf("Ore eccessive ");
-    printf("\n");
-}
-
-int assert_non_decreasing(const int base4d_queue, const long long int jjmax, int jj) {
-    for (int p = base4d_queue; p < jj; p++) {
-        for (int q = p + 1; q < jjmax; q++) {
-            if (!(queue_mul[p]->priority >= queue_mul[q]->priority))
-                exit(-1);
-        }
-    }
-    return 0;
-}
-
-/*
-QueueItem *set_max_at_of_remaining(const long long int jjmax, int jj) {
-    int max_idx = jj; // Track the INDEX of the maximum element, not just the value
-
-    for (int k = jj + 1; k < jjmax; k++) {
-        // k can start at jj + 1
-        if (queue_mul[k]->priority > queue_mul[max_idx]->priority) {
-            max_idx = k; // Found a higher priority, record its position
-        }
-    }
-
-    // ONLY SWAP ONCE after finding the true maximum for this position
-    if (max_idx != jj) {
-        QueueItem *tmp = queue_mul[jj];
-        queue_mul[jj] = queue_mul[max_idx];
-        queue_mul[max_idx] = tmp;
-    }
-
-    return queue_mul[jj];
-}
-*/
 
 // Comparison function for qsort
 int compare_queue_items(const void *a, const void *b) {
@@ -449,13 +350,9 @@ int verifica_ora_ingresso(const int prof, const int ora) {
 void print_orario(const int pos) {
     if (n_gen_max <= n_gen) return;
 
-    //print(orario, pos, n_gen, f);
     if (pos == orario_len) {
-        //if (verifica_ore_classe_materia()) { //not needed ? all hours should match
         n_gen++;
-        //printf("%lld \n", n_gen);
         print(orario, pos, n_gen, f);
-        //  }
         return;
     }
 
@@ -468,7 +365,6 @@ void print_orario(const int pos) {
     const int base3d_gci = slot->base3d_gci;
     const int base3d_goi = slot->base3d_goi;
     const int base4d_queue = slot->base4d_queue;
-
 
     sort_queue_mul(base4d_queue, queue_sz);
     if (activities_for_this_class_and_hour(slot)) {
@@ -494,7 +390,6 @@ void print_orario(const int pos) {
                 // NB. non e possibile verificare qua di esaurire ore il sabato (?)
                 && 1
             ) {
-                // assert(iitem->priority > 0);
 
                 for (int jj = ii + 1; jj < queue_size; jj++) {
                     QueueItem *jt = queue_mul[jj];
@@ -539,7 +434,6 @@ void print_orario(const int pos) {
         }
     }
 
-
     if (ora >= PRIME_N_ORE_OBBLIGATORIE) {
         // ora buca: lo slot e' gia' -1/-1 (vedi post_chiamata_*)
         n_ore_buche[base2d_gc + cla]++;
@@ -574,36 +468,8 @@ int main(int argc, char **argv) {
         }
     }
     if (usa_seed) randomizza_ordine_classi(seed);
-    //test(100);
-
-    /*  // if you initialize with less elements it will set the remaming elements to 0.
-      QueueItem *queue[INSEGNANTE_SZ] = {0};
-
-      // Should do this while setting classi e insegnanti
-      initialize_queue_arr(queue);
-      print_priority_queue(queue);
-
-      // 2. Extracted the total dimension to avoid recalculating
-      const size_t num_blocks = GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ;
-      const size_t total_elements = num_blocks * INSEGNANTE_SZ;
-
-      // 3. Type-safe malloc (no explicit cast needed in C, but use sizeof(*ptr))
-      queue_mul = malloc(total_elements * sizeof(*queue_mul));
-
-      if (queue_mul == NULL) {
-          // Always handle allocation failures!
-          fprintf(stderr, "Memory allocation failed\n");
-          return 0;
-      }
-
-      // 4. Highly optimized copying using memcpy instead of a nested loop
-      for (size_t i = 0; i < num_blocks; i++) {
-          memcpy(&queue_mul[i * INSEGNANTE_SZ], queue, sizeof(queue));
-      }*/
-
 
     f = fopen("orario.txt", "w");
-    //f = stdout;
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
     print_orario(0);
 
