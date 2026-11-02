@@ -37,6 +37,11 @@ int slot_di(const int giorno, const int ora, const int classe) {
     return (giorno * actual_ore_giornaliere + ora) * actual_classi_sezione + indice_slot[classe];
 }
 
+// Slot dell'ora precedente (ora - 1) della stessa classe. Richiede ora > 0.
+const teaching_slot *slot_precedente(const int giorno, const int ora, const int classe) {
+    return &orario[slot_di(giorno, ora - 1, classe)];
+}
+
 // Ricava indice_slot dal primo blocco (tutti i blocchi hanno lo stesso ordine).
 static void ricostruisci_indice_slot(void) {
     for (int k = 0; k < actual_classi_sezione; k++) {
@@ -144,7 +149,7 @@ int activities_for_this_class_and_hour(int pos, int gio, const int ora, const in
 
 int sabato_esaurisci_priorita_subito_cod(int pos, int giorno, int ora, int base2d_ci, int prof1, int prof2) {
     if (giorno == actual_giorni_settimana - 1 && ora > 0) {
-        const teaching_slot *prev = &orario[slot_di(giorno, ora - 1, orario[pos].classe)];
+        const teaching_slot *prev = slot_precedente(giorno, ora, orario[pos].classe);
         int prev_prof1 = prev->insegnante1;
         int prev_prof2 = prev->insegnante2;
 
@@ -177,7 +182,7 @@ int sabato_esaurisci_priorita_subito_cod(int pos, int giorno, int ora, int base2
 
 int sabato_esaurisci_priorita_subito(int pos, int giorno, int ora, int base2d_ci, int prof) {
     if (giorno == actual_giorni_settimana - 1 && ora > 0) {
-        const teaching_slot *prev = &orario[slot_di(giorno, ora - 1, orario[pos].classe)];
+        const teaching_slot *prev = slot_precedente(giorno, ora, orario[pos].classe);
         int prev_prof1 = prev->insegnante1;
         int prev_prof2 = prev->insegnante2;
 
@@ -282,7 +287,7 @@ int prof_fa_al_max_n_ore(int giorno, int ora, int cla, int prof) {
 int prof_fa_ore_contigue(int giorno, int ora, int cla, int prof) {
     if (ore_fatte_da_un_prof_in_una_classe_in_giorno[
         giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + prof]) {
-        const teaching_slot *prev = &orario[slot_di(giorno, ora - 1, cla)];
+        const teaching_slot *prev = slot_precedente(giorno, ora, cla);
         return prev->insegnante1 == prof || prev->insegnante2 == prof;
     }
     return 1;
