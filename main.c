@@ -8,9 +8,10 @@
 #include "orario/orario.h"
 #include "printer/printer.h"
 #include "ricerca/diagnosi.h"
+#include "ricerca/fattibilita.h"
 #include "ricerca/ricerca.h"
 
-// Uso: ./untitled [seed] [-b] [--casuale SEME [--classi N] [--ritardi]] [-n MAX] [--tempo SEC] [--motivi] [--dati FILE]
+// Uso: ./untitled [seed] [-b] [--casuale SEME [--classi N] [--ritardi]] [-n MAX] [--tempo SEC] [--motivi] [--dati FILE] [--senza-verifica]
 //   seed: l'ordine delle classi viene mescolato (stesso seed = stesso ordine)
 //   -b / --backtrack: scrive in orario.txt anche ogni marcia indietro (riga "Backtrack" + griglia parziale).
 //                     Senza, orario.txt contiene solo gli orari completi e si va molto piu' veloci.
@@ -22,6 +23,7 @@
 //   --tempo SEC: interrompe la ricerca dopo SEC secondi (la diagnosi viene stampata comunque)
 //   --motivi: nella diagnosi indica anche perche' i docenti vengono scartati negli slot con piu' marce indietro
 //   --dati FILE: scrive in FILE la descrizione dei dati (classi, docenti, lezioni, codocenze)
+//   --senza-verifica: salta la verifica preliminare dei dati (che segnala i casi impossibili prima di cercare)
 typedef struct {
     int mescola_classi;          // 1 se e' stato dato un seed per l'ordine delle classi
     unsigned int seed_classi;
@@ -32,6 +34,7 @@ typedef struct {
     const char *file_dati;       // dove scrivere la descrizione dei dati (NULL = da nessuna parte)
     double secondi_massimi;      // 0 = nessun limite di tempo
     int con_motivi;
+    int senza_verifica;          // 1 = non fare la verifica preliminare
 } Opzioni;
 
 static Opzioni leggi_opzioni(const int argc, char **argv) {
@@ -49,6 +52,8 @@ static Opzioni leggi_opzioni(const int argc, char **argv) {
             o.con_ritardi = 1;
         } else if (!strcmp(argv[i], "--dati") && i + 1 < argc) {
             o.file_dati = argv[++i];
+        } else if (!strcmp(argv[i], "--senza-verifica")) {
+            o.senza_verifica = 1;
         } else if (!strcmp(argv[i], "--motivi")) {
             o.con_motivi = 1;
         } else if (!strcmp(argv[i], "--tempo") && i + 1 < argc) {
@@ -89,6 +94,15 @@ static void scrivi_file_dati(const Opzioni *o) {
     fclose(fd);
 }
 
+// Verifica preliminare dei dati: se violano una condizione necessaria il caso e' impossibile e non si cerca.
+static int caso_possibile(const Opzioni *o) {
+    char motivo[256];
+    if (o->senza_verifica || verifica_fattibilita(motivo, sizeof motivo)) return 1;
+    printf("Impossibile (verifica preliminare): %s\n", motivo);
+    fflush(stdout);
+    return 0;
+}
+
 static void prepara_orario(const Opzioni *o) {
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
     inizializza_orario();
@@ -113,6 +127,7 @@ int main(const int argc, char **argv) {
     printf("Program started at: %s\n", ctime(&currentTime));
     carica_dati(&o);
     scrivi_file_dati(&o);
+    if (!caso_possibile(&o)) return 0;
     prepara_orario(&o);
 
     diagnosi_avvia();

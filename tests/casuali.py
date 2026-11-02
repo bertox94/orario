@@ -34,7 +34,7 @@ JOBS = max(1, (os.cpu_count() or 2) // 2)
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RADICE = os.path.dirname(AQUI)
 OUT = os.path.join(AQUI, 'risultati')
-FILES = ['main.c', 'orario/orario.c', 'ricerca/ricerca.c', 'ricerca/vincoli.c', 'ricerca/diagnosi.c',
+FILES = ['main.c', 'orario/orario.c', 'ricerca/ricerca.c', 'ricerca/vincoli.c', 'ricerca/diagnosi.c', 'ricerca/fattibilita.c',
          'data_initialization/database_initializers.c', 'data_initialization/generatore.c',
          'printer/printer.c', 'priority_queue/prio_queue.c']
 
@@ -98,15 +98,21 @@ def lancia(exe, caso, classi, timeout, cartella, backtrack=False, max_mb=4096):
     except subprocess.TimeoutExpired as e:
         out = e.stdout.decode() if isinstance(e.stdout, bytes) else (e.stdout or '')
         finito, errore = False, False
+    impossibile = re.search(r'Impossibile \(verifica preliminare\): ([^\n]*)', out)
     interrotto = 'Interrotto per tempo' in out
     finito = finito and not interrotto
     m = re.search(r'Totale generati: (\d+)', out)
     marce = re.search(r'Marce indietro: (\d+)', out)
     esito = 'non finito' if not finito else ('trovato' if m and int(m.group(1)) > 0 else 'nessuna soluzione')
-    if errore:
+    if impossibile:
+        esito, finito = 'impossibile', True
+    elif errore:
         esito = 'interrotto (file troppo grande)' if backtrack else 'errore'
     errori, nc, nd = controlla_dati(out)
-    d = diagnosi(out)
+    if impossibile:
+        d = ('impossibile: ' + impossibile.group(1), 'Impossibile (verifica preliminare): ' + impossibile.group(1))
+    else:
+        d = diagnosi(out)
     return {'caso': caso, 'esito': esito, 'finito': finito, 'marce': int(marce.group(1)) if marce else None,
             'sec': time.time() - t, 'classi': nc, 'docenti': nd, 'errori': errori, 'diagnosi': d[0],
             'dettaglio': d[1]}
@@ -116,7 +122,7 @@ def stampa(fase, r):
     print('[%s] %-15s: %2d classi, %3d docenti, %-18s marce %-9s %6.1fs %s' % (
         fase, nome_caso(r['caso']), r['classi'], r['docenti'], r['esito'], r['marce'] if r['marce'] is not None else '-',
         r['sec'], ('DATI NON VALIDI: ' + '; '.join(r['errori'])) if r['errori'] else ''), flush=True)
-    if r['esito'] == 'non finito' or (r['marce'] or 0) > 1000:
+    if r['esito'] in ('non finito', 'impossibile') or (r['marce'] or 0) > 1000:
         print('         diagnosi:', r['diagnosi'], flush=True)
 
 
