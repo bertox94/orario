@@ -6,7 +6,7 @@
 #define UNTITLED_PRINTER_H
 
 #define MAX_STR_SZ_IN_DISPLAY 18
-#include <_stdio.h>
+#include <stdio.h>
 
 #include "../data_initialization/database_initializers.h"
 
@@ -14,5 +14,4 @@
 int slot_di(int giorno, int ora, int classe);
 
 void print(const teaching_slot orario[], const int pos, unsigned long long attempt, FILE *f);
-void print_priority_queue(FILE *f, int start, int end);
 #endif //UNTITLED_PRINTER_H

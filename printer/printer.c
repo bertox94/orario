@@ -188,18 +188,6 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
     fprintf(f, "\n");
 }
 
-void print_priority_queue(FILE *f, int start, int end) {
-    for (int i = start; i < end; i++) {
-        if (i == start) fprintf(f, "Head: ");
-        else if (i == end - 1) fprintf(f, "Tail: ");
-        else fprintf(f, "       ");
-        char str[MAX_STR_SZ_IN_DISPLAY];
-        copy_and_pad(str, insegnanti[queue_mul[i]->teacher], MAX_STR_SZ_IN_DISPLAY);
-        fprintf(f, "%d)\t%s : %.2f\n", i, str, queue_mul[i]->priority);
-    }
-    fprintf(f, "------------\n");
-}
-
 void stampa_dati() {
     printf("Giorni settimana: ");
     for (int i = 0; i < actual_giorni_settimana - 1; i++)
@@ -213,13 +201,13 @@ void stampa_dati() {
         printf("%s\n", ore_giornaliere[actual_ore_giornaliere - 1]);
     printf("Ore classe:\n");
     for (int i = 0; i < actual_classi_sezione; i++)
-        printf("Classe %s:\t%d ore\n", classe_sezione[i], ore_classi[i]);
+        printf("Classe %s:\t%d ore\n", classe_sezione[i], classe_info[i].ore);
     printf("-----------\n");
     printf("Ore insegnanti:\n");
     for (int i = 0; i < actual_insegnanti; i++) {
         char str[MAX_STR_SZ_IN_DISPLAY];
         copy_and_pad(str, insegnanti[i], MAX_STR_SZ_IN_DISPLAY);
-        printf("Ins. %s: %d ore\n", str, ore_docenti[i]);
+        printf("Ins. %s: %d ore\n", str, docente_info[i].ore);
     }
     printf("-----------\n");
     printf("Ore insegnanti in classe:\n");

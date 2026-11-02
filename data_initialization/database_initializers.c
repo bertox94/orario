@@ -27,20 +27,12 @@ int actual_ore_giornaliere;
 int actual_classi_sezione;
 int actual_insegnanti;
 
-int ore_classi_docenti[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
-int ore_classi_docenti_alone[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
-int ore_classi_docenti_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
-int ore_classi_docenti_alone_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
-int ore_classi[CLASSE_SEZIONE_SZ];
-int ore_classe_svolte[CLASSE_SEZIONE_SZ];
-int ore_docenti[INSEGNANTE_SZ];
-int ore_docenti_svolte[INSEGNANTE_SZ];
-int classi_docenti_teorici[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
-int ore_classi_codocenza[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ];
-int ore_classi_codocenza_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ];
+classe_docente_t classe_docente[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
+codocenza_t codocenza[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ];
+classe_t classe_info[CLASSE_SEZIONE_SZ];
+docente_t docente_info[INSEGNANTE_SZ];
 int ore_fatte_da_un_prof_in_una_classe_in_giorno[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 
-int ora_di_entrata_prof[INSEGNANTE_SZ];
 int prof_gia_impegnato_giorno_ora[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ];
 int n_ore_buche[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ];
 /*
@@ -110,71 +102,42 @@ void set_insegnante(char in[]) {
  * Access and set constraints
  */
 void add_ore_classi_insegnante(int classe, int insegnante, int ore) {
-    ore_classi_docenti[classe * INSEGNANTE_SZ + insegnante] += ore;
+    classe_docente[classe * INSEGNANTE_SZ + insegnante].ore += ore;
 }
 
 void add_ore_classi_insegnante_lonely(int classe, int insegnante, int ore) {
-    ore_classi_docenti_alone[classe * INSEGNANTE_SZ + insegnante] += ore;
+    classe_docente[classe * INSEGNANTE_SZ + insegnante].alone += ore;
 }
 
 void add_ore_classi_settimanale(int classe, int ore) {
-    ore_classi[classe] += ore;
+    classe_info[classe].ore += ore;
 }
 
 void add_ore_insegnante_settimanale(int insegnante, int ore) {
-    ore_docenti[insegnante] += ore;
+    docente_info[insegnante].ore += ore;
 }
 
 void add_ore_classi_codocenza(int cla, int p1, int p2, int ore) {
     swap_min_first(&p1, &p2);
-    ore_classi_codocenza[cla * INSEGNANTE_SZ * INSEGNANTE_SZ + p1 * INSEGNANTE_SZ + p2] += ore;
-}
-
-void increment_ore_classi_codocenza_svolte(const int cla, int p1, int p2) {
-    swap_min_first(&p1, &p2);
-    ore_classi_codocenza_svolte[cla * INSEGNANTE_SZ * INSEGNANTE_SZ + p1 * INSEGNANTE_SZ + p2]++;
-}
-
-void decrement_ore_classi_codocenza_svolte(const int cla, int p1, int p2) {
-    swap_min_first(&p1, &p2);
-    ore_classi_codocenza_svolte[cla * INSEGNANTE_SZ * INSEGNANTE_SZ + p1 * INSEGNANTE_SZ + p2]--;
-}
-
-int get_ore_insegnanti_codocenza_svolte_in_una_classe(const int cla, int p1, int p2) {
-    swap_min_first(&p1, &p2);
-    return ore_classi_codocenza_svolte[cla * INSEGNANTE_SZ * INSEGNANTE_SZ + p1 * INSEGNANTE_SZ + p2];
-}
-
-int get_ore_insegnanti_codocenza_in_una_classe(const int cla, int p1, int p2) {
-    swap_min_first(&p1, &p2);
-    return ore_classi_codocenza[cla * INSEGNANTE_SZ * INSEGNANTE_SZ + p1 * INSEGNANTE_SZ + p2];
+    codocenza[cla * INSEGNANTE_SZ * INSEGNANTE_SZ + p1 * INSEGNANTE_SZ + p2].ore += ore;
 }
 
 int get_ore_classi_insegnante(int classe, int insegnante) {
-    return ore_classi_docenti[classe * INSEGNANTE_SZ + insegnante];
+    return classe_docente[classe * INSEGNANTE_SZ + insegnante].ore;
 }
 
 int get_ore_classi_insegnante_svolte(int classe, int insegnante) {
-    return ore_classi_docenti_svolte[classe * INSEGNANTE_SZ + insegnante];
-}
-
-int get_ore_classi_settimanale(int classe) {
-    return ore_classi[classe];
-}
-
-int get_ore_insegnante_settimanale(int insegnante) {
-    return ore_docenti[insegnante];
+    return classe_docente[classe * INSEGNANTE_SZ + insegnante].svolte;
 }
 
 /*
  * Set constraints from user
 */
 
-
 void set_classe_insegnante_ore(char cla[], char prof[], const int ore) {
     set_classe_sezione(cla);
     set_insegnante(prof);
-    classi_docenti_teorici[p_classe_sezione(cla) * INSEGNANTE_SZ + p_insegnante(prof)] = 1;
+    classe_docente[p_classe_sezione(cla) * INSEGNANTE_SZ + p_insegnante(prof)].teorico = 1;
     add_ore_classi_insegnante(p_classe_sezione(cla), p_insegnante(prof), ore);
     add_ore_classi_insegnante_lonely(p_classe_sezione(cla), p_insegnante(prof), ore);
     add_ore_classi_settimanale(p_classe_sezione(cla), ore);
@@ -185,7 +148,7 @@ void set_classe_insegnante_ore(char cla[], char prof[], const int ore) {
 void set_classe_insegnante_ore_cod(char cla[], char prof[], const int ore, char cod[], const int ore_cod) {
     set_classe_sezione(cla);
     set_insegnante(prof);
-    classi_docenti_teorici[p_classe_sezione(cla) * INSEGNANTE_SZ + p_insegnante(prof)] = 1;
+    classe_docente[p_classe_sezione(cla) * INSEGNANTE_SZ + p_insegnante(prof)].teorico = 1;
     add_ore_classi_insegnante(p_classe_sezione(cla), p_insegnante(prof), ore);
     add_ore_classi_insegnante_lonely(p_classe_sezione(cla), p_insegnante(prof), ore - ore_cod);
     add_ore_classi_settimanale(p_classe_sezione(cla), ore);
@@ -198,31 +161,6 @@ void set_classe_insegnante_ore_cod(char cla[], char prof[], const int ore, char 
     add_to_queue(p_insegnante(cod), ore_cod);
     add_to_queue(p_insegnante(prof), ore);
 }
-
-/*
-void set_classe_materia_ore_prof_codocenza(char cla[], char mat[], const int ore, const char prof[], const int ore_cod,
-                                           const char cod[]) {
-    set_classe_sezione(cla);
-    set_materia(mat);
-    set_insegnante(prof);
-    set_insegnante(cod);
-    const int p_cla = p_classe_sezione(cla);
-    const int p_mat = p_materia(mat);
-    const int p_prof = p_insegnante(prof);
-    const int p_cod = p_insegnante(cod);
-    assert(p_cla!=-1);
-    assert(p_mat!=-1);
-    assert(p_prof!=-1);
-    assert(p_cod!=-1);
-    const int base = p_cla * MATERIA_SZ * INSEGNANTE_SZ + p_mat * INSEGNANTE_SZ;
-    ore_insegnanti_classe_materia[base + p_prof] += ore;
-    ore_insegnanti_classe_materia[base + p_cod] += ore_cod;
-
-    assert(ore>=ore_cod);
-    ore_insegnanti_classe_materia_lonely[base + p_prof] += ore - ore_cod;
-    ore_classe_settimanali[p_cla] += ore;
-}
-*/
 
 void inizializza_dati() {
     set_giorno_settimana(Lun);
@@ -261,7 +199,6 @@ void inizializza_dati() {
     set_classe_insegnante_ore_cod(Classe_3B, Sarabi, 4, MTartarughe, 1);
     set_classe_insegnante_ore_cod(Classe_3B, Ash, 4, Denethor, 2);
     set_classe_insegnante_ore(Classe_3B, Pumba, 3);
-
 
     set_classe_insegnante_ore(Classe_3C, Goten, 3);
     set_classe_insegnante_ore(Classe_3C, Trunks, 6);
@@ -380,7 +317,6 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_4D, RWeasley, 1);
     set_classe_insegnante_ore(Classe_4D, Gohan, 2); //18 KHz
 
-
     set_classe_insegnante_ore(Classe_4E, Jiraya, 4);
     set_classe_insegnante_ore(Classe_4E, HGranger, 6);
     set_classe_insegnante_ore(Classe_4E, Naruto, 7);
@@ -400,15 +336,13 @@ void inizializza_dati() {
     set_classe_insegnante_ore(Classe_5E, Tsunade, 3);
     set_classe_insegnante_ore(Classe_5E, Doraemon, 1);
 
-
     // VINCOLI SU ORA DI ENTRATA
-    ora_di_entrata_prof[p_insegnante(Naruto)] = 1;
-    ora_di_entrata_prof[p_insegnante(Cell)] = 1;
-    ora_di_entrata_prof[p_insegnante(Vegeta)] = 2;
-
+    docente_info[p_insegnante(Naruto)].ora_entrata = 1;
+    docente_info[p_insegnante(Cell)].ora_entrata = 1;
+    docente_info[p_insegnante(Vegeta)].ora_entrata = 2;
 
     for (int i = 0; i < actual_classi_sezione; i++) {
-        assert(ore_classi[i] <= actual_giorni_settimana * actual_ore_giornaliere);
-        assert(ore_classi[i] >= PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana);
+        assert(classe_info[i].ore <= actual_giorni_settimana * actual_ore_giornaliere);
+        assert(classe_info[i].ore >= PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana);
     }
 }
