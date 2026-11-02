@@ -386,6 +386,38 @@ static void analizza_marcia_indietro(const teaching_slot *slot, const int pos, c
     }
 }
 
+// Controllo fatto a ogni inizio ora (prima della prima classe di quell'ora): se le ore che mancano a un docente non
+// stanno piu' nel tempo rimasto, il ramo non ha soluzioni e si scarta subito invece di scoprirlo ora per ora.
+//  - in una classe un docente fa al massimo MAX_ORE_PROF_IN_UNA_CLASSE ore al giorno (oggi: quelle che gli restano);
+//  - in totale puo' fare al massimo una lezione per ora, dalla sua ora di ingresso.
+long long int rami_scartati_a_inizio_ora = 0;
+
+static int ore_rimaste_stanno_nel_tempo_rimasto(const int giorno, const int ora) {
+    const int giorni_dopo = actual_giorni_settimana - giorno - 1;
+    const int ore_oggi = actual_ore_giornaliere - ora; // ore di oggi non ancora cominciate (compresa questa)
+    int totale[INSEGNANTE_SZ] = {0};
+    for (int c = 0; c < actual_classi_sezione; c++) {
+        const classe_docente_t *cd = &classe_docente[c * INSEGNANTE_SZ];
+        const int *fatte_oggi = &ore_fatte_da_un_prof_in_una_classe_in_giorno[
+            giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + c * INSEGNANTE_SZ];
+        for (int p = 0; p < actual_insegnanti; p++) {
+            const int rimaste = cd[p].ore - cd[p].svolte;
+            if (!rimaste) continue;
+            int cap_oggi = MAX_ORE_PROF_IN_UNA_CLASSE - fatte_oggi[p];
+            if (cap_oggi > ore_oggi) cap_oggi = ore_oggi;
+            if (rimaste > cap_oggi + MAX_ORE_PROF_IN_UNA_CLASSE * giorni_dopo) return 0;
+            totale[p] += rimaste;
+        }
+    }
+    for (int p = 0; p < actual_insegnanti; p++) {
+        if (!totale[p]) continue;
+        const int da = docente_info[p].ora_entrata > ora ? docente_info[p].ora_entrata : ora;
+        if (totale[p] > (actual_ore_giornaliere - da) + (actual_ore_giornaliere - docente_info[p].ora_entrata) * giorni_dopo)
+            return 0;
+    }
+    return 1;
+}
+
 void print_orario(const int pos) {
     if (n_gen_max <= n_gen) return;
     nodi++;
@@ -408,6 +440,10 @@ void print_orario(const int pos) {
 
     teaching_slot *slot = &orario[pos];
     const int giorno = slot->giorno;
+    if (pos > 0 && pos % actual_classi_sezione == 0 && !ore_rimaste_stanno_nel_tempo_rimasto(giorno, slot->ora)) {
+        rami_scartati_a_inizio_ora++;
+        return;
+    }
     const int ora = slot->ora;
     const int cla = slot->classe;
     const int base2d_ci = slot->base2d_ci;
@@ -485,6 +521,7 @@ static void stampa_diagnosi(void) {
     int distinti = 0;
     for (int i = 0; i < orario_len; i++) if (marce_per_pos[i]) distinti++;
     printf("Marce indietro: %lld in %d slot diversi\n", n_backtrack, distinti);
+    printf("Rami scartati a inizio ora (ore che mancano oltre il tempo rimasto): %lld\n", rami_scartati_a_inizio_ora);
     // i 5 slot con piu' marce indietro
     char usato[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {0};
     for (int k = 0; k < 5; k++) {
