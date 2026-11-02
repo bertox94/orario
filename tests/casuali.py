@@ -23,7 +23,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RADICE = os.path.dirname(AQUI)
-FILES = ['main.c', 'data_initialization/database_initializers.c', 'data_initialization/generatore.c',
+FILES = ['main.c', 'orario/orario.c', 'ricerca/ricerca.c', 'ricerca/vincoli.c', 'ricerca/diagnosi.c',
+         'data_initialization/database_initializers.c', 'data_initialization/generatore.c',
          'printer/printer.c', 'priority_queue/prio_queue.c']
 
 
