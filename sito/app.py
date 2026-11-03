@@ -20,6 +20,11 @@ def crea_app(config=None, avvia_esecutore=True):
     config = config or Config()
     app.config['SITO'] = config
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SECURE'] = config.https
+    if config.proxy:  # dietro un proxy fidato (SITO_PROXY=1): indirizzo del client e protocollo dalle intestazioni
+        from werkzeug.middleware.proxy_fix import ProxyFix
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
     app.config['PERMANENT_SESSION_LIFETIME'] = datetime.timedelta(days=30)
     app.teardown_appcontext(db.chiudi)
 

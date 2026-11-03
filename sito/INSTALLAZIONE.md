@@ -195,6 +195,44 @@ Una prova in corso al momento del riavvio risulta "interrotta".
 - Il database cresce con le prove: controllare ogni tanto lo spazio del Mac (la pagina «Test notturni» mostra la
   dimensione del database).
 
+## Accesso da fuori casa con Tailscale (gratis fino a 6 utenti)
+
+Tailscale crea una rete privata tra i dispositivi invitati: il sito resta invisibile a Internet, senza aprire porte sul
+router. Il piano gratuito «Personal» (uso non commerciale) ha dispositivi illimitati e fino a 6 utenti. Chi deve usare il
+sito installa Tailscale sul proprio telefono o computer e accede con l'indirizzo HTTPS del Pi.
+
+1. Sul Raspberry (o sul Mac, se il sito gira lì): installare Tailscale (https://tailscale.com/download) e collegarlo
+   al proprio account: `sudo tailscale up`.
+2. Nella console di amministrazione Tailscale (login.tailscale.com): attivare **MagicDNS** e i **certificati HTTPS**
+   (sezione DNS). Invitare gli altri utenti (Users → Invite) o condividere solo il Pi con loro (Machines → Share).
+3. Pubblicare il sito sulla rete privata con HTTPS: `sudo tailscale serve --bg 8000` (con una versione diversa
+   verificare la sintassi con `tailscale serve --help`). Il comando scrive l'indirizzo, per esempio
+   `https://orario-pi.nome-rete.ts.net`.
+4. In `/etc/orario-sito.env` aggiungere:
+
+   ```
+   SITO_HTTPS=1
+   SITO_PROXY=1
+   ```
+
+   e in `orario-sito.service` cambiare `--host 0.0.0.0` in `--host 127.0.0.1` (il sito risponde solo a Tailscale, non
+   più alla rete locale in chiaro). Poi `sudo systemctl daemon-reload && sudo systemctl restart orario-sito`.
+5. Provare dal telefono con Tailscale attivo (e Wi-Fi spento) aprendo l'indirizzo del punto 3.
+
+`SITO_HTTPS=1` rende il cookie di sessione «Secure» (non parte su HTTP); `SITO_PROXY=1` fa leggere l'indirizzo vero del
+client dalle intestazioni del proxy, così il limite ai tentativi di login conta ogni persona e non il proxy. Non
+attivare `SITO_PROXY` se il sito è raggiungibile direttamente senza proxy: le intestazioni si potrebbero falsificare.
+Il Mac con Postgres può restare sulla rete locale: il Pi lo raggiunge come prima.
+
+## Sito sul Mac invece che sul Pi
+
+Il Mac ha già Postgres, quindi basta far girare lì anche il sito: `DATABASE_URL=postgresql://orario:PASSWORD@localhost:5432/orario`.
+Servono `git`, un compilatore (`xcode-select --install`) e Python 3 con `pip install -r sito/requirements.txt` in un
+ambiente virtuale. Si avvia con `python3 -m sito avvia --porta 8000`. Il sito usa la cartella temporanea del sistema
+al posto di `/dev/shm` (che sul Mac non c'è; nessun problema con un SSD). Per farlo partire all'accensione si usa
+launchd al posto di systemd, e va impedito lo stop del Mac (Impostazioni → Batteria/Energia, oppure `caffeinate -s`),
+altrimenti sito e prove notturne si fermano.
+
 ## Come si usa il test manuale (Test in tempo reale)
 
 1. **Dati della scuola**: inserire calendario, classi, docenti (con l'ora di ingresso) e lezioni (ore, codocente, ore in
