@@ -14,6 +14,7 @@ import json
 import os
 import re
 import resource
+import select
 import shutil
 import subprocess
 import threading
@@ -117,8 +118,19 @@ class Esecuzione:
     """Un processo del solver in corso. Il sito ne tiene uno per ogni test in tempo reale (per il progresso e per
     fermarlo); casuali.py usa direttamente esegui()."""
 
-    def __init__(self, exe, args, cartella, timeout=None, limite_mb=0, su_progresso=None):
+    def __init__(self, exe, args, cartella, timeout=None, limite_mb=0, su_progresso=None, su_gz=None, limite_gz_mb=0):
+        """su_gz: funzione che riceve a pezzi le marce indietro compresse (orario.txt.gz), invece di scriverle sul
+        disco: il file e' una pipe con nome e i byte vanno direttamente a chi li conserva (il database). Il limite
+        di spazio (limite_gz_mb) lo controlla questa classe, perche' sul disco non c'e' nessun file da misurare."""
         os.makedirs(cartella, exist_ok=True)
+        self.su_gz = su_gz
+        self.limite_gz = int(limite_gz_mb * 2 ** 20)
+        self.byte_gz = 0
+        self.troppo_grande = False
+        self.errore_gz = None
+        self.thread_gz = None
+        if su_gz and '-b' in args:
+            os.mkfifo(os.path.join(cartella, 'orario.txt.gz'))
         self.cartella = cartella
         self.timeout = timeout
         self.su_progresso = su_progresso
@@ -131,6 +143,42 @@ class Esecuzione:
         self.processo = subprocess.Popen(
             [exe] + args, cwd=cartella, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1,
             preexec_fn=lambda: resource.setrlimit(resource.RLIMIT_FSIZE, (limite, limite)))
+        if su_gz and '-b' in args:
+            self.thread_gz = threading.Thread(target=self._leggi_gz, args=(os.path.join(cartella, 'orario.txt.gz'),),
+                                              daemon=True)
+            self.thread_gz.start()
+
+    def _leggi_gz(self, percorso):
+        fd = os.open(percorso, os.O_RDONLY | os.O_NONBLOCK)  # non blocca: il solver lo apre quando serve
+        try:
+            while True:
+                pronti = select.select([fd], [], [], 0.5)[0]
+                if pronti:
+                    pezzo = os.read(fd, 1 << 20)
+                    if not pezzo:
+                        break  # il solver ha chiuso il file
+                    self._pezzo_gz(pezzo)
+                elif self.processo.poll() is not None:
+                    break  # il solver e' finito senza (piu') scrivere
+        finally:
+            os.close(fd)
+
+    def _pezzo_gz(self, pezzo):
+        prima = self.byte_gz
+        self.byte_gz += len(pezzo)
+        # dopo il limite il solver si ferma da solo (SIGTERM) e chiude il file: si tiene ancora un po' di margine
+        # perche' il file resti valido; oltre il margine i byte si leggono e si scartano (senza bloccare gzip)
+        if self.errore_gz or (self.limite_gz and prima > self.limite_gz * 1.05 + 8 * 2 ** 20):
+            return
+        try:
+            self.su_gz(pezzo)
+        except Exception as ex:  # noqa: BLE001 - per esempio il database non risponde
+            self.errore_gz = str(ex)
+            self.ferma()
+            return
+        if self.limite_gz and self.byte_gz > self.limite_gz and not self.troppo_grande:
+            self.troppo_grande = True
+            self.ferma()
 
     def ferma(self):
         """Chiede al solver di fermarsi (SIGTERM): si ferma in modo ordinato, con diagnosi e JSON."""
@@ -165,7 +213,14 @@ class Esecuzione:
             else:
                 self.righe.append(riga)
         codice = self.processo.wait()
+        if self.thread_gz:
+            self.thread_gz.join(120)
         out = ''.join(self.righe)
+        # gli stessi messaggi che scrive il solver quando e' lui a misurare il file
+        if self.troppo_grande:
+            out += '\nInterrotto per spazio: marce indietro oltre il limite\n'
+        if self.errore_gz:
+            out += '\nErrore di scrittura delle marce indietro: %s\n' % self.errore_gz
         risultato = None
         p = os.path.join(self.cartella, 'risultato.json')
         if os.path.exists(p) and os.path.getmtime(p) >= self.inizio - 1:
@@ -189,6 +244,26 @@ def esegui(exe, caso, opzioni, cartella, su_progresso=None):
     e = Esecuzione(exe, argomenti(caso, opzioni, progresso=su_progresso is not None), cartella,
                    timeout=tempo, limite_mb=(max_mb * 1.1 + 16) if max_mb else 0, su_progresso=su_progresso)
     return e.attendi()
+
+
+def analizza_slot(exe, caso, opzioni, cartella, pos, slot):
+    """La coda dei docenti dello slot pos (indice nella ricerca) e perche' ognuno e' o non e' utilizzabile, dati i primi
+    pos slot dell'orario parziale (slot: elenco di "i", "i+j" o "-"). Il caso e le opzioni sono quelli
+    dell'esecuzione (dati e ordine delle classi); ritorna il dizionario del solver o None."""
+    base = {k: opzioni[k] for k in ('ordine_classi', 'ore_obbligatorie', 'ore_prof_classe', 'classi_giorno')
+            if opzioni.get(k) is not None}
+    os.makedirs(cartella, exist_ok=True)
+    with open(os.path.join(cartella, 'analisi.txt'), 'w') as f:
+        f.write('%d\n%s\n' % (pos, ' '.join(slot[:pos])))
+    args = argomenti(caso, {**base, 'orari': 1, 'motivi': False}) + ['--analizza-slot', 'analisi.txt']
+    try:
+        p = subprocess.run([exe] + args, cwd=cartella, capture_output=True, text=True, timeout=30)
+    except subprocess.TimeoutExpired:
+        return None
+    for riga in p.stdout.splitlines():
+        if riga.startswith('ANALISI '):
+            return json.loads(riga[8:])
+    return None
 
 
 # ---- com'e' andata ----
@@ -275,6 +350,3 @@ def diagnosi(out):
         stato, cosa, n_slot, top3, nome, ', senza avanzare' if senza_progressi else ''), testo
 
 
-def spazio_libero_mb(cartella):
-    os.makedirs(cartella, exist_ok=True)
-    return shutil.disk_usage(cartella).free / 2 ** 20

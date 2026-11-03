@@ -1,0 +1,25 @@
+{# Opzioni comuni a una prova notturna e a una pianificazione. #}
+<div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
+  <label>Primo seme <input type="number" name="semi_da" min="0" value="1"></label>
+  <label>Quanti semi <input type="number" name="quanti" min="0" value="20"></label>
+  <label>Classi per caso <input type="number" name="classi" min="1" max="120" value="8"></label>
+  <label class="spunta"><input type="checkbox" name="variante_normale" value="1" checked> normali</label>
+  <label class="spunta"><input type="checkbox" name="variante_ritardi" value="1" checked> con ritardi</label>
+  <label class="spunta"><input type="checkbox" name="scuola" value="1" {{ 'disabled' if not n_classi }}> anche i dati della scuola</label>
+</div>
+<div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-top: 10px;">
+  <label>Fase 1 (s) <input type="number" name="fase1" min="1" value="60"></label>
+  <label>Fase 2 (s, 0 = no) <input type="number" name="fase2" min="0" value="600"></label>
+  <label>Fase 3 (s, 0 = no) <input type="number" name="fase3" min="0" value="600"></label>
+  <label class="spunta"><input type="checkbox" name="backtrack" value="1" checked> Fase 3 registra le marce indietro (-b)</label>
+  <label>Spazio per le marce nel database (MB, in tutto) <input type="number" name="spazio_mb" min="1" value="{{ config.spazio_mb }}"></label>
+  <label>Ordine delle classi (seed, vuoto = in ordine) <input type="number" name="ordine_classi" min="0"></label>
+</div>
+<div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-top: 10px;">
+  <label>Ore obbligatorie ogni giorno <input type="number" name="ore_obbligatorie" min="1" max="6" value="5"></label>
+  <label>Ore di un docente nella stessa classe al giorno (max) <input type="number" name="ore_prof_classe" min="1" max="6" value="3"></label>
+  <label>Classi diverse per docente al giorno (max) <input type="number" name="classi_giorno" min="1" max="20" value="3"></label>
+</div>
+<p class="tenue piccolo">Fase 1: tutti i casi, ognuno al massimo per il tempo indicato. Fase 2: di nuovo, piu' a lungo,
+  i casi non finiti. Fase 3: i casi ancora non finiti, registrando ogni marcia indietro; lo spazio si divide tra i casi e
+  finisce nel database. {{ config.paralleli }} casi alla volta.</p>

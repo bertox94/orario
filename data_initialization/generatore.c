@@ -1,5 +1,6 @@
 #include "generatore.h"
 #include "database_initializers.h"
+#include "nomi_docenti.h"
 #include "../ricerca/fattibilita.h"
 #include <assert.h>
 #include <stdio.h>
@@ -131,6 +132,12 @@ static int tenta(const int n_classi, int *n_doc_usati) {
     return 1;
 }
 
+// Il nome del docente d (da 0): un personaggio dell'elenco, oppure D%03d se l'elenco e' finito.
+static void nome_docente(char nome[MAX_LEN_WORDS], const int d) {
+    if (d < N_NOMI_DOCENTI_CASUALI) snprintf(nome, MAX_LEN_WORDS, "%s", NOMI_DOCENTI_CASUALI[d]);
+    else snprintf(nome, MAX_LEN_WORDS, "D%03d", d + 1);
+}
+
 // Dopo aver registrato i dati: alcuni docenti entrano in ritardo. L'ora di ingresso si abbassa finche' le ore
 // settimanali del docente stanno nelle ore che gli restano (da ingresso a fine giornata, per tutti i giorni).
 // Se la verifica preliminare dichiara impossibile il caso, si toglie il ritardo ai docenti che entrano piu' tardi,
@@ -143,7 +150,7 @@ static void assegna_ore_di_ingresso(const int n_doc) {
         int ingresso = rnd(1, GEN_ORA_INGRESSO_MAX);
         while (ingresso > 0 && carico[d] > (actual_ore_giornaliere - ingresso) * actual_giorni_settimana) ingresso--;
         char nome[MAX_LEN_WORDS];
-        snprintf(nome, sizeof nome, "D%03d", d + 1);
+        nome_docente(nome, d);
         const int p = p_insegnante(nome);
         if (p >= 0) {
             docente_info[p].ora_entrata = ingresso;
@@ -176,7 +183,8 @@ void genera_dati_casuali(const unsigned long long seed, const int n_classi, cons
         exit(1);
     }
 
-    // registra il piano nelle tabelle dei dati, con nomi C01, C02... per le classi e D001, D002... per i docenti
+    // registra il piano nelle tabelle dei dati, con nomi C01, C02... per le classi e personaggi di fantasia per i docenti
+    // (nomi_docenti.h)
     // ordine di apparizione: per classe, nell'ordine generato
     for (int c = 0; c < n_classi; c++) {
         char cla[MAX_LEN_WORDS];
@@ -185,11 +193,11 @@ void genera_dati_casuali(const unsigned long long seed, const int n_classi, cons
             const lezione_t *l = &lezioni[i];
             if (l->classe != c) continue;
             char prof[MAX_LEN_WORDS], cod[MAX_LEN_WORDS];
-            snprintf(prof, sizeof prof, "D%03d", l->prof + 1);
+            nome_docente(prof, l->prof);
             if (l->cod < 0) {
                 set_classe_insegnante_ore(cla, prof, l->ore);
             } else {
-                snprintf(cod, sizeof cod, "D%03d", l->cod + 1);
+                nome_docente(cod, l->cod);
                 set_classe_insegnante_ore_cod(cla, prof, l->ore, cod, l->ore_cod);
             }
         }
