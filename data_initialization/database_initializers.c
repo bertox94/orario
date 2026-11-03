@@ -16,6 +16,10 @@
 
 #include "../printer/printer.h"
 
+int param_ore_obbligatorie = 5;
+int param_classi_diverse_al_giorno = 3;
+int param_ore_prof_in_una_classe = 3;
+
 char giorni_settimana[GIORNO_SETTIMANA_SZ][MAX_LEN_WORDS];
 char ore_giornaliere[ORA_GIORNALIERA_SZ][MAX_LEN_WORDS];
 char classe_sezione[CLASSE_SEZIONE_SZ][MAX_LEN_WORDS];
@@ -168,6 +172,12 @@ void set_classe_insegnante_ore_cod(char cla[], char prof[], const int ore, char 
     add_to_queue(p_insegnante(prof), ore);
 }
 
+// La coda dei docenti: una copia per ogni slot possibile (vedi prio_queue.h). Va preparata prima di aggiungere lezioni.
+void prepara_coda(void) {
+    queue_mul = malloc(
+        sizeof(QueueItem *) * GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ);
+}
+
 // Giorni, ore e coda dei docenti: uguali per qualunque insieme di dati.
 void inizializza_calendario() {
     set_giorno_settimana(Lun);
@@ -184,9 +194,7 @@ void inizializza_calendario() {
     set_ora_giornaliera(Ora_12);
     set_ora_giornaliera(Ora_13);
 
-    // una copia della coda dei docenti per ogni slot possibile (vedi prio_queue.h)
-    queue_mul = malloc(
-        sizeof(QueueItem *) * GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ);
+    prepara_coda();
 }
 
 // I dati reali: per ogni classe le sue lezioni (da solo o con codocente), poi le ore di ingresso dei docenti.

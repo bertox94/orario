@@ -127,7 +127,7 @@ static inline int ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(int pos, int 
 
     // Fixed-size array instead of VLA (Variable Length Array).
     // Since max distinct classes allowed is n, we only ever need n elements.
-    int classi[MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO];
+    int classi[LIMITE_CLASSI_DIVERSE];
     int classi_sz = 0;
 
     // Add the initial/current class

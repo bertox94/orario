@@ -1,9 +1,12 @@
 #include "diagnosi.h"
 
+#include <signal.h>
 #include <stdio.h>
+#include <sys/stat.h>
 #include <time.h>
 
 #include "../priority_queue/prio_queue.h"
+#include "ricerca.h"
 #include "vincoli.h"
 
 long long int nodi = 0;
@@ -12,6 +15,16 @@ long long int nodi_a_pos_max = 0;
 double limite_secondi = 0;
 double inizio_ricerca;
 int interrotto_per_tempo = 0;
+int interrotto_per_spazio = 0;
+int errore_di_scrittura = 0;
+int interrotto_su_richiesta = 0;
+
+static volatile sig_atomic_t arresto_richiesto = 0;
+static int con_progresso = 0;
+static double prossimo_progresso = 0;
+
+static const char *file_da_controllare = NULL; // il file degli orari, per il limite di spazio
+static long long int limite_byte = 0;          // 0 = nessun limite
 
 #define N_SLOT (GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ) // slot possibili, al massimo
 
@@ -49,6 +62,78 @@ double secondi_reali(void) {
 void diagnosi_imposta(const double secondi, const int con_motivi) {
     limite_secondi = secondi;
     registra_motivi = con_motivi;
+}
+
+void diagnosi_imposta_spazio(const char *file, const double mb) {
+    file_da_controllare = file;
+    limite_byte = (long long int) (mb * 1024 * 1024);
+}
+
+void diagnosi_imposta_progresso(const int attivo) {
+    con_progresso = attivo;
+}
+
+void diagnosi_richiesta_di_arresto(const int segnale) {
+    (void) segnale;
+    arresto_richiesto = 1;
+}
+
+// Una riga di avanzamento: PROGRESSO {"secondi", "nodi", "marce", "scartati", "pos", "pos_max", "trovati",
+// "marce_slot", "scartati_slot"}. Le due tabelle per slot sono piatte, nell'ordine [giorno][ora][classe] con la classe
+// come indice dei dati (come nel JSON finale): indice (giorno * ore + ora) * classi + classe.
+static void stampa_progresso(const int pos, const double adesso) {
+    long long int scartati_tot = 0;
+    for (int m = 0; m < N_MOTIVI_SCARTO; m++) scartati_tot += scartati[m];
+    printf("PROGRESSO {\"secondi\": %.1f, \"nodi\": %lld, \"marce\": %lld, \"scartati\": %lld, \"pos\": %d, "
+           "\"pos_max\": %d, \"trovati\": %lld, \"marce_slot\": [", adesso - inizio_ricerca, nodi, n_backtrack,
+           scartati_tot, pos, pos_max, n_gen);
+    for (int g = 0; g < actual_giorni_settimana; g++)
+        for (int o = 0; o < actual_ore_giornaliere; o++)
+            for (int c = 0; c < actual_classi_sezione; c++)
+                printf(g + o + c ? ",%lld" : "%lld", marce_per_pos[slot_di(g, o, c)]);
+    printf("], \"scartati_slot\": [");
+    for (int g = 0; g < actual_giorni_settimana; g++)
+        for (int o = 0; o < actual_ore_giornaliere; o++)
+            for (int c = 0; c < actual_classi_sezione; c++) {
+                const int i = slot_di(g, o, c);
+                long long int n = 0;
+                for (int m = 0; m < N_MOTIVI_SCARTO; m++) n += scartati_per_pos[i][m];
+                printf(g + o + c ? ",%lld" : "%lld", n);
+            }
+    printf("]}\n");
+    fflush(stdout);
+}
+
+int diagnosi_controllo_periodico(const int pos) {
+    if (arresto_richiesto) {
+        interrotto_su_richiesta = 1;
+        return 1;
+    }
+    if (con_progresso) {
+        const double adesso = secondi_reali();
+        if (adesso >= prossimo_progresso) {
+            prossimo_progresso = adesso + 1;
+            stampa_progresso(pos, adesso);
+        }
+    }
+    if (limite_secondi > 0 && secondi_reali() - inizio_ricerca > limite_secondi) {
+        interrotto_per_tempo = 1;
+        return 1;
+    }
+    // la dimensione sul disco: quello che il solver (o gzip) ha gia' scritto. Puo' restare indietro di quello che e'
+    // ancora nei buffer, qualche centinaio di KB al massimo.
+    struct stat st;
+    if (limite_byte > 0 && stat(file_da_controllare, &st) == 0 && st.st_size > limite_byte) {
+        interrotto_per_spazio = 1;
+        return 1;
+    }
+    // una scrittura nel file degli orari non e' riuscita: inutile continuare, ma la diagnosi si scrive comunque
+    // (il solver ignora SIGXFSZ e SIGPIPE apposta, vedi main.c, cosi' l'errore arriva qui invece di terminarlo)
+    if (file_orario && ferror(file_orario)) {
+        errore_di_scrittura = 1;
+        return 1;
+    }
+    return 0;
 }
 
 void diagnosi_avvia(void) {
@@ -100,6 +185,24 @@ void diagnosi_marcia_indietro(const teaching_slot *slot, const int pos, const in
         docenti_per_pos[pos]++;
     }
 }
+
+/* ---- lettura dei contatori ---- */
+
+long long int diagnosi_marce_nello_slot(const int pos) { return marce_per_pos[pos]; }
+
+long long int diagnosi_scartati_nello_slot(const int pos, const int motivo_scarto) {
+    return scartati_per_pos[pos][motivo_scarto];
+}
+
+long long int diagnosi_motivo_nello_slot(const int pos, const int motivo) { return motivi_per_pos[pos][motivo]; }
+
+long long int diagnosi_motivo_del_docente(const int prof, const int motivo) { return motivi_per_docente[prof][motivo]; }
+
+int diagnosi_con_motivi(void) { return registra_motivi; }
+
+const char *diagnosi_nome_motivo(const int motivo) { return nome_motivo[motivo]; }
+
+const char *diagnosi_nome_motivo_scarto(const int motivo_scarto) { return nome_motivo_scarto[motivo_scarto]; }
 
 /* ---- stampa ---- */
 
@@ -212,6 +315,11 @@ static void stampa_docenti_scartati_piu_spesso(void) {
 void stampa_diagnosi(const long long int n_backtrack) {
     printf("\nDiagnosi della ricerca\n");
     if (interrotto_per_tempo) printf("Interrotto per tempo\n");
+    if (interrotto_per_spazio)
+        printf("Interrotto per spazio: il file degli orari ha superato %.0f MB\n", limite_byte / 1024.0 / 1024.0);
+    if (interrotto_su_richiesta) printf("Interrotto su richiesta\n");
+    if (errore_di_scrittura)
+        printf("Errore di scrittura del file degli orari (disco pieno o file troppo grande): il file e' incompleto\n");
     stampa_riepilogo(n_backtrack);
     stampa_slot_piu_frequenti(n_backtrack);
     stampa_docenti_scartati_piu_spesso();
