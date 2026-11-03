@@ -330,6 +330,3 @@ def diagnosi(out):
         stato, cosa, n_slot, top3, nome, ', senza avanzare' if senza_progressi else ''), testo
 
 
-def spazio_libero_mb(cartella):
-    os.makedirs(cartella, exist_ok=True)
-    return shutil.disk_usage(cartella).free / 2 ** 20

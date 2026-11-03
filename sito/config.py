@@ -45,7 +45,3 @@ class Config:
             return None
         return open(self.file_password).read().strip() or None
 
-    def salva_hash_password(self, h):
-        os.makedirs(self.dati, exist_ok=True)
-        with open(os.open(self.file_password, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), 'w') as f:
-            f.write(h + '\n')

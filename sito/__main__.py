@@ -9,7 +9,6 @@ import argparse
 import getpass
 import sys
 
-from werkzeug.security import generate_password_hash
 
 from .config import Config
 

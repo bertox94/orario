@@ -79,10 +79,6 @@ def con_modifiche(dati, form):
     return {**dati, 'docenti': docenti, 'lezioni': lezioni}, errori
 
 
-def scrivi_per_solver(c, scuola_id, file):
-    with open(file, 'w') as f:
-        json.dump(per_solver(leggi(c, scuola_id)), f, ensure_ascii=False, indent=1)
-
 
 def sostituisci(c, scuola_id, dati_solver):
     """Sostituisce tutti i dati con quelli in formato solver (la sezione "dati" del JSON di --json).

@@ -51,9 +51,6 @@ def riprendi_dopo_riavvio(config):
         c.commit()
 
 
-def nome_cartella(testo):
-    return re.sub(r'[^A-Za-z0-9_-]+', '_', testo).strip('_') or 'caso'
-
 
 def nome_caso(caso):
     if caso['tipo'] == 'casuale':

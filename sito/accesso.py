@@ -97,10 +97,6 @@ def appartiene(tipo_blueprint, parametro, valore, scuola_id, endpoint=''):
     return conn().execute(q, (valore, scuola_id)).fetchone() is not None
 
 
-def prova_della_scuola(prova_id, scuola_id):
-    return prova_id is not None and conn().execute('select 1 from prove where id = %s and scuola_id = %s',
-                                                    (prova_id, scuola_id)).fetchone() is not None
-
 
 def controlla_accesso():
     if request.endpoint in PUBBLICHE:

@@ -5,12 +5,9 @@ Sezioni (blueprint): dati della scuola (pagine_dati), test in tempo reale (pagin
 (esecutore.py): il sito va avviato con un solo processo (python3 -m sito avvia).
 """
 import datetime
-import hmac
-import os
 import re
 
-from flask import Flask, abort, flash, redirect, render_template, request, session, url_for
-from werkzeug.security import check_password_hash
+from flask import Flask, redirect, render_template, session, url_for
 
 import psycopg
 
