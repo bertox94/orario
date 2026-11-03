@@ -102,7 +102,12 @@ function disegnaMappa(contenitore, dati, valore, descrizione) {
   const legenda = el('div', {class: 'legenda'}, [
     el('span', {testo: '0'}), el('span', {class: 'scala'}),
     el('span', {testo: massimo.toLocaleString('it-IT') + ' ' + descrizione + ' (scala logaritmica)'})]);
-  contenitore.replaceChildren(legenda, el('div', {class: 'scorre'}, [el('table', {class: 'orario mappa'}, [intestazione(dati), corpo])]));
+  // la mappa in tempo reale si ridisegna ogni secondo: si conserva lo scorrimento orizzontale
+  const prima = contenitore.querySelector('.scorre');
+  const sinistra = prima ? prima.scrollLeft : 0;
+  const box = el('div', {class: 'scorre'}, [el('table', {class: 'orario mappa'}, [intestazione(dati), corpo])]);
+  contenitore.replaceChildren(legenda, box);
+  box.scrollLeft = sinistra;
 }
 
 function compatto(v) {
@@ -286,3 +291,45 @@ function mostraAnalisi(pannello, dati, a, scelto, titolo, bloccato, classe, ora)
       el('th', {class: 'num', testo: 'Ore in classe'}), el('th', {testo: 'Esito'})])]), corpo]),
     el('p', {class: 'tenue piccolo', testo: [con.length > MAX ? `altri ${con.length - MAX} docenti con ore da fare in coda` : '', senza ? `${senza} docenti senza ore da fare in questa classe` : ''].filter(Boolean).join(' · ')}));
 }
+
+// Cursore sotto ogni tabella larga (contenitori .scorre): sempre visibile, fa scorrere la tabella in orizzontale e
+// resta attaccato al fondo dello schermo finche' la tabella e' visibile (anche con tabelle lunghe, come l'orario per
+// docente). Serve perche' su macOS la barra di scorrimento compare solo mentre si scorre, e con le tabelle lunghe sta
+// in fondo, lontana. Tabella e cursore stanno in un contenitore comune, cosi' il cursore resta attaccato solo alla sua.
+function aggiornaCursori() {
+  document.querySelectorAll('.scorre').forEach(box => {
+    if (box.closest('.pannello-slot')) return;
+    const eccesso = box.scrollWidth - box.clientWidth;
+    let cursore = box._cursore;
+    if (!cursore) {
+      if (eccesso <= 1) return;
+      cursore = el('input', {type: 'range', min: 0, value: 0, step: 1, class: 'cursore-tabella', 'aria-label': 'Scorri la tabella in orizzontale',
+        title: 'Scorri la tabella in orizzontale'});
+      cursore.addEventListener('input', () => { box.scrollLeft = +cursore.value; });
+      box.addEventListener('scroll', () => { cursore.value = box.scrollLeft; });
+      const insieme = el('div', {class: 'con-cursore'});
+      box.parentNode.insertBefore(insieme, box);
+      insieme.append(box, cursore);
+      box._cursore = cursore;
+    }
+    cursore.max = Math.max(0, eccesso);
+    cursore.value = box.scrollLeft;
+    cursore.style.display = eccesso > 1 ? '' : 'none';
+  });
+}
+
+// Le tabelle si disegnano e ridisegnano dopo il caricamento (orario, mappa in tempo reale, marce indietro): si
+// ricontrolla poco dopo ogni cambiamento della pagina (raggruppando quelli vicini) e a ogni ridimensionamento.
+// setTimeout e non requestAnimationFrame: quest'ultimo e' sospeso finche' la scheda non e' in primo piano.
+(() => {
+  let atteso = false;
+  const programma = () => {
+    if (atteso) return;
+    atteso = true;
+    setTimeout(() => { atteso = false; aggiornaCursori(); }, 50);
+  };
+  new MutationObserver(programma).observe(document.documentElement, {childList: true, subtree: true});
+  window.addEventListener('resize', programma);
+  document.addEventListener('DOMContentLoaded', programma);
+  programma();
+})();

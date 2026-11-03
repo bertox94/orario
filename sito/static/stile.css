@@ -123,3 +123,21 @@ td.blocco { outline: 2px solid #c0392b; outline-offset: -2px; color: #c0392b; fo
   border: 1px solid var(--bordo); border-radius: 6px; padding: 10px 12px; box-shadow: 0 4px 16px rgba(0,0,0,.25); font-size: 13px; pointer-events: none; }
 .pannello-slot tr.scelto td { font-weight: 700; }
 .pannello-slot tr.utilizzabile td { color: var(--ok); }
+
+/* Tabelle larghe: barra di scorrimento sempre visibile (su macOS altrimenti compare solo scorrendo) e, sotto, un
+   cursore che resta in fondo allo schermo finche' la tabella e' visibile (static/orario.js, aggiornaCursori). */
+.scorre { scrollbar-width: auto; scrollbar-color: var(--tenue) var(--bordo); }
+.scorre::-webkit-scrollbar { height: 12px; }
+.scorre::-webkit-scrollbar-track { background: var(--bordo); border-radius: 6px; }
+.scorre::-webkit-scrollbar-thumb { background: var(--tenue); border-radius: 6px; }
+.con-cursore { margin-bottom: 12px; }
+.cursore-tabella {
+  display: block; width: 100%; margin: 6px 0 0; padding: 6px 0;
+  position: sticky; bottom: 0; z-index: 2;
+  background: var(--sfondo); border: none; accent-color: var(--accento); cursor: ew-resize;
+}
+/* Celle fisse mentre la tabella scorre: l'angolo "Classe" sopra a tutto, poi le intestazioni, poi la colonna delle classi
+   (altrimenti scorrendo le intestazioni delle ore passano sopra l'angolo). */
+table.orario th { z-index: 1; }
+table.orario td.classe { z-index: 2; }
+table.orario th.classe { z-index: 3; }
