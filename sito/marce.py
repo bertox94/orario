@@ -47,7 +47,8 @@ def marcia(url, eid, n, nomi_classi, lettera='B'):
     ordine = []  # k-esima classe dell'ordine della ricerca -> indice nei dati del sito
     slot = []
     pos = visti = 0
-    bloccato = False  # solo passi P: il nodo e' un vicolo cieco
+    bloccato = False  # solo passi P: nessun docente utilizzabile in questo nodo (c'e' la riga B)
+    esito = None  # se bloccato: 'vuoto' (lo slot resta vuoto e la ricerca prosegue) o 'indietro' (vicolo cieco), None = non si sa
     conta = {}  # posizione -> quante volte la ricerca l'ha decisa (una per ogni riga P applicata)
     motivi = None  # con --motivi: [docente, motivo] della marcia indietro in esame (None = non registrati)
     completa = False
@@ -64,6 +65,9 @@ def marcia(url, eid, n, nomi_classi, lettera='B'):
                 continue
             if bloccato and r.startswith('M'):
                 motivi = [[int(x) for x in t.split(':')] for t in r.split()[1:] if ':' in t]
+                continue
+            if bloccato and r.startswith('P '):  # il passo dopo dice com'e' andata
+                esito = _esito_dopo_blocco(pos, r)
             break
         if r.startswith('G '):
             _, giorni, ore, classi = r.split()[:4]
@@ -111,6 +115,7 @@ def marcia(url, eid, n, nomi_classi, lettera='B'):
             passaggi[g][o][ordine[k]] = v
         m['passaggi'] = passaggi
         m['bloccato'] = bloccato
+        m['esito'] = esito
     return m
 
 
@@ -124,18 +129,39 @@ def totale(url, eid, definitivo, lettera='B'):
     return n
 
 
-_vicoli = {}  # esecuzione -> elenco dei passi che sono vicoli ciechi (solo per file finiti)
+def _esito_dopo_blocco(pos, riga_p):
+    """Il nodo pos non aveva docenti utilizzabili. Guardando il passo successivo (riga P): se e' il nodo pos + 1 con lo slot
+    pos vuoto ("-") la ricerca e' andata avanti lasciando l'ora vuota ('vuoto'); se e' un nodo con pos uguale o minore la
+    ricerca e' tornata indietro ('indietro': un vero vicolo cieco). Altrimenti None."""
+    try:
+        c = riga_p.split()
+        p, da = int(c[1]), int(c[2])
+        if p == pos + 1 and 0 <= pos - da < len(c) - 3 and c[3 + pos - da] == '-':
+            return 'vuoto'
+        if p <= pos:
+            return 'indietro'
+    except (ValueError, IndexError):
+        pass
+    return None
+
+
+_vicoli = {}  # esecuzione -> elenco dei passi senza docenti utilizzabili (solo per file finiti)
 MAX_VICOLI = 50000
 
 
 def vicoli(url, eid, definitivo):
-    """I numeri dei passi (da 1) che sono vicoli ciechi: una riga P seguita subito dalla B dello stesso nodo, cioe' nessun
-    docente utilizzabile in quello slot. Al massimo MAX_VICOLI; ritorna (elenco, troncato)."""
+    """I passi (da 1) in cui nessun docente era utilizzabile nello slot: una riga P seguita subito dalla B dello stesso
+    nodo. Ritorna ([[passo, esito]], troncato) con esito 'vuoto' (lo slot e' rimasto vuoto e la ricerca e' andata avanti),
+    'indietro' (vicolo cieco: la ricerca e' tornata indietro) o None (non si sa, per esempio e' l'ultimo passo registrato).
+    Al massimo MAX_VICOLI."""
     if eid in _vicoli:
         return _vicoli[eid]
-    n, ultimo, elenco, troncato = 0, None, [], False
+    n, ultimo, in_attesa, elenco, troncato = 0, None, None, [], False
     for r in righe(url, eid):
         if r.startswith('P '):
+            if in_attesa:  # il passo dopo un blocco: dice com'e' andata
+                elenco.append([in_attesa[0], _esito_dopo_blocco(in_attesa[1], r)])
+                in_attesa = None
             n += 1
             ultimo = r.split()[1]
             continue
@@ -143,8 +169,10 @@ def vicoli(url, eid, definitivo):
             if len(elenco) >= MAX_VICOLI:
                 troncato = True
                 break
-            elenco.append(n)
+            in_attesa = (n, int(ultimo))
         ultimo = None
+    if in_attesa:
+        elenco.append([in_attesa[0], None])
     if definitivo:
         _vicoli[eid] = (elenco, troncato)
     return elenco, troncato

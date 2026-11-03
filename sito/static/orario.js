@@ -501,7 +501,8 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
   // passando il mouse (o toccando) una cella: la coda dei docenti in quel punto e i vincoli, come nelle marce indietro
   const passaggio = codaAlPassaggio(dati, url.replace(/passi$/, 'analisi'))(
     () => ultimo && {chiave: 'passo' + n, orario: ultimo.orario, ordine: ultimo.ordine, limite: ultimo.pos,
-      testoLimite: ultimo.bloccato ? ' · qui la ricerca si è bloccata (vicolo cieco)' : ultimo.pos >= ultimo.slot ? ' · orario completo' : ' · qui la ricerca sta decidendo'});
+      testoLimite: ultimo.bloccato ? (ultimo.esito === 'vuoto' ? ' · qui nessun docente era utilizzabile: lo slot resta vuoto' : ' · qui nessun docente era utilizzabile (vicolo cieco)')
+      : ultimo.pos >= ultimo.slot ? ' · orario completo' : ' · qui la ricerca sta decidendo'});
   const di = () => totale ? ` di ${numeroIt(totale)}` : '';
   const bottone = (testo, delta) => el('button', {class: 'secondario', type: 'button', testo, onclick: () => vai(n + delta)});
   async function vai(nuovo) {
@@ -525,7 +526,9 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
     const dove = r.pos >= r.slot ? 'orario completo'
       : `la ricerca sta decidendo ${dati.giorni[r.blocco[0]]} ${dati.ore[r.blocco[1]]} ${dati.classi[r.blocco[2]].nome} (✕)`;
     stato.textContent = `Passo ${numeroIt(n)}${di()} · ${numeroIt(r.pos)} slot su ${numeroIt(r.slot)} assegnati; ${dove}`
-      + (r.bloccato ? ' · ⚠ VICOLO CIECO: nessun docente utilizzabile qui, la ricerca torna indietro' : '');
+      + (!r.bloccato ? '' : r.esito === 'vuoto' ? ' · ⚠ NESSUN DOCENTE UTILIZZABILE: lo slot resta vuoto (ora buca) e la ricerca prosegue'
+        : r.esito === 'indietro' ? ' · ⚠ VICOLO CIECO: nessun docente utilizzabile e lo slot non può restare vuoto, la ricerca torna indietro'
+        : ' · ⚠ NESSUN DOCENTE UTILIZZABILE: com\'è andata dopo non è registrato');
     stato.style.fontWeight = r.bloccato ? '600' : '';
     if (r.bloccato) {
       const per = {};
@@ -554,10 +557,10 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
     bottone('⏮', -1e12), bottone('−1000', -1000), bottone('−100', -100), bottone('−1', -1), numero,
     bottone('+1', 1), bottone('+100', 100), bottone('+1000', 1000), bottone('⏭', 1e12)]),
     el('div', {style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px'}, [
-      el('button', {class: 'secondario', type: 'button', testo: '◀ vicolo cieco precedente', onclick: () => {
-        const prima = vicoli.filter(v => v < n); if (prima.length) vai(prima[prima.length - 1]); }}),
-      el('button', {class: 'secondario', type: 'button', testo: 'vicolo cieco successivo ▶', onclick: () => {
-        const dopo = vicoli.find(v => v > n); if (dopo) vai(dopo); }}), infoVicoli]),
+      el('button', {class: 'secondario', type: 'button', testo: '◀ blocco precedente', onclick: () => {
+        const prima = vicoli.filter(v => v[0] < n); if (prima.length) vai(prima[prima.length - 1][0]); }}),
+      el('button', {class: 'secondario', type: 'button', testo: 'blocco successivo ▶', onclick: () => {
+        const dopo = vicoli.find(v => v[0] > n); if (dopo) vai(dopo[0]); }}), infoVicoli]),
     barra, stato, motivi, griglia);
   fetch(url + '?totale=1').then(r => r.json()).then(t => {
     totale = t.totale || 0;
@@ -567,9 +570,13 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
     vai(0);
     fetch(url + '?vicoli=1').then(r => r.json()).then(v => {
       vicoli = v.vicoli || []; vicoliTroncati = !!v.troncato;
+      const vuoti = vicoli.filter(v => v[1] === 'vuoto').length, indietro = vicoli.filter(v => v[1] === 'indietro').length;
+      const più = vicoliTroncati ? '+' : '';
       infoVicoli.textContent = vicoli.length
-        ? `${numeroIt(vicoli.length)}${vicoliTroncati ? '+' : ''} ` + (vicoli.length === 1 && !vicoliTroncati ? 'vicolo cieco' : 'vicoli ciechi') + ` su ${numeroIt(totale)} passi` + (vicoli.length < 30 ? ` (passi ${vicoli.join(', ')})` : '')
-        : 'Nessun vicolo cieco nei passi registrati: la ricerca è sempre andata avanti.';
+        ? `${numeroIt(vicoli.length)}${più} ${vicoli.length === 1 && !più ? 'passo' : 'passi'} senza docenti utilizzabili su ${numeroIt(totale)}: ` +
+          `${numeroIt(vuoti)} risolti lasciando lo slot vuoto, ${numeroIt(indietro)} vicoli ciechi (la ricerca è tornata indietro)` +
+          (vicoli.length < 30 ? ` · passi ${vicoli.map(v => v[0]).join(', ')}` : '')
+        : 'Nessun passo senza docenti utilizzabili tra quelli registrati: la ricerca è sempre andata avanti.';
     }).catch(() => {});
   }).catch(() => {});
 }

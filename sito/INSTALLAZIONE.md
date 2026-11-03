@@ -246,7 +246,8 @@ slot. Per ogni docente c'è l'esito di tutti i vincoli, uno per riga: libero, gi
 massimo di classi al giorno, codocente, regola del sabato (✔ rispettato, ✘ non rispettato, – non si applica). Il
 pulsante in cima nasconde o mostra queste frasi. La finestra si scorre con la rotella o con il dito; con il mouse resta
 aperta se ci porti sopra il puntatore, e si chiude con ✕ o toccando fuori. Un passo in cui non c'era nessun docente
-utilizzabile è segnalato come «vicolo cieco», con i motivi, e i pulsanti sotto la barra saltano da uno all'altro.
+utilizzabile è segnalato, con i motivi: se l'ora può restare vuota (ora buca) la ricerca prosegue con lo slot vuoto,
+altrimenti è un «vicolo cieco» e torna indietro. I pulsanti sotto la barra saltano da un blocco all'altro.
 
 ## Come si usa il test manuale (Test in tempo reale)
 
