@@ -22,7 +22,7 @@ function intestazione(dati, titolo) {
 }
 
 // Griglia dell'orario: orario[g][o][c] = [docente, codocente] (-1 = nessuno).
-function disegnaOrario(contenitore, dati, orario, blocco) {
+function disegnaOrario(contenitore, dati, orario, blocco, alPassaggio) {
   const corpo = el('tbody');
   dati.classi.forEach((cl, c) => {
     const tr = el('tr', {}, [el('td', {class: 'classe', testo: cl.nome})]);
@@ -35,6 +35,10 @@ function disegnaOrario(contenitore, dati, orario, blocco) {
         td.appendChild(el('span', {testo: dati.docenti[p].nome}));
         if (q >= 0) td.appendChild(el('span', {class: 'cod', testo: '+ ' + dati.docenti[q].nome}));
         td.title = dati.docenti[p].nome + (q >= 0 ? ' con ' + dati.docenti[q].nome : '');
+      }
+      if (alPassaggio) {
+        td.addEventListener('mouseenter', ev => alPassaggio(g, o, c, td, ev));
+        td.addEventListener('mouseleave', () => alPassaggio(null));
       }
       tr.appendChild(td);
     }));
@@ -149,7 +153,43 @@ function sfogliaMarce(contenitore, dati, url, nomiMotivi) {
   const stato = el('div', {class: 'tenue piccolo'});
   const griglia = el('div', {class: 'scorre'});
   const motivi = el('div', {});
-  let totale = null, n = 1, richiesta = 0;
+  let totale = null, n = 1, richiesta = 0, ultima = null, timer = null;
+  // Passando il mouse su una cella: la coda dei docenti in quel punto e perche' ognuno e' o non e' utilizzabile
+  // (calcolata dal solver con l'orario parziale fino a quello slot).
+  const pannello = el('div', {class: 'pannello-slot'});
+  pannello.style.display = 'none';
+  document.body.appendChild(pannello);
+  const cache = {};
+  function passaggio(g, o, c, td) {
+    clearTimeout(timer);
+    if (g == null) { pannello.style.display = 'none'; return; }
+    const r = ultima, C = dati.classi.length, O = dati.ore.length;
+    const pos = (g * O + o) * C + r.ordine.indexOf(c);
+    if (pos > r.pos) return;  // oltre il blocco la ricerca non e' arrivata
+    timer = setTimeout(async () => {
+      const chiave = `${n}:${pos}`;
+      pannello.style.display = 'block';
+      const x = td.getBoundingClientRect();
+      pannello.style.left = Math.min(x.right + 8, window.innerWidth - 520) + 'px';
+      pannello.style.top = Math.max(8, Math.min(x.top, window.innerHeight - 380)) + 'px';
+      pannello.textContent = 'Calcolo...';
+      if (!cache[chiave]) {
+        const slot = [];
+        for (let i = 0; i < pos; i++) {
+          const gg = Math.floor(i / (O * C)), oo = Math.floor(i / C) % O, cc = r.ordine[i % C];
+          const [p, q] = r.orario[gg][oo][cc];
+          slot.push(p < 0 ? '-' : q >= 0 ? `${p}+${q}` : String(p));
+        }
+        try {
+          const risp = await fetch(url.replace(/marce$/, 'analisi'), {method: 'POST', body: JSON.stringify({pos, slot}),
+            headers: {'Content-Type': 'application/json', 'X-Gettone': window.GETTONE}});
+          cache[chiave] = await risp.json();
+        } catch (e) { cache[chiave] = {errore: 'Analisi non disponibile.'}; }
+      }
+      if (pannello.style.display === 'none') return;
+      mostraAnalisi(pannello, dati, cache[chiave], r.orario[g][o][c], `${dati.giorni[g]} ${dati.ore[o]} ${dati.classi[c].nome}`, pos === r.pos);
+    }, 250);
+  }
   const bottone = (testo, delta) => el('button', {class: 'secondario', type: 'button', testo, onclick: () => vai(n + delta)});
   async function vai(nuovo) {
     n = Math.max(1, totale ? Math.min(totale, nuovo) : nuovo);
@@ -163,7 +203,8 @@ function sfogliaMarce(contenitore, dati, url, nomiMotivi) {
     const dove = `${dati.giorni[r.blocco[0]]} ${dati.ore[r.blocco[1]]} ${dati.classi[r.blocco[2]].nome}`;
     stato.textContent = `Marcia ${numeroIt(n)}` + (totale ? ` di ${numeroIt(totale)} (${(100 * n / totale).toLocaleString('it-IT', {maximumFractionDigits: 2})}%)` : '') +
       ` · nello slot ${r.pos} di ${r.slot}: nessun docente utilizzabile in ${dove} (✕)`;
-    disegnaOrario(griglia, dati, r.orario, r.blocco);
+    ultima = r;
+    disegnaOrario(griglia, dati, r.orario, r.blocco, passaggio);
     // perche' non si puo' andare avanti: ogni docente con ore da fare in quella classe e il suo ostacolo
     if (!r.motivi || !r.motivi.length) {
       motivi.replaceChildren(el('p', {class: 'tenue piccolo', testo: r.motivi ? 'Nessun docente aveva ancora ore da fare in questa classe.' : ''}));
@@ -183,4 +224,30 @@ function sfogliaMarce(contenitore, dati, url, nomiMotivi) {
     totale = t.totale; barra.max = totale; vai(n);
   });
   vai(1);
+}
+
+// Il contenuto del pannello al passaggio del mouse: scelto nello slot, coda in ordine di priorita', esito di ognuno.
+function mostraAnalisi(pannello, dati, a, scelto, titolo, bloccato) {
+  if (!a || a.errore) { pannello.textContent = (a && a.errore) || 'Analisi non disponibile.'; return; }
+  const [p, q] = scelto;
+  const nome = i => dati.docenti[i].nome;
+  const testa = el('div', {}, [el('strong', {testo: titolo}),
+    el('span', {class: 'tenue', testo: bloccato ? ' · qui la ricerca si è bloccata'
+      : p < 0 ? ' · slot lasciato vuoto' : ` · scelto: ${nome(p)}${q >= 0 ? ' + ' + nome(q) : ''}`})]);
+  const con = a.coda.filter(c => c.ore_classe > 0), senza = a.coda.length - con.length;
+  const corpo = el('tbody');
+  const MAX = 14;
+  con.slice(0, MAX).forEach(c => {
+    const e = c.docente === p || c.docente === q;
+    const esito = e ? 'scelto' : c.motivo < 0 ? 'utilizzabile (non scelto in questo ramo)' : a.motivi[c.motivo];
+    corpo.appendChild(el('tr', {class: e ? 'scelto' : c.motivo < 0 ? 'utilizzabile' : ''}, [
+      el('td', {testo: nome(c.docente)}), el('td', {class: 'num', testo: c.priorita}), el('td', {class: 'num', testo: c.ore_classe}),
+      el('td', {testo: esito})]));
+  });
+  pannello.replaceChildren(testa,
+    a.lezione_ammessa ? el('span') : el('div', {class: 'tenue piccolo', testo: 'In questo slot la classe non può più fare lezione: può solo restare vuoto.'}),
+    el('p', {class: 'tenue piccolo', testo: 'Coda dei docenti per priorità (ore ancora da sistemare); a parità di priorità l\'ordine dipende dalla ricerca.'}),
+    el('table', {class: 'dati'}, [el('thead', {}, [el('tr', {}, [el('th', {testo: 'Docente'}), el('th', {class: 'num', testo: 'Priorità'}),
+      el('th', {class: 'num', testo: 'Ore in classe'}), el('th', {testo: 'Esito'})])]), corpo]),
+    el('p', {class: 'tenue piccolo', testo: [con.length > MAX ? `altri ${con.length - MAX} docenti con ore da fare in coda` : '', senza ? `${senza} docenti senza ore da fare in questa classe` : ''].filter(Boolean).join(' · ')}));
 }

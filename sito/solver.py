@@ -246,6 +246,26 @@ def esegui(exe, caso, opzioni, cartella, su_progresso=None):
     return e.attendi()
 
 
+def analizza_slot(exe, caso, opzioni, cartella, pos, slot):
+    """La coda dei docenti dello slot pos (indice nella ricerca) e perche' ognuno e' o non e' utilizzabile, dati i primi
+    pos slot dell'orario parziale (slot: elenco di "i", "i+j" o "-"). Il caso e le opzioni sono quelli
+    dell'esecuzione (dati e ordine delle classi); ritorna il dizionario del solver o None."""
+    base = {k: opzioni[k] for k in ('ordine_classi', 'ore_obbligatorie', 'ore_prof_classe', 'classi_giorno')
+            if opzioni.get(k) is not None}
+    os.makedirs(cartella, exist_ok=True)
+    with open(os.path.join(cartella, 'analisi.txt'), 'w') as f:
+        f.write('%d\n%s\n' % (pos, ' '.join(slot[:pos])))
+    args = argomenti(caso, {**base, 'orari': 1, 'motivi': False}) + ['--analizza-slot', 'analisi.txt']
+    try:
+        p = subprocess.run([exe] + args, cwd=cartella, capture_output=True, text=True, timeout=30)
+    except subprocess.TimeoutExpired:
+        return None
+    for riga in p.stdout.splitlines():
+        if riga.startswith('ANALISI '):
+            return json.loads(riga[8:])
+    return None
+
+
 # ---- com'e' andata ----
 
 def interpreta(out, codice, risultato_json=None):

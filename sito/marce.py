@@ -83,7 +83,7 @@ def marcia(url, eid, n, nomi_classi):
         griglia[g][o][ordine[k]] = [int(a), int(b) if b else -1]
     g, resto = divmod(pos, ore * classi) if pos < giorni * ore * classi else (giorni - 1, ore * classi - 1)
     o, k = divmod(resto, classi)
-    return {'n': visti, 'pos': pos, 'slot': giorni * ore * classi, 'blocco': [g, o, ordine[k]], 'orario': griglia, 'motivi': motivi}
+    return {'n': visti, 'pos': pos, 'slot': giorni * ore * classi, 'blocco': [g, o, ordine[k]], 'orario': griglia, 'motivi': motivi, 'ordine': ordine}
 
 
 def totale(url, eid, definitivo):
