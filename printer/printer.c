@@ -204,6 +204,8 @@ void stampa_intestazione_marce_compatte(FILE *f) {
     fprintf(f, "# Marce indietro in formato compatto (vedi printer.h)\n");
     fprintf(f, "# Riga \"B pos da s_da ... s_(pos-1)\": marcia indietro nello slot pos; gli slot da `da` a pos-1 come "
                "scritto, quelli prima come nella riga B precedente. Slot: \"i\" docente, \"i+j\" coppia, \"-\" vuoto.\n");
+    fprintf(f, "# Con --motivi, dopo ogni riga B c'e' una riga \"M d:m ...\": il motivo m per cui il docente d (con ore da fare nella "
+               "classe) non si e' potuto mettere nello slot (i nomi dei motivi sono in \"nomi_motivi\" del JSON).\n");
     fprintf(f, "# Gli orari completi sono scritti per intero, come senza -b.\n");
     fprintf(f, "G %d %d %d\n", actual_giorni_settimana, actual_ore_giornaliere, actual_classi_sezione);
     // ordine delle classi dentro ogni ora (lo stesso per tutte le ore)
