@@ -124,6 +124,12 @@ def registra_filtri(app):
             parti.append('motivi degli scarti')
         if o.get('ordine_classi') is not None:
             parti.append('ordine delle classi %s' % o['ordine_classi'])
+        if o.get('ore_obbligatorie') not in (None, 5):
+            parti.append('%s ore obbligatorie al giorno' % o['ore_obbligatorie'])
+        if o.get('ore_prof_classe') not in (None, 3):
+            parti.append('docente al massimo %s ore al giorno in una classe' % o['ore_prof_classe'])
+        if o.get('classi_giorno') not in (None, 3):
+            parti.append('docente al massimo %s classi al giorno' % o['classi_giorno'])
         if o.get('solo_verifica'):
             parti.append('solo verifica')
         return ' · '.join(parti)

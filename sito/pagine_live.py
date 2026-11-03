@@ -58,6 +58,11 @@ def avvia():
     opzioni = {'tempo': _intero('tempo', 60, 0, 24 * 3600), 'orari': _intero('orari', 1, 1, 1000),
                'motivi': bool(f.get('motivi')), 'backtrack': bool(f.get('backtrack')),
                'max_mb': _intero('max_mb', 200, 1, 100000)}
+    # parametri della ricerca: nel JSON delle opzioni solo se diversi dai predefiniti (5, 3, 3)
+    for chiave, predefinito, massimo in (('ore_obbligatorie', 5, 6), ('ore_prof_classe', 3, 6), ('classi_giorno', 3, 20)):
+        v = _intero(chiave, predefinito, 1, massimo)
+        if v != predefinito:
+            opzioni[chiave] = v
     if f.get('ordine_classi', '').strip().isdigit():
         opzioni['ordine_classi'] = _intero('ordine_classi', 0, 0)
     if opzioni['tempo'] == 0:

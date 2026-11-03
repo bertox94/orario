@@ -32,7 +32,7 @@
     <input type="hidden" name="sorgente" value="file">
     <input type="hidden" name="file" value="{{ e.cartella }}/risultato.json">
     <input type="hidden" name="nome" value="{{ e.caso }} (riletto)">
-    {% for k, v in (e.opzioni or {}).items() if k in ('tempo', 'orari', 'max_mb', 'ordine_classi') and v is not none %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+    {% for k, v in (e.opzioni or {}).items() if k in ('tempo', 'orari', 'max_mb', 'ordine_classi', 'ore_obbligatorie', 'ore_prof_classe', 'classi_giorno') and v is not none %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
     {% if (e.opzioni or {}).get('motivi', True) %}<input type="hidden" name="motivi" value="1">{% endif %}
     <button class="secondario" title="Stessi dati e stesso ordine della coda: rifa' esattamente la stessa ricerca">Rifai identico dal JSON</button>
   </form>
@@ -42,6 +42,9 @@
 {% if r.get('orario') %}
 <h2>Orario trovato</h2>
 <div id="orario" class="scorre"></div>
+<h2>Orario per docente</h2>
+<p class="tenue piccolo">Una riga per ogni docente: dove insegna in ogni ora (con il codocente, se c'è).</p>
+<div id="orario-docenti" class="scorre"></div>
 {% endif %}
 
 {% if r.get('diagnosi') %}
@@ -80,7 +83,10 @@
 {% if r.get('dati') %}
 <script>
 const risultato = {{ {'dati': r.dati, 'orario': r.get('orario'), 'diagnosi': r.get('diagnosi')}|tojson }};
-if (risultato.orario) disegnaOrario(document.getElementById('orario'), risultato.dati, risultato.orario);
+if (risultato.orario) {
+  disegnaOrario(document.getElementById('orario'), risultato.dati, risultato.orario);
+  disegnaOrarioDocenti(document.getElementById('orario-docenti'), risultato.dati, risultato.orario);
+}
 if (risultato.diagnosi) disegnaMappa(document.getElementById('mappa'), risultato.dati, blocchiDaRisultato(risultato.diagnosi), 'marce indietro + rami scartati');
 </script>
 {% endif %}

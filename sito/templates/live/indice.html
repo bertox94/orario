@@ -33,6 +33,12 @@
     <label class="spunta"><input type="checkbox" name="backtrack" value="1" {{ 'checked' if o.get('backtrack') }}> Registra le marce indietro (-b)</label>
     <label>Spazio massimo per le marce (MB) <input type="number" name="max_mb" min="1" value="{{ o.get('max_mb', 200) }}"></label>
   </div>
+  <h2>Parametri della ricerca</h2>
+  <div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
+    <label>Ore obbligatorie ogni giorno <input type="number" name="ore_obbligatorie" min="1" max="6" value="{{ o.get('ore_obbligatorie', 5) }}"></label>
+    <label>Ore di un docente nella stessa classe al giorno (max) <input type="number" name="ore_prof_classe" min="1" max="6" value="{{ o.get('ore_prof_classe', 3) }}"></label>
+    <label>Classi diverse per docente al giorno (max) <input type="number" name="classi_giorno" min="1" max="20" value="{{ o.get('classi_giorno', 3) }}"></label>
+  </div>
   <p><button>Avvia</button></p>
 </form>
 
