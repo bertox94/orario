@@ -118,7 +118,6 @@ Creare `/etc/orario-sito.env` (indirizzo del Mac e password della sezione sopra)
 ```
 DATABASE_URL=postgresql://orario:PASSWORD_DEL_DATABASE@nome-del-mac.local:5432/orario
 SITO_PARALLELI=3
-SITO_SPAZIO_MB=20480
 ```
 
 Se la password contiene caratteri speciali (`@ : / # ? %`) vanno scritti in forma `%40`, `%3A`… nell'indirizzo; più semplice
@@ -131,7 +130,6 @@ sudo chmod 600 /etc/orario-sito.env
 - `SITO_LAVORO` (facoltativa): cartella temporanea per il solver compilato e per i file di una prova mentre gira.
   Default `/dev/shm/orario-sito`, cioè in RAM: sulla SD non si scrive nulla. Si svuota da sola a ogni riavvio.
 - `SITO_PARALLELI`: casi in parallelo nei test notturni (il Pi 5 ha 4 processori: 3 lascia libero il sito).
-- `SITO_SPAZIO_MB`: spazio massimo, **nel database sul Mac**, per le marce indietro di una prova notturna.
 
 ### 5. Primo utente
 
@@ -142,12 +140,11 @@ cd ~/orario && ~/orario-venv/bin/python -m sito crea-utente admin --admin
 Chiede una password (almeno 8 caratteri). Entrando come `admin` si creano da «amministrazione» le scuole e gli altri
 utenti: ogni docente ha il suo nome e la sua password e vede solo le scuole che gli abbini; un amministratore le vede
 tutte. Chi ha una sola scuola va dritto ai suoi dati, gli altri la scelgono dopo l'accesso. Dati, prove e versioni
-salvate sono separati per scuola. Con il sito già in uso con la vecchia password unica, al primo avvio quella password
-diventa l'utente `admin` e i dati finiscono nella «Scuola» 1.
+salvate sono separati per scuola.
 
 ### 5b. Niente scritture sulla SD
 
-Il sito non scrive file sul Pi: la chiave dei cookie, i dati, le prove, le marce indietro compresse e le uscite del
+Il sito non scrive file sul Pi: la chiave dei cookie, i dati, le prove, la ricerca passo passo compressa e le uscite del
 solver vanno in Postgres; il solver lavora in RAM (`/dev/shm`). Per ridurre al minimo anche i log di sistema:
 
 ```bash
@@ -186,12 +183,12 @@ Una prova in corso al momento del riavvio risulta "interrotta".
 ## Note
 
 - I test in tempo reale e quelli notturni possono girare insieme, ma si contendono i processori.
-- Con `-b` il solver scrive le marce indietro in formato compatto e compresso (`orario.txt.gz`, circa 4 byte per marcia)
-  e si ferma da solo quando supera lo spazio assegnato (`--max-mb`), scrivendo comunque diagnosi e risultati.
+- La ricerca passo passo (`-b --passi N`) finisce in `orario.txt.gz`, compresso: pochi byte per passo, e la registrazione
+  si ferma da sola dopo N passi, quindi un file pesa al massimo qualche MB anche se la ricerca va avanti per ore.
 - "Rifai identico dal JSON" rilancia un caso con esattamente gli stessi dati e lo stesso ordine della coda dei docenti:
   la ricerca è identica.
-- Le prove vecchie si cancellano dalla loro pagina (con i loro file nel database). Le marce indietro (`-b`) occupano
-  spazio sul Mac: si cancellano le prove che non servono più.
+- Le prove vecchie si cancellano dalla loro pagina (con i loro file nel database), così il database sul Mac non cresce
+  inutilmente.
 - Il database cresce con le prove: controllare ogni tanto lo spazio del Mac (la pagina «Test notturni» mostra la
   dimensione del database).
 
@@ -233,6 +230,31 @@ al posto di `/dev/shm` (che sul Mac non c'è; nessun problema con un SSD). Per f
 launchd al posto di systemd, e va impedito lo stop del Mac (Impostazioni → Batteria/Energia, oppure `caffeinate -s`),
 altrimenti sito e prove notturne si fermano.
 
+## La ricerca passo passo
+
+Nel test in tempo reale, spuntando «Registra la ricerca passo passo» il solver scrive l'orario parziale a ogni passo
+della computazione, fino al numero di passi scelto nel campo accanto (predefinito 100.000; oltre, la ricerca continua
+senza registrare). Lo stesso fa la fase 3 dei test notturni per i casi non finiti. Nella pagina del caso compare la sezione
+«La ricerca passo passo»: uno slider dal passo 0 (orario vuoto) all'ultimo passo registrato, con i pulsanti ±1, ±100 e
+±1000. Lo slot ✕ è quello che la ricerca sta per decidere.
+
+Il pulsante «▶ Avvia l'animazione» fa scorrere i passi in modo fluido, dal passo in cui sei (o dall'inizio, se sei in
+fondo); il cursore «Velocità» la regola da 1 a 2.500 passi al secondo, anche mentre gira. «⏸ Pausa» (o qualunque comando
+a mano) la ferma e mostra lo stato esatto di quel passo. I passi si scaricano a blocchi di sole differenze, quindi anche
+l'animazione veloce non pesa sul Raspberry.
+
+Passando il mouse su una cella (o toccandola, su iPad e telefono) si apre la finestra con la coda dei docenti di quello
+slot. Per ogni docente c'è l'esito di tutti i vincoli, uno per riga: libero, già entrato, massimo di ore, ore attaccate,
+massimo di classi al giorno, codocente, regola del sabato (✔ rispettato, ✘ non rispettato, – non si applica). Il
+pulsante in cima nasconde o mostra queste frasi. La finestra si scorre con la rotella o con il dito; con il mouse resta
+aperta se ci porti sopra il puntatore, e si chiude con ✕ o toccando fuori. Un passo in cui non c'era nessun docente
+utilizzabile è segnalato, con i motivi. I «blocchi» sono solo le vere marce indietro: i vicoli ciechi e i rami scartati
+dalla potatura; l'ora buca, in cui la ricerca prosegue con lo slot vuoto, si vede nella riga di stato ma non è un blocco.
+I pulsanti sotto la barra saltano da un blocco all'altro e durante l'animazione la pagina scorre per tenere in vista la
+cella che si sta decidendo. Nel passo di un ramo scartato la finestra mostra le verifiche di potatura, una riga ciascuna
+(lezioni della classe, ore dei docenti), con il dettaglio di quella fallita: la causa è la scelta fatta nello slot prima,
+evidenziato nell'orario, non i docenti dello slot in esame, la cui coda non è mai stata provata.
+
 ## Come si usa il test manuale (Test in tempo reale)
 
 1. **Dati della scuola**: inserire calendario, classi, docenti (con l'ora di ingresso) e lezioni (ore, codocente, ore in
@@ -245,24 +267,16 @@ altrimenti sito e prove notturne si fermano.
      ore delle obbligatorie o più degli slot, o se un docente ha più ore di quante ne può fare dalla sua ora di ingresso.
      I dati veri non cambiano; la prova conserva la propria copia e la si può rifare identica;
    - *Dati casuali*: seme, numero di classi, docenti in ritardo.
-3. **Ricerca**: tempo massimo, quanti orari trovare, ordine delle classi, motivi degli scarti, marce indietro (`-b`, con
-   lo spazio massimo in MB, che finisce nel database).
-4. **Parametri della ricerca**: ore obbligatorie al giorno (5), ore massime di un docente nella stessa classe al giorno (3),
-   classi diverse per docente al giorno (3).
-5. **Avvia**: la pagina mostra progresso e mappa dei blocchi; alla fine si apre il caso con esito, diagnosi, orario
-   (anche per docente) e file da scaricare (dati, uscita, orari, marce indietro `.gz`, JSON). «Rifai identico» ripete
+3. **Ricerca**: tempo massimo, quanti orari trovare, registrazione passo passo (con il numero di passi). Sotto «Parametri
+   avanzati»: ore obbligatorie al giorno (5), ore massime di un docente nella stessa classe al giorno (3), classi diverse
+   per docente al giorno (3) e l'ordine delle classi (un seed). I motivi di scarto dei docenti si registrano sempre.
+4. **Avvia**: la pagina mostra progresso e mappa dei blocchi; alla fine si apre il caso con esito, diagnosi, orario
+   (anche per docente) e file da scaricare (dati, uscita, orari, ricerca passo passo `.gz`, JSON). «Rifai identico» ripete
    esattamente la stessa ricerca; «Rilancia in tempo reale» riporta le opzioni nel modulo.
-6. **Capire dove si blocca**: nella pagina di un caso, «Slot con più marce indietro» mostra, per ogni slot, quante marce
-   indietro e che percentuale del totale. Se la prova ha usato `-b` (fase 3 dei notturni, o la casella nel test in tempo
-   reale) c'è anche «Orario a ogni marcia indietro»: si sfogliano le marce una per una (barra, ±1, ±100, ±1000, prima e
-   ultima) e per ognuna si vede l'orario parziale in quel momento, lo slot bloccato (✕), il punto della sequenza in percentuale e, con i motivi attivi (casella «Motivi degli scarti»), per ogni docente con ore da fare in quella classe il problema per cui non si può andare avanti.
-   **Passando il mouse su una cella** dell'orario a ogni marcia indietro compare la coda dei docenti in quel punto
-   (ordinata per priorità, cioè ore ancora da sistemare nella settimana): chi è stato scelto, chi era utilizzabile e non
-   scelto in quel ramo, e per gli altri il vincolo che li escludeva (occupato altrove, ore non contigue, ingresso, massimi
-   giornalieri, codocenza, sabato). Lo calcola il solver (`--analizza-slot`) con lo stesso caso e le stesse opzioni.
-   Le celle dopo lo slot bloccato non hanno analisi: la ricerca non c'è arrivata.
-7. **Casi dei test notturni da verificare**: in «Test in tempo reale» sotto il modulo c'è l'elenco degli ultimi casi non
+5. **Capire dove si blocca**: nella pagina di un caso usa «La ricerca passo passo» (vedi sopra): lo slider, l'animazione, i
+   blocchi e la finestra con la coda dei docenti e i vincoli.
+6. **Casi dei test notturni da verificare**: in «Test in tempo reale» sotto il modulo c'è l'elenco degli ultimi casi non
    risolti dei notturni; «Verifica» li carica nel modulo (stessi dati e opzioni, anche per i dati della scuola) per rifarli
    a mano con altri parametri, tempo o ordine delle classi. Lo stesso pulsante «Verifica a mano» c'è nella pagina di ogni prova notturna.
-8. **Test notturni**: batterie di casi (casuali e/o dati della scuola) in tre fasi, subito, a un'ora o ogni settimana;
+7. **Test notturni**: batterie di casi (casuali e/o dati della scuola) in tre fasi, subito, a un'ora o ogni settimana;
    si confrontano due prove tra loro.

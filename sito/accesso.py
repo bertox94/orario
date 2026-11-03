@@ -53,19 +53,6 @@ def crea_o_aggiorna_utente(c, nome, password, amministratore=None):
                      (nome, h, bool(amministratore))).fetchone()['id']
 
 
-def importa_password_vecchia(c, config):
-    """Il sito aveva una password sola (file `password`): al primo avvio con utenti vuoti diventa l'utente "admin"."""
-    if c.execute('select 1 from utenti limit 1').fetchone():
-        return False
-    h = config.hash_password()
-    if not h:
-        return False
-    uid = c.execute("insert into utenti (nome, password_hash, amministratore) values ('admin', %s, true) returning id",
-                    (h,)).fetchone()['id']
-    c.execute('insert into utenti_scuole (utente_id, scuola_id) select %s, id from scuole', (uid,))
-    return True
-
-
 def scuole_dell_utente(c, utente):
     if utente['amministratore']:
         return c.execute('select id, nome from scuole order by nome').fetchall()

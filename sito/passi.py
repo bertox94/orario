@@ -1,0 +1,295 @@
+"""La ricerca passo passo (-b --passi) registrata in orario.txt.gz nel database, letta a richiesta.
+
+Il formato e' descritto in printer/printer.h: una riga "P pos da s_da ... s_(pos-1)" per ogni nodo della ricerca (l'orario
+parziale come differenze rispetto alla riga prima), "S m" dopo la P di un nodo scartato dalla potatura, "B pos da ..."
+(stessa catena di differenze) per ogni marcia indietro e "M d:m ..." con i motivi di scarto dei docenti. Qui si
+ricostruisce l'orario parziale di un passo scorrendo il file dal principio (decompresso a pezzi, senza tenerlo in
+memoria): le righe B e P condividono la catena, quindi si applicano entrambe."""
+import zlib
+
+from . import archivio
+
+# oltre questa quantita' di testo decompresso la pagina rinuncia (il file si puo' comunque scaricare)
+MAX_BYTE = 400 * 2 ** 20
+_totali = {}  # esecuzione -> numero di passi registrati (solo per file finiti)
+
+
+class FileTroppoGrande(Exception):
+    pass
+
+
+def righe(url, eid):
+    """Le righe di testo del file, decompresse a pezzi."""
+    d = zlib.decompressobj(16 + zlib.MAX_WBITS)
+    resto, letti = b'', 0
+    for pezzo in archivio.pezzi(url, eid, 'orario.txt.gz'):
+        while pezzo:
+            dati = d.decompress(pezzo, 1 << 20)
+            pezzo = d.unconsumed_tail
+            letti += len(dati)
+            if letti > MAX_BYTE:
+                raise FileTroppoGrande()
+            resto += dati
+            *complete, resto = resto.split(b'\n')
+            for r in complete:
+                yield r.decode('ascii', 'replace')
+    if resto:
+        yield resto.decode('ascii', 'replace')
+
+
+def passo(url, eid, n, nomi_classi):
+    """L'n-esimo passo della ricerca (da 1; n oltre la fine = l'ultimo). Ritorna un dizionario con:
+        n, pos (slot decisi: la ricerca sta per decidere lo slot pos), blocco [g, o, c] di quello slot, ordine (k-esima
+        classe della ricerca -> indice nei dati), orario [g][o][c] = [docente, codocente] con -1 negli slot non assegnati,
+        passaggi [g][o][c] = quante volte la ricerca ha deciso quella posizione fino a questo passo,
+        bloccato (nessun docente utilizzabile in questo nodo) con esito 'vuoto' / 'indietro' / None e motivi
+        [[docente, motivo]] (con --motivi), scarto (nodo scartato dalla potatura: 0 lezioni della classe, 1 ore dei
+        docenti, -1 motivo non registrato) oppure None."""
+    giorni = ore = classi = 0
+    ordine = []  # k-esima classe dell'ordine della ricerca -> indice nei dati del sito
+    slot = []
+    pos = visti = 0
+    bloccato = False  # nessun docente utilizzabile in questo nodo (c'e' la riga B)
+    scarto = None  # il nodo e' un ramo scartato dalla potatura (c'e' la riga S): 0 lezioni della classe, 1 ore dei docenti
+    esito = None  # se bloccato: 'vuoto' (lo slot resta vuoto e la ricerca prosegue) o 'indietro' (vicolo cieco), None = non si sa
+    conta = {}  # posizione -> quante volte la ricerca l'ha decisa (una per ogni riga P applicata)
+    motivi = None  # con --motivi: [docente, motivo] della marcia indietro di questo nodo (None = non registrati)
+    completa = False
+    for r in righe(url, eid):
+        if completa:
+            # se subito dopo c'e' la riga B dello stesso nodo, il passo e' senza docenti utilizzabili e dopo la B ci
+            # sono i motivi (riga M); se c'e' la riga S il nodo e' stato scartato dalla potatura
+            if not bloccato and r.startswith('B ') and r.split()[1] == str(pos):
+                bloccato = True
+                continue
+            if bloccato and r.startswith('M'):
+                motivi = [[int(x) for x in t.split(':')] for t in r.split()[1:] if ':' in t]
+                continue
+            if bloccato and r.startswith('P '):  # il passo dopo dice com'e' andata
+                esito = _esito_dopo_blocco(pos, r)
+            elif not bloccato and r.startswith('S '):  # ramo scartato dalla potatura: la ricerca e' tornata indietro subito
+                try:
+                    scarto = int(r.split()[1])
+                except (ValueError, IndexError):
+                    scarto = -1
+            elif not bloccato and r.startswith('P ') and pos < giorni * ore * classi:
+                # senza riga S (prova fatta con un solver piu' vecchio): un nodo che non ha ne' figli ne' riga B e' stato
+                # scartato dalla potatura (il motivo non c'e')
+                try:
+                    if int(r.split()[1]) <= pos:
+                        scarto = -1
+                except (ValueError, IndexError):
+                    pass
+            break
+        if r.startswith('G '):
+            _, giorni, ore, classi = r.split()[:4]
+            giorni, ore, classi = int(giorni), int(ore), int(classi)
+        elif r.startswith('K '):
+            ordine = [nomi_classi.index(x) if x in nomi_classi else k for k, x in enumerate(r.split()[1:])]
+        elif r.startswith('B ') or r.startswith('P '):  # entrambe fanno parte della catena di differenze
+            try:
+                campi = r.split()
+                p, da = int(campi[1]), int(campi[2])
+                nuovi = campi[3:]
+                if len(nuovi) != p - da:
+                    continue
+            except (ValueError, IndexError):
+                continue
+            del slot[da:]
+            slot += ['-'] * (da - len(slot))
+            slot += nuovi
+            if r[0] != 'P':
+                continue
+            if p > 0:  # a ogni passo la ricerca decide lo slot p - 1
+                conta[p - 1] = conta.get(p - 1, 0) + 1
+            pos = p
+            visti += 1
+            if visti == n:
+                completa = True
+    if not visti or not classi:
+        return None
+    griglia = [[[[-1, -1] for _ in range(classi)] for _ in range(ore)] for _ in range(giorni)]
+    for i, s in enumerate(slot[:pos]):
+        if s == '-':
+            continue
+        g, resto = divmod(i, ore * classi)
+        o, k = divmod(resto, classi)
+        a, _, b = s.partition('+')
+        griglia[g][o][ordine[k]] = [int(a), int(b) if b else -1]
+    g, resto = divmod(pos, ore * classi) if pos < giorni * ore * classi else (giorni - 1, ore * classi - 1)
+    o, k = divmod(resto, classi)
+    passaggi = [[[0] * classi for _ in range(ore)] for _ in range(giorni)]
+    for i, v in conta.items():
+        g, resto = divmod(i, ore * classi)
+        o, k = divmod(resto, classi)
+        passaggi[g][o][ordine[k]] = v
+    return {'n': visti, 'pos': pos, 'slot': giorni * ore * classi, 'blocco': [g, o, ordine[k]], 'orario': griglia,
+            'ordine': ordine, 'passaggi': passaggi, 'bloccato': bloccato, 'esito': esito, 'motivi': motivi, 'scarto': scarto}
+
+
+def totale(url, eid, definitivo):
+    """Quanti passi sono registrati (contati una volta sola per i file finiti)."""
+    if eid in _totali:
+        return _totali[eid]
+    n = sum(1 for r in righe(url, eid) if r.startswith('P '))
+    if definitivo:
+        _totali[eid] = n
+    return n
+
+
+def _esito_dopo_blocco(pos, riga_p):
+    """Il nodo pos non aveva docenti utilizzabili. Guardando il passo successivo (riga P): se e' il nodo pos + 1 con lo slot
+    pos vuoto ("-") la ricerca e' andata avanti lasciando l'ora vuota ('vuoto'); se e' un nodo con pos uguale o minore la
+    ricerca e' tornata indietro ('indietro': un vero vicolo cieco). Altrimenti None."""
+    try:
+        c = riga_p.split()
+        p, da = int(c[1]), int(c[2])
+        if p == pos + 1 and 0 <= pos - da < len(c) - 3 and c[3 + pos - da] == '-':
+            return 'vuoto'
+        if p <= pos:
+            return 'indietro'
+    except (ValueError, IndexError):
+        pass
+    return None
+
+
+MAX_BLOCCO = 2000
+
+
+def blocco_passi(url, eid, da, k, nomi_classi):
+    """Per l'animazione: i passi da `da` (da 1) a da + k - 1 come sole differenze, cosi' il browser li applica uno dopo
+    l'altro senza una richiesta per passo. Ritorna:
+        ordine   k-esima classe dell'ordine della ricerca -> indice nei dati del sito
+        iniziale {slot: i primi slot decisi prima del passo `da` ("i", "i+j" o "-"), conta: [[posizione, volte]]}
+        passi    [[pos, da, [slot], codice]] come le righe P (pos slot decisi; gli slot dal `da`-esimo in poi come scritto,
+                 gli altri come nel passo prima); codice 0 normale, 1 nessun docente utilizzabile e slot lasciato vuoto,
+                 2 nessun docente utilizzabile e ricerca tornata indietro (vicolo cieco), 3 nessun docente utilizzabile,
+                 esito non registrato, 4 e 5 ramo scartato dalla potatura (4 + il motivo: 0 lezioni della classe, 1 ore
+                 dei docenti), 6 ramo scartato di cui non si sa il motivo (file senza le righe S): la ricerca e' tornata
+                 indietro subito
+        finito   True se dopo questi non ce ne sono altri."""
+    da, k = max(1, da), max(1, min(k, MAX_BLOCCO))
+    ordine, slot, conta = [], [], {}
+    n, iniziale, passi, pendente, dopo_p, finito = 0, None, [], None, False, True
+    totale_slot = 0
+    for r in righe(url, eid):
+        if r.startswith('G '):
+            try:
+                g, o, c = (int(x) for x in r.split()[1:4])
+                totale_slot = g * o * c
+            except ValueError:
+                pass
+            continue
+        if r.startswith('K '):
+            ordine = [nomi_classi.index(x) if x in nomi_classi else i for i, x in enumerate(r.split()[1:])]
+            dopo_p = False
+            continue
+        if r.startswith('S '):  # ramo scartato: il passo appena letto
+            if dopo_p and passi and n >= da:
+                try:
+                    passi[-1][3] = 4 + int(r.split()[1])
+                except (ValueError, IndexError):
+                    pass
+            dopo_p = False
+            continue
+        if not (r.startswith('P ') or r.startswith('B ')):
+            dopo_p = False
+            continue
+        try:
+            campi = r.split()
+            p, d = int(campi[1]), int(campi[2])
+            nuovi = campi[3:]
+            if len(nuovi) != p - d:
+                continue
+        except (ValueError, IndexError):
+            continue
+        if r[0] == 'P':
+            if pendente is not None:  # il passo dopo un blocco dice com'e' andata
+                e = _esito_dopo_blocco(passi[pendente][0], r)
+                passi[pendente][3] = 1 if e == 'vuoto' else 2 if e == 'indietro' else 3
+                pendente = None
+            if dopo_p and passi and n >= da and p <= passi[-1][0] < totale_slot:
+                passi[-1][3] = 6  # senza riga S (solver piu' vecchio): nodo senza figli ne' riga B = ramo scartato, motivo ignoto
+            if len(passi) >= k:
+                finito = False
+                break
+            if n + 1 == da:
+                iniziale = {'slot': list(slot), 'conta': [[i, v] for i, v in conta.items()]}
+            n += 1
+            conta[p - 1] = conta.get(p - 1, 0) + 1
+            if n >= da:
+                passi.append([p, d, nuovi, 0])
+            dopo_p = True
+        else:  # B: lo stesso nodo del passo appena letto (nessun docente utilizzabile)
+            if dopo_p and passi and n >= da and p == passi[-1][0]:
+                passi[-1][3] = 3
+                pendente = len(passi) - 1
+            dopo_p = False
+        del slot[d:]
+        slot += ['-'] * (d - len(slot))
+        slot += nuovi
+    if iniziale is None:
+        iniziale = {'slot': list(slot), 'conta': [[i, v] for i, v in conta.items()]}
+    return {'da': da, 'ordine': ordine, 'iniziale': iniziale, 'passi': passi, 'finito': finito}
+
+
+_vicoli = {}  # esecuzione -> elenco dei passi senza docenti utilizzabili (solo per file finiti)
+MAX_VICOLI = 50000
+
+
+def vicoli(url, eid, definitivo):
+    """I passi (da 1) che sono blocchi della ricerca. Ritorna ([[passo, tipo, motivo]], troncato) con tipo:
+        'indietro'  nessun docente utilizzabile e la ricerca e' tornata indietro (vicolo cieco)
+        'scarto'    ramo scartato dalla potatura (motivo 0 lezioni della classe, 1 ore dei docenti): ritorno indietro subito
+        'vuoto'     nessun docente utilizzabile ma l'ora e' rimasta vuota (ora buca) e la ricerca e' andata avanti: non e'
+                    un ritorno indietro, si segnala ma non si conta come blocco
+        None        nessun docente utilizzabile, esito non registrato (per esempio e' l'ultimo passo registrato)
+    Al massimo MAX_VICOLI."""
+    if eid in _vicoli:
+        return _vicoli[eid]
+    n, ultimo, in_attesa, elenco, troncato, totale_slot = 0, None, None, [], False, 0
+    for r in righe(url, eid):
+        if r.startswith('G '):
+            try:
+                g, o, c = (int(x) for x in r.split()[1:4])
+                totale_slot = g * o * c
+            except ValueError:
+                pass
+            continue
+        if r.startswith('P '):
+            try:
+                pos_qui = int(r.split()[1])
+            except (ValueError, IndexError):
+                pos_qui = None
+            if ultimo is not None and pos_qui is not None and pos_qui <= int(ultimo) < totale_slot:
+                # senza riga S (solver piu' vecchio): il passo di prima non ha figli ne' riga B = ramo scartato, motivo ignoto
+                if len(elenco) < MAX_VICOLI:
+                    elenco.append([n, 'scarto', -1])
+                else:
+                    troncato = True
+                    break
+            if in_attesa:  # il passo dopo un blocco: dice com'e' andata
+                elenco.append([in_attesa[0], _esito_dopo_blocco(in_attesa[1], r), None])
+                in_attesa = None
+            n += 1
+            ultimo = r.split()[1]
+            continue
+        if r.startswith('S ') and ultimo is not None:
+            if len(elenco) >= MAX_VICOLI:
+                troncato = True
+                break
+            try:
+                elenco.append([n, 'scarto', int(r.split()[1])])
+            except (ValueError, IndexError):
+                pass
+        elif r.startswith('B ') and ultimo is not None and r.split()[1] == ultimo:
+            if len(elenco) >= MAX_VICOLI:
+                troncato = True
+                break
+            in_attesa = (n, int(ultimo))
+        ultimo = None
+    if in_attesa:
+        elenco.append([in_attesa[0], None, None])
+    if definitivo:
+        _vicoli[eid] = (elenco, troncato)
+    return elenco, troncato

@@ -1,4 +1,5 @@
-"""Sezione "Test in tempo reale": un caso lanciato subito, seguito mentre gira (progresso e mappa dei blocchi)."""
+"""Sezione "Test in tempo reale": un caso lanciato subito, seguito mentre gira (progresso e mappa dei blocchi).
+La pagina del risultato e' quella del caso (pagine_casi)."""
 from flask import Blueprint, current_app, flash, g, jsonify, redirect, render_template, request, url_for
 
 from . import esecutore, modello
@@ -82,9 +83,10 @@ def avvia():
     else:
         caso = {'tipo': 'casuale', 'seme': _intero('seme', 1, 0), 'classi': _intero('classi', 8, 1, 120),
                 'ritardi': bool(f.get('ritardi'))}
-    opzioni = {'tempo': _intero('tempo', 60, 0, 24 * 3600), 'orari': _intero('orari', 1, 1, 1000),
-               'motivi': bool(f.get('motivi')), 'backtrack': bool(f.get('backtrack')),
-               'max_mb': _intero('max_mb', 200, 1, 100000)}
+    # i motivi di scarto si registrano sempre: servono alla diagnosi e alla ricerca passo passo
+    opzioni = {'tempo': _intero('tempo', 60, 0, 24 * 3600), 'orari': _intero('orari', 1, 1, 1000), 'motivi': True}
+    if f.get('passi'):  # registra la ricerca passo passo, fino a questo numero di nodi
+        opzioni['passi'] = _intero('max_passi', 100000, 1, 10000000)
     # parametri della ricerca: nel JSON delle opzioni solo se diversi dai predefiniti (5, 3, 3)
     for chiave, predefinito, massimo in (('ore_obbligatorie', 5, 6), ('ore_prof_classe', 3, 6), ('classi_giorno', 3, 20)):
         v = _intero(chiave, predefinito, 1, massimo)

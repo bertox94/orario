@@ -2,7 +2,7 @@
 
     python3 -m sito avvia [--host 0.0.0.0] [--porta 8000]   avvia il sito (sul Pi: dal servizio systemd)
     python3 -m sito crea-utente NOME [--admin]              crea un utente (o ne cambia la password)
-    python3 -m sito imposta-password                        come crea-utente admin --admin
+    python3 -m sito prova-database                          controlla il collegamento a Postgres
     python3 -m sito migra                                   aggiorna il database (lo fa anche "avvia")
 """
 import argparse
@@ -58,14 +58,13 @@ def main():
     u = sotto.add_parser('crea-utente', help='crea un utente o cambia la sua password')
     u.add_argument('nome')
     u.add_argument('--admin', action='store_true', help='amministratore: vede tutte le scuole e gestisce utenti e scuole')
-    sotto.add_parser('imposta-password', help="come crea-utente admin --admin")
     sotto.add_parser('migra', help='aggiorna il database')
     sotto.add_parser('prova-database', help='controlla il collegamento a Postgres (anche sul Mac) e mostra la versione')
     args = ap.parse_args()
     config = Config()
 
-    if args.comando in ('crea-utente', 'imposta-password'):
-        nome, admin = (args.nome, args.admin) if args.comando == 'crea-utente' else ('admin', True)
+    if args.comando == 'crea-utente':
+        nome, admin = args.nome, args.admin
         p1 = getpass.getpass('Password di %s: ' % nome)
         if len(p1) < 8:
             sys.exit('La password deve avere almeno 8 caratteri.')
