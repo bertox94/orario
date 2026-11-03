@@ -273,15 +273,9 @@ altrimenti è un «vicolo cieco» e torna indietro. I pulsanti sotto la barra sa
 5. **Avvia**: la pagina mostra progresso e mappa dei blocchi; alla fine si apre il caso con esito, diagnosi, orario
    (anche per docente) e file da scaricare (dati, uscita, orari, marce indietro `.gz`, JSON). «Rifai identico» ripete
    esattamente la stessa ricerca; «Rilancia in tempo reale» riporta le opzioni nel modulo.
-6. **Capire dove si blocca**: nella pagina di un caso, «Slot con più marce indietro» mostra, per ogni slot, quante marce
-   indietro e che percentuale del totale. Se la prova ha usato `-b` (fase 3 dei notturni, o la casella nel test in tempo
-   reale) c'è anche «Orario a ogni marcia indietro»: si sfogliano le marce una per una (barra, ±1, ±100, ±1000, prima e
-   ultima) e per ognuna si vede l'orario parziale in quel momento, lo slot bloccato (✕), il punto della sequenza in percentuale e, con i motivi attivi (casella «Motivi degli scarti»), per ogni docente con ore da fare in quella classe il problema per cui non si può andare avanti.
-   **Passando il mouse su una cella** dell'orario a ogni marcia indietro compare la coda dei docenti in quel punto
-   (ordinata per priorità, cioè ore ancora da sistemare nella settimana): chi è stato scelto, chi era utilizzabile e non
-   scelto in quel ramo, e per gli altri il vincolo che li escludeva (occupato altrove, ore non contigue, ingresso, massimi
-   giornalieri, codocenza, sabato). Lo calcola il solver (`--analizza-slot`) con lo stesso caso e le stesse opzioni.
-   Le celle dopo lo slot bloccato non hanno analisi: la ricerca non c'è arrivata.
+6. **Capire dove si blocca**: nella pagina di un caso usa «La ricerca passo passo» (vedi sopra): lo slider, l'animazione, i
+   blocchi e la finestra con la coda dei docenti e i vincoli. Le sezioni «Dove si è bloccata la ricerca» (mappa e slot con
+   più blocchi) e «Orario a ogni marcia indietro» sono nascoste per ora; il codice c'è ancora e verranno tolte o rifatte.
 7. **Casi dei test notturni da verificare**: in «Test in tempo reale» sotto il modulo c'è l'elenco degli ultimi casi non
    risolti dei notturni; «Verifica» li carica nel modulo (stessi dati e opzioni, anche per i dati della scuola) per rifarli
    a mano con altri parametri, tempo o ordine delle classi. Lo stesso pulsante «Verifica a mano» c'è nella pagina di ogni prova notturna.
