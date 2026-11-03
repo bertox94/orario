@@ -11,6 +11,11 @@
 
 QueueItem **queue_mul;
 int queue_sz;
+int ordine_iniziale_coda[INSEGNANTE_SZ];
+
+void ricorda_ordine_iniziale_coda(void) {
+    for (int i = 0; i < queue_sz; i++) ordine_iniziale_coda[i] = queue_mul[i]->teacher;
+}
 
 
 void add_to_queue(int prof, int priority) {

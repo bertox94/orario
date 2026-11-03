@@ -19,6 +19,18 @@
 // con -b, per l'orario parziale a ogni marcia indietro.
 void print(const teaching_slot orario[], const int pos, unsigned long long attempt, FILE *f);
 
+// Marce indietro in formato compatto (opzione -b). Una riga per marcia indietro con solo gli slot cambiati rispetto
+// alla marcia precedente: e' centinaia di volte piu' piccolo della griglia completa e permette comunque di ricostruire
+// l'orario parziale di ogni marcia. Formato (descritto anche nell'intestazione del file):
+//   B pos da s_da ... s_(pos-1)
+// marcia indietro nello slot pos (nessun docente utilizzabile); gli slot da `da` a pos - 1 valgono come scritto, quelli
+// prima di `da` come nella riga B precedente. Ogni slot e' "i" (docente di indice i), "i+j" (coppia) o "-" (vuoto).
+// Le posizioni sono quelle della ricerca: pos = (giorno * ore + ora) * classi + k, con la classe k-esima dell'ordine
+// scritto nell'intestazione.
+void stampa_intestazione_marce_compatte(FILE *f);
+
+void stampa_marcia_compatta(FILE *f, const teaching_slot orario[], int pos);
+
 // riepilogo dei dati su stdout
 void stampa_dati(void);
 

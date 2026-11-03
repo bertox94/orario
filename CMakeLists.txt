@@ -14,6 +14,10 @@ add_executable(untitled main.c
         data_initialization/database_initializers.c
         data_initialization/generatore.h
         data_initialization/generatore.c
+        data_initialization/json.h
+        data_initialization/json.c
+        data_initialization/dati_da_file.h
+        data_initialization/dati_da_file.c
         orario/orario.h
         orario/orario.c
         ricerca/ricerca.h
@@ -26,6 +30,8 @@ add_executable(untitled main.c
         ricerca/fattibilita.c
         printer/printer.h
         printer/printer.c
+        printer/risultati_json.h
+        printer/risultati_json.c
         priority_queue/prio_queue.c
         priority_queue/prio_queue.h
         utils.h
