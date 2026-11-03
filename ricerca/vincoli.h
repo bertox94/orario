@@ -190,10 +190,18 @@ int ore_rimaste_stanno_nel_tempo_rimasto(int giorno, int ora);
 
 // I numeri dell'ultima verifica fallita (per la diagnosi: perche' un ramo e' stato scartato). Si scrivono solo quando una
 // verifica fallisce, quindi non costano nulla alla ricerca.
+#define MAX_DETTAGLIO_LEZIONI 40
+
 typedef struct {
     // lezioni della classe (lezioni_della_classe_bastano_dopo): fino all'ora fino_ora di ogni giorno che resta,
     // la classe deve riempire da_riempire slot ma le sue lezioni ne possono riempire al massimo possibili
     int fino_ora, da_riempire, possibili;
+    // ...e da dove viene `possibili`: per ogni lezione con ore rimaste (docente, codocente o -1) quante ne restano e
+    // quante ne possono ancora cadere fino a fino_ora; e i limiti per giorno: possibili = min(somma delle lezioni,
+    // min(oggi, slot_oggi) + giorni_dopo * min(in_un_giorno, slot_al_giorno))
+    int n_lezioni;
+    int lezioni[MAX_DETTAGLIO_LEZIONI][4];
+    int oggi, slot_oggi, in_un_giorno, slot_al_giorno, giorni_dopo;
     // ore dei docenti (ore_rimaste_stanno_nel_tempo_rimasto): al docente restano ore_rimaste ore (nella classe
     // classe_docente, o in tutto se classe_docente = -1) ma ne puo' fare al massimo ore_possibili nel tempo rimasto
     int docente, classe_docente, ore_rimaste, ore_possibili;

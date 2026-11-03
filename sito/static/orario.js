@@ -49,7 +49,7 @@ function disegnaOrario(contenitore, dati, orario, blocco, alPassaggio) {
 
 // Orario di ogni docente: una riga per docente, nella cella la classe in cui insegna (con il codocente, se c'e').
 // Un docente in codocenza compare in entrambe le righe: nella cella c'e' la classe e, piccolo, l'altro docente.
-function disegnaOrarioDocenti(contenitore, dati, orario) {
+function disegnaOrarioDocenti(contenitore, dati, orario, alPassaggio) {
   const corpo = el('tbody');
   dati.docenti.forEach((d, p) => {
     const tr = el('tr', {}, [el('td', {class: 'classe', testo: d.nome})]);
@@ -64,6 +64,11 @@ function disegnaOrarioDocenti(contenitore, dati, orario) {
         td.appendChild(el('span', {testo: dati.classi[classe].nome}));
         if (altro >= 0) td.appendChild(el('span', {class: 'cod', testo: '+ ' + dati.docenti[altro].nome}));
         td.title = dati.classi[classe].nome + (altro >= 0 ? ' con ' + dati.docenti[altro].nome : '');
+        if (alPassaggio) {
+          const cl = classe;
+          td.addEventListener('mouseenter', ev => alPassaggio(g, o, cl, td, ev));
+          td.addEventListener('mouseleave', () => alPassaggio(null));
+        }
       }
       tr.appendChild(td);
     }));
@@ -95,6 +100,10 @@ function disegnaMappa(contenitore, dati, valore, descrizione) {
         td.textContent = compatto(v);
       }
       td.title = `${g_nome} ${o_nome} ${cl.nome}: ${v.toLocaleString('it-IT')} ${descrizione} (${percento(v)} del totale)`;
+      if (v > 0) {
+        td.classList.add('cliccabile');
+        td.addEventListener('click', () => { if (apriBlocco) apriBlocco(g, o, c); });
+      }
       tr.appendChild(td);
     }));
     corpo.appendChild(tr);
@@ -159,50 +168,101 @@ function spiegaMarce(n) {
     `docente per docente sono in «Orario a ogni marcia indietro» (con -b) e nella diagnosi completa.`;
 }
 
-// Le statistiche di uno slot all'ultimo blocco (dettagli_slot del JSON, vedi printer/risultati_json.h) in parole.
-// Le prove fatte prima che il solver scrivesse i dettagli non li hanno: allora si usano spiegaMarce e spiegaScarto.
+// Il dettaglio dei blocchi di uno slot (dettagli_slot del JSON, vedi printer/risultati_json.h), come elementi della
+// pagina: per le marce indietro i docenti con ore nella classe e perche' ognuno non poteva; per i rami scartati la
+// scelta scartata e i numeri della verifica, lezione per lezione. Le prove fatte prima che il solver scrivesse questi
+// dettagli usano spiegaMarce e spiegaScarto (testo generico).
 const volte = n => n === 1 ? '1 volta' : `${numeroIt(n)} volte`;
 const oreDi = (fatte, tot) => `${fatte} ore su ${tot} (${tot - fatte === 1 ? 'ne manca 1' : `ne mancano ${tot - fatte}`})`;
+const nomeDoc = (dati, p) => p >= 0 && dati.docenti[p] ? dati.docenti[p].nome : '?';
+const coppia = (dati, p, q) => nomeDoc(dati, p) + (q >= 0 ? ' + ' + nomeDoc(dati, q) : '');
 
-function spiegaMarceConDettagli(dati, det, motiviSlot, nomiMotivi) {
+// Perche' un docente non si poteva mettere nello slot (motivo come in diagnosi.c, nome_motivo), in parole.
+function perchéDocente(dati, motivo, classeOccupato) {
+  return [
+    classeOccupato >= 0 ? `è in ${dati.classi[classeOccupato].nome} alla stessa ora` : 'è in un\'altra classe alla stessa ora',
+    'non è ancora entrato (ora di ingresso)',
+    'ha già fatto oggi il massimo di ore in questa classe',
+    'oggi ha già fatto lezione qui, ma non nell\'ora prima: le sue ore in una classe devono essere attaccate',
+    'oggi insegna già nel massimo di classi diverse',
+    'ha solo ore in coppia e nessun codocente era disponibile',
+    'regola del sabato: nell\'ora prima c\'era un altro docente che deve finire le sue ore in questa classe',
+  ][motivo] || 'motivo sconosciuto';
+}
+
+function dettaglioMarce(dati, det, slotNome) {
   const um = det.ultima_marcia;
-  let t = `In questo slot nessun docente si poteva mettere: la ricerca è tornata indietro ${volte(det.marce)}. ` +
-    `L'ultima volta la classe aveva fatto ${oreDi(um.ore_classe_fatte, det.ore_classe)} e ` +
-    (um.docenti_con_ore === 1 ? '1 docente aveva ancora ore in questa classe, ma non era utilizzabile.' :
-      `${um.docenti_con_ore} docenti avevano ancora ore in questa classe, ma nessuno era utilizzabile.`);
-  // i motivi docente per docente, sommati su tutte le marce indietro dello slot (solo con --motivi)
-  if (motiviSlot && nomiMotivi) {
-    const tot = motiviSlot.reduce((x, y) => x + y, 0);
-    const parti = motiviSlot.map((n, m) => [n, m]).filter(([n]) => n > 0).sort((x, y) => y[0] - x[0])
-      .map(([n, m]) => `${nomiMotivi[m]} ${Math.round(100 * n / tot)}%`);
-    if (parti.length) t += ` Perché i docenti non andavano bene (su tutte le marce): ${parti.join('; ')}.`;
+  const parti = [el('h4', {testo: `Marce indietro (${volte(det.marce)}): in ${slotNome} nessun docente si poteva mettere`}),
+    el('p', {testo: `All'ultima marcia indietro la classe aveva fatto ${oreDi(um.ore_classe_fatte, det.ore_classe)}; ` +
+      (um.docenti_con_ore === 1 ? '1 docente aveva ancora ore in questa classe.' : `${um.docenti_con_ore} docenti avevano ancora ore in questa classe.`)})];
+  if (um.docenti && um.docenti.length) {
+    const corpo = el('tbody', {}, um.docenti.map(([p, m, cl]) => {
+      const d = dati.docenti[p];
+      const extra = m === 1 && d && d.ingresso ? ` (entra alle ${dati.ore[d.ingresso]})` : '';
+      return el('tr', {}, [el('td', {testo: nomeDoc(dati, p), style: 'white-space: nowrap'}), el('td', {testo: perchéDocente(dati, m, cl) + extra})]);
+    }));
+    parti.push(el('table', {class: 'dati'}, [el('thead', {}, [el('tr', {}, [el('th', {testo: 'Docente'}), el('th', {testo: 'Perché non si poteva mettere'})])]), corpo]));
+  } else {
+    parti.push(el('p', {class: 'tenue', testo: 'I motivi docente per docente si vedono con «Motivi degli scarti» attivo.'}));
   }
-  return t;
+  return parti;
 }
 
-function spiegaScartoConDettagli(dati, det, s) {
+function dettaglioScartoLezioni(dati, det, s, slotNome) {
   const classe = dati.classi[det.classe].nome;
-  const fine = ` La ricerca ha annullato la scelta e ne ha provata un'altra (${volte(s.volte)}).`;
-  if (s.da_riempire !== undefined) {
-    const ultimaOra = s.fino_ora === dati.ore.length - 1;
-    const quando = ultimaOra ? 'entro la fine della settimana le restavano' :
-      `fino alle ${dati.ore[s.fino_ora]} di ogni giorno che restava doveva ancora riempire`;
-    return `Dopo aver deciso questo slot, la classe ${classe}, che aveva fatto ${oreDi(s.ore_classe_fatte, det.ore_classe)}, ${quando} ` +
-      `${s.da_riempire} ${ultimaOra ? 'ore' : 'slot'}, ma le lezioni che le mancano ne potevano coprire al massimo ` +
-      `${s.possibili}: ogni docente insegna solo dalla sua ora di ingresso e per un massimo di ore al giorno nella stessa classe.` + fine;
+  const fineSett = s.fino_ora === dati.ore.length - 1;
+  const entro = fineSett ? 'entro la fine della settimana' : `entro le ${dati.ore[s.fino_ora]}`;
+  const parti = [el('h4', {testo: `Ramo scartato (${volte(s.volte)}): ${coppia(dati, s.scelta[0], s.scelta[1])} in ${slotNome}`}),
+    el('p', {testo: `Con questa scelta la classe ${classe} arrivava a ${oreDi(s.ore_classe_fatte, det.ore_classe)}. ` +
+      (fineSett ? `Entro la fine della settimana doveva fare ancora ${s.da_riempire} ore, ma le sue lezioni ne potevano fare al massimo ${s.possibili}.`
+                : `Fino alle ${dati.ore[s.fino_ora]} di ogni giorno che resta ogni ora è obbligatoria: servivano ancora ${s.da_riempire} lezioni ` +
+                  `entro quell'ora, ma ne potevano cadere al massimo ${s.possibili}.`) +
+      ' La verifica se n\'è accorta subito e la ricerca ha provato un\'altra scelta.'})];
+  const somma = (s.lezioni || []).reduce((x, l) => x + l[3], 0);
+  if (s.lezioni && s.lezioni.length) {
+    const righe = s.lezioni.slice().sort((x, y) => (y[2] - y[3]) - (x[2] - x[3])).map(([p, q, rimaste, possibili]) => {
+      const note = [];
+      [p, q].forEach(x => {
+        const d = x >= 0 && dati.docenti[x];
+        if (d && d.ingresso && (fineSett || d.ingresso > s.fino_ora)) note.push(`${d.nome} entra alle ${dati.ore[d.ingresso]}`);
+      });
+      if (possibili < rimaste && !note.length) note.push('non ci stanno: al massimo per un numero di ore al giorno nella classe, e ore attaccate');
+      const tr = el('tr', {}, [el('td', {testo: coppia(dati, p, q), style: 'white-space: nowrap'}), el('td', {class: 'num', testo: String(rimaste)}),
+        el('td', {class: 'num', testo: String(possibili)}), el('td', {class: 'piccolo', testo: note.join('; ')})]);
+      if (possibili < rimaste) tr.className = 'non-ci-sta';
+      return tr;
+    });
+    parti.push(el('table', {class: 'dati'}, [
+      el('thead', {}, [el('tr', {}, [el('th', {testo: 'Lezione'}), el('th', {class: 'num', testo: 'Ore rimaste'}),
+        el('th', {class: 'num', testo: `Ore possibili ${entro}`}), el('th', {testo: 'Note'})])]),
+      el('tbody', {}, righe),
+      el('tfoot', {}, [el('tr', {}, [el('td', {testo: 'Totale'}), el('td', {class: 'num', testo: String(s.lezioni.reduce((x, l) => x + l[2], 0))}),
+        el('td', {class: 'num', testo: String(somma)}), el('td', {class: 'piccolo', testo: `ne servivano ${s.da_riempire}`})])])]));
   }
-  const d = dati.docenti[s.docente];
-  const dove = s.classe_docente >= 0 ? `nella classe ${dati.classi[s.classe_docente].nome}` : 'in tutto';
-  const ingresso = d && d.ingresso ? `, entra alle ${dati.ore[d.ingresso]}` : '';
-  return `Finita quest'ora, ${d ? d.nome : 'un docente'} aveva ancora ${s.ore_rimaste} ore da fare ${dove}, ma nel tempo ` +
-    `rimasto ne poteva fare al massimo ${s.ore_possibili} (solo dalla sua ora di ingresso${ingresso}` +
-    `${s.classe_docente >= 0 ? ', e per un massimo di ore al giorno nella stessa classe' : ''}).` + fine;
+  // se il limite e' il numero di slot al giorno e non le singole lezioni, lo si dice
+  const perGiorni = Math.min(s.oggi, s.slot_oggi) + s.giorni_dopo * Math.min(s.in_un_giorno, s.slot_al_giorno);
+  if (s.lezioni && perGiorni < somma) {
+    parti.push(el('p', {class: 'piccolo', testo: `Il limite qui è giornaliero: in un giorno, ${entro}, le lezioni possono coprire al massimo ` +
+      `${Math.min(s.in_un_giorno, s.slot_al_giorno)} slot su ${s.slot_al_giorno}, e restano ${s.giorni_dopo} giorni (oggi al massimo ` +
+      `${Math.min(s.oggi, s.slot_oggi)}): in tutto ${perGiorni}.`}));
+  }
+  return parti;
 }
 
-// Gli slot dove la ricerca si e' bloccata di piu', dal JSON del solver: marce indietro (nessun docente utilizzabile
-// nello slot) e rami scartati dopo lo slot (la potatura vede che da li' l'orario non si puo' piu' completare). Per ogni
-// slot: quante volte la ricerca ci e' arrivata, le ore della classe all'ultimo blocco e perche' e' tornata indietro,
-// con i numeri (dettagli_slot); percentuale sul totale dei blocchi.
+function dettaglioScartoDocenti(dati, det, s, slotNome) {
+  const d = dati.docenti[s.docente];
+  const dove = s.classe_docente >= 0 ? `nella classe ${dati.classi[s.classe_docente].nome}` : 'in tutto (in tutte le sue classi)';
+  return [el('h4', {testo: `Ramo scartato (${volte(s.volte)}): dopo l'ultima scelta dell'ora, ${coppia(dati, s.scelta[0], s.scelta[1])} in ${slotNome}`}),
+    el('p', {testo: `Finita quest'ora, ${d ? d.nome : 'un docente'} aveva ancora ${s.ore_rimaste} ore da fare ${dove}, ma nel tempo rimasto ` +
+      `ne poteva fare al massimo ${s.ore_possibili}` + (d && d.ingresso ? ` (entra alle ${dati.ore[d.ingresso]})` : '') +
+      (s.classe_docente >= 0 ? ', perché in una classe può fare solo un massimo di ore al giorno, attaccate.' : '.') +
+      ` La classe dello slot aveva fatto ${oreDi(s.ore_classe_fatte, det.ore_classe)}. La ricerca ha provato un'altra scelta.`})];
+}
+
+// Gli slot dove la ricerca si e' bloccata di piu', dal JSON del solver: una riga compatta per slot (arrivi, marce
+// indietro, rami scartati, ore della classe, peso sul totale); cliccandola si apre il dettaglio. Si vedono i primi
+// `quanti`, gli altri con "Mostra tutti". apriBlocco(g, o, c) apre il dettaglio di uno slot (dal clic sulla mappa).
+let apriBlocco = null;
 function elencoBlocchi(contenitore, dati, diagnosi, quanti, dettagli) {
   const scartati = Object.entries(diagnosi.scartati || {});  // [motivo, tabella [g][o][c]]
   const perSlot = {};
@@ -213,19 +273,7 @@ function elencoBlocchi(contenitore, dati, diagnosi, quanti, dettagli) {
     const marce = diagnosi.marce[g][o][c];
     const rami = scartati.reduce((s, [, t]) => s + t[g][o][c], 0);
     totale += marce + rami;
-    if (!(marce + rami)) return;
-    const det = perSlot[`${g},${o},${c}`];
-    let perche, ore = '-';
-    if (det) {
-      perche = (det.ultima_marcia ? [spiegaMarceConDettagli(dati, det, diagnosi.motivi && diagnosi.motivi[g][o][c], diagnosi.nomi_motivi)] : [])
-        .concat(det.scarti.map(s => spiegaScartoConDettagli(dati, det, s)));
-      const fatte = det.ultima_marcia ? det.ultima_marcia.ore_classe_fatte : det.scarti[0].ore_classe_fatte;
-      ore = `${fatte} / ${det.ore_classe}`;
-    } else {
-      perche = (marce ? [spiegaMarce(marce)] : []).concat(
-        scartati.filter(([, t]) => t[g][o][c] > 0).map(([m, t]) => spiegaScarto(m, cl.nome, t[g][o][c])));
-    }
-    righe.push({marce, rami, perche, ore, visite: det ? det.visite : null, nome: `${gn} ${on} ${cl.nome}`});
+    if (marce + rami) righe.push({g, o, c, marce, rami, det: perSlot[`${g},${o},${c}`], nome: `${gn} ${on} ${cl.nome}`});
   })));
   if (!righe.length) {
     contenitore.replaceChildren(el('p', {class: 'tenue', testo: 'Nessun blocco: la ricerca e\' arrivata all\'orario senza mai tornare indietro.'}));
@@ -233,22 +281,107 @@ function elencoBlocchi(contenitore, dati, diagnosi, quanti, dettagli) {
   }
   righe.sort((a, b) => (b.marce + b.rami) - (a.marce + a.rami));
   const corpo = el('tbody');
-  righe.slice(0, quanti).forEach(r => corpo.appendChild(el('tr', {}, [
-    el('td', {testo: r.nome, style: 'white-space: nowrap'}),
-    el('td', {class: 'num', testo: numeroIt(r.visite)}),
-    el('td', {class: 'num', testo: numeroIt(r.marce)}), el('td', {class: 'num', testo: numeroIt(r.rami)}),
-    el('td', {class: 'num', testo: r.ore, style: 'white-space: nowrap'}),
-    el('td', {class: 'piccolo', testo: r.perche.join(' ')}),
-    el('td', {class: 'num', testo: (100 * (r.marce + r.rami) / totale).toLocaleString('it-IT', {maximumFractionDigits: 2}) + '%'})])));
-  const th = (testo, titolo, num) => el('th', {class: num ? 'num' : '', testo, title: titolo});
-  contenitore.replaceChildren(el('table', {class: 'dati'}, [
-    el('thead', {}, [el('tr', {}, [th('Slot'),
+  const dettaglio = r => {
+    if (!r.det) {  // prova vecchia: testo generico
+      return [el('p', {testo: (r.marce ? [spiegaMarce(r.marce)] : []).concat(scartati.filter(([, t]) => t[r.g][r.o][r.c] > 0)
+        .map(([m, t]) => spiegaScarto(m, dati.classi[r.c].nome, t[r.g][r.o][r.c]))).join(' ')})];
+    }
+    const parti = r.det.ultima_marcia ? dettaglioMarce(dati, r.det, r.nome) : [];
+    r.det.scarti.forEach(s => parti.push(...(s.da_riempire !== undefined ? dettaglioScartoLezioni(dati, r.det, s, r.nome)
+                                                                         : dettaglioScartoDocenti(dati, r.det, s, r.nome))));
+    return parti;
+  };
+  righe.forEach((r, i) => {
+    const fatte = r.det ? (r.det.ultima_marcia ? r.det.ultima_marcia.ore_classe_fatte : r.det.scarti[0].ore_classe_fatte) : null;
+    const freccia = el('span', {class: 'freccia', testo: '▸'});
+    const riga = el('tr', {class: 'blocco'}, [
+      el('td', {style: 'white-space: nowrap'}, [freccia, el('span', {testo: ' ' + r.nome})]),
+      el('td', {class: 'num', testo: r.det ? numeroIt(r.det.visite) : '-'}),
+      el('td', {class: 'num', testo: numeroIt(r.marce)}), el('td', {class: 'num', testo: numeroIt(r.rami)}),
+      el('td', {class: 'num', style: 'white-space: nowrap', testo: fatte === null ? '-' : `${fatte} / ${r.det.ore_classe}`}),
+      el('td', {class: 'num', testo: (100 * (r.marce + r.rami) / totale).toLocaleString('it-IT', {maximumFractionDigits: 2}) + '%'})]);
+    const cella = el('td', {colspan: 6, class: 'contenuto-dettaglio'});
+    const sotto = el('tr', {class: 'dettaglio-blocco'}, [cella]);
+    sotto.hidden = true;
+    r.apri = (forza) => {
+      const aperto = forza === undefined ? sotto.hidden : forza;
+      if (aperto && !cella.childNodes.length) cella.replaceChildren(...dettaglio(r));
+      sotto.hidden = !aperto;
+      freccia.textContent = aperto ? '▾' : '▸';
+    };
+    riga.addEventListener('click', () => r.apri());
+    if (i >= quanti) riga.hidden = true;
+    r.riga = riga;
+    corpo.append(riga, sotto);
+  });
+  righe[0].apri(true);
+  const th = (testo, titolo, num) => el('th', {class: num ? 'num' : '', testo, title: titolo || ''});
+  const tabella = el('table', {class: 'dati blocchi'}, [
+    el('thead', {}, [el('tr', {}, [th('Slot (clic per il dettaglio)'),
       th('Arrivi', 'Quante volte la ricerca è arrivata a questo slot. A ogni arrivo prova più docenti, quindi i rami scartati possono essere più degli arrivi', true),
       th('Marce indietro', 'Volte in cui nessun docente si poteva mettere in questo slot', true),
       th('Rami scartati', 'Volte in cui, dopo aver deciso questo slot, la verifica ha visto che l\'orario non si poteva più completare', true),
       th('Ore della classe', 'Ore della classe già in orario all\'ultimo blocco, su quelle della settimana', true),
-      th('Perché la ricerca è tornata indietro'),
-      th('% dei blocchi', 'Marce indietro e rami scartati di questo slot, sul totale', true)])]), corpo]));
+      th('% dei blocchi', 'Marce indietro e rami scartati di questo slot, sul totale', true)])]), corpo]);
+  const parti = [tabella];
+  if (righe.length > quanti) {
+    const tutti = el('button', {class: 'secondario', type: 'button', testo: `Mostra tutti gli slot con blocchi (${righe.length})`});
+    tutti.addEventListener('click', () => { righe.forEach(r => { r.riga.hidden = false; }); tutti.remove(); });
+    parti.push(tutti);
+  }
+  contenitore.replaceChildren(...parti);
+  apriBlocco = (g, o, c) => {
+    const r = righe.find(x => x.g === g && x.o === o && x.c === c);
+    if (!r) return;
+    r.riga.hidden = false;
+    r.apri(true);
+    r.riga.scrollIntoView({block: 'center', behavior: 'smooth'});
+  };
+}
+
+// La coda dei docenti al passaggio del mouse su una cella di un orario: per lo slot (giorno, ora, classe), dato
+// l'orario parziale fino a quello slot, il solver (--analizza-slot, POST su urlAnalisi) dice la coda in ordine di
+// priorita' e perche' ognuno e' o non e' utilizzabile. Ritorna passaggio(fonte) -> (g, o, c, td): fonte e' l'orario
+// mostrato {chiave, orario, ordine (ordine delle classi nella ricerca), limite (ultimo slot raggiunto), blocco}.
+function codaAlPassaggio(dati, urlAnalisi) {
+  const pannello = el('div', {class: 'pannello-slot'});
+  pannello.style.display = 'none';
+  document.body.appendChild(pannello);
+  const cache = {};
+  let timer = null;
+  const C = dati.classi.length, O = dati.ore.length;
+  return fonte => (g, o, c, td) => {
+    clearTimeout(timer);
+    if (g == null) { pannello.style.display = 'none'; return; }
+    const f = typeof fonte === 'function' ? fonte() : fonte;
+    if (!f) return;
+    const pos = (g * O + o) * C + f.ordine.indexOf(c);
+    if (f.limite != null && pos > f.limite) return;  // oltre il blocco la ricerca non e' arrivata
+    timer = setTimeout(async () => {
+      const chiave = `${f.chiave}:${pos}`;
+      pannello.style.display = 'block';
+      const x = td.getBoundingClientRect();
+      pannello.style.left = Math.max(8, Math.min(x.right + 8, window.innerWidth - 680)) + 'px';
+      pannello.style.top = Math.max(8, Math.min(x.top, window.innerHeight - 440)) + 'px';
+      pannello.textContent = 'Calcolo della coda...';
+      if (!cache[chiave]) {
+        const slot = [];
+        for (let i = 0; i < pos; i++) {
+          const gg = Math.floor(i / (O * C)), oo = Math.floor(i / C) % O, cc = f.ordine[i % C];
+          const [p, q] = f.orario[gg][oo][cc];
+          slot.push(p < 0 ? '-' : q >= 0 ? `${p}+${q}` : String(p));
+        }
+        try {
+          const risp = await fetch(urlAnalisi, {method: 'POST', body: JSON.stringify({pos, slot}),
+            headers: {'Content-Type': 'application/json', 'X-Gettone': window.GETTONE}});
+          cache[chiave] = await risp.json();
+        } catch (e) { cache[chiave] = {errore: 'Analisi non disponibile.'}; }
+      }
+      if (pannello.style.display === 'none') return;
+      mostraAnalisi(pannello, dati, cache[chiave], f.orario[g][o][c], `${dati.giorni[g]} ${dati.ore[o]} ${dati.classi[c].nome}`,
+        f.limite != null && pos === f.limite, c, o);
+    }, 250);
+  };
 }
 
 // Sfoglia le marce indietro registrate con -b: l'orario parziale a ogni marcia, con lo slot dove si e' bloccata.
@@ -258,43 +391,10 @@ function sfogliaMarce(contenitore, dati, url, nomiMotivi) {
   const stato = el('div', {class: 'tenue piccolo'});
   const griglia = el('div', {class: 'scorre'});
   const motivi = el('div', {});
-  let totale = null, n = 1, richiesta = 0, ultima = null, timer = null;
-  // Passando il mouse su una cella: la coda dei docenti in quel punto e perche' ognuno e' o non e' utilizzabile
-  // (calcolata dal solver con l'orario parziale fino a quello slot).
-  const pannello = el('div', {class: 'pannello-slot'});
-  pannello.style.display = 'none';
-  document.body.appendChild(pannello);
-  const cache = {};
-  function passaggio(g, o, c, td) {
-    clearTimeout(timer);
-    if (g == null) { pannello.style.display = 'none'; return; }
-    const r = ultima, C = dati.classi.length, O = dati.ore.length;
-    const pos = (g * O + o) * C + r.ordine.indexOf(c);
-    if (pos > r.pos) return;  // oltre il blocco la ricerca non e' arrivata
-    timer = setTimeout(async () => {
-      const chiave = `${n}:${pos}`;
-      pannello.style.display = 'block';
-      const x = td.getBoundingClientRect();
-      pannello.style.left = Math.min(x.right + 8, window.innerWidth - 660) + 'px';
-      pannello.style.top = Math.max(8, Math.min(x.top, window.innerHeight - 380)) + 'px';
-      pannello.textContent = 'Calcolo...';
-      if (!cache[chiave]) {
-        const slot = [];
-        for (let i = 0; i < pos; i++) {
-          const gg = Math.floor(i / (O * C)), oo = Math.floor(i / C) % O, cc = r.ordine[i % C];
-          const [p, q] = r.orario[gg][oo][cc];
-          slot.push(p < 0 ? '-' : q >= 0 ? `${p}+${q}` : String(p));
-        }
-        try {
-          const risp = await fetch(url.replace(/marce$/, 'analisi'), {method: 'POST', body: JSON.stringify({pos, slot}),
-            headers: {'Content-Type': 'application/json', 'X-Gettone': window.GETTONE}});
-          cache[chiave] = await risp.json();
-        } catch (e) { cache[chiave] = {errore: 'Analisi non disponibile.'}; }
-      }
-      if (pannello.style.display === 'none') return;
-      mostraAnalisi(pannello, dati, cache[chiave], r.orario[g][o][c], `${dati.giorni[g]} ${dati.ore[o]} ${dati.classi[c].nome}`, pos === r.pos, c, o);
-    }, 250);
-  }
+  let totale = null, n = 1, richiesta = 0, ultima = null;
+  // passando il mouse su una cella: la coda dei docenti in quel punto (vedi codaAlPassaggio)
+  const passaggio = codaAlPassaggio(dati, url.replace(/marce$/, 'analisi'))(
+    () => ultima && {chiave: 'marcia' + n, orario: ultima.orario, ordine: ultima.ordine, limite: ultima.pos});
   const bottone = (testo, delta) => el('button', {class: 'secondario', type: 'button', testo, onclick: () => vai(n + delta)});
   async function vai(nuovo) {
     n = Math.max(1, totale ? Math.min(totale, nuovo) : nuovo);
@@ -361,21 +461,28 @@ function mostraAnalisi(pannello, dati, a, scelto, titolo, bloccato, classe, ora)
   const testa = el('div', {}, [el('strong', {testo: titolo}),
     el('span', {class: 'tenue', testo: bloccato ? ' · qui la ricerca si è bloccata'
       : p < 0 ? ' · slot lasciato vuoto' : ` · scelto: ${nome(p)}${q >= 0 ? ' + ' + nome(q) : ''}`})]);
-  const con = a.coda.filter(c => c.ore_classe > 0), senza = a.coda.length - con.length;
+  // in ordine di priorita' (la coda del solver; a parita' l'ordine e' quello della coda)
+  const con = a.coda.filter(c => c.ore_classe > 0).map((c, i) => [c, i]).sort((x, y) => y[0].priorita - x[0].priorita || x[1] - y[1]).map(x => x[0]);
+  const senza = a.coda.length - a.coda.filter(c => c.ore_classe > 0).length;
+  const massima = Math.max(1, ...con.map(c => c.priorita));
   const corpo = el('tbody');
   const MAX = 14;
   con.slice(0, MAX).forEach(c => {
     const e = c.docente === p || c.docente === q;
     const esito = e ? 'scelto' : c.motivo < 0 ? 'utilizzabile (non scelto in questo ramo)' : spiegaMotivo(dati, a, c, classe, ora);
-    corpo.appendChild(el('tr', {class: e ? 'scelto' : c.motivo < 0 ? 'utilizzabile' : ''}, [
-      el('td', {testo: nome(c.docente)}), el('td', {class: 'num', testo: c.priorita}),
+    const stato = e ? 'scelto' : c.motivo < 0 ? 'utilizzabile' : 'escluso';
+    // la barra: lunghezza = priorita' (rispetto alla massima della coda), colore = scelto / utilizzabile / escluso
+    const barra = el('div', {class: 'barra-priorita ' + stato, title: `priorità ${c.priorita}`},
+      [el('div', {style: `width: ${(100 * c.priorita / massima).toFixed(1)}%`})]);
+    corpo.appendChild(el('tr', {class: stato === 'escluso' ? '' : stato}, [
+      el('td', {testo: nome(c.docente), style: 'white-space: nowrap'}), el('td', {}, [barra]), el('td', {class: 'num', testo: c.priorita}),
       el('td', {class: 'num', title: 'ore ancora da fare / ore totali in questa classe', testo: `${c.ore_classe}/${c.ore_totali_classe}`}),
       el('td', {testo: esito})]));
   });
   pannello.replaceChildren(testa,
     a.lezione_ammessa ? el('span') : el('div', {class: 'tenue piccolo', testo: 'In questo slot la classe non può più fare lezione: può solo restare vuoto.'}),
     el('p', {class: 'tenue piccolo', testo: 'Coda dei docenti per priorità (ore ancora da sistemare nella settimana); a parità di priorità l\'ordine dipende dalla ricerca. «Ore in classe» = ancora da fare / totali.'}),
-    el('table', {class: 'dati'}, [el('thead', {}, [el('tr', {}, [el('th', {testo: 'Docente'}), el('th', {class: 'num', testo: 'Priorità'}),
+    el('table', {class: 'dati'}, [el('thead', {}, [el('tr', {}, [el('th', {testo: 'Docente'}), el('th', {testo: 'Priorità'}), el('th', {class: 'num', testo: ''}),
       el('th', {class: 'num', testo: 'Ore in classe'}), el('th', {testo: 'Esito'})])]), corpo]),
     el('p', {class: 'tenue piccolo', testo: [con.length > MAX ? `altri ${con.length - MAX} docenti con ore da fare in coda` : '', senza ? `${senza} docenti senza ore da fare in questa classe` : ''].filter(Boolean).join(' · ')}));
 }

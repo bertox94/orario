@@ -205,9 +205,13 @@ static void scrivi_dettagli_slot(FILE *f) {
                         marce_n);
                 primo = 0;
                 const stato_blocco_t um = diagnosi_ultima_marcia(i);
-                if (um.ore_classe_fatte >= 0)
-                    fprintf(f, ", \"ultima_marcia\": {\"ore_classe_fatte\": %d, \"docenti_con_ore\": %d}",
+                if (um.ore_classe_fatte >= 0) {
+                    fprintf(f, ", \"ultima_marcia\": {\"ore_classe_fatte\": %d, \"docenti_con_ore\": %d, \"docenti\": [",
                             um.ore_classe_fatte, um.docenti_con_ore);
+                    for (int k = 0; k < um.n_docenti; k++)
+                        fprintf(f, k ? ", [%d, %d, %d]" : "[%d, %d, %d]", um.docenti[k][0], um.docenti[k][1], um.docenti[k][2]);
+                    fputs("]}", f);
+                }
                 fputs(", \"scarti\": [", f);
                 int primo_scarto = 1;
                 for (int m = 0; m < N_MOTIVI_SCARTO; m++) {
@@ -217,11 +221,18 @@ static void scrivi_dettagli_slot(FILE *f) {
                     fprintf(f, "%s{\"motivo\": ", primo_scarto ? "" : ", ");
                     primo_scarto = 0;
                     stringa(f, diagnosi_nome_motivo_scarto(m));
-                    fprintf(f, ", \"volte\": %lld, \"ore_classe_fatte\": %d", diagnosi_scartati_nello_slot(i, m),
-                            us.ore_classe_fatte);
-                    if (m == SCARTATO_LEZIONI_DELLA_CLASSE)
-                        fprintf(f, ", \"fino_ora\": %d, \"da_riempire\": %d, \"possibili\": %d}", d.fino_ora,
-                                d.da_riempire, d.possibili);
+                    fprintf(f, ", \"volte\": %lld, \"ore_classe_fatte\": %d, \"scelta\": [%d, %d]",
+                            diagnosi_scartati_nello_slot(i, m), us.ore_classe_fatte, us.scelta[0], us.scelta[1]);
+                    if (m == SCARTATO_LEZIONI_DELLA_CLASSE) {
+                        fprintf(f, ", \"fino_ora\": %d, \"da_riempire\": %d, \"possibili\": %d, \"oggi\": %d, "
+                                   "\"slot_oggi\": %d, \"in_un_giorno\": %d, \"slot_al_giorno\": %d, \"giorni_dopo\": %d, "
+                                   "\"lezioni\": [", d.fino_ora, d.da_riempire, d.possibili, d.oggi, d.slot_oggi,
+                                d.in_un_giorno, d.slot_al_giorno, d.giorni_dopo);
+                        for (int k = 0; k < d.n_lezioni; k++)
+                            fprintf(f, k ? ", [%d, %d, %d, %d]" : "[%d, %d, %d, %d]", d.lezioni[k][0], d.lezioni[k][1],
+                                    d.lezioni[k][2], d.lezioni[k][3]);
+                        fputs("]}", f);
+                    }
                     else
                         fprintf(f, ", \"docente\": %d, \"classe_docente\": %d, \"ore_rimaste\": %d, \"ore_possibili\": %d}",
                                 d.docente, d.classe_docente, d.ore_rimaste, d.ore_possibili);

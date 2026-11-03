@@ -282,20 +282,23 @@ void diagnosi_ramo_scartato(const int pos, const int motivo) {
     scartati_per_pos[pos][motivo]++;
     scartati[motivo]++;
     const int cla = orario[pos].classe;
-    ultimo_scarto[pos][motivo] = (stato_blocco_t){classe_info[cla].svolte, 0};
+    stato_blocco_t *u = &ultimo_scarto[pos][motivo];
+    u->ore_classe_fatte = classe_info[cla].svolte;
+    u->scelta[0] = orario[pos].insegnante1;
+    u->scelta[1] = orario[pos].insegnante2;
     dettaglio_ultimo_scarto[pos][motivo] = dettaglio_scarto;
 }
 
 long long int diagnosi_visite_nello_slot(const int pos) { return visite_per_pos[pos]; }
 
 stato_blocco_t diagnosi_ultima_marcia(const int pos) {
-    if (!marce_per_pos[pos]) return (stato_blocco_t){-1, 0};
+    if (!marce_per_pos[pos]) return (stato_blocco_t){.ore_classe_fatte = -1};
     return ultima_marcia[pos];
 }
 
 stato_blocco_t diagnosi_ultimo_scarto(const int pos, const int motivo, dettaglio_scarto_t *dettaglio) {
     *dettaglio = dettaglio_ultimo_scarto[pos][motivo];
-    if (!scartati_per_pos[pos][motivo]) return (stato_blocco_t){-1, 0};
+    if (!scartati_per_pos[pos][motivo]) return (stato_blocco_t){.ore_classe_fatte = -1};
     return ultimo_scarto[pos][motivo];
 }
 
@@ -307,7 +310,10 @@ void diagnosi_marcia_indietro(const teaching_slot *slot, const int pos, const in
     int con_ore = 0;
     for (int ii = base4d_queue; ii < queue_size; ii++)
         if (deve_ancora_svolgere_ore_in_questa_classe(slot->base2d_ci, queue_mul[ii]->teacher)) con_ore++;
-    ultima_marcia[pos] = (stato_blocco_t){classe_info[slot->classe].svolte, con_ore};
+    stato_blocco_t *u = &ultima_marcia[pos];
+    u->ore_classe_fatte = classe_info[slot->classe].svolte;
+    u->docenti_con_ore = con_ore;
+    u->n_docenti = 0;
     n_motivi_ultima_marcia = 0;
     if (!registra_motivi) return;
     for (int ii = base4d_queue; ii < queue_size; ii++) {
@@ -316,6 +322,12 @@ void diagnosi_marcia_indietro(const teaching_slot *slot, const int pos, const in
         const int m = motivo_di_scarto(slot, pos, p, base4d_queue, queue_size);
         motivi_per_pos[pos][m]++;
         motivi_per_docente[p][m]++;
+        if (u->n_docenti < MAX_DOCENTI_BLOCCO) {
+            int *d = u->docenti[u->n_docenti++];
+            d[0] = p;
+            d[1] = m;
+            d[2] = m == 0 ? classe_in_cui_insegna_adesso(slot, pos, p) : -1;
+        }
         docenti_per_pos[pos]++;
         if (n_motivi_ultima_marcia < INSEGNANTE_SZ) {
             motivi_ultima_marcia[n_motivi_ultima_marcia][0] = p;

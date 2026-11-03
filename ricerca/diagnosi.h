@@ -67,9 +67,16 @@ enum {
 };
 
 // Lo stato della ricerca all'ultimo blocco in uno slot (marcia indietro o ramo scartato), per la diagnosi nel JSON.
+#define MAX_DOCENTI_BLOCCO 40
+
 typedef struct {
     int ore_classe_fatte;   // ore della classe dello slot gia' in orario in quel momento
     int docenti_con_ore;    // marce indietro: docenti che avevano ancora ore da fare in quella classe
+    int scelta[2];          // rami scartati: docente e codocente (-1) messi nello slot, cioe' la scelta scartata
+    // marce indietro, con --motivi: ogni docente con ore nella classe, il suo motivo (vedi nome_motivo) e, se e' gia'
+    // in un'altra classe alla stessa ora, quale (altrimenti -1)
+    int n_docenti;
+    int docenti[MAX_DOCENTI_BLOCCO][3];
 } stato_blocco_t;
 
 long long int diagnosi_visite_nello_slot(int pos);

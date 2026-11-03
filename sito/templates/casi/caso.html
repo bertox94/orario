@@ -41,6 +41,8 @@
 
 {% if r.get('orario') %}
 <h2>Orario trovato</h2>
+<p class="tenue piccolo">Passando il mouse su una cella: la coda dei docenti in quel punto, in ordine di priorità, con chi è
+  stato scelto, chi era utilizzabile e perché gli altri no.</p>
 <div id="orario" class="scorre"></div>
 <h2>Orario per docente</h2>
 <p class="tenue piccolo">Una riga per ogni docente: dove insegna in ogni ora (con il codocente, se c'è).</p>
@@ -55,6 +57,7 @@
   solo per le marce indietro; i rami scartati hanno il motivo della verifica, nella tabella sotto.</p>
 <div id="mappa"></div>
 <h3>Slot con più blocchi</h3>
+<p class="tenue piccolo">Clicca una riga (o una cella colorata della mappa) per vedere cosa è successo in quello slot.</p>
 <div id="elenco-blocchi" class="scorre"></div>
 {% endif %}
 
@@ -101,10 +104,13 @@
 {% block script %}
 {% if r.get('dati') %}
 <script>
-const risultato = {{ {'dati': r.dati, 'orario': r.get('orario'), 'diagnosi': r.get('diagnosi'), 'dettagli': r.get('dettagli_slot')}|tojson }};
+const risultato = {{ {'dati': r.dati, 'orario': r.get('orario'), 'diagnosi': r.get('diagnosi'), 'dettagli': r.get('dettagli_slot'), 'ordine': r.get('ordine_classi')}|tojson }};
 if (risultato.orario) {
-  disegnaOrario(document.getElementById('orario'), risultato.dati, risultato.orario);
-  disegnaOrarioDocenti(document.getElementById('orario-docenti'), risultato.dati, risultato.orario);
+  // passando il mouse su una cella: la coda dei docenti in quel punto del percorso che ha portato all'orario
+  const codaOrario = risultato.ordine ? codaAlPassaggio(risultato.dati, {{ url_for('casi.analisi_slot', eid=e.id)|tojson }})(
+    {chiave: 'orario', orario: risultato.orario, ordine: risultato.ordine, limite: null}) : null;
+  disegnaOrario(document.getElementById('orario'), risultato.dati, risultato.orario, null, codaOrario);
+  disegnaOrarioDocenti(document.getElementById('orario-docenti'), risultato.dati, risultato.orario, codaOrario);
 }
 {% if 'orario.txt.gz' in file|map(attribute=0)|list and (e.marce or 0) > 0 %}sfogliaMarce(document.getElementById('marce'), risultato.dati, {{ url_for('casi.marce_indietro', eid=e.id)|tojson }}, {{ (r.get('diagnosi') or {}).get('nomi_motivi', [])|tojson }});{% endif %}
 if (risultato.diagnosi) elencoBlocchi(document.getElementById('elenco-blocchi'), risultato.dati, risultato.diagnosi, 10, risultato.dettagli);

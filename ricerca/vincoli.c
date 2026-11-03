@@ -172,6 +172,23 @@ static int lezioni_della_classe_bastano(const int giorno, const int ora, const i
             *ora_ko = k;
             *servono = da_riempire;
             *possibili = max_lezioni;
+            // per la diagnosi: il conto lezione per lezione e i limiti per giorno (solo quando la verifica fallisce)
+            dettaglio_scarto.n_lezioni = 0;
+            for (int i = 0; i < n && dettaglio_scarto.n_lezioni < MAX_DETTAGLIO_LEZIONI; i++) {
+                if (!rimaste[i]) continue;
+                const int o = ultima_oggi < ora ? 0 : MIN(cap_oggi[i], slot_tra_le_ore(&lez[i], ora, MIN(k, ultima_oggi)));
+                const int g = MIN(MAX_ORE_PROF_IN_UNA_CLASSE, slot_tra_le_ore(&lez[i], 0, k));
+                int *l = dettaglio_scarto.lezioni[dettaglio_scarto.n_lezioni++];
+                l[0] = lez[i].p;
+                l[1] = lez[i].q;
+                l[2] = rimaste[i];
+                l[3] = MIN(rimaste[i], o + giorni_dopo * g);
+            }
+            dettaglio_scarto.oggi = oggi;
+            dettaglio_scarto.slot_oggi = slot_oggi;
+            dettaglio_scarto.in_un_giorno = in_un_giorno;
+            dettaglio_scarto.slot_al_giorno = k + 1;
+            dettaglio_scarto.giorni_dopo = giorni_dopo;
             return 0;
         }
     }
