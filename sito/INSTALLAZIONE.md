@@ -217,7 +217,7 @@ Una prova in corso al momento del riavvio risulta "interrotta".
 6. **Capire dove si blocca**: nella pagina di un caso, «Slot con più marce indietro» mostra, per ogni slot, quante marce
    indietro e che percentuale del totale. Se la prova ha usato `-b` (fase 3 dei notturni, o la casella nel test in tempo
    reale) c'è anche «Orario a ogni marcia indietro»: si sfogliano le marce una per una (barra, ±1, ±100, ±1000, prima e
-   ultima) e per ognuna si vede l'orario parziale in quel momento, lo slot bloccato (✕) e il punto della sequenza in percentuale.
+   ultima) e per ognuna si vede l'orario parziale in quel momento, lo slot bloccato (✕), il punto della sequenza in percentuale e, con i motivi attivi (casella «Motivi degli scarti»), per ogni docente con ore da fare in quella classe il problema per cui non si può andare avanti.
 7. **Casi dei test notturni da verificare**: in «Test in tempo reale» sotto il modulo c'è l'elenco degli ultimi casi non
    risolti dei notturni; «Verifica» li carica nel modulo (stessi dati e opzioni, anche per i dati della scuola) per rifarli
    a mano con altri parametri, tempo o ordine delle classi. Lo stesso pulsante «Verifica a mano» c'è nella pagina di ogni prova notturna.

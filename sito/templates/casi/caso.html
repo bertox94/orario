@@ -57,8 +57,8 @@
 
 {% if 'orario.txt.gz' in file|map(attribute=0)|list %}
 <h2>Orario a ogni marcia indietro</h2>
-<p class="tenue piccolo">Le marce indietro registrate con -b: per ognuna l'orario parziale in quel momento e lo slot (✕) dove nessun docente
-  era utilizzabile. Sfoglia con i pulsanti o la barra: si vede come la ricerca avanza e torna indietro.</p>
+<p class="tenue piccolo">Le marce indietro registrate con -b: per ognuna l'orario parziale in quel momento, lo slot (✕) dove nessun docente
+  era utilizzabile e, se la prova ha i motivi attivi, perché ogni docente non andava bene. Sfoglia con i pulsanti o la barra: si vede come la ricerca avanza e torna indietro.</p>
 <div id="marce"></div>
 {% endif %}
 
@@ -96,7 +96,7 @@ if (risultato.orario) {
   disegnaOrario(document.getElementById('orario'), risultato.dati, risultato.orario);
   disegnaOrarioDocenti(document.getElementById('orario-docenti'), risultato.dati, risultato.orario);
 }
-{% if 'orario.txt.gz' in file|map(attribute=0)|list %}sfogliaMarce(document.getElementById('marce'), risultato.dati, {{ url_for('casi.marce_indietro', eid=e.id)|tojson }});{% endif %}
+{% if 'orario.txt.gz' in file|map(attribute=0)|list %}sfogliaMarce(document.getElementById('marce'), risultato.dati, {{ url_for('casi.marce_indietro', eid=e.id)|tojson }}, {{ (r.get('diagnosi') or {}).get('nomi_motivi', [])|tojson }});{% endif %}
 if (risultato.diagnosi) elencoBlocchi(document.getElementById('elenco-blocchi'), risultato.dati, (g, o, c) => risultato.diagnosi.marce[g][o][c], 10);
 if (risultato.diagnosi) disegnaMappa(document.getElementById('mappa'), risultato.dati, blocchiDaRisultato(risultato.diagnosi), 'marce indietro + rami scartati');
 </script>

@@ -38,12 +38,18 @@ def righe(url, eid):
 def marcia(url, eid, n, nomi_classi):
     """La n-esima marcia indietro (da 1; n oltre la fine = l'ultima). Ritorna un dizionario con:
         n, pos (lo slot dove non c'era nessun docente utilizzabile), blocco [g, o, c], orario [g][o][c] = [docente,
-        codocente] con -1 negli slot non assegnati, e, se si e' arrivati alla fine del file, ultima = True."""
+        codocente] con -1 negli slot non assegnati, motivi = [[docente, motivo]] (solo se la prova ha usato --motivi)."""
     giorni = ore = classi = 0
     ordine = []  # k-esima classe dell'ordine della ricerca -> indice nei dati del sito
     slot = []
     pos = visti = 0
+    motivi = None  # con --motivi: [docente, motivo] della marcia indietro in esame (None = non registrati)
+    completa = False
     for r in righe(url, eid):
+        if completa:  # la riga M che segue la marcia scelta
+            if r.startswith('M'):
+                motivi = [[int(x) for x in t.split(':')] for t in r.split()[1:] if ':' in t]
+            break
         if r.startswith('G '):
             _, giorni, ore, classi = r.split()[:4]
             giorni, ore, classi = int(giorni), int(ore), int(classi)
@@ -64,7 +70,7 @@ def marcia(url, eid, n, nomi_classi):
             pos = p
             visti += 1
             if visti == n:
-                break
+                completa = True
     if not visti or not classi:
         return None
     griglia = [[[[-1, -1] for _ in range(classi)] for _ in range(ore)] for _ in range(giorni)]
@@ -77,7 +83,7 @@ def marcia(url, eid, n, nomi_classi):
         griglia[g][o][ordine[k]] = [int(a), int(b) if b else -1]
     g, resto = divmod(pos, ore * classi) if pos < giorni * ore * classi else (giorni - 1, ore * classi - 1)
     o, k = divmod(resto, classi)
-    return {'n': visti, 'pos': pos, 'slot': giorni * ore * classi, 'blocco': [g, o, ordine[k]], 'orario': griglia}
+    return {'n': visti, 'pos': pos, 'slot': giorni * ore * classi, 'blocco': [g, o, ordine[k]], 'orario': griglia, 'motivi': motivi}
 
 
 def totale(url, eid, definitivo):

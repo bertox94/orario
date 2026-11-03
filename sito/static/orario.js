@@ -143,11 +143,12 @@ function elencoBlocchi(contenitore, dati, valore, quanti) {
 }
 
 // Sfoglia le marce indietro registrate con -b: l'orario parziale a ogni marcia, con lo slot dove si e' bloccata.
-function sfogliaMarce(contenitore, dati, url) {
+function sfogliaMarce(contenitore, dati, url, nomiMotivi) {
   const barra = el('input', {type: 'range', min: 1, max: 1, value: 1, style: 'width: 100%'});
   const numero = el('input', {type: 'number', min: 1, value: 1, class: 'stretto'});
   const stato = el('div', {class: 'tenue piccolo'});
   const griglia = el('div', {class: 'scorre'});
+  const motivi = el('div', {});
   let totale = null, n = 1, richiesta = 0;
   const bottone = (testo, delta) => el('button', {class: 'secondario', type: 'button', testo, onclick: () => vai(n + delta)});
   async function vai(nuovo) {
@@ -157,18 +158,27 @@ function sfogliaMarce(contenitore, dati, url) {
     stato.textContent = 'Carico la marcia ' + n + '...';
     const r = await (await fetch(`${url}?n=${n}`)).json();
     if (mia !== richiesta) return;
-    if (r.errore) { stato.textContent = r.errore; griglia.replaceChildren(); return; }
+    if (r.errore) { stato.textContent = r.errore; griglia.replaceChildren(); motivi.replaceChildren(); return; }
     n = r.n; barra.value = numero.value = n;
     const dove = `${dati.giorni[r.blocco[0]]} ${dati.ore[r.blocco[1]]} ${dati.classi[r.blocco[2]].nome}`;
     stato.textContent = `Marcia ${numeroIt(n)}` + (totale ? ` di ${numeroIt(totale)} (${(100 * n / totale).toLocaleString('it-IT', {maximumFractionDigits: 2})}%)` : '') +
       ` · nello slot ${r.pos} di ${r.slot}: nessun docente utilizzabile in ${dove} (✕)`;
     disegnaOrario(griglia, dati, r.orario, r.blocco);
+    // perche' non si puo' andare avanti: ogni docente con ore da fare in quella classe e il suo ostacolo
+    if (!r.motivi || !r.motivi.length) {
+      motivi.replaceChildren(el('p', {class: 'tenue piccolo', testo: r.motivi ? 'Nessun docente aveva ancora ore da fare in questa classe.' : ''}));
+    } else {
+      const per = {};
+      r.motivi.forEach(([p, m]) => (per[m] = per[m] || []).push(dati.docenti[p].nome));
+      motivi.replaceChildren(el('h3', {testo: `Perché non si può andare avanti in ${dove}`}), el('ul', {}, Object.entries(per).map(([m, nomi]) =>
+        el('li', {}, [el('strong', {testo: nomiMotivi[m] + ': '}), el('span', {testo: nomi.join(', ')})]))));
+    }
   }
   barra.addEventListener('change', () => vai(+barra.value));
   numero.addEventListener('change', () => vai(+numero.value));
   contenitore.replaceChildren(el('div', {style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center'}, [
     bottone('⏮', -1e12), bottone('−1000', -1000), bottone('−100', -100), bottone('−1', -1), numero,
-    bottone('+1', 1), bottone('+100', 100), bottone('+1000', 1000), bottone('⏭', 1e12)]), barra, stato, griglia);
+    bottone('+1', 1), bottone('+100', 100), bottone('+1000', 1000), bottone('⏭', 1e12)]), barra, stato, motivi, griglia);
   fetch(url + '?totale=1').then(r => r.json()).then(t => {
     totale = t.totale; barra.max = totale; vai(n);
   });
