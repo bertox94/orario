@@ -516,7 +516,7 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
       : r.pos >= r.slot ? 'orario completo'
       : `la ricerca sta decidendo ${dati.giorni[r.blocco[0]]} ${dati.ore[r.blocco[1]]} ${dati.classi[r.blocco[2]].nome} (✕)`;
     stato.textContent = `Passo ${numeroIt(n)}${di()} · ${numeroIt(r.pos)} slot su ${numeroIt(r.slot)} assegnati; ${dove}`
-      + (scarto ? ` · ✂ RAMO SCARTATO: con questa scelta ${r.motivoScarto === 1 ? 'i docenti non avrebbero più ore sufficienti per finire' : 'la classe non potrebbe più completare le sue lezioni'}, la ricerca torna indietro subito`
+      + (scarto ? ` · ✂ RAMO SCARTATO: con questa scelta ${r.motivoScarto === 1 ? 'i docenti non avrebbero più ore sufficienti per finire' : r.motivoScarto === 0 ? 'la classe non potrebbe più completare le sue lezioni' : 'la ricerca non può più finire l\'orario (il motivo non è registrato in questa prova)'}, la ricerca torna indietro subito`
         : !r.bloccato ? '' : r.esito === 'vuoto' ? ' · ⚠ NESSUN DOCENTE UTILIZZABILE: lo slot resta vuoto (ora buca) e la ricerca prosegue'
         : r.esito === 'indietro' ? ' · ⚠ VICOLO CIECO: nessun docente utilizzabile e lo slot non può restare vuoto, la ricerca torna indietro'
         : ' · ⚠ NESSUN DOCENTE UTILIZZABILE: com\'è andata dopo non è registrato');
@@ -588,7 +588,7 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
     const scarto = codice >= 4;
     const k = scarto ? pos - 1 : Math.min(pos, G * O * C - 1);
     const blocco = [Math.floor(k / (O * C)), Math.floor(k / C) % O, anim.ordine[k % C]];
-    const r = {n, pos, slot: G * O * C, blocco, bloccato: codice > 0 && !scarto, motivoScarto: scarto ? codice - 4 : null,
+    const r = {n, pos, slot: G * O * C, blocco, bloccato: codice > 0 && !scarto, motivoScarto: scarto ? (codice === 6 ? -1 : codice - 4) : null,
       esito: scarto ? 'scarto' : codice === 1 ? 'vuoto' : codice === 2 ? 'indietro' : null};
     scriviStato(r);
     disegnaOrario(griglia, dati, orario, completo && !scarto ? null : blocco, null, passaggi);

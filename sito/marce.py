@@ -74,6 +74,14 @@ def marcia(url, eid, n, nomi_classi, lettera='B'):
                     scarto = int(r.split()[1])
                 except (ValueError, IndexError):
                     scarto = -1
+            elif not bloccato and r.startswith('P ') and pos < giorni * ore * classi:
+                # senza riga S (prova fatta con un solver piu' vecchio): un nodo che non ha ne' figli ne' riga B e' stato
+                # scartato dalla potatura (il motivo non c'e')
+                try:
+                    if int(r.split()[1]) <= pos:
+                        scarto = -1
+                except (ValueError, IndexError):
+                    pass
             break
         if r.startswith('G '):
             _, giorni, ore, classi = r.split()[:4]
@@ -164,12 +172,21 @@ def blocco_passi(url, eid, da, k, nomi_classi):
                  gli altri come nel passo prima); codice 0 normale, 1 nessun docente utilizzabile e slot lasciato vuoto,
                  2 nessun docente utilizzabile e ricerca tornata indietro (vicolo cieco), 3 nessun docente utilizzabile,
                  esito non registrato, 4 e 5 ramo scartato dalla potatura (4 + il motivo: 0 lezioni della classe, 1 ore
-                 dei docenti): la ricerca e' tornata indietro subito
+                 dei docenti), 6 ramo scartato di cui non si sa il motivo (file senza le righe S): la ricerca e' tornata
+                 indietro subito
         finito   True se dopo questi non ce ne sono altri."""
     da, k = max(1, da), max(1, min(k, MAX_BLOCCO))
     ordine, slot, conta = [], [], {}
     n, iniziale, passi, pendente, dopo_p, finito = 0, None, [], None, False, True
+    totale_slot = 0
     for r in righe(url, eid):
+        if r.startswith('G '):
+            try:
+                g, o, c = (int(x) for x in r.split()[1:4])
+                totale_slot = g * o * c
+            except ValueError:
+                pass
+            continue
         if r.startswith('K '):
             ordine = [nomi_classi.index(x) if x in nomi_classi else i for i, x in enumerate(r.split()[1:])]
             dopo_p = False
@@ -198,6 +215,8 @@ def blocco_passi(url, eid, da, k, nomi_classi):
                 e = _esito_dopo_blocco(passi[pendente][0], r)
                 passi[pendente][3] = 1 if e == 'vuoto' else 2 if e == 'indietro' else 3
                 pendente = None
+            if dopo_p and passi and n >= da and p <= passi[-1][0] < totale_slot:
+                passi[-1][3] = 6  # senza riga S (solver piu' vecchio): nodo senza figli ne' riga B = ramo scartato, motivo ignoto
             if len(passi) >= k:
                 finito = False
                 break
@@ -235,9 +254,27 @@ def vicoli(url, eid, definitivo):
     Al massimo MAX_VICOLI."""
     if eid in _vicoli:
         return _vicoli[eid]
-    n, ultimo, in_attesa, elenco, troncato = 0, None, None, [], False
+    n, ultimo, in_attesa, elenco, troncato, totale_slot = 0, None, None, [], False, 0
     for r in righe(url, eid):
+        if r.startswith('G '):
+            try:
+                g, o, c = (int(x) for x in r.split()[1:4])
+                totale_slot = g * o * c
+            except ValueError:
+                pass
+            continue
         if r.startswith('P '):
+            try:
+                pos_qui = int(r.split()[1])
+            except (ValueError, IndexError):
+                pos_qui = None
+            if ultimo is not None and pos_qui is not None and pos_qui <= int(ultimo) < totale_slot:
+                # senza riga S (solver piu' vecchio): il passo di prima non ha figli ne' riga B = ramo scartato, motivo ignoto
+                if len(elenco) < MAX_VICOLI:
+                    elenco.append([n, 'scarto', -1])
+                else:
+                    troncato = True
+                    break
             if in_attesa:  # il passo dopo un blocco: dice com'e' andata
                 elenco.append([in_attesa[0], _esito_dopo_blocco(in_attesa[1], r), None])
                 in_attesa = None
