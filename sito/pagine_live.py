@@ -46,7 +46,7 @@ def indice():
         where esito not in ('trovato', 'nessuna soluzione', 'impossibile', 'verifica superata')
         order by prova_id desc, id limit 40''', (g.scuola['id'],)).fetchall()
     return render_template('live/indice.html', prove=prove, n_classi=n_classi, dati=dati, non_risolti=non_risolti, rilancio=rilancio,
-                           scuola=bool(request.args.get('scuola')), modificati=bool(request.args.get('modificati')))
+                           preseleziona_scuola=bool(request.args.get("scuola")), modificati=bool(request.args.get('modificati')))
 
 
 @bp.route('/avvia', methods=['POST'])

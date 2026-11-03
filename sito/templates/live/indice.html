@@ -9,13 +9,13 @@
   <h2 style="margin-top: 0">Caso</h2>
   <div class="riga" style="display: flex; flex-wrap: wrap; gap: 16px; align-items: end;">
     <label class="spunta"><input type="radio" name="sorgente" value="scuola"
-      {{ 'checked' if scuola }} {{ 'disabled' if not n_classi }}>
+      {{ 'checked' if preseleziona_scuola }} {{ 'disabled' if not n_classi }}>
       Dati della scuola {% if not n_classi %}<span class="tenue">(non ancora inseriti)</span>{% endif %}</label>
     <label class="spunta"><input type="radio" name="sorgente" value="modificati"
       {{ 'checked' if modificati }} {{ 'disabled' if not n_classi }}>
       Dati della scuola, modificati per questa prova</label>
     <label class="spunta"><input type="radio" name="sorgente" value="casuale"
-      {{ 'checked' if not scuola and not modificati and c.get('tipo', 'casuale') == 'casuale' }}> Dati casuali</label>
+      {{ 'checked' if not preseleziona_scuola and not modificati and c.get('tipo', 'casuale') == 'casuale' }}> Dati casuali</label>
     {% if c.get('tipo') == 'input' %}
     <label class="spunta"><input type="radio" name="sorgente" value="esecuzione" checked> {{ c.nome }}</label>
     <input type="hidden" name="eid" value="{{ rilancio.id }}"><input type="hidden" name="nome" value="{{ c.nome }}">
