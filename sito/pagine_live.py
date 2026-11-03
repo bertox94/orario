@@ -1,9 +1,7 @@
 """Sezione "Test in tempo reale": un caso lanciato subito, seguito mentre gira (progresso e mappa dei blocchi)."""
-import os
-
 from flask import Blueprint, current_app, flash, g, jsonify, redirect, render_template, request, url_for
 
-from . import accesso, esecutore
+from . import esecutore, modello
 from .db import conn
 
 bp = Blueprint('live', __name__, url_prefix='/live')
@@ -34,28 +32,40 @@ def indice():
     n_classi = conn().execute('select count(*) as n from classi where scuola_id = %s', (g.scuola['id'],)).fetchone()['n']
     rilancio = None
     if request.args.get('rilancia'):
-        e = conn().execute('select e.caso_dati, e.opzioni from esecuzioni e join prove p on p.id = e.prova_id '
+        e = conn().execute('select e.id, e.caso_dati, e.opzioni from esecuzioni e join prove p on p.id = e.prova_id '
                            'where e.id = %s and p.scuola_id = %s', (request.args['rilancia'], g.scuola['id'])).fetchone()
         rilancio = e
-    return render_template('live/indice.html', prove=prove, n_classi=n_classi, rilancio=rilancio,
-                           scuola=bool(request.args.get('scuola')))
+    dati = modello.leggi(conn(), g.scuola['id']) if n_classi else None
+    return render_template('live/indice.html', prove=prove, n_classi=n_classi, dati=dati, rilancio=rilancio,
+                           scuola=bool(request.args.get('scuola')), modificati=bool(request.args.get('modificati')))
 
 
 @bp.route('/avvia', methods=['POST'])
 def avvia():
     f = request.form
+    dati_input = None
     if f.get('sorgente') == 'scuola':
         caso = {'tipo': 'scuola'}
-    elif f.get('sorgente') == 'file':
-        # solo file delle prove del sito (per esempio il risultato.json di un caso da rifare identico)
-        file = os.path.realpath(f.get('file', ''))
-        radice = os.path.realpath(_config().cartella_prove) + os.sep
-        # solo file delle prove di questa scuola: la cartella di una prova si chiama come il suo id
-        prima = file[len(radice):].split(os.sep)[0] if file.startswith(radice) else ''
-        if not prima.isdigit() or not accesso.prova_della_scuola(int(prima), g.scuola['id']) or not os.path.exists(file):
-            flash('File del caso non trovato.', 'errore')
+    elif f.get('sorgente') == 'modificati':
+        # test manuale: i dati della scuola con le modifiche del modulo (ore di ingresso, ore, codocenze), senza
+        # cambiare i dati veri
+        dati, errori = modello.con_modifiche(modello.leggi(conn(), g.scuola['id']), f)
+        if errori or not dati['lezioni']:
+            for e in errori or ['Nessuna lezione: non c\'e\' niente da provare.']:
+                flash(e, 'errore')
+            return redirect(url_for('.indice', modificati=1))
+        caso = {'tipo': 'input', 'nome': 'dati modificati'}
+        dati_input = modello.per_solver(dati)
+    elif f.get('sorgente') == 'esecuzione':
+        # rifa' una ricerca con gli stessi dati (e lo stesso ordine) di un'esecuzione di questa scuola
+        vecchia = conn().execute('select e.risultato from esecuzioni e join prove p on p.id = e.prova_id '
+                                 'where e.id = %s and p.scuola_id = %s',
+                                 (_intero('eid', 0), g.scuola['id'])).fetchone()
+        if not vecchia or not (vecchia['risultato'] or {}).get('dati'):
+            flash('Dati del caso non trovati.', 'errore')
             return redirect(url_for('.indice'))
-        caso = {'tipo': 'input', 'file': file, 'nome': f.get('nome') or 'caso riletto'}
+        caso = {'tipo': 'input', 'nome': f.get('nome') or 'caso riletto'}
+        dati_input = {'dati': vecchia['risultato']['dati']}
     else:
         caso = {'tipo': 'casuale', 'seme': _intero('seme', 1, 0), 'classi': _intero('classi', 8, 1, 120),
                 'ritardi': bool(f.get('ritardi'))}
@@ -71,7 +81,7 @@ def avvia():
         opzioni['ordine_classi'] = _intero('ordine_classi', 0, 0)
     if opzioni['tempo'] == 0:
         opzioni.pop('tempo')  # senza limite: si ferma col pulsante
-    pid, eid = esecutore.avvia_live(_config(), g.scuola['id'], caso, opzioni)
+    pid, eid = esecutore.avvia_live(_config(), g.scuola['id'], caso, opzioni, dati_input, caso.get('nome'))
     if eid is None:
         flash('La prova non e\' partita: guarda il messaggio nella pagina della prova.', 'errore')
     return redirect(url_for('.prova', pid=pid))
@@ -92,14 +102,14 @@ def prova(pid):
 def stato(pid):
     """Per la pagina della prova (interrogata ogni secondo): progresso, e la fine."""
     p = conn().execute('select stato, messaggio from prove where id = %s', (pid,)).fetchone()
-    e = conn().execute('select id, esito, cartella from esecuzioni where prova_id = %s order by id desc limit 1',
+    e = conn().execute('select id, esito from esecuzioni where prova_id = %s order by id desc limit 1',
                        (pid,)).fetchone()
     r = {'stato': p['stato'] if p else None, 'messaggio': p['messaggio'] if p else None}
     if e:
         r.update({'eid': e['id'], 'esito': e['esito'], 'in_corso': esecutore.in_corso(e['id']),
                   'progresso': esecutore.progresso(e['id'])})
         if request.args.get('con_dati'):
-            r['dati'] = esecutore.vista(e['cartella'])
+            r['dati'] = esecutore.vista(conn(), pid)
     return jsonify(r)
 
 

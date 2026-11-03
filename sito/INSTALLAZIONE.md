@@ -88,7 +88,8 @@ Scrive «Collegato a Postgres 18.x» oppure il motivo per cui non ci riesce (hos
 ## Sul Raspberry Pi 5
 
 Raspberry Pi OS a 64 bit. Consigliati: ventola attiva (le prove notturne tengono i processori al massimo per ore) e,
-se si usa `-b` nei test notturni, un SSD per la cartella dei dati del sito.
+almeno 4 GB di RAM (le prove lavorano in RAM, vedi sotto). La SD non si consuma: tutti i risultati stanno
+nel database sul Mac.
 
 ### 1. Programmi
 
@@ -116,7 +117,6 @@ Creare `/etc/orario-sito.env` (indirizzo del Mac e password della sezione sopra)
 
 ```
 DATABASE_URL=postgresql://orario:PASSWORD_DEL_DATABASE@nome-del-mac.local:5432/orario
-SITO_DATI=/home/UTENTE/orario-dati
 SITO_PARALLELI=3
 SITO_SPAZIO_MB=20480
 ```
@@ -128,9 +128,10 @@ scegliere una password di sole lettere e cifre. Poi renderlo leggibile solo dall
 sudo chmod 600 /etc/orario-sito.env
 ```
 
-- `SITO_DATI`: dove vanno eseguibili, risultati delle prove e password del sito. Se c'è un SSD, metterla lì.
+- `SITO_LAVORO` (facoltativa): cartella temporanea per il solver compilato e per i file di una prova mentre gira.
+  Default `/dev/shm/orario-sito`, cioè in RAM: sulla SD non si scrive nulla. Si svuota da sola a ogni riavvio.
 - `SITO_PARALLELI`: casi in parallelo nei test notturni (il Pi 5 ha 4 processori: 3 lascia libero il sito).
-- `SITO_SPAZIO_MB`: spazio massimo per le marce indietro di una prova notturna (comunque non oltre il 90% del libero).
+- `SITO_SPAZIO_MB`: spazio massimo, **nel database sul Mac**, per le marce indietro di una prova notturna.
 
 ### 5. Primo utente
 
@@ -143,6 +144,21 @@ utenti: ogni docente ha il suo nome e la sua password e vede solo le scuole che 
 tutte. Chi ha una sola scuola va dritto ai suoi dati, gli altri la scelgono dopo l'accesso. Dati, prove e versioni
 salvate sono separati per scuola. Con il sito già in uso con la vecchia password unica, al primo avvio quella password
 diventa l'utente `admin` e i dati finiscono nella «Scuola» 1.
+
+### 5b. Niente scritture sulla SD
+
+Il sito non scrive file sul Pi: la chiave dei cookie, i dati, le prove, le marce indietro compresse e le uscite del
+solver vanno in Postgres; il solver lavora in RAM (`/dev/shm`). Per ridurre al minimo anche i log di sistema:
+
+```bash
+sudo mkdir -p /etc/systemd/journald.conf.d
+printf '[Journal]\nStorage=volatile\nRuntimeMaxUse=50M\n' | sudo tee /etc/systemd/journald.conf.d/ram.conf
+sudo systemctl restart systemd-journald
+```
+
+(i log restano fino allo spegnimento). Per le cartelle `/tmp` e `/var/log` in RAM si può aggiungere `tmpfs` in `/etc/fstab`.
+Compromesso: se il Mac è spento il sito non funziona (mostra la pagina «database non raggiungibile»), e ogni riavvio del
+Pi ricompila il solver (pochi secondi).
 
 ### 6. Servizio
 
@@ -174,4 +190,29 @@ Una prova in corso al momento del riavvio risulta "interrotta".
   e si ferma da solo quando supera lo spazio assegnato (`--max-mb`), scrivendo comunque diagnosi e risultati.
 - "Rifai identico dal JSON" rilancia un caso con esattamente gli stessi dati e lo stesso ordine della coda dei docenti:
   la ricerca è identica.
-- Le prove vecchie si cancellano dalla loro pagina (con i loro file).
+- Le prove vecchie si cancellano dalla loro pagina (con i loro file nel database). Le marce indietro (`-b`) occupano
+  spazio sul Mac: si cancellano le prove che non servono più.
+- Il database cresce con le prove: controllare ogni tanto lo spazio del Mac (la pagina «Test notturni» mostra la
+  dimensione del database).
+
+## Come si usa il test manuale (Test in tempo reale)
+
+1. **Dati della scuola**: inserire calendario, classi, docenti (con l'ora di ingresso) e lezioni (ore, codocente, ore in
+   coppia). La pagina mostra gli avvisi sui limiti evidenti.
+2. **Test in tempo reale**, scegliere il caso:
+   - *Dati della scuola*: i dati veri così come sono;
+   - *Dati della scuola, modificati per questa prova*: si apre «Dati modificabili per la prova». Si possono cambiare
+     l'**ora di ingresso di ogni docente**, le **ore di ogni lezione**, il **codocente** e le **ore in coppia**, e togliere
+     lezioni. I **totali** di ogni classe e di ogni docente si aggiornano subito, con l'avviso se una classe ha meno
+     ore delle obbligatorie o più degli slot, o se un docente ha più ore di quante ne può fare dalla sua ora di ingresso.
+     I dati veri non cambiano; la prova conserva la propria copia e la si può rifare identica;
+   - *Dati casuali*: seme, numero di classi, docenti in ritardo.
+3. **Ricerca**: tempo massimo, quanti orari trovare, ordine delle classi, motivi degli scarti, marce indietro (`-b`, con
+   lo spazio massimo in MB, che finisce nel database).
+4. **Parametri della ricerca**: ore obbligatorie al giorno (5), ore massime di un docente nella stessa classe al giorno (3),
+   classi diverse per docente al giorno (3).
+5. **Avvia**: la pagina mostra progresso e mappa dei blocchi; alla fine si apre il caso con esito, diagnosi, orario
+   (anche per docente) e file da scaricare (dati, uscita, orari, marce indietro `.gz`, JSON). «Rifai identico» ripete
+   esattamente la stessa ricerca; «Rilancia in tempo reale» riporta le opzioni nel modulo.
+6. **Test notturni**: batterie di casi (casuali e/o dati della scuola) in tre fasi, subito, a un'ora o ogni settimana;
+   si confrontano due prove tra loro.

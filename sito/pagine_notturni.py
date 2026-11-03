@@ -4,7 +4,7 @@ import json
 
 from flask import Blueprint, current_app, flash, g, redirect, render_template, request, url_for
 
-from . import esecutore, solver
+from . import esecutore
 from .db import conn
 
 bp = Blueprint('notturni', __name__, url_prefix='/notturni')
@@ -71,7 +71,7 @@ def indice():
     pianificazioni = c.execute('select * from pianificazioni where scuola_id = %s order by ora, id', (_sid(),)).fetchall()
     stasera = datetime.datetime.now().replace(hour=22, minute=0, second=0, microsecond=0)
     return render_template('notturni/indice.html', prove=prove, conteggi=conteggi, pianificazioni=pianificazioni,
-                           libero_gb=solver.spazio_libero_mb(_config().dati) / 1024, config=_config(),
+                           usato_gb=c.execute('select pg_database_size(current_database()) as b').fetchone()['b'] / 2 ** 30, config=_config(),
                            predefinita=stasera.strftime('%Y-%m-%dT%H:%M'),
                            n_classi=c.execute('select count(*) as n from classi where scuola_id = %s', (_sid(),)).fetchone()['n'])
 

@@ -10,6 +10,7 @@ Wants=network-online.target
 User=UTENTE
 WorkingDirectory=/home/UTENTE/orario
 EnvironmentFile=/etc/orario-sito.env
+# file di lavoro in RAM (nessuna scrittura sulla SD); in /dev/shm puo' scrivere ogni utente
 ExecStart=/home/UTENTE/orario-venv/bin/python -m sito avvia --host 0.0.0.0 --porta 8000
 # il database e' sul Mac: se il sito parte prima che il Mac sia raggiungibile esce con un messaggio e riprova
 Restart=always

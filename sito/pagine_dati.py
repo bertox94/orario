@@ -49,8 +49,8 @@ def _verifica(dati_solver=None, caso=None):
     """Esegue il solver con --solo-verifica sui dati (formato solver) o su un caso. Ritorna il risultato."""
     cfg = _config()
     exe = solver.compila(cartella_bin=cfg.cartella_bin)
-    os.makedirs(cfg.dati, exist_ok=True)
-    cartella = tempfile.mkdtemp(prefix='verifica-', dir=cfg.dati)
+    os.makedirs(cfg.lavoro, exist_ok=True)
+    cartella = tempfile.mkdtemp(prefix='verifica-', dir=cfg.lavoro)
     try:
         if caso is None:
             file = os.path.join(cartella, 'dati.json')

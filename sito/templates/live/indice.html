@@ -11,11 +11,14 @@
     <label class="spunta"><input type="radio" name="sorgente" value="scuola"
       {{ 'checked' if scuola or c.get('tipo') == 'input' and c.get('nome') == 'dati della scuola' }} {{ 'disabled' if not n_classi }}>
       Dati della scuola {% if not n_classi %}<span class="tenue">(non ancora inseriti)</span>{% endif %}</label>
+    <label class="spunta"><input type="radio" name="sorgente" value="modificati"
+      {{ 'checked' if modificati }} {{ 'disabled' if not n_classi }}>
+      Dati della scuola, modificati per questa prova</label>
     <label class="spunta"><input type="radio" name="sorgente" value="casuale"
-      {{ 'checked' if not scuola and c.get('tipo', 'casuale') == 'casuale' }}> Dati casuali</label>
+      {{ 'checked' if not scuola and not modificati and c.get('tipo', 'casuale') == 'casuale' }}> Dati casuali</label>
     {% if c.get('tipo') == 'input' and c.get('nome') != 'dati della scuola' %}
-    <label class="spunta"><input type="radio" name="sorgente" value="file" checked> {{ c.nome }}</label>
-    <input type="hidden" name="file" value="{{ c.file }}"><input type="hidden" name="nome" value="{{ c.nome }}">
+    <label class="spunta"><input type="radio" name="sorgente" value="esecuzione" checked> {{ c.nome }}</label>
+    <input type="hidden" name="eid" value="{{ rilancio.id }}"><input type="hidden" name="nome" value="{{ c.nome }}">
     {% endif %}
   </div>
   <div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; align-items: end;">
@@ -23,6 +26,38 @@
     <label>Classi <input type="number" name="classi" min="1" max="120" value="{{ c.get('classi', 8) }}"></label>
     <label class="spunta"><input type="checkbox" name="ritardi" value="1" {{ 'checked' if c.get('ritardi') }}> Docenti in ritardo</label>
   </div>
+
+  {% if dati %}
+  <details id="modifiche" {{ 'open' if modificati }}>
+    <summary><strong>Dati modificabili per la prova</strong> (si usano scegliendo «modificati»; i dati veri della scuola non cambiano)</summary>
+    <p class="tenue piccolo">Cambia le ore di ingresso dei docenti, le ore delle lezioni, i codocenti e le ore in coppia.
+      I totali si aggiornano subito: una classe deve avere almeno {{ 5 * dati.giorni|length }} ore ({{ 5 }} ore x {{ dati.giorni|length }} giorni)
+      e al massimo {{ dati.giorni|length * dati.ore|length }}; un docente non può averne più di quelle che gli lasciano le ore di ingresso.</p>
+    <h3>Docenti</h3>
+    <div class="scorre"><table class="dati" id="t-docenti" data-giorni="{{ dati.giorni|length }}" data-ore="{{ dati.ore|length }}">
+      <thead><tr><th>Docente</th><th>Entra dalle</th><th class="num">Ore totali</th><th>Controllo</th></tr></thead>
+      <tbody>{% for d in dati.docenti %}
+        <tr data-id="{{ d.id }}"><td>{{ d.nome }}</td>
+          <td><select name="ing_{{ d.id }}" aria-label="Entra dalle">{% for o in dati.ore %}<option value="{{ loop.index0 }}" {{ 'selected' if loop.index0 == d.ingresso }}>{{ o }}</option>{% endfor %}</select></td>
+          <td class="num somma"></td><td class="piccolo avviso"></td></tr>
+      {% endfor %}</tbody></table></div>
+    <h3>Lezioni</h3>
+    <div class="scorre"><table class="dati" id="t-lezioni">
+      <thead><tr><th>Classe</th><th>Docente</th><th>Ore</th><th>Codocente</th><th>Ore in coppia</th><th>Togli</th></tr></thead>
+      <tbody>{% for l in dati.lezioni %}
+        <tr data-classe="{{ l.classe_id }}" data-docente="{{ l.docente_id }}">
+          <td>{{ l.classe }}</td><td>{{ l.docente }}</td>
+          <td><input type="number" name="ore_{{ l.id }}" min="1" max="60" value="{{ l.ore }}" class="stretto"></td>
+          <td><select name="cod_{{ l.id }}"><option value="">-</option>{% for d in dati.docenti if d.id != l.docente_id %}<option value="{{ d.id }}" {{ 'selected' if d.id == l.codocente_id }}>{{ d.nome }}</option>{% endfor %}</select></td>
+          <td><input type="number" name="oc_{{ l.id }}" min="1" max="60" value="{{ l.ore_codocente or '' }}" class="stretto"></td>
+          <td><input type="checkbox" name="x_{{ l.id }}" value="1"></td></tr>
+      {% endfor %}</tbody></table></div>
+    <h3>Classi</h3>
+    <div class="scorre"><table class="dati" id="t-classi" data-minimo="{{ 5 * dati.giorni|length }}" data-massimo="{{ dati.giorni|length * dati.ore|length }}">
+      <thead><tr><th>Classe</th><th class="num">Ore totali</th><th>Controllo</th></tr></thead>
+      <tbody>{% for cl in dati.classi %}<tr data-id="{{ cl.id }}"><td>{{ cl.nome }}</td><td class="num somma"></td><td class="piccolo avviso"></td></tr>{% endfor %}</tbody></table></div>
+  </details>
+  {% endif %}
 
   <h2>Ricerca</h2>
   <div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
@@ -70,3 +105,4 @@
 </table>
 </div>
 {% endblock %}
+{% block script %}<script src="{{ url_for('static', filename='test_manuale.js') }}"></script>{% endblock %}

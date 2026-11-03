@@ -41,6 +41,44 @@ def per_solver(dati):
             'lezioni': lezioni}
 
 
+def con_modifiche(dati, form):
+    """Copia dei dati con le modifiche di un test manuale (non tocca il database). Campi del modulo:
+    ing_<docente> (ora di ingresso), ore_<lezione>, cod_<lezione> (codocente, vuoto = nessuno), oc_<lezione> (ore in
+    coppia), x_<lezione> (spuntato = lezione tolta). Ritorna (dati, errori)."""
+    errori = []
+
+    def intero(nome, predefinito):
+        try:
+            return int(form.get(nome, '').strip())
+        except ValueError:
+            return predefinito
+
+    docenti = []
+    for d in dati['docenti']:
+        ing = min(max(0, intero('ing_%d' % d['id'], d['ingresso'])), len(dati['ore']) - 1)
+        docenti.append({**d, 'ingresso': ing})
+    nomi = {d['id']: d['nome'] for d in docenti}
+    lezioni = []
+    for l in dati['lezioni']:
+        if form.get('x_%d' % l['id']):
+            continue
+        ore = intero('ore_%d' % l['id'], l['ore'])
+        cod = intero('cod_%d' % l['id'], None) if form.get('cod_%d' % l['id'], '').strip() else None
+        oc = intero('oc_%d' % l['id'], l['ore_codocente']) if cod is not None else 0
+        etichetta = '%s / %s' % (l['classe'], l['docente'])
+        if ore < 1:
+            errori.append('%s: le ore devono essere almeno 1 (per toglierla, spunta «togli»)' % etichetta)
+            continue
+        if cod is not None and (cod not in nomi or cod == l['docente_id']):
+            errori.append('%s: codocente non valido' % etichetta)
+            continue
+        if cod is not None and not 1 <= oc <= ore:
+            errori.append('%s: le ore in coppia devono essere tra 1 e %d' % (etichetta, ore))
+            continue
+        lezioni.append({**l, 'ore': ore, 'codocente_id': cod, 'ore_codocente': oc if cod is not None else 0})
+    return {**dati, 'docenti': docenti, 'lezioni': lezioni}, errori
+
+
 def scrivi_per_solver(c, scuola_id, file):
     with open(file, 'w') as f:
         json.dump(per_solver(leggi(c, scuola_id)), f, ensure_ascii=False, indent=1)

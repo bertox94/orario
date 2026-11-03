@@ -66,3 +66,13 @@ def migra(url):
             applicate.append(nome)
         c.commit()
     return applicate
+
+
+def chiave_segreta(url):
+    """Chiave per firmare i cookie di sessione: creata al primo avvio e conservata nel database."""
+    with connetti(url) as c:
+        c.execute("insert into impostazioni (nome, valore) values ('chiave_segreta', %s) on conflict do nothing",
+                  (os.urandom(32).hex(),))
+        valore = c.execute("select valore from impostazioni where nome = 'chiave_segreta'").fetchone()['valore']
+        c.commit()
+    return valore

@@ -22,12 +22,12 @@ def crea_app(config=None, avvia_esecutore=True):
     app = Flask(__name__)
     config = config or Config()
     app.config['SITO'] = config
-    app.config['SECRET_KEY'] = config.chiave_segreta()
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     app.config['PERMANENT_SESSION_LIFETIME'] = datetime.timedelta(days=30)
     app.teardown_appcontext(db.chiudi)
 
     db.migra(config.database_url)
+    app.config['SECRET_KEY'] = db.chiave_segreta(config.database_url)
     with db.connetti(config.database_url) as c:
         if accesso.importa_password_vecchia(c, config):
             print('La password del sito e\' diventata l\'utente «admin» (amministratore, con accesso a tutte le scuole).',

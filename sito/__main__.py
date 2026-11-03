@@ -81,7 +81,7 @@ def main():
     elif args.comando == 'avvia':
         from .app import crea_app
         app = _con_database(config, lambda: crea_app(config))
-        print('Sito su http://%s:%d (dati in %s)' % (args.host, args.porta, config.dati), flush=True)
+        print('Sito su http://%s:%d (lavoro in %s, risultati nel database)' % (args.host, args.porta, config.lavoro), flush=True)
         try:
             from waitress import serve
         except ImportError:

@@ -12,7 +12,7 @@
   <label>Fase 2 (s, 0 = no) <input type="number" name="fase2" min="0" value="600"></label>
   <label>Fase 3 (s, 0 = no) <input type="number" name="fase3" min="0" value="600"></label>
   <label class="spunta"><input type="checkbox" name="backtrack" value="1" checked> Fase 3 registra le marce indietro (-b)</label>
-  <label>Spazio per le marce (MB, in tutto) <input type="number" name="spazio_mb" min="1" value="{{ config.spazio_mb }}"></label>
+  <label>Spazio per le marce nel database (MB, in tutto) <input type="number" name="spazio_mb" min="1" value="{{ config.spazio_mb }}"></label>
   <label>Ordine delle classi (seed, vuoto = in ordine) <input type="number" name="ordine_classi" min="0"></label>
 </div>
 <div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-top: 10px;">
@@ -22,4 +22,4 @@
 </div>
 <p class="tenue piccolo">Fase 1: tutti i casi, ognuno al massimo per il tempo indicato. Fase 2: di nuovo, piu' a lungo,
   i casi non finiti. Fase 3: i casi ancora non finiti, registrando ogni marcia indietro; lo spazio si divide tra i casi e
-  non supera il 90% di quello libero. {{ config.paralleli }} casi alla volta.</p>
+  finisce nel database. {{ config.paralleli }} casi alla volta.</p>

@@ -117,3 +117,4 @@ table.mappa td { min-width: 34px; height: 26px; font-size: 11px; font-variant-nu
 .legenda .scala { width: 160px; height: 10px; border-radius: 5px; background: linear-gradient(90deg, rgba(var(--calore), .05), rgba(var(--calore), 1)); }
 .barra { height: 8px; background: var(--bordo); border-radius: 4px; overflow: hidden; }
 .barra > div { height: 100%; background: var(--accento); }
+input.stretto { width: 5em; }

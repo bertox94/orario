@@ -26,11 +26,11 @@
   <strong>Diagnosi:</strong> {{ e.diagnosi or '-' }}
   <p class="piccolo tenue">{{ e.opzioni|opzioni }} · fase {{ e.fase }} · solver {{ e.commit or '?' }} · avviato {{ e.inizio|data }}</p>
   <a class="bottone secondario" href="{{ url_for('live.indice', rilancia=e.id) }}">Rilancia in tempo reale</a>
-  {% if 'risultato.json' in file|map(attribute=0)|list %}
+  {% if r.get('dati') %}
   <form method="post" action="{{ url_for('live.avvia') }}" class="in-linea">
     <input type="hidden" name="_gettone" value="{{ gettone }}">
-    <input type="hidden" name="sorgente" value="file">
-    <input type="hidden" name="file" value="{{ e.cartella }}/risultato.json">
+    <input type="hidden" name="sorgente" value="esecuzione">
+    <input type="hidden" name="eid" value="{{ e.id }}">
     <input type="hidden" name="nome" value="{{ e.caso }} (riletto)">
     {% for k, v in (e.opzioni or {}).items() if k in ('tempo', 'orari', 'max_mb', 'ordine_classi', 'ore_obbligatorie', 'ore_prof_classe', 'classi_giorno') and v is not none %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
     {% if (e.opzioni or {}).get('motivi', True) %}<input type="hidden" name="motivi" value="1">{% endif %}
