@@ -145,6 +145,66 @@ def _esito_dopo_blocco(pos, riga_p):
     return None
 
 
+MAX_BLOCCO = 2000
+
+
+def blocco_passi(url, eid, da, k, nomi_classi):
+    """Per l'animazione: i passi da `da` (da 1) a da + k - 1 come sole differenze, cosi' il browser li applica uno dopo
+    l'altro senza una richiesta per passo. Ritorna:
+        ordine   k-esima classe dell'ordine della ricerca -> indice nei dati del sito
+        iniziale {slot: i primi slot decisi prima del passo `da` ("i", "i+j" o "-"), conta: [[posizione, volte]]}
+        passi    [[pos, da, [slot], codice]] come le righe P (pos slot decisi; gli slot dal `da`-esimo in poi come scritto,
+                 gli altri come nel passo prima); codice 0 normale, 1 nessun docente utilizzabile e slot lasciato vuoto,
+                 2 nessun docente utilizzabile e ricerca tornata indietro (vicolo cieco), 3 nessun docente utilizzabile,
+                 esito non registrato
+        finito   True se dopo questi non ce ne sono altri."""
+    da, k = max(1, da), max(1, min(k, MAX_BLOCCO))
+    ordine, slot, conta = [], [], {}
+    n, iniziale, passi, pendente, dopo_p, finito = 0, None, [], None, False, True
+    for r in righe(url, eid):
+        if r.startswith('K '):
+            ordine = [nomi_classi.index(x) if x in nomi_classi else i for i, x in enumerate(r.split()[1:])]
+            dopo_p = False
+            continue
+        if not (r.startswith('P ') or r.startswith('B ')):
+            dopo_p = False
+            continue
+        try:
+            campi = r.split()
+            p, d = int(campi[1]), int(campi[2])
+            nuovi = campi[3:]
+            if len(nuovi) != p - d:
+                continue
+        except (ValueError, IndexError):
+            continue
+        if r[0] == 'P':
+            if pendente is not None:  # il passo dopo un blocco dice com'e' andata
+                e = _esito_dopo_blocco(passi[pendente][0], r)
+                passi[pendente][3] = 1 if e == 'vuoto' else 2 if e == 'indietro' else 3
+                pendente = None
+            if len(passi) >= k:
+                finito = False
+                break
+            if n + 1 == da:
+                iniziale = {'slot': list(slot), 'conta': [[i, v] for i, v in conta.items()]}
+            n += 1
+            conta[p - 1] = conta.get(p - 1, 0) + 1
+            if n >= da:
+                passi.append([p, d, nuovi, 0])
+            dopo_p = True
+        else:  # B: lo stesso nodo del passo appena letto (nessun docente utilizzabile)
+            if dopo_p and passi and n >= da and p == passi[-1][0]:
+                passi[-1][3] = 3
+                pendente = len(passi) - 1
+            dopo_p = False
+        del slot[d:]
+        slot += ['-'] * (d - len(slot))
+        slot += nuovi
+    if iniziale is None:
+        iniziale = {'slot': list(slot), 'conta': [[i, v] for i, v in conta.items()]}
+    return {'da': da, 'ordine': ordine, 'iniziale': iniziale, 'passi': passi, 'finito': finito}
+
+
 _vicoli = {}  # esecuzione -> elenco dei passi senza docenti utilizzabili (solo per file finiti)
 MAX_VICOLI = 50000
 

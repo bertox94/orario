@@ -241,6 +241,11 @@ ricerca continua senza registrare). Nella pagina del caso compare la sezione «L
 passo 0 (orario vuoto) all'ultimo passo registrato, con i pulsanti ±1, ±100 e ±1000. Lo slot ✕ è quello che la ricerca
 sta per decidere. I passi finiscono nello stesso file delle marce indietro, quindi vale lo stesso limite di spazio.
 
+Il pulsante «▶ Avvia l'animazione» fa scorrere i passi in modo fluido, dal passo in cui sei (o dall'inizio, se sei in
+fondo); il cursore «Velocità» la regola da 1 a 2.500 passi al secondo, anche mentre gira. «⏸ Pausa» (o qualunque comando
+a mano) la ferma e mostra lo stato esatto di quel passo. I passi si scaricano a blocchi di sole differenze, quindi anche
+l'animazione veloce non pesa sul Raspberry.
+
 Passando il mouse su una cella (o toccandola, su iPad e telefono) si apre la finestra con la coda dei docenti di quello
 slot. Per ogni docente c'è l'esito di tutti i vincoli, uno per riga: libero, già entrato, massimo di ore, ore attaccate,
 massimo di classi al giorno, codocente, regola del sabato (✔ rispettato, ✘ non rispettato, – non si applica). Il

@@ -71,6 +71,8 @@ def _sfoglia(eid, lettera, niente):
     try:
         if request.args.get('totale'):
             return jsonify({'totale': marce.totale(url, eid, e['esito'] is not None, lettera)})
+        if request.args.get('da') and lettera == 'P':  # un blocco di passi per l'animazione
+            return jsonify(marce.blocco_passi(url, eid, request.args.get('da', 1, type=int), request.args.get('k', 500, type=int), nomi))
         if request.args.get('vicoli') and lettera == 'P':
             elenco, troncato = marce.vicoli(url, eid, e['esito'] is not None)
             return jsonify({'vicoli': elenco, 'troncato': troncato})

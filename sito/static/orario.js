@@ -504,8 +504,108 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
       testoLimite: ultimo.bloccato ? (ultimo.esito === 'vuoto' ? ' · qui nessun docente era utilizzabile: lo slot resta vuoto' : ' · qui nessun docente era utilizzabile (vicolo cieco)')
       : ultimo.pos >= ultimo.slot ? ' · orario completo' : ' · qui la ricerca sta decidendo'});
   const di = () => totale ? ` di ${numeroIt(totale)}` : '';
+  function scriviStato(r) {
+    const dove = r.pos >= r.slot ? 'orario completo'
+      : `la ricerca sta decidendo ${dati.giorni[r.blocco[0]]} ${dati.ore[r.blocco[1]]} ${dati.classi[r.blocco[2]].nome} (✕)`;
+    stato.textContent = `Passo ${numeroIt(n)}${di()} · ${numeroIt(r.pos)} slot su ${numeroIt(r.slot)} assegnati; ${dove}`
+      + (!r.bloccato ? '' : r.esito === 'vuoto' ? ' · ⚠ NESSUN DOCENTE UTILIZZABILE: lo slot resta vuoto (ora buca) e la ricerca prosegue'
+        : r.esito === 'indietro' ? ' · ⚠ VICOLO CIECO: nessun docente utilizzabile e lo slot non può restare vuoto, la ricerca torna indietro'
+        : ' · ⚠ NESSUN DOCENTE UTILIZZABILE: com\'è andata dopo non è registrato');
+    stato.style.fontWeight = r.bloccato ? '600' : '';
+  }
+
+  // ---- animazione: i passi si scaricano a blocchi (sole differenze) e si ridisegnano a velocita' regolabile ----
+  const VELOCITA = [1, 2, 5, 10, 25, 50, 100, 250, 500, 1000, 2500];  // passi al secondo
+  const anim = {attiva: false, passi: [], da: 0, slot: [], conta: {}, ordine: [], finito: false, carica: false, acc: 0, t: 0, raf: 0, ultimoCodice: 0};
+  const bottonePlay = el('button', {type: 'button', testo: '▶ Avvia l\'animazione', onclick: () => anim.attiva ? ferma(true) : avvia()});
+  const sliderVelocita = el('input', {type: 'range', min: 0, max: VELOCITA.length - 1, value: 4, 'aria-label': 'Velocità dell\'animazione', style: 'width: 160px'});
+  const etichettaVelocita = el('span', {class: 'tenue piccolo', style: 'min-width: 9em'});
+  const aggiornaVelocita = () => { etichettaVelocita.textContent = `${numeroIt(VELOCITA[+sliderVelocita.value])} passi al secondo`; };
+  sliderVelocita.addEventListener('input', aggiornaVelocita);
+  aggiornaVelocita();
+  async function caricaBlocco(da, dimensione) {
+    anim.carica = true;
+    try {
+      const r = await (await fetch(`${url}?da=${da}&k=${dimensione}`)).json();
+      return r;
+    } finally { anim.carica = false; }
+  }
+  const dimensioneBlocco = () => Math.max(300, Math.min(2000, VELOCITA[+sliderVelocita.value] * 3));
+  async function avvia() {
+    if (!totale || anim.avviando) return;
+    anim.avviando = true;
+    if (n >= totale) { n = 0; barra.value = numero.value = 0; }
+    motivi.replaceChildren();
+    bottonePlay.textContent = '⏳ Carico...';
+    const mio = ++richiesta;
+    let r;
+    try { r = await caricaBlocco(n + 1, dimensioneBlocco()); } catch (e) { anim.avviando = false; bottonePlay.textContent = '▶ Avvia l\'animazione'; return; }
+    anim.avviando = false;
+    if (mio !== richiesta || anim.attiva) { if (!anim.attiva) bottonePlay.textContent = '▶ Avvia l\'animazione'; return; }
+    if (r.errore || !r.passi.length) { bottonePlay.textContent = '▶ Avvia l\'animazione'; if (r.errore) stato.textContent = r.errore; return; }
+    anim.slot = r.iniziale.slot.slice();
+    anim.conta = {};
+    r.iniziale.conta.forEach(([i, v]) => { anim.conta[i] = v; });
+    anim.ordine = r.ordine; anim.passi = r.passi; anim.da = n + 1 + r.passi.length; anim.finito = r.finito;
+    anim.attiva = true; anim.acc = 0; anim.t = 0;
+    bottonePlay.textContent = '⏸ Pausa';
+    anim.raf = requestAnimationFrame(passo);
+  }
+  function ferma(ricarica) {
+    cancelAnimationFrame(anim.raf);
+    anim.attiva = false;
+    bottonePlay.textContent = '▶ Avvia l\'animazione';
+    if (ricarica) vai(n);  // da fermo: lo stato esatto del passo, con i motivi e la finestra al passaggio del mouse
+  }
+  const prossimoBlocco = () => {
+    if (anim.carica || anim.finito) return;
+    caricaBlocco(anim.da, dimensioneBlocco()).then(r => {
+      if (!anim.attiva) return;
+      anim.passi = anim.passi.concat(r.passi); anim.da += r.passi.length; anim.finito = r.finito || !r.passi.length;
+    }).catch(() => { anim.finito = true; });
+  };
+  // l'orario [g][o][c] e i passaggi [g][o][c] dallo stato locale (slot e conteggi per posizione)
+  function disegnaLocale(codice) {
+    const G = dati.giorni.length, O = dati.ore.length, C = dati.classi.length;
+    const orario = dati.giorni.map(() => dati.ore.map(() => dati.classi.map(() => [-1, -1])));
+    anim.slot.forEach((t, i) => {
+      if (t === '-') return;
+      const [a, q] = t.split('+');
+      orario[Math.floor(i / (O * C))][Math.floor(i / C) % O][anim.ordine[i % C]] = [+a, q === undefined ? -1 : +q];
+    });
+    const passaggi = dati.giorni.map(() => dati.ore.map(() => dati.classi.map(() => 0)));
+    for (const i in anim.conta) passaggi[Math.floor(i / (O * C))][Math.floor(i / C) % O][anim.ordine[i % C]] = anim.conta[i];
+    const pos = anim.slot.length, completo = pos >= G * O * C;
+    const k = Math.min(pos, G * O * C - 1);
+    const blocco = [Math.floor(k / (O * C)), Math.floor(k / C) % O, anim.ordine[k % C]];
+    const r = {n, pos, slot: G * O * C, blocco, bloccato: codice > 0, esito: codice === 1 ? 'vuoto' : codice === 2 ? 'indietro' : null};
+    scriviStato(r);
+    disegnaOrario(griglia, dati, orario, completo ? null : blocco, null, passaggi);
+  }
+  function passo(t) {
+    if (!anim.attiva) return;
+    const dt = anim.t ? Math.min(100, t - anim.t) : 0;
+    anim.t = t;
+    anim.acc += dt / 1000 * VELOCITA[+sliderVelocita.value];
+    let quanti = Math.floor(anim.acc);
+    anim.acc -= quanti;
+    let fatti = 0;
+    while (quanti > 0 && anim.passi.length) {
+      const [pos, da, nuovi, codice] = anim.passi.shift();
+      if (anim.slot.length > da) anim.slot.length = da;
+      while (anim.slot.length < da) anim.slot.push('-');
+      nuovi.forEach(x => anim.slot.push(x));
+      anim.conta[pos - 1] = (anim.conta[pos - 1] || 0) + 1;
+      n++; quanti--; fatti++; anim.ultimoCodice = codice;
+    }
+    if (fatti) { barra.value = numero.value = n; disegnaLocale(anim.ultimoCodice); }
+    if (anim.passi.length < dimensioneBlocco() / 2) prossimoBlocco();
+    if (!anim.passi.length && anim.finito && !anim.carica) { ferma(true); return; }  // arrivato in fondo
+    anim.raf = requestAnimationFrame(passo);
+  }
   const bottone = (testo, delta) => el('button', {class: 'secondario', type: 'button', testo, onclick: () => vai(n + delta)});
   async function vai(nuovo) {
+    if (anim.attiva) ferma(false);  // un comando a mano ferma l'animazione
     n = Math.max(0, totale !== null ? Math.min(totale, nuovo) : nuovo);
     barra.value = numero.value = n;
     motivi.replaceChildren();
@@ -523,13 +623,7 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
     if (mia !== richiesta) return;
     if (r.errore) { stato.textContent = r.errore; griglia.replaceChildren(); return; }
     n = r.n; barra.value = numero.value = n;
-    const dove = r.pos >= r.slot ? 'orario completo'
-      : `la ricerca sta decidendo ${dati.giorni[r.blocco[0]]} ${dati.ore[r.blocco[1]]} ${dati.classi[r.blocco[2]].nome} (✕)`;
-    stato.textContent = `Passo ${numeroIt(n)}${di()} · ${numeroIt(r.pos)} slot su ${numeroIt(r.slot)} assegnati; ${dove}`
-      + (!r.bloccato ? '' : r.esito === 'vuoto' ? ' · ⚠ NESSUN DOCENTE UTILIZZABILE: lo slot resta vuoto (ora buca) e la ricerca prosegue'
-        : r.esito === 'indietro' ? ' · ⚠ VICOLO CIECO: nessun docente utilizzabile e lo slot non può restare vuoto, la ricerca torna indietro'
-        : ' · ⚠ NESSUN DOCENTE UTILIZZABILE: com\'è andata dopo non è registrato');
-    stato.style.fontWeight = r.bloccato ? '600' : '';
+    scriviStato(r);
     if (r.bloccato) {
       const per = {};
       (r.motivi || []).forEach(([p, m]) => (per[m] = per[m] || []).push(dati.docenti[p].nome));
@@ -556,6 +650,7 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
   contenitore.replaceChildren(el('div', {style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center'}, [
     bottone('⏮', -1e12), bottone('−1000', -1000), bottone('−100', -100), bottone('−1', -1), numero,
     bottone('+1', 1), bottone('+100', 100), bottone('+1000', 1000), bottone('⏭', 1e12)]),
+    el('div', {style: 'display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:6px 0'}, [bottonePlay, el('label', {class: 'piccolo tenue', style: 'display:flex;gap:6px;align-items:center'}, [el('span', {testo: 'Velocità'}), sliderVelocita]), etichettaVelocita]),
     el('div', {style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px'}, [
       el('button', {class: 'secondario', type: 'button', testo: '◀ blocco precedente', onclick: () => {
         const prima = vicoli.filter(v => v[0] < n); if (prima.length) vai(prima[prima.length - 1][0]); }}),
