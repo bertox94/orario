@@ -170,7 +170,7 @@ function sfogliaMarce(contenitore, dati, url, nomiMotivi) {
       const chiave = `${n}:${pos}`;
       pannello.style.display = 'block';
       const x = td.getBoundingClientRect();
-      pannello.style.left = Math.min(x.right + 8, window.innerWidth - 520) + 'px';
+      pannello.style.left = Math.min(x.right + 8, window.innerWidth - 660) + 'px';
       pannello.style.top = Math.max(8, Math.min(x.top, window.innerHeight - 380)) + 'px';
       pannello.textContent = 'Calcolo...';
       if (!cache[chiave]) {
@@ -187,7 +187,7 @@ function sfogliaMarce(contenitore, dati, url, nomiMotivi) {
         } catch (e) { cache[chiave] = {errore: 'Analisi non disponibile.'}; }
       }
       if (pannello.style.display === 'none') return;
-      mostraAnalisi(pannello, dati, cache[chiave], r.orario[g][o][c], `${dati.giorni[g]} ${dati.ore[o]} ${dati.classi[c].nome}`, pos === r.pos);
+      mostraAnalisi(pannello, dati, cache[chiave], r.orario[g][o][c], `${dati.giorni[g]} ${dati.ore[o]} ${dati.classi[c].nome}`, pos === r.pos, c, o);
     }, 250);
   }
   const bottone = (testo, delta) => el('button', {class: 'secondario', type: 'button', testo, onclick: () => vai(n + delta)});
@@ -226,8 +226,30 @@ function sfogliaMarce(contenitore, dati, url, nomiMotivi) {
   vai(1);
 }
 
+// Spiegazione a parole del perche' un docente non va bene nello slot, con i dettagli (ore, classi, orari).
+function spiegaMotivo(dati, a, c, classe, ora) {
+  const d = c.dettaglio || {};
+  const nomeOra = i => dati.ore[i], nomeClasse = i => dati.classi[i].nome, nomeDoc = i => dati.docenti[i].nome;
+  const oggi = d.oggi || [], qui = oggi.filter(x => x[1] === classe).map(x => x[0]);
+  const lista = v => v.map(nomeOra).join(', ');
+  switch (c.motivo) {
+    case 0: return d.occupato_in >= 0 ? `occupato in ${nomeClasse(d.occupato_in)} alle ${nomeOra(ora)}` : 'occupato in un\'altra classe a quest\'ora';
+    case 1: return `entra alle ${nomeOra(d.ingresso)}, ora sono le ${nomeOra(ora)}`;
+    case 2: return `ha già fatto oggi ${qui.length} ore in questa classe (alle ${lista(qui)}), il massimo è ${a.limiti.ore_in_classe}`;
+    case 3: return `oggi ha insegnato in questa classe alle ${lista(qui)} ma non alle ${nomeOra(ora - 1)}: il suo blocco è finito e non può tornare`;
+    case 4: { const cl = [...new Set(oggi.map(x => x[1]))];
+      return `oggi è già in ${cl.length} classi (${oggi.map(x => nomeClasse(x[1]) + ' alle ' + nomeOra(x[0])).join(', ')}), il massimo è ${a.limiti.classi_al_giorno}`; }
+    case 5: { const p = (d.partner || []).map(([q, st, cl]) => nomeDoc(q) + ' (' + (st === 0 ? 'occupato' + (cl >= 0 ? ' in ' + nomeClasse(cl) : '')
+        : st === 1 ? 'non ancora entrato' : st === 2 ? 'al massimo di ore in classe oggi' : st === 3 ? 'ore non contigue' : st === 4 ? 'al massimo di classi oggi' : 'libero') + ')');
+      return 'ha solo ore in codocenza' + (p.length ? ': con ' + p.join(', ') : '') + ': nessun codocente utilizzabile'; }
+    case 6: return `regola del sabato: nell'ora precedente ${(d.ora_precedente || []).map(nomeDoc).join(' e ')} deve continuare`;
+    case 7: return 'non ha ore da fare in questa classe';
+    default: return a.motivi[c.motivo];
+  }
+}
+
 // Il contenuto del pannello al passaggio del mouse: scelto nello slot, coda in ordine di priorita', esito di ognuno.
-function mostraAnalisi(pannello, dati, a, scelto, titolo, bloccato) {
+function mostraAnalisi(pannello, dati, a, scelto, titolo, bloccato, classe, ora) {
   if (!a || a.errore) { pannello.textContent = (a && a.errore) || 'Analisi non disponibile.'; return; }
   const [p, q] = scelto;
   const nome = i => dati.docenti[i].nome;
@@ -239,14 +261,15 @@ function mostraAnalisi(pannello, dati, a, scelto, titolo, bloccato) {
   const MAX = 14;
   con.slice(0, MAX).forEach(c => {
     const e = c.docente === p || c.docente === q;
-    const esito = e ? 'scelto' : c.motivo < 0 ? 'utilizzabile (non scelto in questo ramo)' : a.motivi[c.motivo];
+    const esito = e ? 'scelto' : c.motivo < 0 ? 'utilizzabile (non scelto in questo ramo)' : spiegaMotivo(dati, a, c, classe, ora);
     corpo.appendChild(el('tr', {class: e ? 'scelto' : c.motivo < 0 ? 'utilizzabile' : ''}, [
-      el('td', {testo: nome(c.docente)}), el('td', {class: 'num', testo: c.priorita}), el('td', {class: 'num', testo: c.ore_classe}),
+      el('td', {testo: nome(c.docente)}), el('td', {class: 'num', testo: c.priorita}),
+      el('td', {class: 'num', title: 'ore ancora da fare / ore totali in questa classe', testo: `${c.ore_classe}/${c.ore_totali_classe}`}),
       el('td', {testo: esito})]));
   });
   pannello.replaceChildren(testa,
     a.lezione_ammessa ? el('span') : el('div', {class: 'tenue piccolo', testo: 'In questo slot la classe non può più fare lezione: può solo restare vuoto.'}),
-    el('p', {class: 'tenue piccolo', testo: 'Coda dei docenti per priorità (ore ancora da sistemare); a parità di priorità l\'ordine dipende dalla ricerca.'}),
+    el('p', {class: 'tenue piccolo', testo: 'Coda dei docenti per priorità (ore ancora da sistemare nella settimana); a parità di priorità l\'ordine dipende dalla ricerca. «Ore in classe» = ancora da fare / totali.'}),
     el('table', {class: 'dati'}, [el('thead', {}, [el('tr', {}, [el('th', {testo: 'Docente'}), el('th', {class: 'num', testo: 'Priorità'}),
       el('th', {class: 'num', testo: 'Ore in classe'}), el('th', {testo: 'Esito'})])]), corpo]),
     el('p', {class: 'tenue piccolo', testo: [con.length > MAX ? `altri ${con.length - MAX} docenti con ore da fare in coda` : '', senza ? `${senza} docenti senza ore da fare in questa classe` : ''].filter(Boolean).join(' · ')}));
