@@ -25,9 +25,9 @@ function intestazione(dati, titolo) {
 // passaggi (facoltativo): [g][o][c] = quante volte la ricerca e' passata da quella posizione; colora lo sfondo
 // delle celle con la stessa scala di calore della mappa (logaritmica, piu' scuro = piu' volte).
 function disegnaOrario(contenitore, dati, orario, blocco, alPassaggio, passaggi) {
-  let massimo = 0;
+  let massimo = 0;  // il primo passaggio e' normale: si colora solo cio' che e' stato attraversato piu' di una volta
   if (passaggi) dati.giorni.forEach((_, g) => dati.ore.forEach((__, o) => dati.classi.forEach((___, c) => {
-    massimo = Math.max(massimo, passaggi[g][o][c]);
+    massimo = Math.max(massimo, passaggi[g][o][c] - 1);
   })));
   const corpo = el('tbody');
   dati.classi.forEach((cl, c) => {
@@ -44,8 +44,8 @@ function disegnaOrario(contenitore, dati, orario, blocco, alPassaggio, passaggi)
       }
       if (passaggi) {
         const v = passaggi[g][o][c];
-        if (v > 0 && massimo > 0) {
-          const a = 0.08 + 0.82 * Math.log1p(v) / Math.log1p(massimo);
+        if (v > 1 && massimo > 0) {
+          const a = 0.08 + 0.82 * Math.log1p(v - 1) / Math.log1p(massimo);
           td.style.background = `rgba(var(--calore), ${a.toFixed(3)})`;
           if (a > 0.5) td.style.color = '#fff';
         }
@@ -500,7 +500,18 @@ function sfogliaPassi(sezione, contenitore, dati, url) {
     stato.textContent = `Passo ${numeroIt(n)}${di()} · ${numeroIt(r.pos)} slot su ${numeroIt(r.slot)} assegnati; ${dove}`;
     disegnaOrario(griglia, dati, r.orario, r.pos >= r.slot ? null : r.blocco, null, r.passaggi);
   }
-  barra.addEventListener('change', () => vai(+barra.value));
+  // Mentre si trascina lo slider l'orario segue in tempo reale (evento input, non solo al rilascio). Una richiesta alla
+  // volta: se nel frattempo la barra si e' mossa, dopo la risposta si carica subito l'ultima posizione raggiunta.
+  let occupato = false, atteso = null;
+  async function segui(valore) {
+    atteso = valore;
+    if (occupato) return;
+    occupato = true;
+    try {
+      while (atteso !== null) { const v = atteso; atteso = null; await vai(v); }
+    } finally { occupato = false; }
+  }
+  barra.addEventListener('input', () => { numero.value = barra.value; segui(+barra.value); });
   numero.addEventListener('change', () => vai(+numero.value));
   contenitore.replaceChildren(el('div', {style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center'}, [
     bottone('⏮', -1e12), bottone('−1000', -1000), bottone('−100', -100), bottone('−1', -1), numero,
