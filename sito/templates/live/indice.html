@@ -63,19 +63,21 @@
   <div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
     <label>Tempo massimo (s, 0 = senza limite) <input type="number" name="tempo" min="0" value="{{ o.get('tempo', 60) }}"></label>
     <label>Orari da trovare <input type="number" name="orari" min="1" value="{{ o.get('orari', 1) }}"></label>
-    <label>Ordine delle classi (seed, vuoto = in ordine) <input type="number" name="ordine_classi" min="0" value="{{ o.ordine_classi if o.get('ordine_classi') is not none else '' }}"></label>
-    <label class="spunta"><input type="checkbox" name="motivi" value="1" {{ 'checked' if o.get('motivi', True) }}> Motivi degli scarti</label>
-    <label class="spunta"><input type="checkbox" name="backtrack" value="1" {{ 'checked' if o.get('backtrack') }}> Registra le marce indietro (-b)</label>
-    <label>Spazio massimo per le marce (MB) <input type="number" name="max_mb" min="1" value="{{ o.get('max_mb', 200) }}"></label>
-    <label class="spunta"><input type="checkbox" name="passi" value="1" {{ 'checked' if o.get('passi') }}> Registra ogni passo della ricerca (--passi)</label>
-    <label>Passi massimi da registrare <input type="number" name="max_passi" min="1" max="10000000" value="{{ o.get('passi', 100000) }}"></label>
+    <label class="spunta"><input type="checkbox" name="passi" value="1" {{ 'checked' if o.get('passi') }}> Registra la ricerca passo passo</label>
+    <label>fino a <input type="number" name="max_passi" min="1" max="10000000" value="{{ o.get('passi', 100000) }}" class="stretto"> passi</label>
   </div>
-  <h2>Parametri della ricerca</h2>
-  <div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
-    <label>Ore obbligatorie ogni giorno <input type="number" name="ore_obbligatorie" min="1" max="6" value="{{ o.get('ore_obbligatorie', 5) }}"></label>
-    <label>Ore di un docente nella stessa classe al giorno (max) <input type="number" name="ore_prof_classe" min="1" max="6" value="{{ o.get('ore_prof_classe', 3) }}"></label>
-    <label>Classi diverse per docente al giorno (max) <input type="number" name="classi_giorno" min="1" max="20" value="{{ o.get('classi_giorno', 3) }}"></label>
-  </div>
+  <p class="tenue piccolo">La registrazione passo passo mostra nella pagina del risultato l'orario a ogni nodo della ricerca, con
+    i blocchi (vicoli ciechi e rami scartati) e la coda dei docenti in ogni cella; si ferma dopo i passi indicati, così
+    il file resta piccolo anche se la ricerca va avanti a lungo.</p>
+  <details {{ 'open' if o.get('ordine_classi') is not none or o.get('ore_obbligatorie') or o.get('ore_prof_classe') or o.get('classi_giorno') }}>
+    <summary><strong>Parametri avanzati</strong> (regole dell'orario e ordine delle classi)</summary>
+    <div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-top: 10px;">
+      <label>Ore obbligatorie ogni giorno <input type="number" name="ore_obbligatorie" min="1" max="6" value="{{ o.get('ore_obbligatorie', 5) }}"></label>
+      <label>Ore di un docente nella stessa classe al giorno (max) <input type="number" name="ore_prof_classe" min="1" max="6" value="{{ o.get('ore_prof_classe', 3) }}"></label>
+      <label>Classi diverse per docente al giorno (max) <input type="number" name="classi_giorno" min="1" max="20" value="{{ o.get('classi_giorno', 3) }}"></label>
+      <label>Ordine delle classi (seed, vuoto = in ordine) <input type="number" name="ordine_classi" min="0" value="{{ o.ordine_classi if o.get('ordine_classi') is not none else '' }}"></label>
+    </div>
+  </details>
   <p><button>Avvia</button></p>
 </form>
 

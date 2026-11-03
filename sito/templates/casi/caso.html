@@ -32,8 +32,8 @@
     <input type="hidden" name="sorgente" value="esecuzione">
     <input type="hidden" name="eid" value="{{ e.id }}">
     <input type="hidden" name="nome" value="{{ e.caso }} (riletto)">
-    {% for k, v in (e.opzioni or {}).items() if k in ('tempo', 'orari', 'max_mb', 'ordine_classi', 'ore_obbligatorie', 'ore_prof_classe', 'classi_giorno') and v is not none %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
-    {% if (e.opzioni or {}).get('motivi', True) %}<input type="hidden" name="motivi" value="1">{% endif %}
+    {% for k, v in (e.opzioni or {}).items() if k in ('tempo', 'orari', 'ordine_classi', 'ore_obbligatorie', 'ore_prof_classe', 'classi_giorno') and v is not none %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+    {% if (e.opzioni or {}).get('passi') %}<input type="hidden" name="passi" value="1"><input type="hidden" name="max_passi" value="{{ e.opzioni.passi }}">{% endif %}
     <button class="secondario" title="Stessi dati e stesso ordine della coda: rifa' esattamente la stessa ricerca">Rifai identico dal JSON</button>
   </form>
   {% endif %}
@@ -52,7 +52,7 @@
 {% if 'orario.txt.gz' in file|map(attribute=0)|list %}
 <div id="sezione-passi" style="display: none">
 <h2>La ricerca passo passo</h2>
-<p class="tenue piccolo">I passi registrati con --passi: l'orario a ogni passo della computazione, dal passo 0 (orario vuoto) in poi.
+<p class="tenue piccolo">L'orario a ogni passo della ricerca, dal passo 0 (orario vuoto) in poi.
   Lo slot ✕ è quello che la ricerca sta per decidere. Il colore di ogni cella indica quante volte la ricerca è tornata
   su quella posizione fino al passo mostrato: bianco = attraversata una volta sola (la ricerca è andata avanti senza intoppi),
   più scuro = più passaggi (passaci sopra per il numero esatto). Lo slider aggiorna l'orario mentre lo trascini.
@@ -61,7 +61,7 @@
   ricerca torna indietro subito; la cella della scelta è evidenziata). I pulsanti sotto la barra saltano da un blocco
   all'altro. Un'ora buca (nessun docente ma lo slot può restare vuoto e la ricerca prosegue) è segnalata nella riga di stato
   ma non è un blocco. Durante l'animazione la pagina scorre da sola per tenere in vista la cella che si sta decidendo.
-  Oltre il numero massimo di passi scelto nelle opzioni la registrazione si ferma (la ricerca continua).</p>
+  Oltre il numero di passi scelto nelle opzioni la registrazione si ferma (la ricerca continua).</p>
 <div id="passi"></div>
 </div>
 {% endif %}

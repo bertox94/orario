@@ -155,18 +155,6 @@ table.orario th { z-index: 1; }
 table.orario td.classe { z-index: 2; }
 table.orario th.classe { z-index: 3; }
 
-/* tabella dei blocchi (pagina del caso): righe compatte che si aprono, dettaglio strutturato */
-table.blocchi tr.blocco { cursor: pointer; }
-table.blocchi tr.blocco:hover td { background: var(--accento-tenue); }
-table.blocchi .freccia { color: var(--tenue); display: inline-block; width: 1em; }
-table.blocchi td.contenuto-dettaglio { background: var(--sfondo); padding: 10px 14px 16px; }
-table.blocchi td.contenuto-dettaglio h4 { margin: 10px 0 4px; font-size: 14px; }
-table.blocchi td.contenuto-dettaglio p { margin: 4px 0 8px; max-width: 900px; }
-table.blocchi td.contenuto-dettaglio table.dati { width: auto; margin: 4px 0 10px; }
-table.blocchi tr.non-ci-sta td { color: var(--male); font-weight: 600; }
-table.blocchi tfoot td { font-weight: 600; border-top: 2px solid var(--bordo); }
-table.mappa td.cliccabile { cursor: pointer; }
-
 /* pannello della coda: barra della priorita' (lunghezza = priorita', colore = scelto / utilizzabile / escluso) */
 .barra-priorita { width: 110px; height: 10px; background: var(--bordo); border-radius: 5px; overflow: hidden; }
 .barra-priorita > div { height: 100%; background: var(--tenue); }
@@ -191,6 +179,9 @@ table.mappa td.cliccabile { cursor: pointer; }
   border: 1px solid var(--bordo); border-radius: 6px; padding: 2px 8px; margin: 0 0 6px 8px; font-size: 16px; }
 .pannello-slot.in-basso { left: 8px; right: 8px; bottom: 8px; top: auto; max-width: none; max-height: 60vh; }
 table.orario td.con-coda { cursor: pointer; }
-.pannello-slot .causa-scarto { border-left: 4px solid #c0392b; background: rgba(192, 57, 43, 0.08); padding: 4px 10px; margin: 8px 0; }
-.pannello-slot .causa-scarto h4 { margin: 6px 0; }
-.pannello-slot tr.non-ci-sta td { color: #c0392b; font-weight: 600; }
+/* pannello della coda: le verifiche di potatura e, per un ramo scartato, il dettaglio della causa */
+.pannello-slot .causa-scarto { border-left: 4px solid var(--male); background: rgba(192, 57, 43, 0.08); padding: 4px 10px; margin: 8px 0; }
+.pannello-slot .causa-scarto h4 { margin: 6px 0; font-size: 14px; }
+.pannello-slot .causa-scarto table.dati { width: auto; margin: 4px 0 10px; }
+.pannello-slot tr.non-ci-sta td { color: var(--male); font-weight: 600; }
+.pannello-slot tfoot td { font-weight: 600; border-top: 2px solid var(--bordo); }

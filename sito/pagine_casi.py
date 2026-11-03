@@ -1,12 +1,12 @@
-"""Dettaglio di un'esecuzione (un caso in una fase di una prova): esito, diagnosi, orario, mappa dei blocchi, file.
-I file stanno nel database (vedi archivio.py)."""
+"""Dettaglio di un'esecuzione (un caso in una fase di una prova): esito, diagnosi, orario trovato, ricerca passo passo,
+file. I file stanno nel database (vedi archivio.py)."""
 import json
 import re
 import shutil
 
 from flask import Blueprint, Response, abort, current_app, jsonify, render_template, request
 
-from . import archivio, esecutore, marce, solver
+from . import archivio, esecutore, passi, solver
 from .db import conn
 
 bp = Blueprint('casi', __name__, url_prefix='/casi')
@@ -16,7 +16,7 @@ FILE = [('risultato.json', 'risultati in JSON (dati, orario, diagnosi)'),
         ('dati.txt', 'descrizione dei dati'),
         ('uscita.txt', 'uscita completa del solver'),
         ('orario.txt', 'orari trovati (testo)'),
-        ('orario.txt.gz', 'marce indietro in formato compatto (gzip, vedi printer/printer.h)')]
+        ('orario.txt.gz', 'ricerca passo passo in formato compatto (gzip, vedi printer/printer.h)')]
 
 
 def _risultato_json(r):
@@ -61,37 +61,31 @@ def scarica(eid, nome):
                     headers=intestazioni)
 
 
-def _sfoglia(eid, lettera, niente):
-    """Una riga del file compatto (?n=, da 1; ?totale=1 per il conteggio): l'orario parziale in quel momento."""
+@bp.route('/<int:eid>/passi', endpoint='passi')
+def passi_della_ricerca(eid):
+    """La ricerca passo passo registrata con --passi (orario.txt.gz nel database):
+        ?n=N        il passo N (da 1): orario parziale, slot che la ricerca sta per decidere, blocco, motivi
+        ?totale=1   quanti passi sono registrati
+        ?vicoli=1   l'elenco dei blocchi (vicoli ciechi, rami scartati, ore buche)
+        ?da=N&k=K   K passi da N in poi come sole differenze (per l'animazione)"""
     e = conn().execute('select risultato, esito from esecuzioni where id = %s', (eid,)).fetchone()
     if not e or 'orario.txt.gz' not in archivio.dimensioni(conn(), eid):
         abort(404)
     url = current_app.config['SITO'].database_url
+    finito = e['esito'] is not None
     nomi = [cl['nome'] for cl in ((e['risultato'] or {}).get('dati') or {}).get('classi', [])]
     try:
         if request.args.get('totale'):
-            return jsonify({'totale': marce.totale(url, eid, e['esito'] is not None, lettera)})
-        if request.args.get('da') and lettera == 'P':  # un blocco di passi per l'animazione
-            return jsonify(marce.blocco_passi(url, eid, request.args.get('da', 1, type=int), request.args.get('k', 500, type=int), nomi))
-        if request.args.get('vicoli') and lettera == 'P':
-            elenco, troncato = marce.vicoli(url, eid, e['esito'] is not None)
+            return jsonify({'totale': passi.totale(url, eid, finito)})
+        if request.args.get('da'):
+            return jsonify(passi.blocco_passi(url, eid, request.args.get('da', 1, type=int), request.args.get('k', 500, type=int), nomi))
+        if request.args.get('vicoli'):
+            elenco, troncato = passi.vicoli(url, eid, finito)
             return jsonify({'vicoli': elenco, 'troncato': troncato})
-        m = marce.marcia(url, eid, max(1, request.args.get('n', 1, type=int)), nomi, lettera)
-    except marce.FileTroppoGrande:
-        return jsonify({'errore': 'Il file delle marce indietro e\' troppo grande per essere sfogliato qui: scaricalo.'})
-    return jsonify(m or {'errore': niente})
-
-
-@bp.route('/<int:eid>/marce')
-def marce_indietro(eid):
-    """Una marcia indietro registrata con -b: l'orario parziale in quel momento e lo slot dove si e' bloccato."""
-    return _sfoglia(eid, 'B', 'Nessuna marcia indietro registrata.')
-
-
-@bp.route('/<int:eid>/passi')
-def passi(eid):
-    """Un passo della ricerca registrato con --passi: l'orario parziale e lo slot che la ricerca sta per decidere."""
-    return _sfoglia(eid, 'P', 'Nessun passo registrato.')
+        p = passi.passo(url, eid, max(1, request.args.get('n', 1, type=int)), nomi)
+    except passi.FileTroppoGrande:
+        return jsonify({'errore': 'Il file della ricerca passo passo e\' troppo grande per essere sfogliato qui: scaricalo.'})
+    return jsonify(p or {'errore': 'Nessun passo registrato.'})
 
 
 _TOKEN = re.compile(r'^(\d{1,4}(\+\d{1,4})?|-)$')

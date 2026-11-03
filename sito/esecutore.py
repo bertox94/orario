@@ -2,8 +2,8 @@
 
 - Test in tempo reale: un caso, avviato subito; il progresso del solver (--progresso) resta in memoria per la pagina.
 - Test notturni: una prova alla volta, quando arriva la sua ora; i casi girano in parallelo (SITO_PARALLELI) in tre
-  fasi come tests/casuali.py: fase 1 breve, fase 2 lunga per i non finiti, fase 3 con -b (marce indietro compresse,
-  spazio diviso tra i casi) per quelli ancora non finiti.
+  fasi come tests/casuali.py: fase 1 breve, fase 2 lunga per i non finiti, fase 3 registrando la ricerca passo passo
+  (--passi, compressa, nel database) per quelli ancora non finiti.
 - Pianificazioni: ogni giorno indicato, all'ora indicata, creano una prova notturna.
 
 Se il sito si riavvia mentre una prova gira, al riavvio la prova risulta "interrotta" (i processi sono persi).
@@ -25,6 +25,7 @@ from . import archivio, db, modello, solver
 
 # esecuzioni (id) in corso -> (id della prova, solver.Esecuzione): per leggere il progresso e per fermarle
 ATTIVE = {}
+PASSI_NOTTURNI = 100000  # nodi registrati nella fase 3 dei test notturni, se la prova non dice altro
 _lock = threading.Lock()
 _avviato = False
 
@@ -116,16 +117,13 @@ def _prepara_caso(config, caso, cartella):
 
 def _esegui(config, exe, prova_id, eid, caso, opzioni):
     """Lancia il solver (con --progresso) in una cartella in RAM, lo tiene in ATTIVE finche' gira e al termine mette i
-    file nel database (dati, orari, uscita; le marce indietro compresse arrivano direttamente, a pezzi)."""
+    file nel database (dati, orari, uscita; la ricerca passo passo compressa arriva direttamente, a pezzi)."""
     cartella = _cartella_lavoro(config)
     try:
         caso_file = _prepara_caso(config, caso, cartella)
-        con_gz = opzioni.get('backtrack') or opzioni.get('passi')
-        max_mb = opzioni.get('max_mb') if con_gz else 0
-        scrittore = archivio.Scrittore(config.database_url, eid, 'orario.txt.gz') if con_gz else None
+        scrittore = archivio.Scrittore(config.database_url, eid, 'orario.txt.gz') if opzioni.get('passi') else None
         e = solver.Esecuzione(exe, solver.argomenti(caso_file, opzioni, progresso=True), cartella,
-                              timeout=opzioni.get('tempo'), limite_mb=256,  # i file in RAM restano piccoli
-                              su_gz=scrittore.scrivi if scrittore else None, limite_gz_mb=max_mb or 0)
+                              timeout=opzioni.get('tempo'), su_gz=scrittore.scrivi if scrittore else None)
         with _lock:
             ATTIVE[eid] = (prova_id, e)
         try:
@@ -178,7 +176,7 @@ def _caso_della_scuola(c, scuola_id, prova_id):
 
 def prepara_vista(config, exe, caso, prova_id):
     """Salva nella prova i dati del caso (classi, giorni, ore, docenti), presi da una --solo-verifica lampo: servono
-    alla pagina per disegnare la mappa dei blocchi mentre la ricerca gira."""
+    alla pagina della prova per disegnare la mappa dei blocchi mentre la ricerca gira."""
     cartella = _cartella_lavoro(config)
     try:
         r = solver.esegui(exe, _prepara_caso(config, caso, cartella),
@@ -351,11 +349,9 @@ def _esegui_notturna(config, prova):
         if o.get('fase2', 600):
             fase(2, da_rifare, {**base, 'tempo': o.get('fase2', 600)})
             da_rifare = non_finiti(da_rifare)
-        if o.get('backtrack', True) and o.get('fase3', 600) and da_rifare and not _annullata(config, pid):
-            # lo spazio (nel database) per le marce indietro si divide tra i casi
-            spazio = o.get('spazio_mb', config.spazio_mb)
-            fase(3, da_rifare, {**base, 'tempo': o.get('fase3', 600), 'backtrack': True,
-                                'max_mb': max(1, spazio // len(da_rifare))})
+        if o.get('fase3', 600) and da_rifare and not _annullata(config, pid):
+            # la ricerca passo passo (nel database) per rivedere dove si bloccano
+            fase(3, da_rifare, {**base, 'tempo': o.get('fase3', 600), 'passi': o.get('passi', PASSI_NOTTURNI)})
         riepilogo = {}
         for r in ultimi.values():
             riepilogo[r['esito']] = riepilogo.get(r['esito'], 0) + 1

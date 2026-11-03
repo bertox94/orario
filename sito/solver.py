@@ -7,13 +7,20 @@ Un caso e' un dizionario:
     {'tipo': 'input', 'file': '/percorso/dati.json'}        dati letti da file (per esempio quelli della scuola)
     {'tipo': 'programma'}                                    i dati scritti nel programma
 e le opzioni della ricerca:
-    {'tempo': 60, 'backtrack': False, 'motivi': True, 'max_mb': 0, 'ordine_classi': None, 'orari': 1}
+    {'tempo': 60, 'orari': 1, 'motivi': True, 'passi': 100000, 'ordine_classi': None,
+     'ore_obbligatorie': 5, 'ore_prof_classe': 3, 'classi_giorno': 3}
+    tempo       secondi massimi (assente = senza limite: si ferma col pulsante o quando ha finito)
+    orari       quanti orari completi trovare prima di fermarsi
+    motivi      --motivi: per ogni marcia indietro il motivo di scarto di ogni docente (diagnosi e ricerca passo passo)
+    passi       -b --passi N: registra la ricerca passo passo (orario.txt.gz), al massimo N nodi
+    ordine_classi   seed con cui mescolare l'ordine delle classi (assente = in ordine)
+    ore_obbligatorie, ore_prof_classe, classi_giorno   parametri delle regole, solo se diversi dai predefiniti
+    solo_verifica   solo la verifica preliminare dei dati (per leggere i dati del caso senza cercare)
 """
 import hashlib
 import json
 import os
 import re
-import resource
 import select
 import shutil
 import subprocess
@@ -103,12 +110,8 @@ def argomenti(caso, opzioni, progresso=False):
         a.append('--motivi')
     if opzioni.get('ordine_classi') is not None:
         a.append(str(opzioni['ordine_classi']))
-    if opzioni.get('backtrack') or opzioni.get('passi'):
-        a += ['-b', '--orario', 'orario.txt.gz']
-        if opzioni.get('passi'):
-            a += ['--passi', str(opzioni['passi'])]
-        if opzioni.get('max_mb'):
-            a += ['--max-mb', str(opzioni['max_mb'])]
+    if opzioni.get('passi'):
+        a += ['-b', '--orario', 'orario.txt.gz', '--passi', str(opzioni['passi'])]
     if opzioni.get('solo_verifica'):
         a.append('--solo-verifica')
     if progresso:
@@ -120,15 +123,12 @@ class Esecuzione:
     """Un processo del solver in corso. Il sito ne tiene uno per ogni test in tempo reale (per il progresso e per
     fermarlo); casuali.py usa direttamente esegui()."""
 
-    def __init__(self, exe, args, cartella, timeout=None, limite_mb=0, su_progresso=None, su_gz=None, limite_gz_mb=0):
-        """su_gz: funzione che riceve a pezzi le marce indietro compresse (orario.txt.gz), invece di scriverle sul
-        disco: il file e' una pipe con nome e i byte vanno direttamente a chi li conserva (il database). Il limite
-        di spazio (limite_gz_mb) lo controlla questa classe, perche' sul disco non c'e' nessun file da misurare."""
+    def __init__(self, exe, args, cartella, timeout=None, su_progresso=None, su_gz=None):
+        """su_gz: funzione che riceve a pezzi la registrazione compressa della ricerca (orario.txt.gz), invece di
+        scriverla sul disco: il file e' una pipe con nome e i byte vanno direttamente a chi li conserva (il database).
+        Il file resta piccolo da solo, perche' il solver smette di registrare dopo --passi nodi."""
         os.makedirs(cartella, exist_ok=True)
         self.su_gz = su_gz
-        self.limite_gz = int(limite_gz_mb * 2 ** 20)
-        self.byte_gz = 0
-        self.troppo_grande = False
         self.errore_gz = None
         self.thread_gz = None
         if su_gz and '-b' in args:
@@ -139,12 +139,8 @@ class Esecuzione:
         self.righe = []
         self.ultimo_progresso = None
         self.inizio = time.time()
-        # Riserva: limite del sistema alla dimensione dei file, un po' piu' largo di --max-mb (il solver si ferma da
-        # solo prima; questo scatta solo se non lo facesse).
-        limite = int(limite_mb * 2 ** 20) if limite_mb > 0 else resource.RLIM_INFINITY
-        self.processo = subprocess.Popen(
-            [exe] + args, cwd=cartella, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1,
-            preexec_fn=lambda: resource.setrlimit(resource.RLIMIT_FSIZE, (limite, limite)))
+        self.processo = subprocess.Popen([exe] + args, cwd=cartella, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                         text=True, bufsize=1)
         if su_gz and '-b' in args:
             self.thread_gz = threading.Thread(target=self._leggi_gz, args=(os.path.join(cartella, 'orario.txt.gz'),),
                                               daemon=True)
@@ -166,20 +162,12 @@ class Esecuzione:
             os.close(fd)
 
     def _pezzo_gz(self, pezzo):
-        prima = self.byte_gz
-        self.byte_gz += len(pezzo)
-        # dopo il limite il solver si ferma da solo (SIGTERM) e chiude il file: si tiene ancora un po' di margine
-        # perche' il file resti valido; oltre il margine i byte si leggono e si scartano (senza bloccare gzip)
-        if self.errore_gz or (self.limite_gz and prima > self.limite_gz * 1.05 + 8 * 2 ** 20):
-            return
+        if self.errore_gz:
+            return  # dopo l'errore i byte si leggono e si scartano, cosi' gzip non resta bloccato sulla pipe
         try:
             self.su_gz(pezzo)
         except Exception as ex:  # noqa: BLE001 - per esempio il database non risponde
             self.errore_gz = str(ex)
-            self.ferma()
-            return
-        if self.limite_gz and self.byte_gz > self.limite_gz and not self.troppo_grande:
-            self.troppo_grande = True
             self.ferma()
 
     def ferma(self):
@@ -218,11 +206,8 @@ class Esecuzione:
         if self.thread_gz:
             self.thread_gz.join(120)
         out = ''.join(self.righe)
-        # gli stessi messaggi che scrive il solver quando e' lui a misurare il file
-        if self.troppo_grande:
-            out += '\nInterrotto per spazio: marce indietro oltre il limite\n'
-        if self.errore_gz:
-            out += '\nErrore di scrittura delle marce indietro: %s\n' % self.errore_gz
+        if self.errore_gz:  # lo stesso messaggio del solver quando non riesce a scrivere il file
+            out += '\nErrore di scrittura della ricerca passo passo: %s\n' % self.errore_gz
         risultato = None
         p = os.path.join(self.cartella, 'risultato.json')
         if os.path.exists(p) and os.path.getmtime(p) >= self.inizio - 1:
@@ -241,10 +226,8 @@ class Esecuzione:
 
 def esegui(exe, caso, opzioni, cartella, su_progresso=None):
     """Esegue un caso fino alla fine e ritorna il risultato (vedi interpreta)."""
-    tempo = opzioni.get('tempo')
-    max_mb = opzioni.get('max_mb') if opzioni.get('backtrack') else 0
     e = Esecuzione(exe, argomenti(caso, opzioni, progresso=su_progresso is not None), cartella,
-                   timeout=tempo, limite_mb=(max_mb * 1.1 + 16) if max_mb else 0, su_progresso=su_progresso)
+                   timeout=opzioni.get('tempo'), su_progresso=su_progresso)
     return e.attendi()
 
 
@@ -272,8 +255,8 @@ def analizza_slot(exe, caso, opzioni, cartella, pos, slot):
 
 def interpreta(out, codice, risultato_json=None):
     """Dall'uscita del solver (e dal suo JSON, se c'e') l'esito di un'esecuzione:
-        esito: 'trovato', 'nessuna soluzione', 'impossibile', 'non finito', 'interrotto (file troppo grande)',
-               'interrotto (errore di scrittura)', 'fermato', 'errore nei dati', 'errore'
+        esito: 'trovato', 'nessuna soluzione', 'impossibile', 'non finito', 'interrotto (errore di scrittura)',
+               'fermato', 'errore nei dati', 'errore'
         finito: la ricerca e' arrivata a una conclusione (trovato, nessuna soluzione o impossibile)
         marce, trovati, impossibile (motivo), errore_dati (motivo), diagnosi (riassunto), diagnosi_testo"""
     errore_dati = re.search(r'^Errore nei dati: (.*)$', out, re.M)
@@ -284,7 +267,6 @@ def interpreta(out, codice, risultato_json=None):
          'impossibile': impossibile.group(1) if impossibile else None,
          'errore_dati': errore_dati.group(1) if errore_dati else None}
     per_tempo = 'Interrotto per tempo' in out
-    per_spazio = 'Interrotto per spazio' in out
     scrittura = 'Errore di scrittura' in out
     richiesta = 'Interrotto su richiesta' in out
     if errore_dati:
@@ -293,15 +275,12 @@ def interpreta(out, codice, risultato_json=None):
         esito = 'impossibile'
     elif 'Verifica preliminare superata' in out:
         esito = 'verifica superata'
-    elif per_spazio:
-        esito = 'interrotto (file troppo grande)'
     elif scrittura:
         esito = 'interrotto (errore di scrittura)'
     elif richiesta:
         esito = 'fermato'
     elif codice != 0 or not trovati:
-        # ucciso dal sistema (file troppo grande senza --max-mb) o terminato male
-        esito = 'errore'
+        esito = 'errore'  # terminato male (nessuna riga finale)
     elif per_tempo:
         esito = 'non finito' if r['trovati'] == 0 else 'trovato'
     else:

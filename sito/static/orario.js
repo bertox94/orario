@@ -1,5 +1,7 @@
-// Componenti comuni: griglia dell'orario e mappa dei blocchi (marce indietro / rami scartati per slot).
-// I dati arrivano dal JSON del solver (--json) o dalle righe di progresso (--progresso).
+// Componenti della pagina del caso e della prova in corso: griglia dell'orario (con la coda dei docenti al passaggio del
+// mouse o al tocco), orario per docente, mappa dei blocchi in tempo reale e la ricerca passo passo (slider, animazione,
+// blocchi). I dati arrivano dal JSON del solver (--json), dalle righe di progresso (--progresso), dal file della ricerca
+// passo passo (/casi/<id>/passi) e dall'analisi di uno slot (--analizza-slot, /casi/<id>/analisi).
 
 function el(tag, attributi, figli) {
   const e = document.createElement(tag);
@@ -100,7 +102,7 @@ function disegnaOrarioDocenti(contenitore, dati, orario, alPassaggio) {
   contenitore.replaceChildren(el('table', {class: 'orario'}, [intestazione(dati, 'Docente'), corpo]));
 }
 
-// Mappa dei blocchi: valore(g, o, c) per ogni slot; colore proporzionale (in scala logaritmica) al massimo.
+// Mappa dei blocchi (prova in corso): valore(g, o, c) per ogni slot; colore proporzionale (in scala logaritmica) al massimo.
 function disegnaMappa(contenitore, dati, valore, descrizione) {
   let massimo = 0;
   dati.giorni.forEach((_, g) => dati.ore.forEach((__, o) => dati.classi.forEach((___, c) => {
@@ -123,10 +125,6 @@ function disegnaMappa(contenitore, dati, valore, descrizione) {
         td.textContent = compatto(v);
       }
       td.title = `${g_nome} ${o_nome} ${cl.nome}: ${v.toLocaleString('it-IT')} ${descrizione} (${percento(v)} del totale)`;
-      if (v > 0) {
-        td.classList.add('cliccabile');
-        td.addEventListener('click', () => { if (apriBlocco) apriBlocco(g, o, c); });
-      }
       tr.appendChild(td);
     }));
     corpo.appendChild(tr);
@@ -148,12 +146,6 @@ function compatto(v) {
   return String(v);
 }
 
-// Dal JSON del solver: blocchi in uno slot = marce indietro + rami scartati dopo lo slot.
-function blocchiDaRisultato(diagnosi) {
-  const scartati = Object.values(diagnosi.scartati || {});
-  return (g, o, c) => diagnosi.marce[g][o][c] + scartati.reduce((s, t) => s + t[g][o][c], 0);
-}
-
 // Dalla riga di progresso: tabelle piatte con indice (g * ore + o) * classi + c.
 function blocchiDaProgresso(dati, p) {
   const O = dati.ore.length, C = dati.classi.length;
@@ -165,71 +157,12 @@ function blocchiDaProgresso(dati, p) {
 
 function numeroIt(v) { return v == null ? '-' : Number(v).toLocaleString('it-IT'); }
 
-// Il motivo di un ramo scartato in parole: il solver scrive una frase breve (diagnosi.c, nome_motivo_scarto), qui
-// spiegata per intero. La verifica sulle lezioni guarda la classe dello slot appena deciso, quindi la si puo' nominare;
-// quella sulle ore dei docenti non dice quale docente. n = quante volte e' successo dopo quello slot.
-function spiegaScarto(motivo, classe, n) {
-  const volte = n === 1 ? '1 volta' : `${numeroIt(n)} volte`;
-  const dopo = 'Con le scelte fatte fino a questo slot, ';
-  const indietro = ' La ricerca ha annullato la scelta e ne ha provata un\'altra';
-  if (motivo.startsWith('alla classe non bastano')) {
-    return `${dopo}la classe ${classe} non può più fare lezione in tutte le ore obbligatorie che le restano: le lezioni ` +
-      `che le mancano non bastano a riempirle, perché ogni docente può insegnare solo dalla sua ora di ingresso e solo ` +
-      `per un numero massimo di ore al giorno nella stessa classe.${indietro} (${volte}).`;
-  }
-  if (motivo.startsWith('le ore che mancano a un docente')) {
-    return `${dopo}a un docente restano più ore da fare di quante ne possa ancora fare nel resto della settimana ` +
-      `(può insegnare solo dalla sua ora di ingresso, e in una classe solo per un massimo di ore al giorno).${indietro} (${volte}).`;
-  }
-  return `${motivo} (${volte}).`;
-}
-
-// Le marce indietro in parole: nello slot nessun docente si poteva mettere (i motivi per docente sono piu' sotto).
-function spiegaMarce(n) {
-  const volte = n === 1 ? '1 volta' : `${numeroIt(n)} volte`;
-  return `In questo slot nessun docente si poteva mettere, quindi la ricerca è tornata indietro (${volte}): i motivi ` +
-    `docente per docente sono in «Orario a ogni marcia indietro» (con -b) e nella diagnosi completa.`;
-}
-
-// Il dettaglio dei blocchi di uno slot (dettagli_slot del JSON, vedi printer/risultati_json.h), come elementi della
-// pagina: per le marce indietro i docenti con ore nella classe e perche' ognuno non poteva; per i rami scartati la
-// scelta scartata e i numeri della verifica, lezione per lezione. Le prove fatte prima che il solver scrivesse questi
-// dettagli usano spiegaMarce e spiegaScarto (testo generico).
+// Il dettaglio di un ramo scartato dalla potatura (nella finestra della coda, da --analizza-slot): la scelta scartata e i
+// numeri della verifica, lezione per lezione (lezioni della classe) o per il docente (ore dei docenti).
 const volte = n => n === 1 ? '1 volta' : `${numeroIt(n)} volte`;
 const oreDi = (fatte, tot) => `${fatte} ore su ${tot} (${tot - fatte === 1 ? 'ne manca 1' : `ne mancano ${tot - fatte}`})`;
 const nomeDoc = (dati, p) => p >= 0 && dati.docenti[p] ? dati.docenti[p].nome : '?';
 const coppia = (dati, p, q) => nomeDoc(dati, p) + (q >= 0 ? ' + ' + nomeDoc(dati, q) : '');
-
-// Perche' un docente non si poteva mettere nello slot (motivo come in diagnosi.c, nome_motivo), in parole.
-function perchéDocente(dati, motivo, classeOccupato) {
-  return [
-    classeOccupato >= 0 ? `è in ${dati.classi[classeOccupato].nome} alla stessa ora` : 'è in un\'altra classe alla stessa ora',
-    'non è ancora entrato (ora di ingresso)',
-    'ha già fatto oggi il massimo di ore in questa classe',
-    'oggi ha già fatto lezione qui, ma non nell\'ora prima: le sue ore in una classe devono essere attaccate',
-    'oggi insegna già nel massimo di classi diverse',
-    'ha solo ore in coppia e nessun codocente era disponibile',
-    'regola del sabato: nell\'ora prima c\'era un altro docente che deve finire le sue ore in questa classe',
-  ][motivo] || 'motivo sconosciuto';
-}
-
-function dettaglioMarce(dati, det, slotNome) {
-  const um = det.ultima_marcia;
-  const parti = [el('h4', {testo: `Marce indietro (${volte(det.marce)}): in ${slotNome} nessun docente si poteva mettere`}),
-    el('p', {testo: `All'ultima marcia indietro la classe aveva fatto ${oreDi(um.ore_classe_fatte, det.ore_classe)}; ` +
-      (um.docenti_con_ore === 1 ? '1 docente aveva ancora ore in questa classe.' : `${um.docenti_con_ore} docenti avevano ancora ore in questa classe.`)})];
-  if (um.docenti && um.docenti.length) {
-    const corpo = el('tbody', {}, um.docenti.map(([p, m, cl]) => {
-      const d = dati.docenti[p];
-      const extra = m === 1 && d && d.ingresso ? ` (entra alle ${dati.ore[d.ingresso]})` : '';
-      return el('tr', {}, [el('td', {testo: nomeDoc(dati, p), style: 'white-space: nowrap'}), el('td', {testo: perchéDocente(dati, m, cl) + extra})]);
-    }));
-    parti.push(el('table', {class: 'dati'}, [el('thead', {}, [el('tr', {}, [el('th', {testo: 'Docente'}), el('th', {testo: 'Perché non si poteva mettere'})])]), corpo]));
-  } else {
-    parti.push(el('p', {class: 'tenue', testo: 'I motivi docente per docente si vedono con «Motivi degli scarti» attivo.'}));
-  }
-  return parti;
-}
 
 function dettaglioScartoLezioni(dati, det, s, slotNome) {
   const classe = dati.classi[det.classe].nome;
@@ -280,86 +213,6 @@ function dettaglioScartoDocenti(dati, det, s, slotNome) {
       `ne poteva fare al massimo ${s.ore_possibili}` + (d && d.ingresso ? ` (entra alle ${dati.ore[d.ingresso]})` : '') +
       (s.classe_docente >= 0 ? ', perché in una classe può fare solo un massimo di ore al giorno, attaccate.' : '.') +
       ` La classe dello slot aveva fatto ${oreDi(s.ore_classe_fatte, det.ore_classe)}. La ricerca ha provato un'altra scelta.`})];
-}
-
-// Gli slot dove la ricerca si e' bloccata di piu', dal JSON del solver: una riga compatta per slot (arrivi, marce
-// indietro, rami scartati, ore della classe, peso sul totale); cliccandola si apre il dettaglio. Si vedono i primi
-// `quanti`, gli altri con "Mostra tutti". apriBlocco(g, o, c) apre il dettaglio di uno slot (dal clic sulla mappa).
-let apriBlocco = null;
-function elencoBlocchi(contenitore, dati, diagnosi, quanti, dettagli) {
-  const scartati = Object.entries(diagnosi.scartati || {});  // [motivo, tabella [g][o][c]]
-  const perSlot = {};
-  (dettagli || []).forEach(d => { perSlot[`${d.giorno},${d.ora},${d.classe}`] = d; });
-  const righe = [];
-  let totale = 0;
-  dati.giorni.forEach((gn, g) => dati.ore.forEach((on, o) => dati.classi.forEach((cl, c) => {
-    const marce = diagnosi.marce[g][o][c];
-    const rami = scartati.reduce((s, [, t]) => s + t[g][o][c], 0);
-    totale += marce + rami;
-    if (marce + rami) righe.push({g, o, c, marce, rami, det: perSlot[`${g},${o},${c}`], nome: `${gn} ${on} ${cl.nome}`});
-  })));
-  if (!righe.length) {
-    contenitore.replaceChildren(el('p', {class: 'tenue', testo: 'Nessun blocco: la ricerca e\' arrivata all\'orario senza mai tornare indietro.'}));
-    return;
-  }
-  righe.sort((a, b) => (b.marce + b.rami) - (a.marce + a.rami));
-  const corpo = el('tbody');
-  const dettaglio = r => {
-    if (!r.det) {  // prova vecchia: testo generico
-      return [el('p', {testo: (r.marce ? [spiegaMarce(r.marce)] : []).concat(scartati.filter(([, t]) => t[r.g][r.o][r.c] > 0)
-        .map(([m, t]) => spiegaScarto(m, dati.classi[r.c].nome, t[r.g][r.o][r.c]))).join(' ')})];
-    }
-    const parti = r.det.ultima_marcia ? dettaglioMarce(dati, r.det, r.nome) : [];
-    r.det.scarti.forEach(s => parti.push(...(s.da_riempire !== undefined ? dettaglioScartoLezioni(dati, r.det, s, r.nome)
-                                                                         : dettaglioScartoDocenti(dati, r.det, s, r.nome))));
-    return parti;
-  };
-  righe.forEach((r, i) => {
-    const fatte = r.det ? (r.det.ultima_marcia ? r.det.ultima_marcia.ore_classe_fatte : r.det.scarti[0].ore_classe_fatte) : null;
-    const freccia = el('span', {class: 'freccia', testo: '▸'});
-    const riga = el('tr', {class: 'blocco'}, [
-      el('td', {style: 'white-space: nowrap'}, [freccia, el('span', {testo: ' ' + r.nome})]),
-      el('td', {class: 'num', testo: r.det ? numeroIt(r.det.visite) : '-'}),
-      el('td', {class: 'num', testo: numeroIt(r.marce)}), el('td', {class: 'num', testo: numeroIt(r.rami)}),
-      el('td', {class: 'num', style: 'white-space: nowrap', testo: fatte === null ? '-' : `${fatte} / ${r.det.ore_classe}`}),
-      el('td', {class: 'num', testo: (100 * (r.marce + r.rami) / totale).toLocaleString('it-IT', {maximumFractionDigits: 2}) + '%'})]);
-    const cella = el('td', {colspan: 6, class: 'contenuto-dettaglio'});
-    const sotto = el('tr', {class: 'dettaglio-blocco'}, [cella]);
-    sotto.hidden = true;
-    r.apri = (forza) => {
-      const aperto = forza === undefined ? sotto.hidden : forza;
-      if (aperto && !cella.childNodes.length) cella.replaceChildren(...dettaglio(r));
-      sotto.hidden = !aperto;
-      freccia.textContent = aperto ? '▾' : '▸';
-    };
-    riga.addEventListener('click', () => r.apri());
-    if (i >= quanti) riga.hidden = true;
-    r.riga = riga;
-    corpo.append(riga, sotto);
-  });
-  righe[0].apri(true);
-  const th = (testo, titolo, num) => el('th', {class: num ? 'num' : '', testo, title: titolo || ''});
-  const tabella = el('table', {class: 'dati blocchi'}, [
-    el('thead', {}, [el('tr', {}, [th('Slot (clic per il dettaglio)'),
-      th('Arrivi', 'Quante volte la ricerca è arrivata a questo slot. A ogni arrivo prova più docenti, quindi i rami scartati possono essere più degli arrivi', true),
-      th('Marce indietro', 'Volte in cui nessun docente si poteva mettere in questo slot', true),
-      th('Rami scartati', 'Volte in cui, dopo aver deciso questo slot, la verifica ha visto che l\'orario non si poteva più completare', true),
-      th('Ore della classe', 'Ore della classe già in orario all\'ultimo blocco, su quelle della settimana', true),
-      th('% dei blocchi', 'Marce indietro e rami scartati di questo slot, sul totale', true)])]), corpo]);
-  const parti = [tabella];
-  if (righe.length > quanti) {
-    const tutti = el('button', {class: 'secondario', type: 'button', testo: `Mostra tutti gli slot con blocchi (${righe.length})`});
-    tutti.addEventListener('click', () => { righe.forEach(r => { r.riga.hidden = false; }); tutti.remove(); });
-    parti.push(tutti);
-  }
-  contenitore.replaceChildren(...parti);
-  apriBlocco = (g, o, c) => {
-    const r = righe.find(x => x.g === g && x.o === o && x.c === c);
-    if (!r) return;
-    r.riga.hidden = false;
-    r.apri(true);
-    r.riga.scrollIntoView({block: 'center', behavior: 'smooth'});
-  };
 }
 
 // La coda dei docenti al passaggio del mouse su una cella di un orario: per lo slot (giorno, ora, classe), dato
@@ -444,55 +297,9 @@ function codaAlPassaggio(dati, urlAnalisi) {
   };
 }
 
-// Sfoglia le marce indietro registrate con -b: l'orario parziale a ogni marcia, con lo slot dove si e' bloccata.
-function sfogliaMarce(contenitore, dati, url, nomiMotivi) {
-  const barra = el('input', {type: 'range', min: 1, max: 1, value: 1, style: 'width: 100%'});
-  const numero = el('input', {type: 'number', min: 1, value: 1, class: 'stretto'});
-  const stato = el('div', {class: 'tenue piccolo'});
-  const griglia = el('div', {class: 'scorre'});
-  const motivi = el('div', {});
-  let totale = null, n = 1, richiesta = 0, ultima = null;
-  // passando il mouse su una cella: la coda dei docenti in quel punto (vedi codaAlPassaggio)
-  const passaggio = codaAlPassaggio(dati, url.replace(/marce$/, 'analisi'))(
-    () => ultima && {chiave: 'marcia' + n, orario: ultima.orario, ordine: ultima.ordine, limite: ultima.pos});
-  const bottone = (testo, delta) => el('button', {class: 'secondario', type: 'button', testo, onclick: () => vai(n + delta)});
-  async function vai(nuovo) {
-    n = Math.max(1, totale ? Math.min(totale, nuovo) : nuovo);
-    barra.value = numero.value = n;
-    const mia = ++richiesta;
-    stato.textContent = 'Carico la marcia ' + n + '...';
-    const r = await (await fetch(`${url}?n=${n}`)).json();
-    if (mia !== richiesta) return;
-    if (r.errore) { stato.textContent = r.errore; griglia.replaceChildren(); motivi.replaceChildren(); return; }
-    n = r.n; barra.value = numero.value = n;
-    const dove = `${dati.giorni[r.blocco[0]]} ${dati.ore[r.blocco[1]]} ${dati.classi[r.blocco[2]].nome}`;
-    stato.textContent = `Marcia ${numeroIt(n)}` + (totale ? ` di ${numeroIt(totale)} (${(100 * n / totale).toLocaleString('it-IT', {maximumFractionDigits: 2})}%)` : '') +
-      ` · nello slot ${r.pos} di ${r.slot}: nessun docente utilizzabile in ${dove} (✕)`;
-    ultima = r;
-    disegnaOrario(griglia, dati, r.orario, r.blocco, passaggio);
-    // perche' non si puo' andare avanti: ogni docente con ore da fare in quella classe e il suo ostacolo
-    if (!r.motivi || !r.motivi.length) {
-      motivi.replaceChildren(el('p', {class: 'tenue piccolo', testo: r.motivi ? 'Nessun docente aveva ancora ore da fare in questa classe.' : ''}));
-    } else {
-      const per = {};
-      r.motivi.forEach(([p, m]) => (per[m] = per[m] || []).push(dati.docenti[p].nome));
-      motivi.replaceChildren(el('h3', {testo: `Perché non si può andare avanti in ${dove}`}), el('ul', {}, Object.entries(per).map(([m, nomi]) =>
-        el('li', {}, [el('strong', {testo: nomiMotivi[m] + ': '}), el('span', {testo: nomi.join(', ')})]))));
-    }
-  }
-  barra.addEventListener('change', () => vai(+barra.value));
-  numero.addEventListener('change', () => { if (+numero.value !== n) vai(+numero.value); });  // lo stesso numero: niente ridisegno (un tocco su una cella non va perso)
-  contenitore.replaceChildren(el('div', {style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center'}, [
-    bottone('⏮', -1e12), bottone('−1000', -1000), bottone('−100', -100), bottone('−1', -1), numero,
-    bottone('+1', 1), bottone('+100', 100), bottone('+1000', 1000), bottone('⏭', 1e12)]), barra, stato, motivi, griglia);
-  fetch(url + '?totale=1').then(r => r.json()).then(t => {
-    totale = t.totale; barra.max = totale; vai(n);
-  });
-  vai(1);
-}
-
-// Sfoglia i passi della ricerca registrati con --passi: l'orario parziale a ogni passo, dal passo 0 (orario vuoto).
-// La sezione resta nascosta finche' non si sa che c'e' almeno un passo registrato.
+// La ricerca passo passo (registrata con --passi): l'orario parziale a ogni passo, dal passo 0 (orario vuoto), con lo
+// slider (aggiorna in tempo reale), i pulsanti, l'animazione a velocita' regolabile e i pulsanti dei blocchi (vicoli
+// ciechi e rami scartati). La sezione resta nascosta finche' non si sa che c'e' almeno un passo registrato.
 function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
   const barra = el('input', {type: 'range', min: 0, max: 0, value: 0, style: 'width: 100%'});
   const numero = el('input', {type: 'number', min: 0, value: 0, class: 'stretto'});
