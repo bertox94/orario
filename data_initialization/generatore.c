@@ -1,5 +1,6 @@
 #include "generatore.h"
 #include "database_initializers.h"
+#include "../ricerca/fattibilita.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -121,7 +122,11 @@ static int tenta(const int n_classi, int *n_doc_usati) {
 
 // Dopo aver registrato i dati: alcuni docenti entrano in ritardo. L'ora di ingresso si abbassa finche' le ore
 // settimanali del docente stanno nelle ore che gli restano (da ingresso a fine giornata, per tutti i giorni).
+// Se la verifica preliminare dichiara impossibile il caso, si toglie il ritardo ai docenti che entrano piu' tardi,
+// uno alla volta, finche' il caso e' possibile: i casi impossibili per costruzione non vengono generati.
 static void assegna_ore_di_ingresso(const int n_doc) {
+    int con_ritardo[INSEGNANTE_SZ];
+    int n_ritardi = 0;
     for (int d = 0; d < n_doc; d++) {
         if (rnd(1, 100) > 20) continue;
         int ingresso = rnd(1, GEN_ORA_INGRESSO_MAX);
@@ -129,7 +134,18 @@ static void assegna_ore_di_ingresso(const int n_doc) {
         char nome[MAX_LEN_WORDS];
         snprintf(nome, sizeof nome, "D%03d", d + 1);
         const int p = p_insegnante(nome);
-        if (p >= 0) docente_info[p].ora_entrata = ingresso;
+        if (p >= 0) {
+            docente_info[p].ora_entrata = ingresso;
+            if (ingresso > 0) con_ritardo[n_ritardi++] = p;
+        }
+    }
+    char motivo[512];
+    while (n_ritardi > 0 && !verifica_fattibilita(motivo, sizeof motivo)) {
+        int peggiore = 0;
+        for (int i = 1; i < n_ritardi; i++)
+            if (docente_info[con_ritardo[i]].ora_entrata > docente_info[con_ritardo[peggiore]].ora_entrata) peggiore = i;
+        docente_info[con_ritardo[peggiore]].ora_entrata = 0;
+        con_ritardo[peggiore] = con_ritardo[--n_ritardi];
     }
 }
 
@@ -167,6 +183,11 @@ void genera_dati_casuali(const unsigned long long seed, const int n_classi, cons
 
     // dopo tutto il resto, cosi' i dati senza ritardi di un seme non cambiano
     if (con_ritardi) assegna_ore_di_ingresso(n_doc);
+    char motivo[512];
+    if (!verifica_fattibilita(motivo, sizeof motivo)) {
+        fprintf(stderr, "Dati generati impossibili (%s)\n", motivo);
+        exit(1);
+    }
 
     for (int i = 0; i < actual_classi_sezione; i++) {
         assert(classe_info[i].ore >= PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana);
