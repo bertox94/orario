@@ -268,7 +268,8 @@ def _esegui_notturna(config, prova):
             with db.connetti(config.database_url) as c:
                 casi.insert(0, _caso_della_scuola(config, cartella, c))
         cartella_caso = {nome_caso(k): os.path.join(cartella, nome_cartella(nome_caso(k))) for k in casi}
-        base = {'motivi': True, 'ordine_classi': o.get('ordine_classi')}
+        base = {'motivi': True, 'ordine_classi': o.get('ordine_classi'), 'ore_obbligatorie': o.get('ore_obbligatorie'),
+                'ore_prof_classe': o.get('ore_prof_classe'), 'classi_giorno': o.get('classi_giorno')}
         ultimi = {}  # nome caso -> ultimo risultato
 
         def fase(numero, da_fare, opzioni):
