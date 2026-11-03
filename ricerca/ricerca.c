@@ -124,17 +124,16 @@ static void registra_orario_completo(const int pos) {
     print(orario, pos, n_gen, file_orario);
 }
 
-// Nessun docente utilizzabile per questo slot: si torna indietro. Lo si conta e, se richiesto, lo si scrive.
-static void registra_marcia_indietro(const teaching_slot *slot, const int pos, const int queue_size) {
+// Nessun docente utilizzabile per questo slot: si torna indietro. Lo si conta e, con -b, lo si scrive (riga B, piu' la
+// riga M dei motivi con --motivi). Con --passi si scrive solo se anche il nodo e' stato registrato (passo_scritto): le
+// righe B senza la loro P non servirebbero e il file deve restare piccolo.
+static void registra_marcia_indietro(const teaching_slot *slot, const int pos, const int queue_size,
+                                     const int passo_scritto) {
     n_backtrack++;
     diagnosi_marcia_indietro(slot, pos, slot->base4d_queue, queue_size);
-    if (stampa_backtrack == BACKTRACK_COMPATTO) {
+    if (stampa_backtrack == BACKTRACK_COMPATTO && (passi_max == 0 || passo_scritto)) {
         stampa_marcia_compatta(file_orario, orario, pos);
         if (diagnosi_con_motivi()) diagnosi_scrivi_motivi_ultima_marcia(file_orario);
-    } else if (stampa_backtrack == BACKTRACK_GRIGLIA) {
-        fprintf(file_orario, "Backtrack, non si è potuto scegiere alcun insegnante nel giorno: %s, ora: %s, classe: %s\n",
-                giorni_settimana[slot->giorno], ore_giornaliere[slot->ora], classe_sezione[slot->classe]);
-        print(orario, pos, n_gen, file_orario);
     }
 }
 
@@ -195,22 +194,22 @@ static void prova_ora_buca(const teaching_slot *slot, const int pos) {
 }
 
 // Prova tutti i docenti per questo slot; se nessuno va bene e' una marcia indietro.
-static void prova_slot_con_docenti(teaching_slot *slot, const int pos) {
+static void prova_slot_con_docenti(teaching_slot *slot, const int pos, const int passo_scritto) {
     // se alla fine il contatore non e' cresciuto, questo nodo non ha assegnato nessun docente (marcia indietro)
     const long long int assegnazioni_prima = n_assegnazioni;
     const int queue_size = slot->base4d_queue + queue_sz;
     prova_tutti_i_docenti(slot, pos, queue_size);
-    if (n_assegnazioni == assegnazioni_prima) registra_marcia_indietro(slot, pos, queue_size);
+    if (n_assegnazioni == assegnazioni_prima) registra_marcia_indietro(slot, pos, queue_size, passo_scritto);
 }
 
 void cerca_orario(const int pos) {
-    // gia' trovati abbastanza orari (o tempo scaduto o spazio finito, vedi sotto): si torna indietro senza fare nulla
+    // gia' trovati abbastanza orari (o tempo scaduto, o fermato: vedi diagnosi_controllo_periodico): si torna indietro
     if (n_gen_max <= n_gen) return;
     if (diagnosi_nuovo_nodo(pos)) {
         n_gen_max = 0; // tutte le chiamate tornano subito e lo stato viene annullato normalmente
         return;
     }
-    // con --passi: l'orario parziale di questo nodo (riga P), finche' non si sono scritte passi_max righe
+    // con --passi: l'orario parziale di questo nodo (riga P), finche' non si sono registrati passi_max nodi
     int passo_scritto = 0;
     if (pos > 0 && passi_scritti < passi_max && stampa_backtrack == BACKTRACK_COMPATTO) {
         passi_scritti++;
@@ -238,7 +237,7 @@ void cerca_orario(const int pos) {
 
     // prima si provano i docenti (se nello slot puo' esserci lezione), poi lo slot vuoto (se ammesso)
     sort_queue_mul(slot->base4d_queue, queue_sz);
-    if (activities_for_this_class_and_hour(slot)) prova_slot_con_docenti(slot, pos);
+    if (activities_for_this_class_and_hour(slot)) prova_slot_con_docenti(slot, pos, passo_scritto);
     prova_ora_buca(slot, pos);
 }
 
