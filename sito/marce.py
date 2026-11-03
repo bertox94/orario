@@ -41,11 +41,13 @@ def marcia(url, eid, n, nomi_classi, lettera='B'):
         n, pos (lo slot dove non c'era nessun docente utilizzabile), blocco [g, o, c], orario [g][o][c] = [docente,
         codocente] con -1 negli slot non assegnati, motivi = [[docente, motivo]] (solo se la prova ha usato --motivi).
     Con lettera='P' e' invece l'n-esimo passo della ricerca (--passi): pos e' il numero di slot decisi e blocco lo
-    slot che la ricerca sta per decidere; motivi resta None (le righe M seguono solo le righe B)."""
+    slot che la ricerca sta per decidere; motivi resta None (le righe M seguono solo le righe B). In piu' c'e'
+    passaggi [g][o][c]: quante volte la ricerca e' passata da ogni posizione (l'ha decisa) fino a questo passo."""
     giorni = ore = classi = 0
     ordine = []  # k-esima classe dell'ordine della ricerca -> indice nei dati del sito
     slot = []
     pos = visti = 0
+    conta = {}  # posizione -> quante volte la ricerca l'ha decisa (una per ogni riga P applicata)
     motivi = None  # con --motivi: [docente, motivo] della marcia indietro in esame (None = non registrati)
     completa = False
     for r in righe(url, eid):
@@ -70,6 +72,8 @@ def marcia(url, eid, n, nomi_classi, lettera='B'):
             del slot[da:]
             slot += ['-'] * (da - len(slot))
             slot += nuovi
+            if r[0] == 'P' and p > 0:  # a ogni passo la ricerca decide lo slot p - 1
+                conta[p - 1] = conta.get(p - 1, 0) + 1
             if r[0] != lettera:
                 continue
             pos = p
@@ -88,7 +92,15 @@ def marcia(url, eid, n, nomi_classi, lettera='B'):
         griglia[g][o][ordine[k]] = [int(a), int(b) if b else -1]
     g, resto = divmod(pos, ore * classi) if pos < giorni * ore * classi else (giorni - 1, ore * classi - 1)
     o, k = divmod(resto, classi)
-    return {'n': visti, 'pos': pos, 'slot': giorni * ore * classi, 'blocco': [g, o, ordine[k]], 'orario': griglia, 'motivi': motivi, 'ordine': ordine}
+    m = {'n': visti, 'pos': pos, 'slot': giorni * ore * classi, 'blocco': [g, o, ordine[k]], 'orario': griglia, 'motivi': motivi, 'ordine': ordine}
+    if lettera == 'P':
+        passaggi = [[[0] * classi for _ in range(ore)] for _ in range(giorni)]
+        for i, v in conta.items():
+            g, resto = divmod(i, ore * classi)
+            o, k = divmod(resto, classi)
+            passaggi[g][o][ordine[k]] = v
+        m['passaggi'] = passaggi
+    return m
 
 
 def totale(url, eid, definitivo, lettera='B'):

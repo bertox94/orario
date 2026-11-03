@@ -22,7 +22,13 @@ function intestazione(dati, titolo) {
 }
 
 // Griglia dell'orario: orario[g][o][c] = [docente, codocente] (-1 = nessuno).
-function disegnaOrario(contenitore, dati, orario, blocco, alPassaggio) {
+// passaggi (facoltativo): [g][o][c] = quante volte la ricerca e' passata da quella posizione; colora lo sfondo
+// delle celle con la stessa scala di calore della mappa (logaritmica, piu' scuro = piu' volte).
+function disegnaOrario(contenitore, dati, orario, blocco, alPassaggio, passaggi) {
+  let massimo = 0;
+  if (passaggi) dati.giorni.forEach((_, g) => dati.ore.forEach((__, o) => dati.classi.forEach((___, c) => {
+    massimo = Math.max(massimo, passaggi[g][o][c]);
+  })));
   const corpo = el('tbody');
   dati.classi.forEach((cl, c) => {
     const tr = el('tr', {}, [el('td', {class: 'classe', testo: cl.nome})]);
@@ -35,6 +41,15 @@ function disegnaOrario(contenitore, dati, orario, blocco, alPassaggio) {
         td.appendChild(el('span', {testo: dati.docenti[p].nome}));
         if (q >= 0) td.appendChild(el('span', {class: 'cod', testo: '+ ' + dati.docenti[q].nome}));
         td.title = dati.docenti[p].nome + (q >= 0 ? ' con ' + dati.docenti[q].nome : '');
+      }
+      if (passaggi) {
+        const v = passaggi[g][o][c];
+        if (v > 0 && massimo > 0) {
+          const a = 0.08 + 0.82 * Math.log1p(v) / Math.log1p(massimo);
+          td.style.background = `rgba(var(--calore), ${a.toFixed(3)})`;
+          if (a > 0.5) td.style.color = '#fff';
+        }
+        td.title = (td.title ? td.title + ' · ' : '') + `attraversata ${v.toLocaleString('it-IT')} ` + (v === 1 ? 'volta' : 'volte');
       }
       if (alPassaggio) collegaCella(td, (ev) => alPassaggio(g, o, c, td, ev), alPassaggio);
       tr.appendChild(td);
@@ -470,7 +485,8 @@ function sfogliaPassi(sezione, contenitore, dati, url) {
     if (n === 0) {  // il passo 0 non e' nel file: e' l'orario vuoto, prima che la ricerca cominci
       richiesta++;
       stato.textContent = `Passo 0${di()}: orario vuoto, la ricerca non è ancora cominciata.`;
-      disegnaOrario(griglia, dati, dati.giorni.map(() => dati.ore.map(() => dati.classi.map(() => [-1, -1]))), null);
+      disegnaOrario(griglia, dati, dati.giorni.map(() => dati.ore.map(() => dati.classi.map(() => [-1, -1]))), null, null,
+        dati.giorni.map(() => dati.ore.map(() => dati.classi.map(() => 0))));
       return;
     }
     const mia = ++richiesta;
@@ -482,7 +498,7 @@ function sfogliaPassi(sezione, contenitore, dati, url) {
     const dove = r.pos >= r.slot ? 'orario completo'
       : `la ricerca sta decidendo ${dati.giorni[r.blocco[0]]} ${dati.ore[r.blocco[1]]} ${dati.classi[r.blocco[2]].nome} (✕)`;
     stato.textContent = `Passo ${numeroIt(n)}${di()} · ${numeroIt(r.pos)} slot su ${numeroIt(r.slot)} assegnati; ${dove}`;
-    disegnaOrario(griglia, dati, r.orario, r.pos >= r.slot ? null : r.blocco);
+    disegnaOrario(griglia, dati, r.orario, r.pos >= r.slot ? null : r.blocco, null, r.passaggi);
   }
   barra.addEventListener('change', () => vai(+barra.value));
   numero.addEventListener('change', () => vai(+numero.value));
