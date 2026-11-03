@@ -124,17 +124,29 @@ td.blocco { outline: 2px solid #c0392b; outline-offset: -2px; color: #c0392b; fo
 .pannello-slot tr.scelto td { font-weight: 700; }
 .pannello-slot tr.utilizzabile td { color: var(--ok); }
 
-/* Tabelle larghe: barra di scorrimento sempre visibile (su macOS altrimenti compare solo scorrendo) e, sotto, un
-   cursore che resta in fondo allo schermo finche' la tabella e' visibile (static/orario.js, aggiornaCursori). */
-.scorre { scrollbar-width: auto; scrollbar-color: var(--tenue) var(--bordo); }
+/* Tabelle larghe: barra di scorrimento e, sotto, un cursore che resta in fondo allo schermo finche' la tabella e'
+   visibile (static/orario.js, aggiornaCursori). Compaiono solo con il mouse sopra la tabella (o sul cursore, o con il
+   cursore selezionato da tastiera); lo spazio resta riservato, cosi' la pagina non si sposta quando compaiono.
+   Senza mouse (telefono, tablet) restano sempre visibili, altrimenti non si potrebbero usare. */
+.scorre { scrollbar-width: auto; scrollbar-color: transparent transparent; }
 .scorre::-webkit-scrollbar { height: 12px; }
-.scorre::-webkit-scrollbar-track { background: var(--bordo); border-radius: 6px; }
-.scorre::-webkit-scrollbar-thumb { background: var(--tenue); border-radius: 6px; }
+.scorre::-webkit-scrollbar-track, .scorre::-webkit-scrollbar-thumb { background: transparent; border-radius: 6px; }
+.scorre:hover, .con-cursore:hover .scorre { scrollbar-color: var(--tenue) var(--bordo); }
+.scorre:hover::-webkit-scrollbar-track, .con-cursore:hover .scorre::-webkit-scrollbar-track { background: var(--bordo); }
+.scorre:hover::-webkit-scrollbar-thumb, .con-cursore:hover .scorre::-webkit-scrollbar-thumb { background: var(--tenue); }
 .con-cursore { margin-bottom: 12px; }
 .cursore-tabella {
   display: block; width: 100%; margin: 6px 0 0; padding: 6px 0;
   position: sticky; bottom: 0; z-index: 2;
   background: var(--sfondo); border: none; accent-color: var(--accento); cursor: ew-resize;
+  opacity: 0; transition: opacity .15s;
+}
+.con-cursore:hover .cursore-tabella, .cursore-tabella:focus-visible { opacity: 1; }
+@media (hover: none) {
+  .scorre { scrollbar-color: var(--tenue) var(--bordo); }
+  .scorre::-webkit-scrollbar-track { background: var(--bordo); }
+  .scorre::-webkit-scrollbar-thumb { background: var(--tenue); }
+  .cursore-tabella { opacity: 1; }
 }
 /* Celle fisse mentre la tabella scorre: l'angolo "Classe" sopra a tutto, poi le intestazioni, poi la colonna delle classi
    (altrimenti scorrendo le intestazioni delle ore passano sopra l'angolo). */
