@@ -226,6 +226,50 @@ function sfogliaMarce(contenitore, dati, url, nomiMotivi) {
   vai(1);
 }
 
+// Sfoglia i passi della ricerca registrati con --passi: l'orario parziale a ogni passo, dal passo 0 (orario vuoto).
+// La sezione resta nascosta finche' non si sa che c'e' almeno un passo registrato.
+function sfogliaPassi(sezione, contenitore, dati, url) {
+  const barra = el('input', {type: 'range', min: 0, max: 0, value: 0, style: 'width: 100%'});
+  const numero = el('input', {type: 'number', min: 0, value: 0, class: 'stretto'});
+  const stato = el('div', {class: 'tenue piccolo'});
+  const griglia = el('div', {class: 'scorre'});
+  let totale = null, n = 0, richiesta = 0;
+  const di = () => totale ? ` di ${numeroIt(totale)}` : '';
+  const bottone = (testo, delta) => el('button', {class: 'secondario', type: 'button', testo, onclick: () => vai(n + delta)});
+  async function vai(nuovo) {
+    n = Math.max(0, totale !== null ? Math.min(totale, nuovo) : nuovo);
+    barra.value = numero.value = n;
+    if (n === 0) {  // il passo 0 non e' nel file: e' l'orario vuoto, prima che la ricerca cominci
+      richiesta++;
+      stato.textContent = `Passo 0${di()}: orario vuoto, la ricerca non è ancora cominciata.`;
+      disegnaOrario(griglia, dati, dati.giorni.map(() => dati.ore.map(() => dati.classi.map(() => [-1, -1]))), null);
+      return;
+    }
+    const mia = ++richiesta;
+    stato.textContent = 'Carico il passo ' + n + '...';
+    const r = await (await fetch(`${url}?n=${n}`)).json();
+    if (mia !== richiesta) return;
+    if (r.errore) { stato.textContent = r.errore; griglia.replaceChildren(); return; }
+    n = r.n; barra.value = numero.value = n;
+    const dove = r.pos >= r.slot ? 'orario completo'
+      : `la ricerca sta decidendo ${dati.giorni[r.blocco[0]]} ${dati.ore[r.blocco[1]]} ${dati.classi[r.blocco[2]].nome} (✕)`;
+    stato.textContent = `Passo ${numeroIt(n)}${di()} · ${numeroIt(r.pos)} slot su ${numeroIt(r.slot)} assegnati; ${dove}`;
+    disegnaOrario(griglia, dati, r.orario, r.pos >= r.slot ? null : r.blocco);
+  }
+  barra.addEventListener('change', () => vai(+barra.value));
+  numero.addEventListener('change', () => vai(+numero.value));
+  contenitore.replaceChildren(el('div', {style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center'}, [
+    bottone('⏮', -1e12), bottone('−1000', -1000), bottone('−100', -100), bottone('−1', -1), numero,
+    bottone('+1', 1), bottone('+100', 100), bottone('+1000', 1000), bottone('⏭', 1e12)]), barra, stato, griglia);
+  fetch(url + '?totale=1').then(r => r.json()).then(t => {
+    totale = t.totale || 0;
+    if (!totale) return;  // nessuna riga P nel file: la sezione resta nascosta
+    if (sezione) sezione.style.display = '';
+    barra.max = totale;
+    vai(0);
+  }).catch(() => {});
+}
+
 // Spiegazione a parole del perche' un docente non va bene nello slot, con i dettagli (ore, classi, orari).
 function spiegaMotivo(dati, a, c, classe, ora) {
   const d = c.dettaglio || {};

@@ -60,6 +60,13 @@
 <p class="tenue piccolo">Le marce indietro registrate con -b: per ognuna l'orario parziale in quel momento, lo slot (✕) dove nessun docente
   era utilizzabile e, se la prova ha i motivi attivi, perché ogni docente non andava bene. Sfoglia con i pulsanti o la barra: si vede come la ricerca avanza e torna indietro.</p>
 <div id="marce"></div>
+
+<div id="sezione-passi" style="display: none">
+<h2>La ricerca passo passo</h2>
+<p class="tenue piccolo">I passi registrati con --passi: l'orario a ogni passo della computazione, dal passo 0 (orario vuoto) in poi.
+  Lo slot ✕ è quello che la ricerca sta per decidere. Oltre il numero massimo di passi scelto nelle opzioni la registrazione si ferma (la ricerca continua).</p>
+<div id="passi"></div>
+</div>
 {% endif %}
 
 {% if e.diagnosi_testo %}
@@ -96,7 +103,8 @@ if (risultato.orario) {
   disegnaOrario(document.getElementById('orario'), risultato.dati, risultato.orario);
   disegnaOrarioDocenti(document.getElementById('orario-docenti'), risultato.dati, risultato.orario);
 }
-{% if 'orario.txt.gz' in file|map(attribute=0)|list %}sfogliaMarce(document.getElementById('marce'), risultato.dati, {{ url_for('casi.marce_indietro', eid=e.id)|tojson }}, {{ (r.get('diagnosi') or {}).get('nomi_motivi', [])|tojson }});{% endif %}
+{% if 'orario.txt.gz' in file|map(attribute=0)|list %}sfogliaMarce(document.getElementById('marce'), risultato.dati, {{ url_for('casi.marce_indietro', eid=e.id)|tojson }}, {{ (r.get('diagnosi') or {}).get('nomi_motivi', [])|tojson }});
+sfogliaPassi(document.getElementById('sezione-passi'), document.getElementById('passi'), risultato.dati, {{ url_for('casi.passi', eid=e.id)|tojson }});{% endif %}
 if (risultato.diagnosi) elencoBlocchi(document.getElementById('elenco-blocchi'), risultato.dati, (g, o, c) => risultato.diagnosi.marce[g][o][c], 10);
 if (risultato.diagnosi) disegnaMappa(document.getElementById('mappa'), risultato.dati, blocchiDaRisultato(risultato.diagnosi), 'marce indietro + rami scartati');
 </script>

@@ -120,8 +120,9 @@ def _esegui(config, exe, prova_id, eid, caso, opzioni):
     cartella = _cartella_lavoro(config)
     try:
         caso_file = _prepara_caso(config, caso, cartella)
-        max_mb = opzioni.get('max_mb') if opzioni.get('backtrack') else 0
-        scrittore = archivio.Scrittore(config.database_url, eid, 'orario.txt.gz') if opzioni.get('backtrack') else None
+        con_gz = opzioni.get('backtrack') or opzioni.get('passi')
+        max_mb = opzioni.get('max_mb') if con_gz else 0
+        scrittore = archivio.Scrittore(config.database_url, eid, 'orario.txt.gz') if con_gz else None
         e = solver.Esecuzione(exe, solver.argomenti(caso_file, opzioni, progresso=True), cartella,
                               timeout=opzioni.get('tempo'), limite_mb=256,  # i file in RAM restano piccoli
                               su_gz=scrittore.scrivi if scrittore else None, limite_gz_mb=max_mb or 0)

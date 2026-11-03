@@ -233,6 +233,14 @@ al posto di `/dev/shm` (che sul Mac non c'è; nessun problema con un SSD). Per f
 launchd al posto di systemd, e va impedito lo stop del Mac (Impostazioni → Batteria/Energia, oppure `caffeinate -s`),
 altrimenti sito e prove notturne si fermano.
 
+## La ricerca passo passo
+
+Nella sezione «In diretta», spuntando «Registra ogni passo della ricerca (--passi)» il solver scrive l'orario parziale
+a ogni passo della computazione, fino al numero di passi scelto nel campo accanto (predefinito 100.000; oltre, la
+ricerca continua senza registrare). Nella pagina del caso compare la sezione «La ricerca passo passo»: uno slider dal
+passo 0 (orario vuoto) all'ultimo passo registrato, con i pulsanti ±1, ±100 e ±1000. Lo slot ✕ è quello che la ricerca
+sta per decidere. I passi finiscono nello stesso file delle marce indietro, quindi vale lo stesso limite di spazio.
+
 ## Come si usa il test manuale (Test in tempo reale)
 
 1. **Dati della scuola**: inserire calendario, classi, docenti (con l'ora di ingresso) e lezioni (ore, codocente, ore in

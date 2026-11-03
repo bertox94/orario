@@ -103,8 +103,10 @@ def argomenti(caso, opzioni, progresso=False):
         a.append('--motivi')
     if opzioni.get('ordine_classi') is not None:
         a.append(str(opzioni['ordine_classi']))
-    if opzioni.get('backtrack'):
+    if opzioni.get('backtrack') or opzioni.get('passi'):
         a += ['-b', '--orario', 'orario.txt.gz']
+        if opzioni.get('passi'):
+            a += ['--passi', str(opzioni['passi'])]
         if opzioni.get('max_mb'):
             a += ['--max-mb', str(opzioni['max_mb'])]
     if opzioni.get('solo_verifica'):

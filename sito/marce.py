@@ -1,8 +1,9 @@
-"""Le marce indietro registrate con -b (orario.txt.gz nel database), lette a richiesta per vederle dal sito.
+"""Le marce indietro (-b) e i passi della ricerca (--passi) registrati in orario.txt.gz nel database, letti a richiesta.
 
-Il formato e' descritto in printer/printer.h: una riga "B pos da s_da ... s_(pos-1)" per ogni marcia indietro, con solo
-gli slot cambiati rispetto alla precedente. Qui si ricostruisce l'orario parziale di una marcia scorrendo il file dal
-principio (decompresso a pezzi, senza tenerlo in memoria)."""
+Il formato e' descritto in printer/printer.h: una riga "B pos da s_da ... s_(pos-1)" per ogni marcia indietro e, con
+--passi, una riga "P pos da ..." (stesso formato, stessa catena di differenze) per ogni nodo della ricerca. Qui si
+ricostruisce l'orario parziale di una riga scorrendo il file dal principio (decompresso a pezzi, senza tenerlo in
+memoria): le righe B e P condividono la catena, quindi si applicano entrambe qualunque sia quella cercata."""
 import zlib
 
 from . import archivio
@@ -35,10 +36,12 @@ def righe(url, eid):
         yield resto.decode('ascii', 'replace')
 
 
-def marcia(url, eid, n, nomi_classi):
+def marcia(url, eid, n, nomi_classi, lettera='B'):
     """La n-esima marcia indietro (da 1; n oltre la fine = l'ultima). Ritorna un dizionario con:
         n, pos (lo slot dove non c'era nessun docente utilizzabile), blocco [g, o, c], orario [g][o][c] = [docente,
-        codocente] con -1 negli slot non assegnati, motivi = [[docente, motivo]] (solo se la prova ha usato --motivi)."""
+        codocente] con -1 negli slot non assegnati, motivi = [[docente, motivo]] (solo se la prova ha usato --motivi).
+    Con lettera='P' e' invece l'n-esimo passo della ricerca (--passi): pos e' il numero di slot decisi e blocco lo
+    slot che la ricerca sta per decidere; motivi resta None (le righe M seguono solo le righe B)."""
     giorni = ore = classi = 0
     ordine = []  # k-esima classe dell'ordine della ricerca -> indice nei dati del sito
     slot = []
@@ -47,7 +50,7 @@ def marcia(url, eid, n, nomi_classi):
     completa = False
     for r in righe(url, eid):
         if completa:  # la riga M che segue la marcia scelta
-            if r.startswith('M'):
+            if lettera == 'B' and r.startswith('M'):
                 motivi = [[int(x) for x in t.split(':')] for t in r.split()[1:] if ':' in t]
             break
         if r.startswith('G '):
@@ -55,7 +58,7 @@ def marcia(url, eid, n, nomi_classi):
             giorni, ore, classi = int(giorni), int(ore), int(classi)
         elif r.startswith('K '):
             ordine = [nomi_classi.index(x) if x in nomi_classi else k for k, x in enumerate(r.split()[1:])]
-        elif r.startswith('B '):
+        elif r.startswith('B ') or r.startswith('P '):  # entrambe fanno parte della catena di differenze
             try:
                 campi = r.split()
                 p, da = int(campi[1]), int(campi[2])
@@ -67,6 +70,8 @@ def marcia(url, eid, n, nomi_classi):
             del slot[da:]
             slot += ['-'] * (da - len(slot))
             slot += nuovi
+            if r[0] != lettera:
+                continue
             pos = p
             visti += 1
             if visti == n:
@@ -86,11 +91,11 @@ def marcia(url, eid, n, nomi_classi):
     return {'n': visti, 'pos': pos, 'slot': giorni * ore * classi, 'blocco': [g, o, ordine[k]], 'orario': griglia, 'motivi': motivi, 'ordine': ordine}
 
 
-def totale(url, eid, definitivo):
-    """Quante marce indietro sono registrate (si conta una volta sola per i file finiti)."""
-    if eid in _totali:
-        return _totali[eid]
-    n = sum(1 for r in righe(url, eid) if r.startswith('B '))
+def totale(url, eid, definitivo, lettera='B'):
+    """Quante marce indietro (o, con lettera='P', passi) sono registrate (contate una volta sola per i file finiti)."""
+    if (eid, lettera) in _totali:
+        return _totali[eid, lettera]
+    n = sum(1 for r in righe(url, eid) if r.startswith(lettera + ' '))
     if definitivo:
-        _totali[eid] = n
+        _totali[eid, lettera] = n
     return n

@@ -61,9 +61,8 @@ def scarica(eid, nome):
                     headers=intestazioni)
 
 
-@bp.route('/<int:eid>/marce')
-def marce_indietro(eid):
-    """Una marcia indietro registrata con -b (?n=, da 1): l'orario parziale in quel momento e lo slot dove si e' bloccato."""
+def _sfoglia(eid, lettera, niente):
+    """Una riga del file compatto (?n=, da 1; ?totale=1 per il conteggio): l'orario parziale in quel momento."""
     e = conn().execute('select risultato, esito from esecuzioni where id = %s', (eid,)).fetchone()
     if not e or 'orario.txt.gz' not in archivio.dimensioni(conn(), eid):
         abort(404)
@@ -71,11 +70,23 @@ def marce_indietro(eid):
     nomi = [cl['nome'] for cl in ((e['risultato'] or {}).get('dati') or {}).get('classi', [])]
     try:
         if request.args.get('totale'):
-            return jsonify({'totale': marce.totale(url, eid, e['esito'] is not None)})
-        m = marce.marcia(url, eid, max(1, request.args.get('n', 1, type=int)), nomi)
+            return jsonify({'totale': marce.totale(url, eid, e['esito'] is not None, lettera)})
+        m = marce.marcia(url, eid, max(1, request.args.get('n', 1, type=int)), nomi, lettera)
     except marce.FileTroppoGrande:
         return jsonify({'errore': 'Il file delle marce indietro e\' troppo grande per essere sfogliato qui: scaricalo.'})
-    return jsonify(m or {'errore': 'Nessuna marcia indietro registrata.'})
+    return jsonify(m or {'errore': niente})
+
+
+@bp.route('/<int:eid>/marce')
+def marce_indietro(eid):
+    """Una marcia indietro registrata con -b: l'orario parziale in quel momento e lo slot dove si e' bloccato."""
+    return _sfoglia(eid, 'B', 'Nessuna marcia indietro registrata.')
+
+
+@bp.route('/<int:eid>/passi')
+def passi(eid):
+    """Un passo della ricerca registrato con --passi: l'orario parziale e lo slot che la ricerca sta per decidere."""
+    return _sfoglia(eid, 'P', 'Nessun passo registrato.')
 
 
 _TOKEN = re.compile(r'^(\d{1,4}(\+\d{1,4})?|-)$')

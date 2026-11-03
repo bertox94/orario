@@ -67,6 +67,8 @@
     <label class="spunta"><input type="checkbox" name="motivi" value="1" {{ 'checked' if o.get('motivi', True) }}> Motivi degli scarti</label>
     <label class="spunta"><input type="checkbox" name="backtrack" value="1" {{ 'checked' if o.get('backtrack') }}> Registra le marce indietro (-b)</label>
     <label>Spazio massimo per le marce (MB) <input type="number" name="max_mb" min="1" value="{{ o.get('max_mb', 200) }}"></label>
+    <label class="spunta"><input type="checkbox" name="passi" value="1" {{ 'checked' if o.get('passi') }}> Registra ogni passo della ricerca (--passi)</label>
+    <label>Passi massimi da registrare <input type="number" name="max_passi" min="1" max="10000000" value="{{ o.get('passi', 100000) }}"></label>
   </div>
   <h2>Parametri della ricerca</h2>
   <div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
