@@ -33,7 +33,7 @@ def _opzioni_dal_modulo():
     varianti = [v for v in ('normale', 'ritardi') if f.get('variante_' + v)]
     return {'semi_da': _intero('semi_da', 1), 'quanti': _intero('quanti', 20, 0, 10000),
             'classi': _intero('classi', 8, 1, 120), 'varianti': varianti or ['normale'],
-            'scuola': bool(f.get('scuola')), 'ordine_classi': _intero('ordine_classi', 0) if f.get('ordine_classi', '').strip().isdigit() else None,
+            'scuola': bool(f.get('scuola')), 'usa_nomi': bool(f.get('usa_nomi')), 'ordine_classi': _intero('ordine_classi', 0) if f.get('ordine_classi', '').strip().isdigit() else None,
             'fase1': _intero('fase1', 60, 1), 'fase2': _intero('fase2', 600), 'fase3': _intero('fase3', 600),
             'backtrack': bool(f.get('backtrack')), 'spazio_mb': _intero('spazio_mb', _config().spazio_mb, 1),
             'ore_obbligatorie': _intero('ore_obbligatorie', 5, 1, 6), 'ore_prof_classe': _intero('ore_prof_classe', 3, 1, 6),

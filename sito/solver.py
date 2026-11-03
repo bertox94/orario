@@ -92,6 +92,8 @@ def argomenti(caso, opzioni, progresso=False):
             a.append('--ritardi')
     elif caso['tipo'] == 'input':
         a += ['--input', caso['file']]
+    if caso['tipo'] == 'casuale' and opzioni.get('file_nomi'):
+        a += ['--nomi-docenti', opzioni['file_nomi']]  # nomi dei docenti della scuola al posto di D001...
     a += ['-n', str(opzioni.get('orari', 1)), '--dati', opzioni.get('file_dati', 'dati.txt'), '--json', 'risultato.json']
     if opzioni.get('tempo'):
         a += ['--tempo', str(opzioni['tempo'])]

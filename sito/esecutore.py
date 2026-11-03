@@ -114,12 +114,27 @@ def _prepara_caso(config, caso, cartella):
     return {**caso, 'file': file}
 
 
+def _con_nomi(config, prova_id, caso, cartella, opzioni):
+    """Per i dati casuali con i nomi dei docenti della scuola (salvati nella prova): scrive il file dei nomi nella
+    cartella di lavoro e lo aggiunge alle opzioni."""
+    if caso.get('tipo') != 'casuale':
+        return opzioni
+    with db.connetti(config.database_url) as c:
+        r = c.execute("select opzioni->'nomi_docenti' as nomi from prove where id = %s", (prova_id,)).fetchone()
+    if not r or not r['nomi']:
+        return opzioni
+    with open(os.path.join(cartella, 'nomi.txt'), 'w') as f:
+        f.write('\n'.join(r['nomi']) + '\n')
+    return {**opzioni, 'file_nomi': 'nomi.txt'}
+
+
 def _esegui(config, exe, prova_id, eid, caso, opzioni):
     """Lancia il solver (con --progresso) in una cartella in RAM, lo tiene in ATTIVE finche' gira e al termine mette i
     file nel database (dati, orari, uscita; le marce indietro compresse arrivano direttamente, a pezzi)."""
     cartella = _cartella_lavoro(config)
     try:
         caso_file = _prepara_caso(config, caso, cartella)
+        opzioni = _con_nomi(config, prova_id, caso, cartella, opzioni)
         max_mb = opzioni.get('max_mb') if opzioni.get('backtrack') else 0
         scrittore = archivio.Scrittore(config.database_url, eid, 'orario.txt.gz') if opzioni.get('backtrack') else None
         e = solver.Esecuzione(exe, solver.argomenti(caso_file, opzioni, progresso=True), cartella,
@@ -175,13 +190,14 @@ def _caso_della_scuola(c, scuola_id, prova_id):
 
 # ---- test in tempo reale ----
 
-def prepara_vista(config, exe, caso, prova_id):
+def prepara_vista(config, exe, caso, prova_id):  # noqa: C901
     """Salva nella prova i dati del caso (classi, giorni, ore, docenti), presi da una --solo-verifica lampo: servono
     alla pagina per disegnare la mappa dei blocchi mentre la ricerca gira."""
     cartella = _cartella_lavoro(config)
     try:
-        r = solver.esegui(exe, _prepara_caso(config, caso, cartella),
-                          {'solo_verifica': True, 'motivi': False, 'tempo': 60}, os.path.join(cartella, 'vista'))
+        opz = _con_nomi(config, prova_id, caso, cartella, {'solo_verifica': True, 'motivi': False, 'tempo': 60})
+        opz['file_nomi'] = os.path.join(cartella, 'nomi.txt') if 'file_nomi' in opz else None
+        r = solver.esegui(exe, _prepara_caso(config, caso, cartella), opz, os.path.join(cartella, 'vista'))
     finally:
         shutil.rmtree(cartella, ignore_errors=True)
     if r.get('json'):
@@ -196,13 +212,19 @@ def vista(c, prova_id):
     return r['vista'] if r else None
 
 
-def avvia_live(config, scuola_id, caso_richiesto, opzioni, dati_input=None, nome=None):
+def nomi_docenti_scuola(c, scuola_id):
+    return [r['nome'] for r in c.execute('select nome from docenti where scuola_id = %s order by id', (scuola_id,)).fetchall()]
+
+
+def avvia_live(config, scuola_id, caso_richiesto, opzioni, dati_input=None, nome=None, usa_nomi=False):
     """Crea la prova, la avvia in un thread e ritorna l'id dell'esecuzione (per la pagina). Con dati_input (formato
     --input) il caso usa quei dati; con caso_richiesto 'scuola', i dati attuali della scuola."""
     with db.connetti(config.database_url) as c:
+        nomi = nomi_docenti_scuola(c, scuola_id) if usa_nomi and caso_richiesto['tipo'] == 'casuale' else []
         pid = c.execute("insert into prove (scuola_id, tipo, stato, opzioni, commit, inizio) "
                         "values (%s, 'live', 'in corso', %s, %s, now()) returning id",
-                        (scuola_id, json.dumps({'caso': caso_richiesto, **opzioni}), solver.commit_attuale())
+                        (scuola_id, json.dumps({'caso': caso_richiesto, **opzioni, **({'nomi_docenti': nomi} if nomi else {})}),
+                         solver.commit_attuale())
                         ).fetchone()['id']
         if caso_richiesto['tipo'] == 'scuola':
             caso = _caso_della_scuola(c, scuola_id, pid)
@@ -249,6 +271,11 @@ def avvia_live(config, scuola_id, caso_richiesto, opzioni, dati_input=None, nome
 # ---- test notturni ----
 
 def crea_notturna(c, scuola_id, opzioni, programmata_per=None, nome=None):
+    # i casi casuali usano i nomi dei docenti della scuola (al momento della creazione), se non si e' scelto altrimenti
+    if opzioni.get('usa_nomi', True) and opzioni.get('quanti'):
+        nomi = nomi_docenti_scuola(c, scuola_id)
+        if nomi:
+            opzioni = {**opzioni, 'nomi_docenti': nomi}
     return c.execute("insert into prove (scuola_id, tipo, nome, stato, opzioni, programmata_per) "
                      "values (%s, 'notturna', %s, 'in coda', %s, %s) returning id",
                      (scuola_id, nome, json.dumps(opzioni), programmata_per)).fetchone()['id']
