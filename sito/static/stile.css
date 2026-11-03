@@ -127,7 +127,7 @@ td.blocco { outline: 2px solid #c0392b; outline-offset: -2px; color: #c0392b; fo
 /* Tabelle larghe: barra di scorrimento e, sotto, un cursore che resta in fondo allo schermo finche' la tabella e'
    visibile (static/orario.js, aggiornaCursori). Compaiono solo con il mouse sopra la tabella (o sul cursore, o con il
    cursore selezionato da tastiera); lo spazio resta riservato, cosi' la pagina non si sposta quando compaiono.
-   Senza mouse (telefono, tablet) restano sempre visibili, altrimenti non si potrebbero usare. */
+   Senza mouse (telefono, tablet) il cursore non c'e': si scorre la tabella con il dito. */
 .scorre { scrollbar-width: auto; scrollbar-color: transparent transparent; }
 .scorre::-webkit-scrollbar { height: 12px; }
 .scorre::-webkit-scrollbar-track, .scorre::-webkit-scrollbar-thumb { background: transparent; border-radius: 6px; }
@@ -142,11 +142,9 @@ td.blocco { outline: 2px solid #c0392b; outline-offset: -2px; color: #c0392b; fo
   opacity: 0; transition: opacity .15s;
 }
 .con-cursore:hover .cursore-tabella, .cursore-tabella:focus-visible { opacity: 1; }
+.cursore-tabella[hidden] { display: none; }  /* tabella che non deborda */
 @media (hover: none) {
-  .scorre { scrollbar-color: var(--tenue) var(--bordo); }
-  .scorre::-webkit-scrollbar-track { background: var(--bordo); }
-  .scorre::-webkit-scrollbar-thumb { background: var(--tenue); }
-  .cursore-tabella { opacity: 1; }
+  .cursore-tabella { display: none; }
 }
 /* Celle fisse mentre la tabella scorre: l'angolo "Classe" sopra a tutto, poi le intestazioni, poi la colonna delle classi
    (altrimenti scorrendo le intestazioni delle ore passano sopra l'angolo). */

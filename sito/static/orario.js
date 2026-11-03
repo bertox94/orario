@@ -314,7 +314,7 @@ function aggiornaCursori() {
     }
     cursore.max = Math.max(0, eccesso);
     cursore.value = box.scrollLeft;
-    cursore.style.display = eccesso > 1 ? '' : 'none';
+    cursore.hidden = eccesso <= 1;
   });
 }
 
