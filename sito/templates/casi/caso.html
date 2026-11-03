@@ -56,9 +56,11 @@
   Lo slot ✕ è quello che la ricerca sta per decidere. Il colore di ogni cella indica quante volte la ricerca è tornata
   su quella posizione fino al passo mostrato: bianco = attraversata una volta sola (la ricerca è andata avanti senza intoppi),
   più scuro = più passaggi (passaci sopra per il numero esatto). Lo slider aggiorna l'orario mentre lo trascini.
-  Un passo in cui nessun docente era utilizzabile nello slot ✕ è segnalato: se l'ora può restare vuota (ora buca) la ricerca
-  prosegue con lo slot vuoto; se non può è un <strong>vicolo cieco</strong> e la ricerca torna indietro. I due casi sono
-  distinti sotto la barra, con i pulsanti per saltare da un blocco all'altro.
+  I <strong>blocchi</strong> sono le vere marce indietro: un <strong>vicolo cieco</strong> (nessun docente utilizzabile e lo slot
+  non può restare vuoto) o un <strong>ramo scartato</strong> (la scelta appena fatta rende impossibile finire l'orario e la
+  ricerca torna indietro subito; la cella della scelta è evidenziata). I pulsanti sotto la barra saltano da un blocco
+  all'altro. Un'ora buca (nessun docente ma lo slot può restare vuoto e la ricerca prosegue) è segnalata nella riga di stato
+  ma non è un blocco. Durante l'animazione la pagina scorre da sola per tenere in vista la cella che si sta decidendo.
   Oltre il numero massimo di passi scelto nelle opzioni la registrazione si ferma (la ricerca continua).</p>
 <div id="passi"></div>
 </div>

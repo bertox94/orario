@@ -501,17 +501,22 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
   // passando il mouse (o toccando) una cella: la coda dei docenti in quel punto e i vincoli, come nelle marce indietro
   const passaggio = codaAlPassaggio(dati, url.replace(/passi$/, 'analisi'))(
     () => ultimo && {chiave: 'passo' + n, orario: ultimo.orario, ordine: ultimo.ordine, limite: ultimo.pos,
-      testoLimite: ultimo.bloccato ? (ultimo.esito === 'vuoto' ? ' · qui nessun docente era utilizzabile: lo slot resta vuoto' : ' · qui nessun docente era utilizzabile (vicolo cieco)')
+      testoLimite: ultimo.esito === 'scarto' ? ' · ramo scartato: la ricerca è tornata indietro subito dopo la scelta evidenziata'
+      : ultimo.bloccato ? (ultimo.esito === 'vuoto' ? ' · qui nessun docente era utilizzabile: lo slot resta vuoto' : ' · qui nessun docente era utilizzabile (vicolo cieco)')
       : ultimo.pos >= ultimo.slot ? ' · orario completo' : ' · qui la ricerca sta decidendo'});
+  const veri = () => vicoli.filter(v => v[1] === 'indietro' || v[1] === 'scarto');  // i blocchi: veri ritorni indietro
   const di = () => totale ? ` di ${numeroIt(totale)}` : '';
   function scriviStato(r) {
-    const dove = r.pos >= r.slot ? 'orario completo'
+    const scarto = r.esito === 'scarto';
+    const dove = scarto ? `ultima scelta: ${dati.giorni[r.blocco[0]]} ${dati.ore[r.blocco[1]]} ${dati.classi[r.blocco[2]].nome} (✕)`
+      : r.pos >= r.slot ? 'orario completo'
       : `la ricerca sta decidendo ${dati.giorni[r.blocco[0]]} ${dati.ore[r.blocco[1]]} ${dati.classi[r.blocco[2]].nome} (✕)`;
     stato.textContent = `Passo ${numeroIt(n)}${di()} · ${numeroIt(r.pos)} slot su ${numeroIt(r.slot)} assegnati; ${dove}`
-      + (!r.bloccato ? '' : r.esito === 'vuoto' ? ' · ⚠ NESSUN DOCENTE UTILIZZABILE: lo slot resta vuoto (ora buca) e la ricerca prosegue'
+      + (scarto ? ` · ✂ RAMO SCARTATO: con questa scelta ${r.motivoScarto === 1 ? 'i docenti non avrebbero più ore sufficienti per finire' : 'la classe non potrebbe più completare le sue lezioni'}, la ricerca torna indietro subito`
+        : !r.bloccato ? '' : r.esito === 'vuoto' ? ' · ⚠ NESSUN DOCENTE UTILIZZABILE: lo slot resta vuoto (ora buca) e la ricerca prosegue'
         : r.esito === 'indietro' ? ' · ⚠ VICOLO CIECO: nessun docente utilizzabile e lo slot non può restare vuoto, la ricerca torna indietro'
         : ' · ⚠ NESSUN DOCENTE UTILIZZABILE: com\'è andata dopo non è registrato');
-    stato.style.fontWeight = r.bloccato ? '600' : '';
+    stato.style.fontWeight = r.bloccato || scarto ? '600' : '';
   }
 
   // ---- animazione: i passi si scaricano a blocchi (sole differenze) e si ridisegnano a velocita' regolabile ----
@@ -576,11 +581,14 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
     const passaggi = dati.giorni.map(() => dati.ore.map(() => dati.classi.map(() => 0)));
     for (const i in anim.conta) passaggi[Math.floor(i / (O * C))][Math.floor(i / C) % O][anim.ordine[i % C]] = anim.conta[i];
     const pos = anim.slot.length, completo = pos >= G * O * C;
-    const k = Math.min(pos, G * O * C - 1);
+    const scarto = codice >= 4;
+    const k = scarto ? pos - 1 : Math.min(pos, G * O * C - 1);
     const blocco = [Math.floor(k / (O * C)), Math.floor(k / C) % O, anim.ordine[k % C]];
-    const r = {n, pos, slot: G * O * C, blocco, bloccato: codice > 0, esito: codice === 1 ? 'vuoto' : codice === 2 ? 'indietro' : null};
+    const r = {n, pos, slot: G * O * C, blocco, bloccato: codice > 0 && !scarto, motivoScarto: scarto ? codice - 4 : null,
+      esito: scarto ? 'scarto' : codice === 1 ? 'vuoto' : codice === 2 ? 'indietro' : null};
     scriviStato(r);
-    disegnaOrario(griglia, dati, orario, completo ? null : blocco, null, passaggi);
+    disegnaOrario(griglia, dati, orario, completo && !scarto ? null : blocco, null, passaggi);
+    teniInVista();
   }
   function passo(t) {
     if (!anim.attiva) return;
@@ -623,6 +631,11 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
     if (mia !== richiesta) return;
     if (r.errore) { stato.textContent = r.errore; griglia.replaceChildren(); return; }
     n = r.n; barra.value = numero.value = n;
+    if (r.scarto != null) {  // ramo scartato: si evidenzia la scelta che l'ha causato (lo slot prima di quello in esame)
+      const k = r.pos - 1, C = dati.classi.length, O = dati.ore.length;
+      r.esito = 'scarto'; r.motivoScarto = r.scarto;
+      r.blocco = [Math.floor(k / (O * C)), Math.floor(k / C) % O, r.ordine[k % C]];
+    }
     scriviStato(r);
     if (r.bloccato) {
       const per = {};
@@ -632,7 +645,13 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
         voci.length ? el('ul', {}, voci) : el('p', {class: 'tenue piccolo', testo: r.motivi ? 'Nessun docente aveva ancora ore da fare in questa classe.' : 'Motivi non registrati: attiva «Motivi degli scarti» nelle opzioni.'}));
     }
     ultimo = r;
-    disegnaOrario(griglia, dati, r.orario, r.pos >= r.slot ? null : r.blocco, passaggio, r.passaggi);
+    disegnaOrario(griglia, dati, r.orario, r.pos >= r.slot && r.esito !== 'scarto' ? null : r.blocco, passaggio, r.passaggi);
+    teniInVista();
+  }
+  // la cella evidenziata deve restare visibile: se e' fuori dallo schermo la pagina (e la tabella) scorrono fino a lei
+  function teniInVista() {
+    const td = griglia.querySelector('td.blocco');
+    if (td && td.scrollIntoView) td.scrollIntoView({block: 'nearest', inline: 'nearest'});
   }
   // Mentre si trascina lo slider l'orario segue in tempo reale (evento input, non solo al rilascio). Una richiesta alla
   // volta: se nel frattempo la barra si e' mossa, dopo la risposta si carica subito l'ultima posizione raggiunta.
@@ -653,9 +672,9 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
     el('div', {style: 'display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:6px 0'}, [bottonePlay, el('label', {class: 'piccolo tenue', style: 'display:flex;gap:6px;align-items:center'}, [el('span', {testo: 'Velocità'}), sliderVelocita]), etichettaVelocita]),
     el('div', {style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px'}, [
       el('button', {class: 'secondario', type: 'button', testo: '◀ blocco precedente', onclick: () => {
-        const prima = vicoli.filter(v => v[0] < n); if (prima.length) vai(prima[prima.length - 1][0]); }}),
+        const prima = veri().filter(v => v[0] < n); if (prima.length) vai(prima[prima.length - 1][0]); }}),
       el('button', {class: 'secondario', type: 'button', testo: 'blocco successivo ▶', onclick: () => {
-        const dopo = vicoli.find(v => v[0] > n); if (dopo) vai(dopo[0]); }}), infoVicoli]),
+        const dopo = veri().find(v => v[0] > n); if (dopo) vai(dopo[0]); }}), infoVicoli]),
     barra, stato, motivi, griglia);
   fetch(url + '?totale=1').then(r => r.json()).then(t => {
     totale = t.totale || 0;
@@ -665,13 +684,14 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
     vai(0);
     fetch(url + '?vicoli=1').then(r => r.json()).then(v => {
       vicoli = v.vicoli || []; vicoliTroncati = !!v.troncato;
-      const vuoti = vicoli.filter(v => v[1] === 'vuoto').length, indietro = vicoli.filter(v => v[1] === 'indietro').length;
+      const vuoti = vicoli.filter(v => v[1] === 'vuoto').length, ciechi = vicoli.filter(v => v[1] === 'indietro').length,
+        scarti = vicoli.filter(v => v[1] === 'scarto').length, blocchi = ciechi + scarti;
       const più = vicoliTroncati ? '+' : '';
-      infoVicoli.textContent = vicoli.length
-        ? `${numeroIt(vicoli.length)}${più} ${vicoli.length === 1 && !più ? 'passo' : 'passi'} senza docenti utilizzabili su ${numeroIt(totale)}: ` +
-          `${numeroIt(vuoti)} risolti lasciando lo slot vuoto, ${numeroIt(indietro)} vicoli ciechi (la ricerca è tornata indietro)` +
-          (vicoli.length < 30 ? ` · passi ${vicoli.map(v => v[0]).join(', ')}` : '')
-        : 'Nessun passo senza docenti utilizzabili tra quelli registrati: la ricerca è sempre andata avanti.';
+      infoVicoli.textContent = blocchi
+        ? `${numeroIt(blocchi)}${più} ${blocchi === 1 && !più ? 'marcia indietro' : 'marce indietro'}: ${numeroIt(ciechi)} vicoli ciechi (nessun docente utilizzabile), ${numeroIt(scarti)} rami scartati` +
+          (vuoti ? ` · ${numeroIt(vuoti)} ore buche non contate (nessun docente, lo slot resta vuoto e la ricerca prosegue)` : '') +
+          (blocchi < 30 ? ` · passi ${veri().map(v => v[0]).join(', ')}` : '')
+        : 'Nessuna marcia indietro tra i passi registrati: la ricerca è sempre andata avanti' + (vuoti ? ` (${numeroIt(vuoti)} ore buche non contate).` : '.');
     }).catch(() => {});
   }).catch(() => {});
 }
