@@ -316,6 +316,9 @@ def interpreta(out, codice, risultato_json=None):
     return r
 
 
+POCHI_BLOCCHI = 1000  # sotto questo numero di blocchi la diagnosi non classifica (vedi diagnosi)
+
+
 def diagnosi(out):
     """Legge la diagnosi stampata dal solver. Ritorna (riassunto breve, testo completo).
 
@@ -333,6 +336,10 @@ def diagnosi(out):
     rami = int(s.group(1)) if s else 0
     if not marce and not rami:
         return 'nessuna marcia indietro', testo
+    # con pochi blocchi la ricerca e' andata liscia: "localizzata" o "diffusa" non dicono niente (2 rami scartati in
+    # 2 slot farebbero "LOCALIZZATA, top3 100%")
+    if marce + rami < POCHI_BLOCCHI:
+        return 'pochi blocchi: %d marce indietro, %d rami scartati' % (marce, rami), testo
     if marce >= rami:
         cosa, n_slot = 'marce', m.group(2)
         quote = [float(x) for x in re.findall(r'marce \(([\d.]+)%\)', testo)]

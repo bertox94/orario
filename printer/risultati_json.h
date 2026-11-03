@@ -31,6 +31,15 @@
 //   }
 // }
 
+// In piu', dopo "diagnosi":
+//   "dettagli_slot": [{"giorno", "ora", "classe", "visite", "ore_classe", "marce",
+//                      "ultima_marcia": {"ore_classe_fatte", "docenti_con_ore"},          se ci sono marce indietro
+//                      "scarti": [{"motivo", "volte", "ore_classe_fatte",
+//                                  "fino_ora", "da_riempire", "possibili"                 lezioni della classe
+//                                  | "docente", "classe_docente", "ore_rimaste", "ore_possibili"}]}]   ore dei docenti
+//   uno per ogni slot con blocchi: quante volte la ricerca ci e' arrivata e lo stato all'ultimo blocco (ore della classe
+//   gia' in orario, e per i rami scartati i numeri della verifica che li ha scartati; classe_docente -1 = ore in tutto).
+
 // Scrive i risultati in `file` (se NULL non fa nulla). impossibile = motivo della verifica preliminare, oppure NULL
 // se si e' cercato; secondi = durata (tempo di CPU).
 void scrivi_json(const char *file, int argc, char **argv, const char *impossibile, double secondi);

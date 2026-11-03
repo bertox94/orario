@@ -101,13 +101,13 @@
 {% block script %}
 {% if r.get('dati') %}
 <script>
-const risultato = {{ {'dati': r.dati, 'orario': r.get('orario'), 'diagnosi': r.get('diagnosi')}|tojson }};
+const risultato = {{ {'dati': r.dati, 'orario': r.get('orario'), 'diagnosi': r.get('diagnosi'), 'dettagli': r.get('dettagli_slot')}|tojson }};
 if (risultato.orario) {
   disegnaOrario(document.getElementById('orario'), risultato.dati, risultato.orario);
   disegnaOrarioDocenti(document.getElementById('orario-docenti'), risultato.dati, risultato.orario);
 }
 {% if 'orario.txt.gz' in file|map(attribute=0)|list and (e.marce or 0) > 0 %}sfogliaMarce(document.getElementById('marce'), risultato.dati, {{ url_for('casi.marce_indietro', eid=e.id)|tojson }}, {{ (r.get('diagnosi') or {}).get('nomi_motivi', [])|tojson }});{% endif %}
-if (risultato.diagnosi) elencoBlocchi(document.getElementById('elenco-blocchi'), risultato.dati, risultato.diagnosi, 10);
+if (risultato.diagnosi) elencoBlocchi(document.getElementById('elenco-blocchi'), risultato.dati, risultato.diagnosi, 10, risultato.dettagli);
 if (risultato.diagnosi) disegnaMappa(document.getElementById('mappa'), risultato.dati, blocchiDaRisultato(risultato.diagnosi), 'marce indietro + rami scartati');
 </script>
 {% endif %}

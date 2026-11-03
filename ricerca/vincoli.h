@@ -188,6 +188,19 @@ static inline int docente_idoneo(const teaching_slot *slot, const int pos, const
 // Controllo fatto a ogni inizio ora (vedi vincoli.c). Ritorna 0 se il ramo non puo' piu' avere soluzioni.
 int ore_rimaste_stanno_nel_tempo_rimasto(int giorno, int ora);
 
+// I numeri dell'ultima verifica fallita (per la diagnosi: perche' un ramo e' stato scartato). Si scrivono solo quando una
+// verifica fallisce, quindi non costano nulla alla ricerca.
+typedef struct {
+    // lezioni della classe (lezioni_della_classe_bastano_dopo): fino all'ora fino_ora di ogni giorno che resta,
+    // la classe deve riempire da_riempire slot ma le sue lezioni ne possono riempire al massimo possibili
+    int fino_ora, da_riempire, possibili;
+    // ore dei docenti (ore_rimaste_stanno_nel_tempo_rimasto): al docente restano ore_rimaste ore (nella classe
+    // classe_docente, o in tutto se classe_docente = -1) ma ne puo' fare al massimo ore_possibili nel tempo rimasto
+    int docente, classe_docente, ore_rimaste, ore_possibili;
+} dettaglio_scarto_t;
+
+extern dettaglio_scarto_t dettaglio_scarto;
+
 // Elenca le lezioni (docente da solo o coppia) di ogni classe. Da chiamare una volta, dopo aver caricato i dati.
 void prepara_lezioni_delle_classi(void);
 
