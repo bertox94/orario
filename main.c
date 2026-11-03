@@ -39,7 +39,6 @@
 //   --casuale SEME: invece dei dati del programma usa dati generati a caso (riproducibili con lo stesso SEME):
 //                   classi da 29 a 36 ore, docenti da 5 a 24 ore, con lezioni da soli e in codocenza.
 //   --classi N: numero di classi dei dati casuali (default 8)
-//   --nomi-docenti FILE: nei dati casuali, i nomi dei docenti (uno per riga) al posto di D001, D002... Solo i nomi cambiano.
 //   --ritardi: nei dati casuali alcuni docenti entrano in ritardo (ora di ingresso 1, 2 o 3)
 //   -n MAX: si ferma dopo MAX orari completi
 //   --tempo SEC: interrompe la ricerca dopo SEC secondi (la diagnosi viene stampata comunque)
@@ -102,8 +101,6 @@ static Opzioni leggi_opzioni(const int argc, char **argv) {
             o.seme_dati = strtoull(argv[++i], NULL, 10);
         } else if (!strcmp(argv[i], "--classi") && i + 1 < argc) {
             o.n_classi_casuali = atoi(argv[++i]);
-        } else if (!strcmp(argv[i], "--nomi-docenti") && i + 1 < argc) {
-            file_nomi_docenti = argv[++i];
         } else if (!strcmp(argv[i], "--ritardi")) {
             o.con_ritardi = 1;
         } else if (!strcmp(argv[i], "--dati") && i + 1 < argc) {
