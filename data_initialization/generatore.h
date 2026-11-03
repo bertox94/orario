@@ -14,9 +14,6 @@
 // Almeno una lezione in codocenza e almeno una lezione da soli.
 // Il calendario (giorni, ore, coda) deve essere gia' inizializzato (inizializza_calendario).
 // I dati con e senza ritardi di uno stesso seme sono uguali, tranne le ore di ingresso.
-// Se non e' NULL: file con un nome di docente per riga, usati al posto di D001, D002... (vedi generatore.c).
-extern const char *file_nomi_docenti;
-
 void genera_dati_casuali(unsigned long long seed, int n_classi, int con_ritardi);
 
 #endif
