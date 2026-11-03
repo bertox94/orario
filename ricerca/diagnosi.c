@@ -188,6 +188,48 @@ static int ragione_non_idoneo(const teaching_slot *slot, const int pos, const in
     return 0;
 }
 
+// Esito di ogni vincolo per il docente p nello slot, valutati uno per uno (non si ferma al primo che non va): 1 rispettato,
+// 0 non rispettato, -1 non si applica. Ordine: 0 libero (non in un'altra classe a quest'ora), 1 ora di ingresso, 2 massimo
+// di ore al giorno nella classe, 3 ore attaccate, 4 massimo di classi diverse al giorno, 5 da solo o con un codocente
+// utilizzabile, 6 regola del sabato. Servono al sito per scrivere una frase per vincolo (vedi orario.js, vincoliDocente).
+static void vincoli_docente(const teaching_slot *slot, const int pos, const int p, const int base4d_queue,
+                            const int queue_size, FILE *f) {
+    const int da_solo = deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(slot->base2d_ci, p);
+    int v[7];
+    v[0] = prof_è_disponibile(slot->base3d_goi, p);
+    v[1] = verifica_ora_ingresso(p, slot->ora);
+    v[2] = prof_fa_al_max_n_ore(slot, p);
+    v[3] = prof_fa_ore_contigue(slot, p);
+    v[4] = ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(pos, slot->giorno, slot->classe, p);
+    // codocenza: puo' fare lezione da solo, oppure esiste un codocente libero e idoneo
+    int partner_utilizzabile = -1;
+    for (int jj = base4d_queue; jj < queue_size; jj++) {
+        const int q = queue_mul[jj]->teacher;
+        if (q != p && prof_è_disponibile(slot->base3d_goi, q)
+            && docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(slot->classe, p, q) && docente_idoneo(slot, pos, q)) {
+            partner_utilizzabile = q;
+            break;
+        }
+    }
+    v[5] = da_solo || partner_utilizzabile >= 0;
+    // regola del sabato (solo l'ultimo giorno): l'ora si puo' riempire in modo da non lasciare a meta' le ore dell'ora prima
+    if (slot->giorno != actual_giorni_settimana - 1) {
+        v[6] = -1;
+    } else {
+        int ok = da_solo && sabato_esaurisci_priorita_subito(pos, slot->giorno, slot->ora, slot->base2d_ci, p, -1);
+        for (int jj = base4d_queue; jj < queue_size && !ok; jj++) {
+            const int q = queue_mul[jj]->teacher;
+            ok = q != p && prof_è_disponibile(slot->base3d_goi, q)
+                 && docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(slot->classe, p, q)
+                 && sabato_esaurisci_priorita_subito(pos, slot->giorno, slot->ora, slot->base2d_ci, p, q);
+        }
+        v[6] = ok;
+    }
+    fprintf(f, "[");
+    for (int k = 0; k < 7; k++) fprintf(f, "%s%d", k ? ", " : "", v[k]);
+    fprintf(f, "], \"codocente_libero\": %d", partner_utilizzabile);
+}
+
 // I dettagli di un docente nello slot: dove ha insegnato oggi, dove e' ora, quando entra, con chi puo' fare coppia.
 static void dettaglio_docente(const teaching_slot *slot, const int pos, const int p, const int base4d_queue,
                               const int queue_size, FILE *f) {
@@ -263,6 +305,8 @@ void diagnosi_analizza_slot(const teaching_slot *slot, const int pos, const int 
                 ii > base4d_queue ? ", " : "", p, queue_mul[ii]->priority, ore_rimaste,
                 classe_docente[slot->base2d_ci + p].ore, motivo);
         if (ore_rimaste > 0) {
+            fprintf(f, ", \"vincoli\": ");
+            vincoli_docente(slot, pos, p, base4d_queue, queue_size, f);
             fprintf(f, ", \"dettaglio\": ");
             dettaglio_docente(slot, pos, p, base4d_queue, queue_size, f);
         }
