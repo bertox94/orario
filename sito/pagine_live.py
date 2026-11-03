@@ -36,7 +36,16 @@ def indice():
                            'where e.id = %s and p.scuola_id = %s', (request.args['rilancia'], g.scuola['id'])).fetchone()
         rilancio = e
     dati = modello.leggi(conn(), g.scuola['id']) if n_classi else None
-    return render_template('live/indice.html', prove=prove, n_classi=n_classi, dati=dati, rilancio=rilancio,
+    # ultimo esito di ogni caso dei test notturni che non e' arrivato a una conclusione
+    non_risolti = conn().execute('''
+        select * from (
+            select distinct on (e.prova_id, e.caso) e.id, e.prova_id, e.caso, e.esito, e.marce, e.diagnosi, p.nome as prova_nome
+            from esecuzioni e join prove p on p.id = e.prova_id
+            where p.tipo = 'notturna' and p.scuola_id = %s and e.esito is not null
+            order by e.prova_id, e.caso, e.fase desc) x
+        where esito not in ('trovato', 'nessuna soluzione', 'impossibile', 'verifica superata')
+        order by prova_id desc, id limit 40''', (g.scuola['id'],)).fetchall()
+    return render_template('live/indice.html', prove=prove, n_classi=n_classi, dati=dati, non_risolti=non_risolti, rilancio=rilancio,
                            scuola=bool(request.args.get('scuola')), modificati=bool(request.args.get('modificati')))
 
 
@@ -58,14 +67,18 @@ def avvia():
         dati_input = modello.per_solver(dati)
     elif f.get('sorgente') == 'esecuzione':
         # rifa' una ricerca con gli stessi dati (e lo stesso ordine) di un'esecuzione di questa scuola
-        vecchia = conn().execute('select e.risultato from esecuzioni e join prove p on p.id = e.prova_id '
+        vecchia = conn().execute('select e.risultato, e.caso_dati from esecuzioni e join prove p on p.id = e.prova_id '
                                  'where e.id = %s and p.scuola_id = %s',
                                  (_intero('eid', 0), g.scuola['id'])).fetchone()
-        if not vecchia or not (vecchia['risultato'] or {}).get('dati'):
+        dati_input = {'dati': vecchia['risultato']['dati']} if vecchia and (vecchia['risultato'] or {}).get('dati') else None
+        da_prova = (vecchia['caso_dati'] or {}).get('da_prova') if vecchia else None
+        if dati_input is None and da_prova:  # nessun JSON (per esempio errore nei dati): la fotografia salvata nella prova
+            r = conn().execute('select dati_scuola from prove where id = %s and scuola_id = %s', (da_prova, g.scuola['id'])).fetchone()
+            dati_input = r['dati_scuola'] if r else None
+        if dati_input is None:
             flash('Dati del caso non trovati.', 'errore')
             return redirect(url_for('.indice'))
         caso = {'tipo': 'input', 'nome': f.get('nome') or 'caso riletto'}
-        dati_input = {'dati': vecchia['risultato']['dati']}
     else:
         caso = {'tipo': 'casuale', 'seme': _intero('seme', 1, 0), 'classi': _intero('classi', 8, 1, 120),
                 'ritardi': bool(f.get('ritardi'))}

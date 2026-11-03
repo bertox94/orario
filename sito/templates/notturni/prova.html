@@ -41,7 +41,7 @@
 <p><label class="spunta"><input type="checkbox" id="solo-problemi"> Solo i casi non risolti</label></p>
 <div class="scorre">
 <table class="dati" id="casi">
-  <thead><tr><th>Caso</th><th>Esito finale</th><th class="num">Fasi</th><th class="num">Marce indietro</th><th class="num">Durata</th><th>Diagnosi</th></tr></thead>
+  <thead><tr><th>Caso</th><th>Esito finale</th><th class="num">Fasi</th><th class="num">Marce indietro</th><th class="num">Durata</th><th>Diagnosi</th><th></th></tr></thead>
   <tbody>
   {% for r in casi %}
     <tr data-risolto="{{ 1 if r.esito in ('trovato', 'nessuna soluzione', 'impossibile') else 0 }}">
@@ -51,9 +51,10 @@
       <td class="num">{{ r.marce|numero }}</td>
       <td class="num">{{ r.secondi|durata }}</td>
       <td class="piccolo">{{ r.diagnosi or '' }}</td>
+      <td>{% if r.esito %}<a class="bottone secondario" href="{{ url_for('live.indice', rilancia=r.id) }}" title="Apre il caso nei test in tempo reale con le stesse opzioni">Verifica a mano</a>{% endif %}</td>
     </tr>
   {% else %}
-    <tr><td colspan="6" class="tenue">Nessun caso ancora avviato.</td></tr>
+    <tr><td colspan="7" class="tenue">Nessun caso ancora avviato.</td></tr>
   {% endfor %}
   </tbody>
 </table>

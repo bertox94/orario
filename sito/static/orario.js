@@ -4,7 +4,7 @@
 function el(tag, attributi, figli) {
   const e = document.createElement(tag);
   for (const [k, v] of Object.entries(attributi || {})) {
-    if (k === 'testo') e.textContent = v; else e.setAttribute(k, v);
+    if (k === 'testo') e.textContent = v; else if (typeof v === 'function') e[k] = v; else e.setAttribute(k, v);
   }
   for (const f of figli || []) e.appendChild(f);
   return e;
@@ -22,14 +22,15 @@ function intestazione(dati, titolo) {
 }
 
 // Griglia dell'orario: orario[g][o][c] = [docente, codocente] (-1 = nessuno).
-function disegnaOrario(contenitore, dati, orario) {
+function disegnaOrario(contenitore, dati, orario, blocco) {
   const corpo = el('tbody');
   dati.classi.forEach((cl, c) => {
     const tr = el('tr', {}, [el('td', {class: 'classe', testo: cl.nome})]);
     dati.giorni.forEach((_, g) => dati.ore.forEach((__, o) => {
       const [p, q] = orario[g][o][c];
-      const td = el('td', {class: (o === 0 ? 'inizio-giorno ' : '') + (p < 0 ? 'vuoto' : '')});
-      if (p < 0) td.textContent = '—';
+      const qui = blocco && blocco[0] === g && blocco[1] === o && blocco[2] === c;
+      const td = el('td', {class: (o === 0 ? 'inizio-giorno ' : '') + (p < 0 ? 'vuoto ' : '') + (qui ? 'blocco' : '')});
+      if (p < 0) td.textContent = qui ? '✕' : '—';
       else {
         td.appendChild(el('span', {testo: dati.docenti[p].nome}));
         if (q >= 0) td.appendChild(el('span', {class: 'cod', testo: '+ ' + dati.docenti[q].nome}));
@@ -73,6 +74,9 @@ function disegnaMappa(contenitore, dati, valore, descrizione) {
   dati.giorni.forEach((_, g) => dati.ore.forEach((__, o) => dati.classi.forEach((___, c) => {
     massimo = Math.max(massimo, valore(g, o, c));
   })));
+  let totale = 0;
+  dati.giorni.forEach((_, g) => dati.ore.forEach((__, o) => dati.classi.forEach((___, c) => { totale += valore(g, o, c); })));
+  const percento = v => totale ? (100 * v / totale).toLocaleString('it-IT', {maximumFractionDigits: 1}) + '%' : '-';
   const scala = v => v <= 0 ? 0 : Math.log1p(v) / Math.log1p(massimo);
   const corpo = el('tbody');
   dati.classi.forEach((cl, c) => {
@@ -86,7 +90,7 @@ function disegnaMappa(contenitore, dati, valore, descrizione) {
         if (a > 0.55) td.style.color = '#fff';
         td.textContent = compatto(v);
       }
-      td.title = `${g_nome} ${o_nome} ${cl.nome}: ${v.toLocaleString('it-IT')} ${descrizione}`;
+      td.title = `${g_nome} ${o_nome} ${cl.nome}: ${v.toLocaleString('it-IT')} ${descrizione} (${percento(v)} del totale)`;
       tr.appendChild(td);
     }));
     corpo.appendChild(tr);
@@ -119,3 +123,54 @@ function blocchiDaProgresso(dati, p) {
 }
 
 function numeroIt(v) { return v == null ? '-' : Number(v).toLocaleString('it-IT'); }
+
+// Gli slot dove la ricerca si e' bloccata di piu': conteggio e percentuale sul totale.
+function elencoBlocchi(contenitore, dati, valore, quanti) {
+  const righe = [];
+  let totale = 0;
+  dati.giorni.forEach((gn, g) => dati.ore.forEach((on, o) => dati.classi.forEach((cl, c) => {
+    const v = valore(g, o, c);
+    totale += v;
+    if (v > 0) righe.push({v, nome: `${gn} ${on} ${cl.nome}`});
+  })));
+  righe.sort((a, b) => b.v - a.v);
+  const corpo = el('tbody');
+  righe.slice(0, quanti).forEach(r => corpo.appendChild(el('tr', {}, [
+    el('td', {testo: r.nome}), el('td', {class: 'num', testo: numeroIt(r.v)}),
+    el('td', {class: 'num', testo: (100 * r.v / totale).toLocaleString('it-IT', {maximumFractionDigits: 2}) + '%'})])));
+  contenitore.replaceChildren(el('table', {class: 'dati'}, [
+    el('thead', {}, [el('tr', {}, [el('th', {testo: 'Slot'}), el('th', {class: 'num', testo: 'Marce indietro'}), el('th', {class: 'num', testo: '% del totale'})])]), corpo]));
+}
+
+// Sfoglia le marce indietro registrate con -b: l'orario parziale a ogni marcia, con lo slot dove si e' bloccata.
+function sfogliaMarce(contenitore, dati, url) {
+  const barra = el('input', {type: 'range', min: 1, max: 1, value: 1, style: 'width: 100%'});
+  const numero = el('input', {type: 'number', min: 1, value: 1, class: 'stretto'});
+  const stato = el('div', {class: 'tenue piccolo'});
+  const griglia = el('div', {class: 'scorre'});
+  let totale = null, n = 1, richiesta = 0;
+  const bottone = (testo, delta) => el('button', {class: 'secondario', type: 'button', testo, onclick: () => vai(n + delta)});
+  async function vai(nuovo) {
+    n = Math.max(1, totale ? Math.min(totale, nuovo) : nuovo);
+    barra.value = numero.value = n;
+    const mia = ++richiesta;
+    stato.textContent = 'Carico la marcia ' + n + '...';
+    const r = await (await fetch(`${url}?n=${n}`)).json();
+    if (mia !== richiesta) return;
+    if (r.errore) { stato.textContent = r.errore; griglia.replaceChildren(); return; }
+    n = r.n; barra.value = numero.value = n;
+    const dove = `${dati.giorni[r.blocco[0]]} ${dati.ore[r.blocco[1]]} ${dati.classi[r.blocco[2]].nome}`;
+    stato.textContent = `Marcia ${numeroIt(n)}` + (totale ? ` di ${numeroIt(totale)} (${(100 * n / totale).toLocaleString('it-IT', {maximumFractionDigits: 2})}%)` : '') +
+      ` · nello slot ${r.pos} di ${r.slot}: nessun docente utilizzabile in ${dove} (✕)`;
+    disegnaOrario(griglia, dati, r.orario, r.blocco);
+  }
+  barra.addEventListener('change', () => vai(+barra.value));
+  numero.addEventListener('change', () => vai(+numero.value));
+  contenitore.replaceChildren(el('div', {style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center'}, [
+    bottone('⏮', -1e12), bottone('−1000', -1000), bottone('−100', -100), bottone('−1', -1), numero,
+    bottone('+1', 1), bottone('+100', 100), bottone('+1000', 1000), bottone('⏭', 1e12)]), barra, stato, griglia);
+  fetch(url + '?totale=1').then(r => r.json()).then(t => {
+    totale = t.totale; barra.max = totale; vai(n);
+  });
+  vai(1);
+}

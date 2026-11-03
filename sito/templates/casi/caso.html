@@ -51,6 +51,15 @@
 <h2>Dove si e' bloccata la ricerca</h2>
 <p class="tenue piccolo">Marce indietro e rami scartati in ogni slot.</p>
 <div id="mappa"></div>
+<h3>Slot con più marce indietro</h3>
+<div id="elenco-blocchi" class="scorre"></div>
+{% endif %}
+
+{% if 'orario.txt.gz' in file|map(attribute=0)|list %}
+<h2>Orario a ogni marcia indietro</h2>
+<p class="tenue piccolo">Le marce indietro registrate con -b: per ognuna l'orario parziale in quel momento e lo slot (✕) dove nessun docente
+  era utilizzabile. Sfoglia con i pulsanti o la barra: si vede come la ricerca avanza e torna indietro.</p>
+<div id="marce"></div>
 {% endif %}
 
 {% if e.diagnosi_testo %}
@@ -87,6 +96,8 @@ if (risultato.orario) {
   disegnaOrario(document.getElementById('orario'), risultato.dati, risultato.orario);
   disegnaOrarioDocenti(document.getElementById('orario-docenti'), risultato.dati, risultato.orario);
 }
+{% if 'orario.txt.gz' in file|map(attribute=0)|list %}sfogliaMarce(document.getElementById('marce'), risultato.dati, {{ url_for('casi.marce_indietro', eid=e.id)|tojson }});{% endif %}
+if (risultato.diagnosi) elencoBlocchi(document.getElementById('elenco-blocchi'), risultato.dati, (g, o, c) => risultato.diagnosi.marce[g][o][c], 10);
 if (risultato.diagnosi) disegnaMappa(document.getElementById('mappa'), risultato.dati, blocchiDaRisultato(risultato.diagnosi), 'marce indietro + rami scartati');
 </script>
 {% endif %}

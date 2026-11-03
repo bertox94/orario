@@ -118,3 +118,4 @@ table.mappa td { min-width: 34px; height: 26px; font-size: 11px; font-variant-nu
 .barra { height: 8px; background: var(--bordo); border-radius: 4px; overflow: hidden; }
 .barra > div { height: 100%; background: var(--accento); }
 input.stretto { width: 5em; }
+td.blocco { outline: 2px solid #c0392b; outline-offset: -2px; color: #c0392b; font-weight: 700; }
