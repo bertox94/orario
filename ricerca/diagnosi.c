@@ -170,6 +170,66 @@ static int motivo_di_scarto(const teaching_slot *slot, const int pos, const int 
     return 5;
 }
 
+// Classe in cui il docente insegna nella stessa ora dello slot (tra gli slot gia' assegnati), oppure -1.
+static int classe_in_cui_insegna_adesso(const teaching_slot *slot, const int pos, const int p) {
+    for (int i = slot->giorno * actual_ore_giornaliere * actual_classi_sezione; i < pos; i++)
+        if (orario[i].ora == slot->ora && (orario[i].insegnante1 == p || orario[i].insegnante2 == p))
+            return orario[i].classe;
+    return -1;
+}
+
+// Perche' il docente non e' idoneo (numeri come in motivo_di_scarto: 1 ingresso, 2 massimo di ore, 3 ore non contigue,
+// 4 massimo di classi) oppure 0 se lo e'.
+static int ragione_non_idoneo(const teaching_slot *slot, const int pos, const int q) {
+    if (!verifica_ora_ingresso(q, slot->ora)) return 1;
+    if (!prof_fa_al_max_n_ore(slot, q)) return 2;
+    if (!prof_fa_ore_contigue(slot, q)) return 3;
+    if (!ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(pos, slot->giorno, slot->classe, q)) return 4;
+    return 0;
+}
+
+// I dettagli di un docente nello slot: dove ha insegnato oggi, dove e' ora, quando entra, con chi puo' fare coppia.
+static void dettaglio_docente(const teaching_slot *slot, const int pos, const int p, const int base4d_queue,
+                              const int queue_size, FILE *f) {
+    fprintf(f, "{\"ingresso\": %d, \"occupato_in\": %d, \"da_solo\": %s, \"oggi\": [", docente_info[p].ora_entrata,
+            classe_in_cui_insegna_adesso(slot, pos, p),
+            deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(slot->base2d_ci, p) ? "true" : "false");
+    int primo = 1;
+    for (int i = slot->giorno * actual_ore_giornaliere * actual_classi_sezione; i < pos; i++)
+        if (orario[i].insegnante1 == p || orario[i].insegnante2 == p) {
+            fprintf(f, "%s[%d, %d]", primo ? "" : ", ", orario[i].ora, orario[i].classe);
+            primo = 0;
+        }
+    fprintf(f, "], \"partner\": [");
+    primo = 1;
+    for (int jj = base4d_queue; jj < queue_size; jj++) {
+        const int q = queue_mul[jj]->teacher;
+        if (q == p || !docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(slot->classe, p, q)) continue;
+        // stato: -1 libero, 0 occupato in un'altra classe (classe), 1..4 non idoneo (come ragione_non_idoneo)
+        int stato = -1, classe = -1;
+        if (!prof_è_disponibile(slot->base3d_goi, q)) {
+            stato = 0;
+            classe = classe_in_cui_insegna_adesso(slot, pos, q);
+        } else if (ragione_non_idoneo(slot, pos, q)) {
+            stato = ragione_non_idoneo(slot, pos, q);
+        }
+        fprintf(f, "%s[%d, %d, %d]", primo ? "" : ", ", q, stato, classe);
+        primo = 0;
+    }
+    fprintf(f, "]");
+    // regola del sabato: i docenti dell'ora precedente che devono continuare
+    fprintf(f, ", \"ora_precedente\": [");
+    if (slot->giorno == actual_giorni_settimana - 1 && slot->ora > 0) {
+        const teaching_slot *prev = slot_precedente(slot->giorno, slot->ora, slot->classe);
+        int n = 0;
+        const int doc[2] = {prev->insegnante1, prev->insegnante2};
+        for (int k = 0; k < 2; k++)
+            if (doc[k] >= 0 && classe_docente[slot->base2d_ci + doc[k]].ore - classe_docente[slot->base2d_ci + doc[k]].svolte > 0)
+                fprintf(f, "%s%d", n++ ? ", " : "", doc[k]);
+    }
+    fprintf(f, "]}");
+}
+
 // Analisi di uno slot (per il sito): lo stato e' quello dell'orario parziale che la ricerca ha costruito fino a lui.
 // Per ogni docente della coda, nell'ordine di priorita': la priorita' (ore ancora da sistemare nella settimana), le ore
 // che gli restano in questa classe e se era utilizzabile nello slot o quale vincolo lo escludeva.
@@ -199,10 +259,17 @@ void diagnosi_analizza_slot(const teaching_slot *slot, const int pos, const int 
                 if (usabile) motivo = -1;
             }
         }
-        fprintf(f, "%s{\"docente\": %d, \"priorita\": %g, \"ore_classe\": %d, \"motivo\": %d}", ii > base4d_queue ? ", " : "",
-                p, queue_mul[ii]->priority, ore_rimaste, motivo);
+        fprintf(f, "%s{\"docente\": %d, \"priorita\": %g, \"ore_classe\": %d, \"ore_totali_classe\": %d, \"motivo\": %d",
+                ii > base4d_queue ? ", " : "", p, queue_mul[ii]->priority, ore_rimaste,
+                classe_docente[slot->base2d_ci + p].ore, motivo);
+        if (ore_rimaste > 0) {
+            fprintf(f, ", \"dettaglio\": ");
+            dettaglio_docente(slot, pos, p, base4d_queue, queue_size, f);
+        }
+        fprintf(f, "}");
     }
-    fprintf(f, "], \"motivi\": [");
+    fprintf(f, "], \"limiti\": {\"ore_in_classe\": %d, \"classi_al_giorno\": %d, \"ora\": %d, \"giorno\": %d}, \"motivi\": [",
+            MAX_ORE_PROF_IN_UNA_CLASSE, MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO, slot->ora, slot->giorno);
     for (int m = 0; m < N_MOTIVI; m++) fprintf(f, "%s\"%s\"", m ? ", " : "", nome_motivo[m]);
     fprintf(f, ", \"nessuna ora da fare in questa classe\"]}\n");
 }
