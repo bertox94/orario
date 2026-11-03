@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Prova il solver su dati casuali, in tre fasi.
 
-Uso: tests/casuali.py [--da SEME] [--quanti N] [--classi K]
+Uso: tests/casuali.py [--da SEME] [--quanti N] [--classi K] [--out CARTELLA] [--marce-gb GB]
   --da      primo seme (default 1)
   --quanti  quanti semi provare (default 20); ogni seme si prova due volte: normale e con docenti che entrano in
             ritardo (ora di ingresso 1, 2 o 3), quindi i casi sono il doppio
@@ -204,7 +204,13 @@ def main():
     ap.add_argument('--da', type=int, default=1, help='primo seme')
     ap.add_argument('--quanti', type=int, default=20, help='quanti casi provare')
     ap.add_argument('--classi', type=int, default=8, help='quante classi ha ogni caso')
+    ap.add_argument('--out', default=None, help='cartella dei risultati (default tests/risultati, viene cancellata)')
+    ap.add_argument('--marce-gb', type=float, default=20, help='spazio massimo dei file delle marce indietro, in GB')
     a = ap.parse_args()
+    global OUT, TOTALE_MARCE_MB
+    if a.out:
+        OUT = os.path.abspath(a.out)
+    TOTALE_MARCE_MB = int(a.marce_gb * 1024)
 
     casi = [(s, ritardi) for s in range(a.da, a.da + a.quanti) for ritardi in (False, True)]
     shutil.rmtree(OUT, ignore_errors=True)
