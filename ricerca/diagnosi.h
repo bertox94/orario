@@ -20,7 +20,6 @@ extern long long int nodi_a_pos_max;      // a quale nodo e' stata raggiunta
 extern double limite_secondi;             // se > 0 la ricerca si ferma dopo tanti secondi
 extern double inizio_ricerca;
 extern int interrotto_per_tempo;
-extern int interrotto_per_spazio;         // il file degli orari ha superato il limite di --max-mb
 extern int interrotto_su_richiesta;       // arrivato SIGTERM (il pulsante "Ferma" del sito)
 extern int errore_di_scrittura;           // non si e' piu' potuto scrivere il file degli orari (disco pieno, limite
                                           // del sistema alla dimensione dei file, gzip terminato)
@@ -30,24 +29,20 @@ double secondi_reali(void);
 // Imposta il limite di tempo (0 = nessuno) e se registrare anche i motivi di scarto dei docenti.
 void diagnosi_imposta(double secondi, int con_motivi);
 
-// Imposta il limite di spazio: la ricerca si ferma quando il file `file` supera `mb` MB sul disco (0 = nessun limite).
-// Per un file .gz conta la dimensione compressa, cioe' quella che occupa davvero.
-void diagnosi_imposta_spazio(const char *file, double mb);
-
 // Con --progresso: circa ogni secondo una riga "PROGRESSO {json}" su stdout (vedi diagnosi.c).
 void diagnosi_imposta_progresso(int attivo);
 
 // Gestore di SIGTERM: chiede alla ricerca di fermarsi al prossimo controllo periodico.
 void diagnosi_richiesta_di_arresto(int segnale);
 
-// Controlli che costano troppo per farli a ogni nodo (tempo, spazio, errori di scrittura, arresto richiesto,
+// Controlli che costano troppo per farli a ogni nodo (tempo, errori di scrittura, arresto richiesto,
 // progresso): si fanno ogni 65536 nodi. pos e' lo slot corrente. Ritorna 1 se la ricerca va interrotta.
 int diagnosi_controllo_periodico(int pos);
 
 // Da chiamare appena prima di cominciare la ricerca.
 void diagnosi_avvia(void);
 
-// Da chiamare all'ingresso di ogni nodo. Ritorna 1 se la ricerca va interrotta (tempo scaduto o spazio finito).
+// Da chiamare all'ingresso di ogni nodo. Ritorna 1 se la ricerca va interrotta (tempo scaduto, fermata, errore di scrittura).
 static inline int diagnosi_nuovo_nodo(const int pos) {
     nodi++;
     visite_per_pos[pos]++;

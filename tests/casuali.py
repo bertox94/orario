@@ -9,18 +9,18 @@ Uso: tests/casuali.py [--da SEME] [--quanti N] [--classi K]
 
 1. Fase 1: ogni caso gira al massimo 1 minuto (si ferma al primo orario trovato).
 2. Fase 2: i casi non finiti girano di nuovo per al massimo 10 minuti.
-3. Fase 3: i casi ancora non finiti vengono rilanciati con -b: il programma scrive ogni marcia indietro in formato
-   compatto (una riga con gli slot cambiati, vedi printer/printer.h), compresso con gzip: circa 4 byte per marcia.
-   Tutti i file delle marce indietro insieme occupano al massimo circa 20 GB (divisi in parti uguali tra i casi).
-   I casi che hanno trovato un orario non si rilanciano.
+3. Fase 3: i casi ancora non finiti vengono rilanciati registrando la ricerca passo passo (-b --passi N: l'orario
+   parziale a ogni nodo e ogni marcia indietro, in formato compatto, vedi printer/printer.h, compresso con gzip).
+   La registrazione si ferma dopo PASSI nodi, cosi' ogni file resta di pochi MB. I casi che hanno trovato un orario
+   non si rilanciano.
 
 Per ogni caso c'e' una cartella tests/risultati/seme_<N>/ (o seme_<N>_ritardi/) (cancellata a ogni esecuzione) con:
    dati.txt            descrizione del caso (classi, docenti, lezioni, codocenze)
    risultato.txt       esito di ogni fase, marce indietro, tempi, diagnosi
    orario.txt          il primo orario trovato (se la ricerca e' finita)
    risultato.json      dati, esito, primo orario e diagnosi per slot dell'ultima fase (vedi printer/risultati_json.h)
-   marce_indietro/orario.txt.gz   solo per i casi non finiti: le marce indietro in formato compatto
-   marce_indietro/risultato.json  come sopra, per la fase 3
+   passi/orario.txt.gz   solo per i casi non finiti: la ricerca passo passo in formato compatto
+   passi/risultato.json  come sopra, per la fase 3
 
 Per ogni caso lento o non finito stampa una diagnosi: se i vicoli ciechi (marce indietro, o rami scartati dalla
 potatura se sono di piu') sono concentrati in pochi slot (LOCALIZZATA) il caso e' probabilmente impossibile o ha un
@@ -35,7 +35,7 @@ from sito import solver  # compilazione, esecuzione e lettura dei risultati, in 
 
 PRIMA = 60            # secondi massimi della fase 1
 DOPO = 600            # secondi massimi della fase 2 (e della fase 3)
-TOTALE_MARCE_MB = 20 * 1024  # spazio massimo di tutti i file delle marce indietro insieme
+PASSI = 100000        # nodi registrati nella fase 3 (--passi)
 JOBS = max(1, (os.cpu_count() or 2) // 2)  # casi in parallelo: meta' dei processori
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
@@ -65,19 +65,14 @@ def controlla_dati(out):
 diagnosi = solver.diagnosi  # vedi sito/solver.py
 
 
-def lancia(exe, caso, classi, timeout, cartella, backtrack=False, max_mb=4096):
+def lancia(exe, caso, classi, timeout, cartella, passi=0):
     """Esegue un caso nella sua cartella. Ritorna un dizionario con l'esito."""
     seme, ritardi = caso
     os.makedirs(cartella, exist_ok=True)
-    dati = os.path.join(os.path.dirname(cartella) if backtrack else cartella, 'dati.txt')
-    # Con -b il solver si ferma da solo quando il file delle marce indietro supera max_mb (--max-mb), e scrive comunque
-    # diagnosi e JSON; il limite del sistema alla dimensione dei file resta solo come riserva (vedi sito/solver.py).
-    opzioni = {'tempo': max(timeout - 1, 0.5), 'motivi': True, 'backtrack': backtrack, 'max_mb': max_mb,
-               'file_dati': dati}
+    dati = os.path.join(os.path.dirname(cartella) if passi else cartella, 'dati.txt')
+    opzioni = {'tempo': max(timeout - 1, 0.5), 'motivi': True, 'passi': passi, 'file_dati': dati}
     r = solver.esegui(exe, {'tipo': 'casuale', 'seme': seme, 'classi': classi, 'ritardi': ritardi}, opzioni, cartella)
     esito = r['esito']
-    if esito == 'errore' and backtrack:
-        esito = 'interrotto (file troppo grande)'  # ucciso dal limite di riserva del sistema
     errori, nc, nd = controlla_dati(r['uscita'])
     return {'caso': caso, 'esito': esito, 'finito': r['finito'], 'marce': r['marce'], 'sec': r['secondi'],
             'classi': nc, 'docenti': nd, 'errori': errori, 'diagnosi': r['diagnosi'], 'dettaglio': r['diagnosi_testo']}
@@ -122,22 +117,16 @@ def fase2(pool, exe, casi, classi, ris, storia):
 
 
 def fase3(pool, exe, casi, classi, ris, storia):
-    """Rilancia con -b i casi ancora non finiti. Lo spazio TOTALE_MARCE_MB si divide in parti uguali tra i casi."""
+    """Rilancia i casi ancora non finiti registrando la ricerca passo passo (-b --passi)."""
     da_ristampare = [s for s in casi if not ris[s]['finito']]
     if not da_ristampare:
         return
-    per_file_mb = max(1, TOTALE_MARCE_MB // len(da_ristampare))
-    print('\n== Fase 3: orario parziale a ogni marcia indietro per i %d casi non finiti (al massimo %d MB ciascuno, '
-          '%d MB in tutto)' % (len(da_ristampare), per_file_mb, per_file_mb * len(da_ristampare)))
-    os.makedirs(OUT, exist_ok=True)
-    libero = shutil.disk_usage(OUT).free / 2 ** 20
-    if per_file_mb * len(da_ristampare) > libero:
-        print('ATTENZIONE: spazio libero %.0f MB, meno di quello che i file possono occupare' % libero)
-    for r in pool.map(lambda s: lancia(exe, s, classi, DOPO, os.path.join(cartella_caso(s), 'marce_indietro'),
-                                       backtrack=True, max_mb=per_file_mb), da_ristampare):
+    print('\n== Fase 3: ricerca passo passo (primi %d nodi) per i %d casi non finiti' % (PASSI, len(da_ristampare)))
+    for r in pool.map(lambda s: lancia(exe, s, classi, DOPO, os.path.join(cartella_caso(s), 'passi'), passi=PASSI),
+                      da_ristampare):
         stampa('3', r)
-        storia[r['caso']].append(('fase 3, con -b (max %g s)' % DOPO, r))
-        p = os.path.join(cartella_caso(r['caso']), 'marce_indietro', 'orario.txt.gz')
+        storia[r['caso']].append(('fase 3, passo passo (max %g s)' % DOPO, r))
+        p = os.path.join(cartella_caso(r['caso']), 'passi', 'orario.txt.gz')
         if os.path.exists(p):
             print('         -> %s (%.1f MB)' % (os.path.relpath(p, RADICE), os.path.getsize(p) / 1e6))
 

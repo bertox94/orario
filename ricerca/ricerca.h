@@ -12,11 +12,12 @@
 extern long long int n_gen;          // orari completi trovati
 extern long long int n_gen_max;      // la ricerca si ferma dopo tanti orari completi
 extern long long int n_backtrack;    // quante volte non si e' potuto scegliere nessun docente per uno slot
-// Cosa scrivere a ogni marcia indietro: niente, una riga compatta (-b) o la griglia parziale intera (--backtrack-griglia,
-// molto lento e molto grande: circa 30 KB per marcia).
-enum { BACKTRACK_NO, BACKTRACK_COMPATTO, BACKTRACK_GRIGLIA };
+// Con -b (BACKTRACK_COMPATTO) a ogni marcia indietro si scrive una riga compatta nel file degli orari (vedi printer.h).
+enum { BACKTRACK_NO, BACKTRACK_COMPATTO };
 extern int stampa_backtrack;
-extern long long passi_max;         // con -b: a ogni nodo una riga "P" con l'orario parziale, al massimo passi_max (0 = mai)
+// Con -b --passi N: a ogni nodo una riga "P" con l'orario parziale (e "S" se il nodo viene scartato dalla potatura).
+// Dopo passi_max nodi registrati non si scrive piu' niente, nemmeno le marce indietro (0 = nessuna riga P).
+extern long long passi_max;
 extern FILE *file_orario;            // dove si scrivono gli orari trovati (e le marce indietro con stampa_backtrack)
 
 // Il primo orario completo trovato (docenti di ogni slot, -1 = nessuno), valido se n_gen > 0. La ricerca annulla le

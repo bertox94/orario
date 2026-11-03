@@ -22,20 +22,20 @@
 // La ricerca e' una visita in profondita' con marcia indietro (ricerca/ricerca.c) che riempie gli slot in ordine:
 // giorno, ora, classe. Prima di cercare si verificano alcune condizioni necessarie sui dati (ricerca/fattibilita.c).
 
-// Uso: ./untitled [seed] [-b | --backtrack-griglia] [--casuale SEME [--classi N] [--ritardi]] [-n MAX] [--tempo SEC]
-//                  [--motivi] [--dati FILE] [--senza-verifica] [--orario FILE] [--json FILE] [--input FILE]
-//                  [--solo-verifica] [--progresso]
+// Uso: ./untitled [seed] [-b [--passi N]] [--casuale SEME [--classi N] [--ritardi]] [-n MAX] [--tempo SEC] [--motivi]
+//                  [--dati FILE] [--orario FILE] [--json FILE] [--input FILE] [--solo-verifica] [--progresso]
+//                  [--ore-obbligatorie N] [--ore-prof-classe N] [--classi-giorno N] [--analizza-slot FILE]
 //   seed: l'ordine delle classi viene mescolato (stesso seed = stesso ordine)
 //   -b / --backtrack: scrive nel file dell'orario anche ogni marcia indietro, in formato compatto (una riga con gli slot
 //                     cambiati, vedi printer.h). Senza, il file contiene solo gli orari completi.
-//   --backtrack-griglia: come -b, ma con la griglia parziale intera a ogni marcia (circa 30 KB per marcia: lento e
-//                        molto grande, solo per leggere il file a mano)
+//   --passi N: con -b, scrive anche una riga "P" con l'orario parziale a ogni nodo della ricerca (dal primo slot deciso
+//              in poi) e la riga "S" per i nodi scartati dalla potatura: per rivedere la ricerca passo passo dal sito.
+//              La registrazione (righe P, S, B e M) si ferma dopo N nodi, cosi' il file resta piccolo anche se la
+//              ricerca va avanti a lungo.
 //   --orario FILE: dove scrivere gli orari (default orario.txt); se FILE finisce in .gz si scrive compresso con gzip
 //   --analizza-slot FILE: non cerca; rifa' lo stato fino a uno slot con l'orario parziale in FILE (prima riga la posizione,
 //                poi gli slot come nel formato di -b) e scrive su una riga "ANALISI {json}" la coda dei docenti di quello
 //                slot e perche' ognuno e' o non e' utilizzabile (per il sito). Va con gli stessi argomenti dei dati.
-//   --max-mb MB: interrompe la ricerca quando il file degli orari supera MB megabyte sul disco (per -b); come con
-//                --tempo, la diagnosi e il JSON vengono scritti comunque
 //   --casuale SEME: invece dei dati del programma usa dati generati a caso (riproducibili con lo stesso SEME):
 //                   classi da 29 a 36 ore, docenti da 5 a 24 ore, con lezioni da soli e in codocenza.
 //   --classi N: numero di classi dei dati casuali (default 8)
@@ -43,16 +43,16 @@
 //   -n MAX: si ferma dopo MAX orari completi
 //   --tempo SEC: interrompe la ricerca dopo SEC secondi (la diagnosi viene stampata comunque)
 //   --motivi: nella diagnosi indica anche perche' i docenti vengono scartati negli slot con piu' marce indietro
-//   --passi N: con -b, scrive nel file degli orari una riga "P" con l'orario parziale a ogni nodo della ricerca
-//              (dal primo slot deciso in poi), al massimo N righe: per rivedere la ricerca passo passo dal sito
 //   --dati FILE: scrive in FILE la descrizione dei dati (classi, docenti, lezioni, codocenze)
-//   --senza-verifica: salta la verifica preliminare dei dati (che segnala i casi impossibili prima di cercare)
 //   --json FILE: alla fine scrive in FILE dati, esito, primo orario trovato e diagnosi per slot, in JSON (per il sito)
 //   --input FILE: legge i dati da FILE (JSON, vedi data_initialization/dati_da_file.h) invece di usare quelli del
 //                 programma. Se i dati non vanno bene scrive "Errore nei dati: ..." ed esce con codice 2.
 //   --solo-verifica: fa solo la verifica preliminare (e scrive il JSON con i dati), senza cercare
 //   --progresso: durante la ricerca, circa ogni secondo, scrive su stdout una riga "PROGRESSO {json}" con nodi, marce
 //                indietro, posizione corrente e piu' avanzata e marce per slot (per seguire la ricerca dal sito)
+//   --ore-obbligatorie N, --ore-prof-classe N, --classi-giorno N: i parametri delle regole (default 5, 3, 3): ore
+//                obbligatorie ogni giorno, ore al giorno di un docente nella stessa classe, classi diverse al giorno
+// Se una scrittura nel file degli orari fallisce (disco pieno) la ricerca si ferma in modo ordinato, con diagnosi e JSON.
 // Con il segnale SIGTERM (il pulsante "Ferma" del sito) la ricerca si ferma in modo ordinato, con diagnosi e JSON.
 // Le opzioni della riga di comando (n_gen_max e stampa_backtrack invece sono globali della ricerca).
 typedef struct {
@@ -64,9 +64,7 @@ typedef struct {
     int con_ritardi;             // dati casuali: alcuni docenti entrano in ritardo
     const char *file_dati;       // dove scrivere la descrizione dei dati (NULL = da nessuna parte)
     double secondi_massimi;      // 0 = nessun limite di tempo
-    double mb_massimi;           // 0 = nessun limite di spazio per il file degli orari
     int con_motivi;
-    int senza_verifica;          // 1 = non fare la verifica preliminare
     const char *file_orario;     // dove scrivere gli orari (.gz = compresso)
     const char *file_json;       // dove scrivere i risultati in JSON (NULL = da nessuna parte)
     const char *file_input;      // dati da leggere (NULL = dati del programma o casuali)
@@ -82,12 +80,8 @@ static Opzioni leggi_opzioni(const int argc, char **argv) {
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-b") || !strcmp(argv[i], "--backtrack")) {
             stampa_backtrack = BACKTRACK_COMPATTO;
-        } else if (!strcmp(argv[i], "--backtrack-griglia")) {
-            stampa_backtrack = BACKTRACK_GRIGLIA;
         } else if (!strcmp(argv[i], "--orario") && i + 1 < argc) {
             o.file_orario = argv[++i];
-        } else if (!strcmp(argv[i], "--max-mb") && i + 1 < argc) {
-            o.mb_massimi = atof(argv[++i]);
         } else if (!strcmp(argv[i], "--input") && i + 1 < argc) {
             o.file_input = argv[++i];
         } else if (!strcmp(argv[i], "--solo-verifica")) {
@@ -107,8 +101,6 @@ static Opzioni leggi_opzioni(const int argc, char **argv) {
             o.con_ritardi = 1;
         } else if (!strcmp(argv[i], "--dati") && i + 1 < argc) {
             o.file_dati = argv[++i];
-        } else if (!strcmp(argv[i], "--senza-verifica")) {
-            o.senza_verifica = 1;
         } else if (!strcmp(argv[i], "--passi") && i + 1 < argc) {
             passi_max = atoll(argv[++i]);
         } else if (!strcmp(argv[i], "--motivi")) {
@@ -183,7 +175,7 @@ static void scrivi_file_dati(const Opzioni *o) {
 // Il motivo si scrive su stdout e resta in `motivo` (per il JSON).
 static int caso_possibile(const Opzioni *o, char *motivo, const size_t dimensione) {
     motivo[0] = '\0';
-    if (o->senza_verifica || verifica_fattibilita(motivo, dimensione)) return 1;
+    if (verifica_fattibilita(motivo, dimensione)) return 1;
     printf("Impossibile (verifica preliminare): %s\n", motivo);
     fflush(stdout);
     return 0;
@@ -222,7 +214,7 @@ int main(const int argc, char **argv) {
     time(&currentTime);
     const clock_t start = clock();
     const Opzioni o = leggi_opzioni(argc, argv);
-    // Un file troppo grande per il limite del sistema (SIGXFSZ) o gzip che termina (SIGPIPE scrivendo nella pipe)
+    // Un file oltre il limite del sistema (SIGXFSZ) o gzip che termina (SIGPIPE scrivendo nella pipe)
     // terminerebbero il solver senza diagnosi ne' JSON. Ignorati, la scrittura fallisce con un errore che la ricerca
     // nota (diagnosi_controllo_periodico) e si ferma in modo ordinato. Lo stesso vale per il disco pieno.
     signal(SIGXFSZ, SIG_IGN);
@@ -230,7 +222,6 @@ int main(const int argc, char **argv) {
     // SIGTERM: fermarsi in modo ordinato (la ricerca lo nota nel controllo periodico)
     signal(SIGTERM, diagnosi_richiesta_di_arresto);
     diagnosi_imposta(o.secondi_massimi, o.con_motivi);
-    diagnosi_imposta_spazio(o.file_orario, o.mb_massimi);
     diagnosi_imposta_progresso(o.con_progresso);
 
     printf("Program started at: %s\n", ctime(&currentTime));
