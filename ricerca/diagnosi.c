@@ -170,6 +170,43 @@ static int motivo_di_scarto(const teaching_slot *slot, const int pos, const int 
     return 5;
 }
 
+// Analisi di uno slot (per il sito): lo stato e' quello dell'orario parziale che la ricerca ha costruito fino a lui.
+// Per ogni docente della coda, nell'ordine di priorita': la priorita' (ore ancora da sistemare nella settimana), le ore
+// che gli restano in questa classe e se era utilizzabile nello slot o quale vincolo lo escludeva.
+void diagnosi_analizza_slot(const teaching_slot *slot, const int pos, const int base4d_queue, const int queue_size,
+                            FILE *f) {
+    fprintf(f, "{\"slot\": %d, \"lezione_ammessa\": %s, \"coda\": [", pos,
+            activities_for_this_class_and_hour(slot) ? "true" : "false");
+    for (int ii = base4d_queue; ii < queue_size; ii++) {
+        const int p = queue_mul[ii]->teacher;
+        const int ore_rimaste = classe_docente[slot->base2d_ci + p].ore - classe_docente[slot->base2d_ci + p].svolte;
+        int motivo; // -1 = utilizzabile, 7 = nessuna ora da fare in questa classe
+        if (!deve_ancora_svolgere_ore_in_questa_classe(slot->base2d_ci, p)) {
+            motivo = 7;
+        } else {
+            motivo = motivo_di_scarto(slot, pos, p, base4d_queue, queue_size);
+            // utilizzabile: gli stessi controlli di prova_tutti_i_docenti (prima in coppia, poi da solo)
+            if (prof_è_disponibile(slot->base3d_goi, p) && docente_idoneo(slot, pos, p)) {
+                int usabile = deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(slot->base2d_ci, p)
+                              && sabato_esaurisci_priorita_subito(pos, slot->giorno, slot->ora, slot->base2d_ci, p, -1);
+                for (int jj = base4d_queue; jj < queue_size && !usabile; jj++) {
+                    const int q = queue_mul[jj]->teacher;
+                    usabile = q != p && prof_è_disponibile(slot->base3d_goi, q)
+                              && docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(slot->classe, p, q)
+                              && sabato_esaurisci_priorita_subito(pos, slot->giorno, slot->ora, slot->base2d_ci, p, q)
+                              && docente_idoneo(slot, pos, q);
+                }
+                if (usabile) motivo = -1;
+            }
+        }
+        fprintf(f, "%s{\"docente\": %d, \"priorita\": %g, \"ore_classe\": %d, \"motivo\": %d}", ii > base4d_queue ? ", " : "",
+                p, queue_mul[ii]->priority, ore_rimaste, motivo);
+    }
+    fprintf(f, "], \"motivi\": [");
+    for (int m = 0; m < N_MOTIVI; m++) fprintf(f, "%s\"%s\"", m ? ", " : "", nome_motivo[m]);
+    fprintf(f, ", \"nessuna ora da fare in questa classe\"]}\n");
+}
+
 void diagnosi_ramo_scartato(const int pos, const int motivo) {
     scartati_per_pos[pos][motivo]++;
     scartati[motivo]++;

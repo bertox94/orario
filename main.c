@@ -31,6 +31,9 @@
 //   --backtrack-griglia: come -b, ma con la griglia parziale intera a ogni marcia (circa 30 KB per marcia: lento e
 //                        molto grande, solo per leggere il file a mano)
 //   --orario FILE: dove scrivere gli orari (default orario.txt); se FILE finisce in .gz si scrive compresso con gzip
+//   --analizza-slot FILE: non cerca; rifa' lo stato fino a uno slot con l'orario parziale in FILE (prima riga la posizione,
+//                poi gli slot come nel formato di -b) e scrive su una riga "ANALISI {json}" la coda dei docenti di quello
+//                slot e perche' ognuno e' o non e' utilizzabile (per il sito). Va con gli stessi argomenti dei dati.
 //   --max-mb MB: interrompe la ricerca quando il file degli orari supera MB megabyte sul disco (per -b); come con
 //                --tempo, la diagnosi e il JSON vengono scritti comunque
 //   --casuale SEME: invece dei dati del programma usa dati generati a caso (riproducibili con lo stesso SEME):
@@ -66,6 +69,7 @@ typedef struct {
     const char *file_json;       // dove scrivere i risultati in JSON (NULL = da nessuna parte)
     const char *file_input;      // dati da leggere (NULL = dati del programma o casuali)
     int solo_verifica;
+    const char *file_analisi;    // --analizza-slot FILE: analisi di uno slot, poi esce
     int con_progresso;
 } Opzioni;
 
@@ -86,6 +90,8 @@ static Opzioni leggi_opzioni(const int argc, char **argv) {
             o.file_input = argv[++i];
         } else if (!strcmp(argv[i], "--solo-verifica")) {
             o.solo_verifica = 1;
+        } else if (!strcmp(argv[i], "--analizza-slot") && i + 1 < argc) {
+            o.file_analisi = argv[++i];
         } else if (!strcmp(argv[i], "--progresso")) {
             o.con_progresso = 1;
         } else if (!strcmp(argv[i], "--json") && i + 1 < argc) {
@@ -227,6 +233,12 @@ int main(const int argc, char **argv) {
     if (!carica_dati(&o)) return 2;
     scrivi_file_dati(&o);
     prepara_orario(&o);
+    if (o.file_analisi) {
+        printf("ANALISI ");
+        if (analizza_slot(o.file_analisi, stdout)) return 0;
+        fprintf(stderr, "File dell'orario parziale non valido: %s\n", o.file_analisi);
+        return 3;
+    }
     char motivo[256];
     if (!caso_possibile(&o, motivo, sizeof motivo)) {
         scrivi_json(o.file_json, argc, argv, motivo, 0);

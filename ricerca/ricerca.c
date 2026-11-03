@@ -1,6 +1,7 @@
 #include "ricerca.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "../data_initialization/database_initializers.h"
 #include "../orario/orario.h"
@@ -228,4 +229,51 @@ void cerca_orario(const int pos) {
     sort_queue_mul(slot->base4d_queue, queue_sz);
     if (activities_for_this_class_and_hour(slot)) prova_slot_con_docenti(slot, pos);
     prova_ora_buca(slot, pos);
+}
+
+/* ---- analisi di uno slot ---- */
+
+// Rifa' lo stato della ricerca fino allo slot pos, con l'orario parziale letto da `file` (prima riga: pos; poi i primi
+// pos slot come nel formato compatto: "i", "i+j" o "-"), e scrive la coda dei docenti dello slot pos con per ognuno il
+// motivo per cui non va bene (vedi diagnosi_analizza_slot). Ritorna 0 se il file non va bene.
+// La priorita' e le ore sono quelle esatte; a parita' di priorita' l'ordine della coda dipende dalla storia della
+// ricerca e qui e' solo quello iniziale.
+int analizza_slot(const char *file, FILE *out) {
+    FILE *f = fopen(file, "r");
+    if (!f) return 0;
+    int pos;
+    if (fscanf(f, "%d", &pos) != 1 || pos < 0 || pos >= orario_len) {
+        fclose(f);
+        return 0;
+    }
+    for (int i = 0; i < pos; i++) {
+        char token[64];
+        if (fscanf(f, "%63s", token) != 1) {
+            fclose(f);
+            return 0;
+        }
+        teaching_slot *slot = &orario[i];
+        if (!strcmp(token, "-")) {  // ora buca
+            n_ore_buche[slot->base2d_gc + slot->classe]++;
+            continue;
+        }
+        const int a = atoi(token);
+        const char *piu = strchr(token, '+');
+        const int b = piu ? atoi(piu + 1) : -1;
+        QueueItem *it = NULL, *jt = NULL;
+        for (int k = 0; k < queue_sz; k++) {
+            if (queue_mul[k]->teacher == a) it = queue_mul[k];
+            if (b >= 0 && queue_mul[k]->teacher == b) jt = queue_mul[k];
+        }
+        if (!it || (b >= 0 && !jt)) {
+            fclose(f);
+            return 0;
+        }
+        prep_chiamata_ricorsiva(slot, it, jt);
+    }
+    fclose(f);
+    teaching_slot *slot = &orario[pos];
+    sort_queue_mul(slot->base4d_queue, queue_sz);
+    diagnosi_analizza_slot(slot, pos, slot->base4d_queue, slot->base4d_queue + queue_sz, out);
+    return 1;
 }
