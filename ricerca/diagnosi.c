@@ -142,6 +142,10 @@ void diagnosi_avvia(void) {
 
 /* ---- registrazione ---- */
 
+// I motivi dell'ultima marcia indietro: (docente, motivo) per ogni docente con ore da fare nella classe.
+static int motivi_ultima_marcia[INSEGNANTE_SZ][2];
+static int n_motivi_ultima_marcia = 0;
+
 // Primo motivo per cui il docente p, che in questa classe ha ancora ore da fare, non e' stato messo nello slot.
 // Ripete gli stessi controlli della ricerca, nello stesso ordine; e' chiamata solo a ogni marcia indietro e solo
 // con --motivi, quindi il costo non pesa sulla ricerca normale.
@@ -175,6 +179,7 @@ void diagnosi_ramo_scartato(const int pos, const int motivo) {
 // scartato (per lo slot e per il docente).
 void diagnosi_marcia_indietro(const teaching_slot *slot, const int pos, const int base4d_queue, const int queue_size) {
     marce_per_pos[pos]++;
+    n_motivi_ultima_marcia = 0;
     if (!registra_motivi) return;
     for (int ii = base4d_queue; ii < queue_size; ii++) {
         const int p = queue_mul[ii]->teacher;
@@ -183,7 +188,19 @@ void diagnosi_marcia_indietro(const teaching_slot *slot, const int pos, const in
         motivi_per_pos[pos][m]++;
         motivi_per_docente[p][m]++;
         docenti_per_pos[pos]++;
+        if (n_motivi_ultima_marcia < INSEGNANTE_SZ) {
+            motivi_ultima_marcia[n_motivi_ultima_marcia][0] = p;
+            motivi_ultima_marcia[n_motivi_ultima_marcia][1] = m;
+            n_motivi_ultima_marcia++;
+        }
     }
+}
+
+void diagnosi_scrivi_motivi_ultima_marcia(FILE *f) {
+    fputc('M', f);
+    for (int i = 0; i < n_motivi_ultima_marcia; i++)
+        fprintf(f, " %d:%d", motivi_ultima_marcia[i][0], motivi_ultima_marcia[i][1]);
+    fputc('\n', f);
 }
 
 /* ---- lettura dei contatori ---- */

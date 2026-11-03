@@ -4,6 +4,8 @@
 // Diagnosi della ricerca: non influisce sulla ricerca, serve a capire dove si blocca (marce indietro per slot,
 // posizione piu' avanzata, motivi per cui i docenti vengono scartati) e a fermarla dopo un tempo dato.
 
+#include <stdio.h>
+
 #include "../data_initialization/database_initializers.h"
 #include "../orario/orario.h"
 
@@ -76,6 +78,11 @@ long long int diagnosi_motivo_nello_slot(int pos, int motivo);
 long long int diagnosi_motivo_del_docente(int prof, int motivo);
 int diagnosi_con_motivi(void);
 const char *diagnosi_nome_motivo(int motivo);
+
+// Con --motivi: scrive su f una riga "M d:m d:m ..." con, per l'ultima marcia indietro, il motivo m (indice di
+// diagnosi_nome_motivo) per cui ogni docente d, che nella classe aveva ancora ore da fare, non si e' potuto mettere
+// nello slot. Senza motivi scrive la sola "M".
+void diagnosi_scrivi_motivi_ultima_marcia(FILE *f);
 const char *diagnosi_nome_motivo_scarto(int motivo_scarto);
 
 // Scrive la diagnosi su stdout.

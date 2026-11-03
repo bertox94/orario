@@ -127,6 +127,7 @@ static void registra_marcia_indietro(const teaching_slot *slot, const int pos, c
     diagnosi_marcia_indietro(slot, pos, slot->base4d_queue, queue_size);
     if (stampa_backtrack == BACKTRACK_COMPATTO) {
         stampa_marcia_compatta(file_orario, orario, pos);
+        if (diagnosi_con_motivi()) diagnosi_scrivi_motivi_ultima_marcia(file_orario);
     } else if (stampa_backtrack == BACKTRACK_GRIGLIA) {
         fprintf(file_orario, "Backtrack, non si è potuto scegiere alcun insegnante nel giorno: %s, ora: %s, classe: %s\n",
                 giorni_settimana[slot->giorno], ore_giornaliere[slot->ora], classe_sezione[slot->classe]);
