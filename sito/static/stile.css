@@ -173,3 +173,9 @@ table.mappa td.cliccabile { cursor: pointer; }
 .barra-priorita.utilizzabile > div { background: var(--ok); }
 .barra-priorita.escluso > div { background: var(--male); opacity: .55; }
 .pannello-slot { max-width: 680px; max-height: 80vh; overflow-y: auto; }
+
+/* pannello della coda: chiusura e, sugli schermi stretti (telefono, iPad in verticale), in basso a tutta larghezza */
+.chiudi-pannello { position: sticky; top: 0; float: right; background: var(--superficie); color: var(--tenue);
+  border: 1px solid var(--bordo); border-radius: 6px; padding: 2px 8px; margin: 0 0 6px 8px; font-size: 16px; }
+.pannello-slot.in-basso { left: 8px; right: 8px; bottom: 8px; top: auto; max-width: none; max-height: 60vh; }
+table.orario td.con-coda { cursor: pointer; }

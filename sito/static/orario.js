@@ -36,15 +36,24 @@ function disegnaOrario(contenitore, dati, orario, blocco, alPassaggio) {
         if (q >= 0) td.appendChild(el('span', {class: 'cod', testo: '+ ' + dati.docenti[q].nome}));
         td.title = dati.docenti[p].nome + (q >= 0 ? ' con ' + dati.docenti[q].nome : '');
       }
-      if (alPassaggio) {
-        td.addEventListener('mouseenter', ev => alPassaggio(g, o, c, td, ev));
-        td.addEventListener('mouseleave', () => alPassaggio(null));
-      }
+      if (alPassaggio) collegaCella(td, (ev) => alPassaggio(g, o, c, td, ev), alPassaggio);
       tr.appendChild(td);
     }));
     corpo.appendChild(tr);
   });
   contenitore.replaceChildren(el('table', {class: 'orario'}, [intestazione(dati), corpo]));
+}
+
+// Collega una cella al pannello della coda: con il mouse si apre passandoci sopra, con il dito (iPad, telefono: niente
+// passaggio del mouse) toccandola; il tocco funziona anche con il mouse (clic). apri(ev) apre, chiudi(null) chiude.
+const SENZA_MOUSE = window.matchMedia && matchMedia('(hover: none)').matches;
+function collegaCella(td, apri, chiudi) {
+  if (!SENZA_MOUSE) {
+    td.addEventListener('mouseenter', ev => apri(ev));
+    td.addEventListener('mouseleave', () => chiudi(null));
+  }
+  td.addEventListener('click', ev => { ev.stopPropagation(); apri(ev); });
+  td.classList.add('con-coda');
 }
 
 // Orario di ogni docente: una riga per docente, nella cella la classe in cui insegna (con il codocente, se c'e').
@@ -66,8 +75,7 @@ function disegnaOrarioDocenti(contenitore, dati, orario, alPassaggio) {
         td.title = dati.classi[classe].nome + (altro >= 0 ? ' con ' + dati.docenti[altro].nome : '');
         if (alPassaggio) {
           const cl = classe;
-          td.addEventListener('mouseenter', ev => alPassaggio(g, o, cl, td, ev));
-          td.addEventListener('mouseleave', () => alPassaggio(null));
+          collegaCella(td, (ev) => alPassaggio(g, o, cl, td, ev), alPassaggio);
         }
       }
       tr.appendChild(td);
@@ -344,26 +352,41 @@ function elencoBlocchi(contenitore, dati, diagnosi, quanti, dettagli) {
 // priorita' e perche' ognuno e' o non e' utilizzabile. Ritorna passaggio(fonte) -> (g, o, c, td): fonte e' l'orario
 // mostrato {chiave, orario, ordine (ordine delle classi nella ricerca), limite (ultimo slot raggiunto), blocco}.
 function codaAlPassaggio(dati, urlAnalisi) {
-  const pannello = el('div', {class: 'pannello-slot'});
+  const contenuto = el('div');
+  const chiudi = el('button', {type: 'button', class: 'chiudi-pannello', title: 'Chiudi', 'aria-label': 'Chiudi', testo: '✕'});
+  const pannello = el('div', {class: 'pannello-slot'}, [chiudi, contenuto]);
   pannello.style.display = 'none';
   document.body.appendChild(pannello);
   const cache = {};
-  let timer = null;
+  let timer = null, cellaAperta = null;
+  const nascondi = () => { clearTimeout(timer); pannello.style.display = 'none'; cellaAperta = null; };
+  chiudi.addEventListener('click', ev => { ev.stopPropagation(); nascondi(); });
+  pannello.addEventListener('click', ev => ev.stopPropagation());
+  document.addEventListener('click', () => { if (cellaAperta) nascondi(); });  // tocco fuori: chiude
   const C = dati.classi.length, O = dati.ore.length;
-  return fonte => (g, o, c, td) => {
+  return fonte => (g, o, c, td, ev) => {
     clearTimeout(timer);
-    if (g == null) { pannello.style.display = 'none'; return; }
+    if (g == null) { nascondi(); return; }
+    const tocco = ev && ev.type === 'click';
+    if (tocco && SENZA_MOUSE && cellaAperta === td) { nascondi(); return; }  // secondo tocco sulla stessa cella: chiude
     const f = typeof fonte === 'function' ? fonte() : fonte;
     if (!f) return;
     const pos = (g * O + o) * C + f.ordine.indexOf(c);
     if (f.limite != null && pos > f.limite) return;  // oltre il blocco la ricerca non e' arrivata
     timer = setTimeout(async () => {
       const chiave = `${f.chiave}:${pos}`;
+      cellaAperta = td;
       pannello.style.display = 'block';
-      const x = td.getBoundingClientRect();
-      pannello.style.left = Math.max(8, Math.min(x.right + 8, window.innerWidth - 680)) + 'px';
-      pannello.style.top = Math.max(8, Math.min(x.top, window.innerHeight - 440)) + 'px';
-      pannello.textContent = 'Calcolo della coda...';
+      // schermo stretto (telefono, iPad in verticale): il pannello in basso, largo come lo schermo
+      pannello.classList.toggle('in-basso', window.innerWidth < 760);
+      if (window.innerWidth >= 760) {
+        const x = td.getBoundingClientRect();
+        pannello.style.left = Math.max(8, Math.min(x.right + 8, window.innerWidth - 680)) + 'px';
+        pannello.style.top = Math.max(8, Math.min(x.top, window.innerHeight - 440)) + 'px';
+      } else {
+        pannello.style.left = pannello.style.top = '';
+      }
+      contenuto.textContent = 'Calcolo della coda...';
       if (!cache[chiave]) {
         const slot = [];
         for (let i = 0; i < pos; i++) {
@@ -377,10 +400,10 @@ function codaAlPassaggio(dati, urlAnalisi) {
           cache[chiave] = await risp.json();
         } catch (e) { cache[chiave] = {errore: 'Analisi non disponibile.'}; }
       }
-      if (pannello.style.display === 'none') return;
-      mostraAnalisi(pannello, dati, cache[chiave], f.orario[g][o][c], `${dati.giorni[g]} ${dati.ore[o]} ${dati.classi[c].nome}`,
+      if (pannello.style.display === 'none' || cellaAperta !== td) return;
+      mostraAnalisi(contenuto, dati, cache[chiave], f.orario[g][o][c], `${dati.giorni[g]} ${dati.ore[o]} ${dati.classi[c].nome}`,
         f.limite != null && pos === f.limite, c, o);
-    }, 250);
+    }, tocco ? 0 : 250);
   };
 }
 
