@@ -103,6 +103,12 @@ static Opzioni leggi_opzioni(const int argc, char **argv) {
             o.senza_verifica = 1;
         } else if (!strcmp(argv[i], "--motivi")) {
             o.con_motivi = 1;
+        } else if (!strcmp(argv[i], "--ore-obbligatorie") && i + 1 < argc) {
+            param_ore_obbligatorie = atoi(argv[++i]);
+        } else if (!strcmp(argv[i], "--ore-prof-classe") && i + 1 < argc) {
+            param_ore_prof_in_una_classe = atoi(argv[++i]);
+        } else if (!strcmp(argv[i], "--classi-giorno") && i + 1 < argc) {
+            param_classi_diverse_al_giorno = atoi(argv[++i]);
         } else if (!strcmp(argv[i], "--tempo") && i + 1 < argc) {
             o.secondi_massimi = atof(argv[++i]);
         } else if (!strcmp(argv[i], "-n") && i + 1 < argc) {
@@ -112,6 +118,13 @@ static Opzioni leggi_opzioni(const int argc, char **argv) {
             o.seed_classi = (unsigned int) strtoul(argv[i], NULL, 10);
             o.mescola_classi = 1;
         }
+    }
+    if (param_ore_obbligatorie < 1 || param_ore_obbligatorie > ORA_GIORNALIERA_SZ || param_ore_prof_in_una_classe < 1 ||
+        param_ore_prof_in_una_classe > ORA_GIORNALIERA_SZ || param_classi_diverse_al_giorno < 1 ||
+        param_classi_diverse_al_giorno > LIMITE_CLASSI_DIVERSE) {
+        fprintf(stderr, "Parametri fuori dai limiti: ore obbligatorie 1..%d, ore di un docente in una classe 1..%d, "
+                        "classi diverse al giorno 1..%d\n", ORA_GIORNALIERA_SZ, ORA_GIORNALIERA_SZ, LIMITE_CLASSI_DIVERSE);
+        exit(2);
     }
     return o;
 }
