@@ -235,7 +235,7 @@ function dettaglioScartoLezioni(dati, det, s, slotNome) {
   const classe = dati.classi[det.classe].nome;
   const fineSett = s.fino_ora === dati.ore.length - 1;
   const entro = fineSett ? 'entro la fine della settimana' : `entro le ${dati.ore[s.fino_ora]}`;
-  const parti = [el('h4', {testo: `Ramo scartato (${volte(s.volte)}): ${coppia(dati, s.scelta[0], s.scelta[1])} in ${slotNome}`}),
+  const parti = [el('h4', {testo: `Ramo scartato${s.volte != null ? ` (${volte(s.volte)})` : ''}: ${coppia(dati, s.scelta[0], s.scelta[1])} in ${slotNome}`}),
     el('p', {testo: `Con questa scelta la classe ${classe} arrivava a ${oreDi(s.ore_classe_fatte, det.ore_classe)}. ` +
       (fineSett ? `Entro la fine della settimana doveva fare ancora ${s.da_riempire} ore, ma le sue lezioni ne potevano fare al massimo ${s.possibili}.`
                 : `Fino alle ${dati.ore[s.fino_ora]} di ogni giorno che resta ogni ora è obbligatoria: servivano ancora ${s.da_riempire} lezioni ` +
@@ -275,7 +275,7 @@ function dettaglioScartoLezioni(dati, det, s, slotNome) {
 function dettaglioScartoDocenti(dati, det, s, slotNome) {
   const d = dati.docenti[s.docente];
   const dove = s.classe_docente >= 0 ? `nella classe ${dati.classi[s.classe_docente].nome}` : 'in tutto (in tutte le sue classi)';
-  return [el('h4', {testo: `Ramo scartato (${volte(s.volte)}): dopo l'ultima scelta dell'ora, ${coppia(dati, s.scelta[0], s.scelta[1])} in ${slotNome}`}),
+  return [el('h4', {testo: `Ramo scartato${s.volte != null ? ` (${volte(s.volte)})` : ''}: dopo l'ultima scelta dell'ora, ${coppia(dati, s.scelta[0], s.scelta[1])} in ${slotNome}`}),
     el('p', {testo: `Finita quest'ora, ${d ? d.nome : 'un docente'} aveva ancora ${s.ore_rimaste} ore da fare ${dove}, ma nel tempo rimasto ` +
       `ne poteva fare al massimo ${s.ore_possibili}` + (d && d.ingresso ? ` (entra alle ${dati.ore[d.ingresso]})` : '') +
       (s.classe_docente >= 0 ? ', perché in una classe può fare solo un massimo di ore al giorno, attaccate.' : '.') +
@@ -429,6 +429,10 @@ function codaAlPassaggio(dati, urlAnalisi) {
           const risp = await fetch(urlAnalisi, {method: 'POST', body: JSON.stringify({pos, slot}),
             headers: {'Content-Type': 'application/json', 'X-Gettone': window.GETTONE}});
           cache[chiave] = await risp.json();
+          if (cache[chiave].potatura && pos > 0) {  // la causa e' la scelta dello slot prima
+            const k = pos - 1, cc = f.ordine[k % C];
+            cache[chiave].potatura.slotNome = `${dati.giorni[Math.floor(k / (O * C))]} ${dati.ore[Math.floor(k / C) % O]} ${dati.classi[cc].nome}`;
+          }
         } catch (e) { cache[chiave] = {errore: 'Analisi non disponibile.'}; }
       }
       if (pannello.style.display === 'none' || cellaAperta !== td) return;
@@ -795,11 +799,38 @@ function mostraAnalisi(pannello, dati, a, scelto, titolo, bloccato, classe, ora,
   const interruttore = el('button', {type: 'button', class: 'secondario', testo: mostraVincoli ? 'Nascondi le frasi per vincolo' : 'Mostra le frasi per vincolo',
     onclick: ev => { ev.stopPropagation(); mostraVincoli = !mostraVincoli; if (finestra) finestra.classList.toggle('senza-vincoli', !mostraVincoli);
       interruttore.textContent = mostraVincoli ? 'Nascondi le frasi per vincolo' : 'Mostra le frasi per vincolo'; }});
-  pannello.replaceChildren(testa,
+  // verifiche di potatura, fatte appena la ricerca entra nel nodo: una riga per ognuna. Se una fallisce la ricerca scarta il
+  // ramo senza provare i docenti di questo slot (la causa e' la scelta fatta nello slot prima).
+  let causa = null, scartato = false;
+  if (a.potatura) {
+    const pot = a.potatura, C = pot.classe >= 0 ? dati.classi[pot.classe].nome : '';
+    const det = {classe: pot.classe, ore_classe: pot.ore_classe};
+    const nomeScelta = coppia(dati, pot.scelta[0], pot.scelta[1]);
+    const righe = pot.verifiche.map(v => {
+      const base = {...v, classe: pot.classe, ore_classe_fatte: pot.ore_classe_fatte, scelta: pot.scelta, slotNome: pot.slotNome};
+      if (v.motivo === 0)
+        return {v, base, ok: v.ok ? 1 : 0, testo: v.ok ? `Lezioni della classe ${C}: dopo la scelta in ${pot.slotNome} (${nomeScelta}) le lezioni che le restano bastano per gli slot che deve ancora riempire.`
+          : `Lezioni della classe ${C}: dopo la scelta in ${pot.slotNome} (${nomeScelta}) le lezioni che le restano NON bastano per gli slot che deve ancora riempire.`};
+      return {v, base, ok: !v.controllata ? -1 : v.ok ? 1 : 0, testo: !v.controllata ? 'Ore dei docenti: si controlla solo a inizio ora, e questo slot non è il primo dell\'ora.'
+        : v.ok ? 'Ore dei docenti: le ore che mancano a ogni docente stanno ancora nel tempo rimasto della settimana.'
+        : 'Ore dei docenti: le ore che mancano a un docente NON stanno più nel tempo rimasto della settimana.'};
+    });
+    scartato = righe.some(r => r.ok === 0);
+    const dettagli = righe.filter(r => r.ok === 0).flatMap(r => r.v.motivo === 0 ? dettaglioScartoLezioni(dati, det, r.base, pot.slotNome)
+      : dettaglioScartoDocenti(dati, det, r.base, pot.slotNome));
+    causa = el('div', {class: 'causa-scarto' + (scartato ? ' scartato' : '')}, [
+      el('p', {}, [el('strong', {testo: scartato ? '✂ Ramo scartato dalla potatura: ' : 'Verifiche di potatura (all\'ingresso in questo slot): '}),
+        el('span', {testo: scartato ? 'la ricerca non ha provato nessun docente qui. Non dipende dai docenti di questo slot: la coda sotto è quella che ci sarebbe stata, ma la ricerca non l\'ha mai guardata, perché una verifica è fallita.'
+          : 'tutte rispettate, quindi la ricerca prosegue a provare i docenti.'})]),
+      el('ul', {class: 'vincoli'}, righe.map(r => el('li', {class: r.ok === -1 ? 'na' : r.ok ? 'si' : 'no'},
+        [el('span', {class: 'segno', testo: r.ok === -1 ? '–' : r.ok ? '✔' : '✘'}), el('span', {testo: r.testo})]))),
+      ...dettagli]);
+  }
+  pannello.replaceChildren(testa, ...(causa ? [causa] : []),
     el('ul', {class: 'vincoli'}, [el('li', {class: a.lezione_ammessa ? 'si' : 'no'}, [el('span', {class: 'segno', testo: a.lezione_ammessa ? '✔' : '✘'}),
       el('span', {testo: a.lezione_ammessa ? 'La classe può ancora fare lezione in quest\'ora.' : 'La classe non può più fare lezione in quest\'ora: lo slot può solo restare vuoto.'})])]),
     el('div', {class: 'barra-comandi'}, [interruttore]),
-    el('p', {class: 'tenue piccolo', testo: 'Coda dei docenti per priorità (ore ancora da sistemare nella settimana); a parità di priorità l\'ordine dipende dalla ricerca. «Ore in classe» = ancora da fare / totali.'}),
+    el('p', {class: 'tenue piccolo', testo: (scartato ? 'Coda che ci sarebbe stata in questo slot, mai provata. ' : '') + 'Coda dei docenti per priorità (ore ancora da sistemare nella settimana); a parità di priorità l\'ordine dipende dalla ricerca. «Ore in classe» = ancora da fare / totali.'}),
     el('table', {class: 'dati'}, [el('thead', {}, [el('tr', {}, [el('th', {testo: 'Docente'}), el('th', {testo: 'Priorità'}), el('th', {class: 'num', testo: ''}),
       el('th', {class: 'num', testo: 'Ore in classe'}), el('th', {testo: 'Esito'})])]), corpo]),
     el('p', {class: 'tenue piccolo', testo: [con.length > MAX ? `altri ${con.length - MAX} docenti con ore da fare in coda` : '', senza ? `${senza} docenti senza ore da fare in questa classe` : ''].filter(Boolean).join(' · ')}));

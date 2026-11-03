@@ -191,3 +191,6 @@ table.mappa td.cliccabile { cursor: pointer; }
   border: 1px solid var(--bordo); border-radius: 6px; padding: 2px 8px; margin: 0 0 6px 8px; font-size: 16px; }
 .pannello-slot.in-basso { left: 8px; right: 8px; bottom: 8px; top: auto; max-width: none; max-height: 60vh; }
 table.orario td.con-coda { cursor: pointer; }
+.pannello-slot .causa-scarto { border-left: 4px solid #c0392b; background: rgba(192, 57, 43, 0.08); padding: 4px 10px; margin: 8px 0; }
+.pannello-slot .causa-scarto h4 { margin: 6px 0; }
+.pannello-slot tr.non-ci-sta td { color: #c0392b; font-weight: 600; }
