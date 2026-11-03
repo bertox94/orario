@@ -1,0 +1,20 @@
+# Servizio systemd del sito (vedi sito/INSTALLAZIONE.md). Sostituire UTENTE con il proprio utente del Pi, poi:
+#   sudo cp sito/orario-sito.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now orario-sito
+[Unit]
+Description=Sito dell'orario (dati della scuola e test del solver)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+User=UTENTE
+WorkingDirectory=/home/UTENTE/orario
+EnvironmentFile=/etc/orario-sito.env
+ExecStart=/home/UTENTE/orario-venv/bin/python -m sito avvia --host 0.0.0.0 --porta 8000
+Restart=on-failure
+# alla chiusura systemd manda SIGTERM anche ai solver in corso: si fermano in modo ordinato, con diagnosi e JSON
+KillMode=control-group
+TimeoutStopSec=60
+
+[Install]
+WantedBy=multi-user.target

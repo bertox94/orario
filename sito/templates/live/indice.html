@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block titolo %}Test in tempo reale{% endblock %}
+{% block contenuto %}
+<h1>Test in tempo reale</h1>
+{% set c = rilancio.caso_dati if rilancio else {} %}
+{% set o = rilancio.opzioni if rilancio else {} %}
+<form method="post" action="{{ url_for('live.avvia') }}" class="scheda">
+  <input type="hidden" name="_gettone" value="{{ gettone }}">
+  <h2 style="margin-top: 0">Caso</h2>
+  <div class="riga" style="display: flex; flex-wrap: wrap; gap: 16px; align-items: end;">
+    <label class="spunta"><input type="radio" name="sorgente" value="scuola"
+      {{ 'checked' if scuola or c.get('tipo') == 'input' and c.get('nome') == 'dati della scuola' }} {{ 'disabled' if not n_classi }}>
+      Dati della scuola {% if not n_classi %}<span class="tenue">(non ancora inseriti)</span>{% endif %}</label>
+    <label class="spunta"><input type="radio" name="sorgente" value="casuale"
+      {{ 'checked' if not scuola and c.get('tipo', 'casuale') == 'casuale' }}> Dati casuali</label>
+    {% if c.get('tipo') == 'input' and c.get('nome') != 'dati della scuola' %}
+    <label class="spunta"><input type="radio" name="sorgente" value="file" checked> {{ c.nome }}</label>
+    <input type="hidden" name="file" value="{{ c.file }}"><input type="hidden" name="nome" value="{{ c.nome }}">
+    {% endif %}
+  </div>
+  <div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; align-items: end;">
+    <label>Seme <input type="number" name="seme" min="0" value="{{ c.get('seme', 1) }}"></label>
+    <label>Classi <input type="number" name="classi" min="1" max="120" value="{{ c.get('classi', 8) }}"></label>
+    <label class="spunta"><input type="checkbox" name="ritardi" value="1" {{ 'checked' if c.get('ritardi') }}> Docenti in ritardo</label>
+  </div>
+
+  <h2>Ricerca</h2>
+  <div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
+    <label>Tempo massimo (s, 0 = senza limite) <input type="number" name="tempo" min="0" value="{{ o.get('tempo', 60) }}"></label>
+    <label>Orari da trovare <input type="number" name="orari" min="1" value="{{ o.get('orari', 1) }}"></label>
+    <label>Ordine delle classi (seed, vuoto = in ordine) <input type="number" name="ordine_classi" min="0" value="{{ o.ordine_classi if o.get('ordine_classi') is not none else '' }}"></label>
+    <label class="spunta"><input type="checkbox" name="motivi" value="1" {{ 'checked' if o.get('motivi', True) }}> Motivi degli scarti</label>
+    <label class="spunta"><input type="checkbox" name="backtrack" value="1" {{ 'checked' if o.get('backtrack') }}> Registra le marce indietro (-b)</label>
+    <label>Spazio massimo per le marce (MB) <input type="number" name="max_mb" min="1" value="{{ o.get('max_mb', 200) }}"></label>
+  </div>
+  <p><button>Avvia</button></p>
+</form>
+
+<h2>Prove recenti</h2>
+<div class="scorre">
+<table class="dati">
+  <thead><tr><th>#</th><th>Caso</th><th>Quando</th><th>Esito</th><th class="num">Marce indietro</th><th class="num">Durata</th><th>Diagnosi</th><th></th></tr></thead>
+  <tbody>
+  {% for p in prove %}
+    <tr>
+      <td>{{ p.id }}</td>
+      <td><a href="{{ url_for('casi.caso', eid=p.eid) if p.eid and p.esito else url_for('live.prova', pid=p.id) }}">{{ p.nome or '-' }}</a></td>
+      <td>{{ p.creata|data }}</td>
+      <td><span class="esito {{ (p.esito or p.stato)|classe_esito }}">{{ p.esito or p.stato }}</span></td>
+      <td class="num">{{ p.marce|numero }}</td>
+      <td class="num">{{ p.secondi|durata }}</td>
+      <td class="piccolo">{{ p.diagnosi or p.messaggio or '' }}</td>
+      <td>
+        <form method="post" action="{{ url_for('live.elimina', pid=p.id) }}" class="in-linea">
+          <input type="hidden" name="_gettone" value="{{ gettone }}">
+          <button class="link" title="Elimina">✕</button>
+        </form>
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="8" class="tenue">Nessuna prova.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

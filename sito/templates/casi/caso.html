@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block titolo %}{{ e.caso }}{% endblock %}
+{% block contenuto %}
+<p>
+  {% if e.tipo == 'live' %}<a href="{{ url_for('live.indice') }}">← Test in tempo reale</a>
+  {% else %}<a href="{{ url_for('notturni.prova', pid=e.prova_id) }}">← Prova notturna {{ e.prova_id }}{{ ': ' + e.prova_nome if e.prova_nome }}</a>{% endif %}
+</p>
+<h1>{{ e.caso }} <span class="esito {{ e.esito|classe_esito }}">{{ e.esito or 'in corso' }}</span></h1>
+{% if fasi|length > 1 %}
+<p class="piccolo">Fasi:
+  {% for f in fasi %}<a href="{{ url_for('casi.caso', eid=f.id) }}" {% if f.id == e.id %}style="font-weight: 700"{% endif %}>fase {{ f.fase }}</a>
+  (<span class="esito {{ f.esito|classe_esito }}">{{ f.esito or 'in corso' }}</span>, {{ f.secondi|durata }}){{ ',' if not loop.last }}
+  {% endfor %}</p>
+{% endif %}
+
+{% set es = r.get('esito', {}) %}
+<div class="griglia-schede">
+  <div class="scheda"><div class="numero">{{ e.secondi|durata }}</div><div class="etichetta">durata</div></div>
+  <div class="scheda"><div class="numero">{{ e.trovati|numero }}</div><div class="etichetta">orari trovati</div></div>
+  <div class="scheda"><div class="numero">{{ e.marce|numero }}</div><div class="etichetta">marce indietro</div></div>
+  <div class="scheda"><div class="numero">{{ es.get('nodi')|numero }}</div><div class="etichetta">nodi esplorati</div></div>
+  <div class="scheda"><div class="numero">{{ es.get('posizione_massima', '-') }} / {{ es.get('slot', '-') }}</div><div class="etichetta">slot piu' avanzato</div></div>
+</div>
+
+<div class="scheda">
+  <strong>Diagnosi:</strong> {{ e.diagnosi or '-' }}
+  <p class="piccolo tenue">{{ e.opzioni|opzioni }} · fase {{ e.fase }} · solver {{ e.commit or '?' }} · avviato {{ e.inizio|data }}</p>
+  <a class="bottone secondario" href="{{ url_for('live.indice', rilancia=e.id) }}">Rilancia in tempo reale</a>
+  {% if 'risultato.json' in file|map(attribute=0)|list %}
+  <form method="post" action="{{ url_for('live.avvia') }}" class="in-linea">
+    <input type="hidden" name="_gettone" value="{{ gettone }}">
+    <input type="hidden" name="sorgente" value="file">
+    <input type="hidden" name="file" value="{{ e.cartella }}/risultato.json">
+    <input type="hidden" name="nome" value="{{ e.caso }} (riletto)">
+    {% for k, v in (e.opzioni or {}).items() if k in ('tempo', 'orari', 'max_mb', 'ordine_classi') and v is not none %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+    {% if (e.opzioni or {}).get('motivi', True) %}<input type="hidden" name="motivi" value="1">{% endif %}
+    <button class="secondario" title="Stessi dati e stesso ordine della coda: rifa' esattamente la stessa ricerca">Rifai identico dal JSON</button>
+  </form>
+  {% endif %}
+</div>
+
+{% if r.get('orario') %}
+<h2>Orario trovato</h2>
+<div id="orario" class="scorre"></div>
+{% endif %}
+
+{% if r.get('diagnosi') %}
+<h2>Dove si e' bloccata la ricerca</h2>
+<p class="tenue piccolo">Marce indietro e rami scartati in ogni slot.</p>
+<div id="mappa"></div>
+{% endif %}
+
+{% if e.diagnosi_testo %}
+<h2>Diagnosi completa</h2>
+<pre class="testo">{{ e.diagnosi_testo }}</pre>
+{% endif %}
+
+{% if r.get('dati') %}
+<h2>Dati del caso</h2>
+<div class="griglia-schede">
+  <div class="scheda"><div class="numero">{{ r.dati.classi|length }}</div><div class="etichetta">classi</div></div>
+  <div class="scheda"><div class="numero">{{ r.dati.docenti|length }}</div><div class="etichetta">docenti</div></div>
+  <div class="scheda"><div class="numero">{{ r.dati.docenti|selectattr('ingresso')|list|length }}</div><div class="etichetta">docenti in ritardo</div></div>
+  <div class="scheda"><div class="numero">{{ r.dati.lezioni|selectattr('codocente', 'ne', none)|list|length }}</div><div class="etichetta">lezioni in codocenza</div></div>
+</div>
+{% endif %}
+
+{% if file %}
+<h2>File</h2>
+<table class="dati">
+  {% for n, d, dim in file %}
+  <tr><td><a href="{{ url_for('casi.scarica', eid=e.id, nome=n) }}">{{ n }}</a></td><td class="tenue">{{ d }}</td>
+      <td class="num">{{ '%.1f'|format(dim / 1048576) }} MB</td></tr>
+  {% endfor %}
+</table>
+{% endif %}
+{% endblock %}
+
+{% block script %}
+{% if r.get('dati') %}
+<script>
+const risultato = {{ {'dati': r.dati, 'orario': r.get('orario'), 'diagnosi': r.get('diagnosi')}|tojson }};
+if (risultato.orario) disegnaOrario(document.getElementById('orario'), risultato.dati, risultato.orario);
+if (risultato.diagnosi) disegnaMappa(document.getElementById('mappa'), risultato.dati, blocchiDaRisultato(risultato.diagnosi), 'marce indietro + rami scartati');
+</script>
+{% endif %}
+{% endblock %}

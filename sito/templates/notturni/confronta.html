@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block titolo %}Confronto {{ pa.id }} – {{ pb.id }}{% endblock %}
+{% block contenuto %}
+<p><a href="{{ url_for('notturni.indice') }}">← Test notturni</a></p>
+<h1>Confronto: prova {{ pa.id }} (A) → prova {{ pb.id }} (B)</h1>
+<p class="tenue">A: {{ pa.nome or '' }} · {{ pa.creata|data }} · solver {{ pa.commit or '?' }}<br>
+  B: {{ pb.nome or '' }} · {{ pb.creata|data }} · solver {{ pb.commit or '?' }}</p>
+
+<div class="griglia-schede">
+  {% for k, v in conta.items() %}
+  <div class="scheda"><div class="numero">{{ v }}</div><div class="etichetta">{{ k }}</div></div>
+  {% endfor %}
+</div>
+<p class="tenue piccolo">Migliorato: in B l'esito e' migliore (risolto invece di non finito), oppure entrambi trovati ma B
+  piu' veloce di oltre il 25%. Peggiorato: il contrario.</p>
+
+<div class="scorre">
+<table class="dati">
+  <thead><tr><th>Caso</th><th>Giudizio</th><th>Esito A</th><th class="num">Durata A</th><th>Esito B</th><th class="num">Durata B</th><th>Diagnosi B</th></tr></thead>
+  <tbody>
+  {% for r in righe %}
+    <tr>
+      <td>{{ r.caso }}</td>
+      <td><span class="esito {{ 'esito-trovato' if r.giudizio == 'migliorati' else ('esito-errore' if r.giudizio == 'peggiorati' else 'esito-in-coda') }}">{{ r.giudizio }}</span></td>
+      <td>{% if r.a %}<a href="{{ url_for('casi.caso', eid=r.a.id) }}"><span class="esito {{ r.a.esito|classe_esito }}">{{ r.a.esito or 'in corso' }}</span></a>{% else %}-{% endif %}</td>
+      <td class="num">{{ r.a.secondi|durata if r.a else '-' }}</td>
+      <td>{% if r.b %}<a href="{{ url_for('casi.caso', eid=r.b.id) }}"><span class="esito {{ r.b.esito|classe_esito }}">{{ r.b.esito or 'in corso' }}</span></a>{% else %}-{% endif %}</td>
+      <td class="num">{{ r.b.secondi|durata if r.b else '-' }}</td>
+      <td class="piccolo">{{ r.b.diagnosi if r.b else '' }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

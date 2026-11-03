@@ -1,0 +1,96 @@
+// Componenti comuni: griglia dell'orario e mappa dei blocchi (marce indietro / rami scartati per slot).
+// I dati arrivano dal JSON del solver (--json) o dalle righe di progresso (--progresso).
+
+function el(tag, attributi, figli) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attributi || {})) {
+    if (k === 'testo') e.textContent = v; else e.setAttribute(k, v);
+  }
+  for (const f of figli || []) e.appendChild(f);
+  return e;
+}
+
+// Intestazione comune: classe | Lun 08 | Lun 09 | ... (una colonna per giorno e ora).
+function intestazione(dati) {
+  const r1 = el('tr', {}, [el('th', {class: 'classe', rowspan: 2, testo: 'Classe'})]);
+  const r2 = el('tr');
+  dati.giorni.forEach((g, gi) => {
+    r1.appendChild(el('th', {colspan: dati.ore.length, class: 'inizio-giorno', testo: g}));
+    dati.ore.forEach((o, oi) => r2.appendChild(el('th', {class: oi === 0 ? 'inizio-giorno' : '', testo: o})));
+  });
+  return el('thead', {}, [r1, r2]);
+}
+
+// Griglia dell'orario: orario[g][o][c] = [docente, codocente] (-1 = nessuno).
+function disegnaOrario(contenitore, dati, orario) {
+  const corpo = el('tbody');
+  dati.classi.forEach((cl, c) => {
+    const tr = el('tr', {}, [el('td', {class: 'classe', testo: cl.nome})]);
+    dati.giorni.forEach((_, g) => dati.ore.forEach((__, o) => {
+      const [p, q] = orario[g][o][c];
+      const td = el('td', {class: (o === 0 ? 'inizio-giorno ' : '') + (p < 0 ? 'vuoto' : '')});
+      if (p < 0) td.textContent = '—';
+      else {
+        td.appendChild(el('span', {testo: dati.docenti[p].nome}));
+        if (q >= 0) td.appendChild(el('span', {class: 'cod', testo: '+ ' + dati.docenti[q].nome}));
+        td.title = dati.docenti[p].nome + (q >= 0 ? ' con ' + dati.docenti[q].nome : '');
+      }
+      tr.appendChild(td);
+    }));
+    corpo.appendChild(tr);
+  });
+  contenitore.replaceChildren(el('table', {class: 'orario'}, [intestazione(dati), corpo]));
+}
+
+// Mappa dei blocchi: valore(g, o, c) per ogni slot; colore proporzionale (in scala logaritmica) al massimo.
+function disegnaMappa(contenitore, dati, valore, descrizione) {
+  let massimo = 0;
+  dati.giorni.forEach((_, g) => dati.ore.forEach((__, o) => dati.classi.forEach((___, c) => {
+    massimo = Math.max(massimo, valore(g, o, c));
+  })));
+  const scala = v => v <= 0 ? 0 : Math.log1p(v) / Math.log1p(massimo);
+  const corpo = el('tbody');
+  dati.classi.forEach((cl, c) => {
+    const tr = el('tr', {}, [el('td', {class: 'classe', testo: cl.nome})]);
+    dati.giorni.forEach((g_nome, g) => dati.ore.forEach((o_nome, o) => {
+      const v = valore(g, o, c);
+      const td = el('td', {class: o === 0 ? 'inizio-giorno' : ''});
+      if (v > 0) {
+        const a = 0.08 + 0.92 * scala(v);
+        td.style.background = `rgba(var(--calore), ${a.toFixed(3)})`;
+        if (a > 0.55) td.style.color = '#fff';
+        td.textContent = compatto(v);
+      }
+      td.title = `${g_nome} ${o_nome} ${cl.nome}: ${v.toLocaleString('it-IT')} ${descrizione}`;
+      tr.appendChild(td);
+    }));
+    corpo.appendChild(tr);
+  });
+  const legenda = el('div', {class: 'legenda'}, [
+    el('span', {testo: '0'}), el('span', {class: 'scala'}),
+    el('span', {testo: massimo.toLocaleString('it-IT') + ' ' + descrizione + ' (scala logaritmica)'})]);
+  contenitore.replaceChildren(legenda, el('div', {class: 'scorre'}, [el('table', {class: 'orario mappa'}, [intestazione(dati), corpo])]));
+}
+
+function compatto(v) {
+  if (v >= 1e6) return (v / 1e6).toFixed(v >= 1e7 ? 0 : 1) + 'M';
+  if (v >= 1e3) return (v / 1e3).toFixed(v >= 1e4 ? 0 : 1) + 'k';
+  return String(v);
+}
+
+// Dal JSON del solver: blocchi in uno slot = marce indietro + rami scartati dopo lo slot.
+function blocchiDaRisultato(diagnosi) {
+  const scartati = Object.values(diagnosi.scartati || {});
+  return (g, o, c) => diagnosi.marce[g][o][c] + scartati.reduce((s, t) => s + t[g][o][c], 0);
+}
+
+// Dalla riga di progresso: tabelle piatte con indice (g * ore + o) * classi + c.
+function blocchiDaProgresso(dati, p) {
+  const O = dati.ore.length, C = dati.classi.length;
+  return (g, o, c) => {
+    const i = (g * O + o) * C + c;
+    return (p.marce_slot[i] || 0) + (p.scartati_slot[i] || 0);
+  };
+}
+
+function numeroIt(v) { return v == null ? '-' : Number(v).toLocaleString('it-IT'); }

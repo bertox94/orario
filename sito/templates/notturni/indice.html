@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block titolo %}Test notturni{% endblock %}
+{% block contenuto %}
+<h1>Test notturni</h1>
+<p class="tenue">Spazio libero: {{ '%.1f'|format(libero_gb) }} GB · casi in parallelo: {{ config.paralleli }} ·
+  una prova alla volta, le altre aspettano in coda.</p>
+
+<h2>Prove</h2>
+<form method="get" action="{{ url_for('notturni.confronta') }}" id="confronto"></form>
+<div class="scorre">
+<table class="dati">
+  <thead><tr><th title="Scegli due prove da confrontare">A</th><th>B</th><th>#</th><th>Nome</th><th>Stato</th><th>Quando</th>
+    <th class="num">Casi</th><th>Esiti</th><th class="num">Durata</th><th>Solver</th></tr></thead>
+  <tbody>
+  {% for p in prove %}
+    {% set n = conteggi.get(p.id) %}
+    <tr>
+      <td><input type="radio" name="a" value="{{ p.id }}" form="confronto" aria-label="Prova A"></td>
+      <td><input type="radio" name="b" value="{{ p.id }}" form="confronto" aria-label="Prova B"></td>
+      <td><a href="{{ url_for('notturni.prova', pid=p.id) }}">{{ p.id }}</a></td>
+      <td><a href="{{ url_for('notturni.prova', pid=p.id) }}">{{ p.nome or 'prova ' ~ p.id }}</a></td>
+      <td><span class="esito {{ p.stato|classe_esito }}">{{ p.stato }}</span></td>
+      <td>{{ (p.inizio or p.programmata_per or p.creata)|data }}</td>
+      <td class="num">{{ n.casi if n else 0 }}{% if n and n.in_corso %} <span class="tenue">({{ n.in_corso }} in corso)</span>{% endif %}</td>
+      <td class="piccolo">{% for k, v in ((p.riepilogo or {}).get('esiti') or {}).items() %}{{ k }}: {{ v }}{{ ', ' if not loop.last }}{% endfor %}</td>
+      <td class="num">{% if p.inizio and p.fine %}{{ (p.fine - p.inizio).total_seconds()|durata }}{% else %}-{% endif %}</td>
+      <td class="piccolo tenue">{{ p.commit or '' }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="10" class="tenue">Nessuna prova.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% if prove|length > 1 %}<p><button form="confronto" class="secondario">Confronta A con B</button></p>{% endif %}
+
+<h2>Nuova prova</h2>
+<form method="post" action="{{ url_for('notturni.nuova') }}" class="scheda">
+  <input type="hidden" name="_gettone" value="{{ gettone }}">
+  <div class="riga" style="display: flex; flex-wrap: wrap; gap: 16px; align-items: end; margin-bottom: 10px;">
+    <label>Nome <input name="nome" placeholder="es. prima della modifica X" size="28"></label>
+    <label class="spunta"><input type="radio" name="quando" value="subito"> Subito</label>
+    <label class="spunta"><input type="radio" name="quando" value="ora_data" checked> Alle
+      <input type="datetime-local" name="ora_data" value="{{ predefinita }}"></label>
+  </div>
+  {% include 'notturni/_opzioni.html' %}
+  <button>Crea la prova</button>
+</form>
+
+<h2>Prove ricorrenti</h2>
+<table class="dati">
+  <thead><tr><th>Nome</th><th>Ora</th><th>Giorni</th><th>Casi</th><th>Ultima</th><th></th></tr></thead>
+  <tbody>
+  {% set nomi_giorni = ['', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'] %}
+  {% for p in pianificazioni %}
+    <tr>
+      <td>{{ p.nome }}{% if not p.attiva %} <span class="esito esito-annullata">sospesa</span>{% endif %}</td>
+      <td>{{ p.ora.strftime('%H:%M') }}</td>
+      <td>{% for g in p.giorni %}{{ nomi_giorni[g] }}{{ ' ' if not loop.last }}{% endfor %}</td>
+      <td class="piccolo">semi {{ p.opzioni.semi_da }}–{{ p.opzioni.semi_da + p.opzioni.quanti - 1 }}, {{ p.opzioni.classi }} classi,
+        {{ p.opzioni.varianti|join(' e ') }}{{ ', scuola' if p.opzioni.scuola }}</td>
+      <td>{{ p.ultima_data or '-' }}</td>
+      <td>
+        <form method="post" action="{{ url_for('notturni.attiva_pianificazione', pid=p.id) }}" class="in-linea">
+          <input type="hidden" name="_gettone" value="{{ gettone }}">
+          <button class="link">{{ 'Sospendi' if p.attiva else 'Riattiva' }}</button>
+        </form>
+        <form method="post" action="{{ url_for('notturni.elimina_pianificazione', pid=p.id) }}" class="in-linea">
+          <input type="hidden" name="_gettone" value="{{ gettone }}">
+          <button class="link" title="Elimina">✕</button>
+        </form>
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6" class="tenue">Nessuna prova ricorrente.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<h3>Nuova prova ricorrente</h3>
+<form method="post" action="{{ url_for('notturni.nuova_pianificazione') }}" class="scheda">
+  <input type="hidden" name="_gettone" value="{{ gettone }}">
+  <div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-bottom: 10px;">
+    <label>Nome <input name="nome" value="Notturna" size="16"></label>
+    <label>Ora <input type="time" name="ora" value="22:00"></label>
+    {% for g in range(1, 8) %}
+    <label class="spunta"><input type="checkbox" name="giorni" value="{{ g }}" {{ 'checked' if g <= 5 }}> {{ nomi_giorni[g] }}</label>
+    {% endfor %}
+  </div>
+  {% include 'notturni/_opzioni.html' %}
+  <button>Aggiungi</button>
+</form>
+{% endblock %}

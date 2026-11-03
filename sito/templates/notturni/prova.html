@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block titolo %}Prova notturna {{ prova.id }}{% endblock %}
+{% block contenuto %}
+<p><a href="{{ url_for('notturni.indice') }}">← Test notturni</a></p>
+<h1>Prova {{ prova.id }}{{ ': ' + prova.nome if prova.nome }} <span class="esito {{ prova.stato|classe_esito }}">{{ prova.stato }}</span></h1>
+{% if prova.messaggio %}<div class="avviso errore">{{ prova.messaggio }}</div>{% endif %}
+{% if prova.stato == 'in coda' and prova.programmata_per %}<div class="avviso">Parte il {{ prova.programmata_per|data }}.</div>{% endif %}
+
+{% set o = prova.opzioni %}
+<div class="griglia-schede">
+  <div class="scheda"><div class="numero">{{ casi|length }} / {{ totale }}</div><div class="etichetta">casi avviati</div></div>
+  {% for k, v in esiti.items() %}
+  <div class="scheda"><div class="numero">{{ v }}</div><div class="etichetta"><span class="esito {{ k|classe_esito }}">{{ k }}</span></div></div>
+  {% endfor %}
+  <div class="scheda"><div class="numero">{% if prova.inizio %}{{ (prova.fine - prova.inizio).total_seconds()|durata if prova.fine else 'in corso' }}{% else %}-{% endif %}</div>
+    <div class="etichetta">durata{% if prova.inizio %} (dal {{ prova.inizio|data }}){% endif %}</div></div>
+</div>
+<p class="tenue piccolo">Semi {{ o.semi_da }}–{{ o.semi_da + o.quanti - 1 }}, {{ o.classi }} classi, {{ o.varianti|join(' e ') }}{{ ', dati della scuola' if o.scuola }} ·
+  fasi {{ o.fase1 }} s / {{ o.fase2 }} s / {{ o.fase3 }} s{{ ' con -b, ' ~ o.spazio_mb ~ ' MB' if o.backtrack }} · solver {{ prova.commit or '?' }}</p>
+
+<p>
+  {% if prova.stato in ('in coda', 'in corso') %}
+  <form method="post" action="{{ url_for('notturni.annulla', pid=prova.id) }}" class="in-linea" onsubmit="return confirm('Annullare la prova?')">
+    <input type="hidden" name="_gettone" value="{{ gettone }}"><button class="pericolo">Annulla</button>
+  </form>
+  {% else %}
+  <form method="post" action="{{ url_for('notturni.elimina', pid=prova.id) }}" class="in-linea" onsubmit="return confirm('Eliminare la prova e i suoi file?')">
+    <input type="hidden" name="_gettone" value="{{ gettone }}"><button class="secondario">Elimina</button>
+  </form>
+  {% endif %}
+  {% if altre %}
+  <form method="get" action="{{ url_for('notturni.confronta') }}" class="in-linea">
+    <input type="hidden" name="b" value="{{ prova.id }}">
+    <select name="a" aria-label="Prova da confrontare">{% for a in altre %}<option value="{{ a.id }}">{{ a.id }}{{ ' – ' + a.nome if a.nome }} ({{ a.creata|data }})</option>{% endfor %}</select>
+    <button class="secondario">Confronta con questa</button>
+  </form>
+  {% endif %}
+</p>
+
+<h2>Casi</h2>
+<p><label class="spunta"><input type="checkbox" id="solo-problemi"> Solo i casi non risolti</label></p>
+<div class="scorre">
+<table class="dati" id="casi">
+  <thead><tr><th>Caso</th><th>Esito finale</th><th class="num">Fasi</th><th class="num">Marce indietro</th><th class="num">Durata</th><th>Diagnosi</th></tr></thead>
+  <tbody>
+  {% for r in casi %}
+    <tr data-risolto="{{ 1 if r.esito in ('trovato', 'nessuna soluzione', 'impossibile') else 0 }}">
+      <td><a href="{{ url_for('casi.caso', eid=r.id) }}">{{ r.caso }}</a></td>
+      <td><span class="esito {{ r.esito|classe_esito }}">{{ r.esito or 'in corso' }}</span></td>
+      <td class="num">{{ r.n_fasi }}</td>
+      <td class="num">{{ r.marce|numero }}</td>
+      <td class="num">{{ r.secondi|durata }}</td>
+      <td class="piccolo">{{ r.diagnosi or '' }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6" class="tenue">Nessun caso ancora avviato.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+document.getElementById('solo-problemi').addEventListener('change', e => {
+  for (const tr of document.querySelectorAll('#casi tbody tr[data-risolto]'))
+    tr.style.display = e.target.checked && tr.dataset.risolto === '1' ? 'none' : '';
+});
+{% if prova.stato in ('in coda', 'in corso') %}setTimeout(() => location.reload(), 15000);{% endif %}
+</script>
+{% endblock %}

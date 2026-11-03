@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block titolo %}Accesso{% endblock %}
+{% block contenuto %}
+<div class="scheda" style="max-width: 360px; margin: 60px auto;">
+  <h1>Accesso</h1>
+  <form method="post" style="display: grid; gap: 12px;">
+    <label>Password <input type="password" name="password" autofocus required></label>
+    <button>Entra</button>
+  </form>
+</div>
+{% endblock %}

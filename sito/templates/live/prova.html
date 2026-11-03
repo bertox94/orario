@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block titolo %}Prova {{ prova.id }}{% endblock %}
+{% block contenuto %}
+<p><a href="{{ url_for('live.indice') }}">← Test in tempo reale</a></p>
+<h1>Prova {{ prova.id }}: {{ prova.nome or '' }}</h1>
+<div id="messaggio"></div>
+
+<div class="griglia-schede">
+  <div class="scheda"><div class="numero" id="secondi">–</div><div class="etichetta">secondi</div></div>
+  <div class="scheda"><div class="numero" id="nodi">–</div><div class="etichetta">nodi esplorati</div></div>
+  <div class="scheda"><div class="numero" id="marce">–</div><div class="etichetta">marce indietro</div></div>
+  <div class="scheda"><div class="numero" id="scartati">–</div><div class="etichetta">rami scartati</div></div>
+  <div class="scheda">
+    <div class="numero" id="posizione">–</div><div class="etichetta">slot corrente / piu' avanzato</div>
+    <div class="barra" style="margin-top: 6px;"><div id="barra" style="width: 0"></div></div>
+  </div>
+</div>
+<p>
+  <button class="pericolo" id="ferma">Ferma</button>
+  <span class="tenue piccolo">La ricerca si ferma in modo ordinato: diagnosi e risultati vengono salvati comunque.</span>
+</p>
+
+<h2>Dove si blocca la ricerca</h2>
+<p class="tenue piccolo">Marce indietro e rami scartati in ogni slot, aggiornati ogni secondo. Pochi slot molto
+  colorati = blocco localizzato (spesso un caso impossibile o una scelta sbagliata poco prima).</p>
+<div id="mappa" class="scorre"><p class="tenue">In attesa dei primi dati…</p></div>
+{% endblock %}
+
+{% block script %}
+<script>
+const indirizzo = "{{ url_for('live.stato', pid=prova.id) }}";
+let dati = null;
+
+async function aggiorna() {
+  let r;
+  try {
+    r = await (await fetch(indirizzo + (dati ? '' : '?con_dati=1'))).json();
+  } catch (e) { setTimeout(aggiorna, 2000); return; }
+  if (r.dati) dati = r.dati;
+  if (r.esito) { location.href = "{{ url_for('casi.caso', eid=0) }}".replace('/0', '/' + r.eid); return; }
+  if (r.stato === 'errore' || r.stato === 'interrotta') {
+    document.getElementById('messaggio').innerHTML = '';
+    const d = document.createElement('div');
+    d.className = 'avviso errore';
+    d.textContent = 'La prova non e\' andata a buon fine: ' + (r.messaggio || r.stato);
+    document.getElementById('messaggio').appendChild(d);
+    document.getElementById('ferma').disabled = true;
+    return;
+  }
+  const p = r.progresso;
+  if (p) {
+    document.getElementById('secondi').textContent = p.secondi.toFixed(0);
+    document.getElementById('nodi').textContent = numeroIt(p.nodi);
+    document.getElementById('marce').textContent = numeroIt(p.marce);
+    document.getElementById('scartati').textContent = numeroIt(p.scartati);
+    const totale = dati ? dati.giorni.length * dati.ore.length * dati.classi.length : 0;
+    document.getElementById('posizione').textContent = p.pos + ' / ' + p.pos_max + (totale ? ' di ' + totale : '');
+    if (totale) document.getElementById('barra').style.width = (100 * p.pos_max / totale).toFixed(1) + '%';
+    if (dati) disegnaMappa(document.getElementById('mappa'), dati, blocchiDaProgresso(dati, p), 'marce indietro + rami scartati');
+  }
+  setTimeout(aggiorna, 1000);
+}
+
+document.getElementById('ferma').addEventListener('click', async () => {
+  document.getElementById('ferma').disabled = true;
+  await fetch("{{ url_for('live.ferma', pid=prova.id) }}", {method: 'POST', headers: {'X-Gettone': window.GETTONE}});
+});
+aggiorna();
+</script>
+{% endblock %}
