@@ -19,6 +19,8 @@ static int capienza_oggi_in_classe(const int giorno, const int ora, const int c,
 }
 
 // Per ogni classe e docente: le ore rimaste stanno nei giorni rimasti? In totale[p] somma le ore rimaste di p.
+dettaglio_scarto_t dettaglio_scarto;
+
 static int ore_in_classe_stanno_nel_tempo_rimasto(const int giorno, const int ora, int totale[]) {
     const int giorni_dopo = actual_giorni_settimana - giorno - 1;
     for (int c = 0; c < actual_classi_sezione; c++) {
@@ -26,8 +28,14 @@ static int ore_in_classe_stanno_nel_tempo_rimasto(const int giorno, const int or
         for (int p = 0; p < actual_insegnanti; p++) {
             const int rimaste = cd[p].ore - cd[p].svolte;
             if (!rimaste) continue;
-            if (rimaste > capienza_oggi_in_classe(giorno, ora, c, p) + MAX_ORE_PROF_IN_UNA_CLASSE * giorni_dopo)
+            const int possibili = capienza_oggi_in_classe(giorno, ora, c, p) + MAX_ORE_PROF_IN_UNA_CLASSE * giorni_dopo;
+            if (rimaste > possibili) {
+                dettaglio_scarto.docente = p;
+                dettaglio_scarto.classe_docente = c;
+                dettaglio_scarto.ore_rimaste = rimaste;
+                dettaglio_scarto.ore_possibili = possibili;
                 return 0;
+            }
             totale[p] += rimaste;
         }
     }
@@ -42,7 +50,13 @@ static int ore_totali_stanno_nel_tempo_rimasto(const int giorno, const int ora, 
         const int da = docente_info[p].ora_entrata > ora ? docente_info[p].ora_entrata : ora;
         const int ore_disponibili = (actual_ore_giornaliere - da)
                                     + (actual_ore_giornaliere - docente_info[p].ora_entrata) * giorni_dopo;
-        if (totale[p] > ore_disponibili) return 0;
+        if (totale[p] > ore_disponibili) {
+            dettaglio_scarto.docente = p;
+            dettaglio_scarto.classe_docente = -1;
+            dettaglio_scarto.ore_rimaste = totale[p];
+            dettaglio_scarto.ore_possibili = ore_disponibili;
+            return 0;
+        }
     }
     return 1;
 }
@@ -158,6 +172,23 @@ static int lezioni_della_classe_bastano(const int giorno, const int ora, const i
             *ora_ko = k;
             *servono = da_riempire;
             *possibili = max_lezioni;
+            // per la diagnosi: il conto lezione per lezione e i limiti per giorno (solo quando la verifica fallisce)
+            dettaglio_scarto.n_lezioni = 0;
+            for (int i = 0; i < n && dettaglio_scarto.n_lezioni < MAX_DETTAGLIO_LEZIONI; i++) {
+                if (!rimaste[i]) continue;
+                const int o = ultima_oggi < ora ? 0 : MIN(cap_oggi[i], slot_tra_le_ore(&lez[i], ora, MIN(k, ultima_oggi)));
+                const int g = MIN(MAX_ORE_PROF_IN_UNA_CLASSE, slot_tra_le_ore(&lez[i], 0, k));
+                int *l = dettaglio_scarto.lezioni[dettaglio_scarto.n_lezioni++];
+                l[0] = lez[i].p;
+                l[1] = lez[i].q;
+                l[2] = rimaste[i];
+                l[3] = MIN(rimaste[i], o + giorni_dopo * g);
+            }
+            dettaglio_scarto.oggi = oggi;
+            dettaglio_scarto.slot_oggi = slot_oggi;
+            dettaglio_scarto.in_un_giorno = in_un_giorno;
+            dettaglio_scarto.slot_al_giorno = k + 1;
+            dettaglio_scarto.giorni_dopo = giorni_dopo;
             return 0;
         }
     }
@@ -187,7 +218,11 @@ int lezioni_della_classe_bastano_dopo(const teaching_slot *slot) {
         ora = 0;
     }
     int k, servono, possibili;
-    return lezioni_della_classe_bastano(giorno, ora, slot->classe, &k, &servono, &possibili);
+    if (lezioni_della_classe_bastano(giorno, ora, slot->classe, &k, &servono, &possibili)) return 1;
+    dettaglio_scarto.fino_ora = k;
+    dettaglio_scarto.da_riempire = servono;
+    dettaglio_scarto.possibili = possibili;
+    return 0;
 }
 
 // Le due condizioni sui docenti (vedi sopra); la prima calcola in totale[] le ore rimaste di ogni docente per la seconda.
