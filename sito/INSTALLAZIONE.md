@@ -15,7 +15,7 @@ registra il commit con cui è stata eseguita.
 
 ## Sul Mac (sviluppo)
 
-Postgres.app deve essere avviato. Una volta sola:
+Postgres.app (la 18) deve essere avviato. Una volta sola:
 
 ```bash
 /Applications/Postgres.app/Contents/Versions/18/bin/createdb orario
@@ -31,6 +31,60 @@ python3 -m sito avvia
 
 e si apre <http://localhost:8000>. Alla prima connessione Postgres.app chiede il permesso per Python: OK.
 
+## Database: Postgres 18 sul Mac, sito sul Raspberry
+
+Il database sta sul Mac (Postgres.app 18) e il sito sul Raspberry, nella stessa rete locale. Se il Mac è spento o in
+stop il sito mostra «Database non raggiungibile» e riprende da solo appena il Mac torna: non serve riavviare nulla.
+
+### Sul Mac (una volta sola)
+
+1. **Postgres.app 18** avviato, con un server sulla porta 5432. Nelle impostazioni del server («Server Settings…») si
+   vede la cartella dei dati, di solito `~/Library/Application Support/Postgres/var-18`: dentro ci sono
+   `postgresql.conf` e `pg_hba.conf`.
+2. In `postgresql.conf` far ascoltare il server sulla rete (di default ascolta solo il Mac stesso):
+
+   ```
+   listen_addresses = '*'
+   ```
+
+3. Creare l'utente e il database (stesso terminale; la password sarà quella del punto 5):
+
+   ```bash
+   /Applications/Postgres.app/Contents/Versions/18/bin/psql -p 5432 -c "create role orario login password 'PASSWORD_DEL_DATABASE'"
+   /Applications/Postgres.app/Contents/Versions/18/bin/psql -p 5432 -c "create database orario owner orario"
+   ```
+
+4. In `pg_hba.conf` ammettere solo il Raspberry, aggiungendo in fondo una riga (sostituire l'indirizzo con quello del Pi:
+   sul Pi `hostname -I`):
+
+   ```
+   host    orario    orario    192.168.1.50/32    scram-sha-256
+   ```
+
+   Poi **fermare e riavviare il server** in Postgres.app (le due modifiche si leggono all'avvio).
+5. Il Mac deve restare raggiungibile:
+   - Impostazioni di Sistema → Rete → Firewall: se è attivo, consentire le connessioni in ingresso a Postgres
+     (la prima volta macOS lo chiede; se il Pi non si collega, controllare qui).
+   - Impostazioni di Sistema → Batteria / Risparmio energia: impedire lo stop automatico quando è collegato
+     all'alimentazione (altrimenti di notte il sito perde il database). Postgres.app va aperto: «Apri al login».
+   - L'indirizzo del Mac deve restare lo stesso: riservarlo nel router (DHCP) oppure usare il nome Bonjour
+     `nome-del-mac.local` (Impostazioni → Generali → Condivisione → Nome host locale). Il Raspberry Pi OS risolve i
+     nomi `.local`.
+
+La rete locale non è cifrata: va bene a casa o a scuola su una rete fidata, e `pg_hba.conf` lascia entrare solo il Pi con
+la password. Non esporre la porta 5432 a Internet.
+
+### Sul Raspberry: controllo del collegamento
+
+Dopo aver configurato `DATABASE_URL` (punto 4 qui sotto):
+
+```bash
+cd ~/orario && ~/orario-venv/bin/python -m sito prova-database
+```
+
+Scrive «Collegato a Postgres 18.x» oppure il motivo per cui non ci riesce (host sbagliato, password, firewall,
+`pg_hba.conf`). Attesa massima per il collegamento: 5 secondi (`SITO_DB_TIMEOUT`).
+
 ## Sul Raspberry Pi 5
 
 Raspberry Pi OS a 64 bit. Consigliati: ventola attiva (le prove notturne tengono i processori al massimo per ore) e,
@@ -40,7 +94,7 @@ se si usa `-b` nei test notturni, un SSD per la cartella dei dati del sito.
 
 ```bash
 sudo apt update
-sudo apt install -y git gcc python3-venv postgresql
+sudo apt install -y git gcc python3-venv
 ```
 
 ### 2. Codice e librerie Python
@@ -53,25 +107,22 @@ python3 -m venv ~/orario-venv
 
 ### 3. Database
 
-```bash
-sudo -u postgres createuser --pwprompt orario
-sudo -u postgres createdb -O orario orario
-```
-
-(`createuser` chiede la password del database: serve al punto 4.)
+Non si installa Postgres sul Pi: il database è sul Mac (sezione «Database: Postgres 18 sul Mac», sopra). Servono
+l'indirizzo del Mac e la password dell'utente `orario`.
 
 ### 4. Configurazione
 
-Creare `/etc/orario-sito.env` (con la password del punto 3):
+Creare `/etc/orario-sito.env` (indirizzo del Mac e password della sezione sopra):
 
 ```
-DATABASE_URL=postgresql://orario:PASSWORD_DEL_DATABASE@localhost/orario
+DATABASE_URL=postgresql://orario:PASSWORD_DEL_DATABASE@nome-del-mac.local:5432/orario
 SITO_DATI=/home/UTENTE/orario-dati
 SITO_PARALLELI=3
 SITO_SPAZIO_MB=20480
 ```
 
-e renderlo leggibile solo dall'amministratore:
+Se la password contiene caratteri speciali (`@ : / # ? %`) vanno scritti in forma `%40`, `%3A`… nell'indirizzo; più semplice
+scegliere una password di sole lettere e cifre. Poi renderlo leggibile solo dall'amministratore:
 
 ```bash
 sudo chmod 600 /etc/orario-sito.env

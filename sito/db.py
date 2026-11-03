@@ -7,14 +7,31 @@ cosi' il database sul Pi si aggiorna al prossimo avvio senza perdere i dati.
 import os
 
 import psycopg
+import psycopg.conninfo
 from flask import current_app, g
 from psycopg.rows import dict_row
 
 CARTELLA_MIGRAZIONI = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'migrazioni')
 
 
+# Secondi di attesa per collegarsi (se Postgres e' su un altro computer, spento o in stop, il sito non resta appeso).
+TIMEOUT_CONNESSIONE = int(os.environ.get('SITO_DB_TIMEOUT', 5))
+
+
 def connetti(url):
-    return psycopg.connect(url, row_factory=dict_row, autocommit=False)
+    return psycopg.connect(url, row_factory=dict_row, autocommit=False, connect_timeout=TIMEOUT_CONNESSIONE)
+
+
+def descrivi_errore(url, errore):
+    """Un messaggio comprensibile per un database non raggiungibile (senza la password)."""
+    try:
+        info = psycopg.conninfo.conninfo_to_dict(url)
+        dove = '%s:%s, database %s, utente %s' % (info.get('host', 'locale'), info.get('port', 5432),
+                                                  info.get('dbname', '?'), info.get('user', '?'))
+    except Exception:  # noqa: BLE001 - un URL strano non deve nascondere l'errore vero
+        dove = 'indirizzo non leggibile'
+    riga = (str(errore).strip().splitlines() or [''])[0]
+    return 'Database non raggiungibile (%s): %s' % (dove, riga)
 
 
 def conn():

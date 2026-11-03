@@ -3,7 +3,7 @@
 #   sudo systemctl daemon-reload && sudo systemctl enable --now orario-sito
 [Unit]
 Description=Sito dell'orario (dati della scuola e test del solver)
-After=network-online.target postgresql.service
+After=network-online.target
 Wants=network-online.target
 
 [Service]
@@ -11,7 +11,9 @@ User=UTENTE
 WorkingDirectory=/home/UTENTE/orario
 EnvironmentFile=/etc/orario-sito.env
 ExecStart=/home/UTENTE/orario-venv/bin/python -m sito avvia --host 0.0.0.0 --porta 8000
-Restart=on-failure
+# il database e' sul Mac: se il sito parte prima che il Mac sia raggiungibile esce con un messaggio e riprova
+Restart=always
+RestartSec=15
 # alla chiusura systemd manda SIGTERM anche ai solver in corso: si fermano in modo ordinato, con diagnosi e JSON
 KillMode=control-group
 TimeoutStopSec=60

@@ -4,6 +4,10 @@
     SITO_DATI          cartella dei file del sito: eseguibili, risultati delle prove, password (default: dati_sito/)
     SITO_PARALLELI     casi in parallelo nei test notturni (default: processori - 1)
     SITO_SPAZIO_MB     spazio massimo per i file delle marce indietro di una prova notturna (default: 20480 = 20 GB)
+    SITO_DB_TIMEOUT    secondi di attesa per collegarsi al database prima di dire che non e' raggiungibile (default: 5)
+
+Il database puo' stare su un altro computer della rete locale (per esempio Postgres 18 sul Mac, con il sito sul Raspberry):
+DATABASE_URL=postgresql://orario:PASSWORD@nome-del-mac.local:5432/orario  (vedi sito/INSTALLAZIONE.md)
 """
 import os
 
@@ -13,6 +17,7 @@ from .solver import RADICE
 class Config:
     def __init__(self):
         self.database_url = os.environ.get('DATABASE_URL', 'postgresql://localhost/orario')
+        self.db_timeout = int(os.environ.get('SITO_DB_TIMEOUT', 5))
         self.dati = os.path.abspath(os.environ.get('SITO_DATI', os.path.join(RADICE, 'dati_sito')))
         self.paralleli = int(os.environ.get('SITO_PARALLELI', max(1, (os.cpu_count() or 2) - 1)))
         self.spazio_mb = int(os.environ.get('SITO_SPAZIO_MB', 20 * 1024))

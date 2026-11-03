@@ -18,6 +18,8 @@ import threading
 import time
 import traceback
 
+import psycopg
+
 from . import db, modello, solver
 
 # esecuzioni (id) in corso -> (id della prova, solver.Esecuzione): per leggere il progresso e per fermarle
@@ -220,6 +222,8 @@ def _ciclo_pianificazioni(config):
                         crea_notturna(c, p['opzioni'], adesso, nome=p['nome'])
                         c.execute('update pianificazioni set ultima_data = %s where id = %s', (oggi, p['id']))
                 c.commit()
+        except psycopg.OperationalError as e:
+            print('Database non raggiungibile, riprovo tra poco:', (str(e).strip().splitlines() or [''])[0], flush=True)
         except Exception:
             traceback.print_exc()
         time.sleep(20)
@@ -238,6 +242,8 @@ def _ciclo_notturni(config):
                 c.commit()
             if p:
                 _esegui_notturna(config, p)
+        except psycopg.OperationalError as e:
+            print('Database non raggiungibile, riprovo tra poco:', (str(e).strip().splitlines() or [''])[0], flush=True)
         except Exception:
             traceback.print_exc()
         time.sleep(10)

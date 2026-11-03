@@ -12,6 +12,8 @@ import re
 from flask import Flask, abort, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash
 
+import psycopg
+
 from . import db
 from .config import Config
 
@@ -47,6 +49,11 @@ def crea_app(config=None, avvia_esecutore=True):
             if not hmac.compare_digest(gettone, session.get('gettone', '')):
                 abort(400, 'Modulo scaduto: ricarica la pagina e riprova.')
         return None
+
+    @app.errorhandler(psycopg.OperationalError)
+    def database_non_raggiungibile(errore):
+        # per esempio il Mac con Postgres e' spento, in stop o fuori dalla rete
+        return render_template('senza_database.html', messaggio=db.descrivi_errore(config.database_url, errore)), 503
 
     @app.context_processor
     def variabili_comuni():
