@@ -35,6 +35,7 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
 void stampa_intestazione_marce_compatte(FILE *f);
 
 void stampa_marcia_compatta(FILE *f, const teaching_slot orario[], int pos);
+void stampa_passo_compatto(FILE *f, const teaching_slot orario[], int pos);  // riga P di --passi, vedi sopra
 
 // riepilogo dei dati su stdout
 void stampa_dati(void);
