@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 // Generatore xorshift64*: stessa sequenza su ogni piattaforma (rand() no).
 static unsigned long long rng_state;
@@ -135,6 +136,39 @@ static int tenta(const int n_classi, int *n_doc_usati) {
 // settimanali del docente stanno nelle ore che gli restano (da ingresso a fine giornata, per tutti i giorni).
 // Se la verifica preliminare dichiara impossibile il caso, si toglie il ritardo ai docenti che entrano piu' tardi,
 // uno alla volta, finche' il caso e' possibile: i casi impossibili per costruzione non vengono generati.
+// Nomi dei docenti al posto di D001, D002...: un nome per riga in `file_nomi_docenti`, dal primo docente in poi.
+// Righe vuote, ripetute o uguali a un nome generato (D + tre cifre) si saltano; i docenti oltre l'ultimo nome restano
+// D###. Cambiano solo i nomi: i dati e la ricerca sono gli stessi.
+const char *file_nomi_docenti = NULL;
+static char nomi_docenti[INSEGNANTE_SZ][MAX_LEN_WORDS];
+static int n_nomi_docenti = -1;
+
+static int nome_generato(const char *n) {
+    return strlen(n) == 4 && n[0] == 'D' && n[1] >= '0' && n[1] <= '9' && n[2] >= '0' && n[2] <= '9' && n[3] >= '0' && n[3] <= '9';
+}
+
+static void nome_docente_generato(char *dest, const size_t dim, const int d) {
+    if (n_nomi_docenti < 0) {
+        n_nomi_docenti = 0;
+        FILE *f = file_nomi_docenti ? fopen(file_nomi_docenti, "r") : NULL;
+        char riga[256];
+        while (f && n_nomi_docenti < INSEGNANTE_SZ && fgets(riga, sizeof riga, f)) {
+            char *i = riga;
+            while (*i == ' ' || *i == '\t') i++;
+            size_t n = strlen(i);
+            while (n > 0 && (i[n - 1] == '\n' || i[n - 1] == '\r' || i[n - 1] == ' ' || i[n - 1] == '\t')) i[--n] = 0;
+            if (!n || nome_generato(i)) continue;
+            snprintf(nomi_docenti[n_nomi_docenti], MAX_LEN_WORDS, "%s", i);
+            int doppio = 0;
+            for (int k = 0; k < n_nomi_docenti; k++) doppio |= !strcmp(nomi_docenti[k], nomi_docenti[n_nomi_docenti]);
+            if (!doppio) n_nomi_docenti++;
+        }
+        if (f) fclose(f);
+    }
+    if (d < n_nomi_docenti) snprintf(dest, dim, "%s", nomi_docenti[d]);
+    else snprintf(dest, dim, "D%03d", d + 1);
+}
+
 static void assegna_ore_di_ingresso(const int n_doc) {
     int con_ritardo[INSEGNANTE_SZ];
     int n_ritardi = 0;
@@ -143,7 +177,7 @@ static void assegna_ore_di_ingresso(const int n_doc) {
         int ingresso = rnd(1, GEN_ORA_INGRESSO_MAX);
         while (ingresso > 0 && carico[d] > (actual_ore_giornaliere - ingresso) * actual_giorni_settimana) ingresso--;
         char nome[MAX_LEN_WORDS];
-        snprintf(nome, sizeof nome, "D%03d", d + 1);
+        nome_docente_generato(nome, sizeof nome, d);
         const int p = p_insegnante(nome);
         if (p >= 0) {
             docente_info[p].ora_entrata = ingresso;
@@ -185,11 +219,11 @@ void genera_dati_casuali(const unsigned long long seed, const int n_classi, cons
             const lezione_t *l = &lezioni[i];
             if (l->classe != c) continue;
             char prof[MAX_LEN_WORDS], cod[MAX_LEN_WORDS];
-            snprintf(prof, sizeof prof, "D%03d", l->prof + 1);
+            nome_docente_generato(prof, sizeof prof, l->prof);
             if (l->cod < 0) {
                 set_classe_insegnante_ore(cla, prof, l->ore);
             } else {
-                snprintf(cod, sizeof cod, "D%03d", l->cod + 1);
+                nome_docente_generato(cod, sizeof cod, l->cod);
                 set_classe_insegnante_ore_cod(cla, prof, l->ore, cod, l->ore_cod);
             }
         }
