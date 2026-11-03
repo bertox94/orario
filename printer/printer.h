@@ -27,6 +27,8 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
 // prima di `da` come nella riga B precedente. Ogni slot e' "i" (docente di indice i), "i+j" (coppia) o "-" (vuoto).
 // Le posizioni sono quelle della ricerca: pos = (giorno * ore + ora) * classi + k, con la classe k-esima dell'ordine
 // scritto nell'intestazione.
+// Con --motivi, subito dopo ogni riga B c'e' una riga "M d:m d:m ...": per ogni docente d che nella classe aveva ancora
+// ore da fare, il motivo m (come in "nomi_motivi" del JSON) per cui non si e' potuto mettere nello slot.
 void stampa_intestazione_marce_compatte(FILE *f);
 
 void stampa_marcia_compatta(FILE *f, const teaching_slot orario[], int pos);
