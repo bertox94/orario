@@ -14,6 +14,7 @@ add_executable(untitled main.c
         data_initialization/database_initializers.c
         data_initialization/generatore.h
         data_initialization/generatore.c
+        data_initialization/nomi_docenti.h
         data_initialization/json.h
         data_initialization/json.c
         data_initialization/dati_da_file.h
