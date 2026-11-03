@@ -71,6 +71,9 @@ def _sfoglia(eid, lettera, niente):
     try:
         if request.args.get('totale'):
             return jsonify({'totale': marce.totale(url, eid, e['esito'] is not None, lettera)})
+        if request.args.get('vicoli') and lettera == 'P':
+            elenco, troncato = marce.vicoli(url, eid, e['esito'] is not None)
+            return jsonify({'vicoli': elenco, 'troncato': troncato})
         m = marce.marcia(url, eid, max(1, request.args.get('n', 1, type=int)), nomi, lettera)
     except marce.FileTroppoGrande:
         return jsonify({'errore': 'Il file delle marce indietro e\' troppo grande per essere sfogliato qui: scaricalo.'})

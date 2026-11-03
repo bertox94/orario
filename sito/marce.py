@@ -47,12 +47,22 @@ def marcia(url, eid, n, nomi_classi, lettera='B'):
     ordine = []  # k-esima classe dell'ordine della ricerca -> indice nei dati del sito
     slot = []
     pos = visti = 0
+    bloccato = False  # solo passi P: il nodo e' un vicolo cieco
     conta = {}  # posizione -> quante volte la ricerca l'ha decisa (una per ogni riga P applicata)
     motivi = None  # con --motivi: [docente, motivo] della marcia indietro in esame (None = non registrati)
     completa = False
     for r in righe(url, eid):
-        if completa:  # la riga M che segue la marcia scelta
-            if lettera == 'B' and r.startswith('M'):
+        if completa:
+            if lettera == 'B':  # la riga M che segue la marcia scelta
+                if r.startswith('M'):
+                    motivi = [[int(x) for x in t.split(':')] for t in r.split()[1:] if ':' in t]
+                break
+            # passo P: se subito dopo c'e' la riga B dello stesso nodo, il passo e' un vicolo cieco (nessun docente
+            # utilizzabile in quello slot) e dopo la B ci sono i motivi (riga M)
+            if not bloccato and r.startswith('B ') and r.split()[1] == str(pos):
+                bloccato = True
+                continue
+            if bloccato and r.startswith('M'):
                 motivi = [[int(x) for x in t.split(':')] for t in r.split()[1:] if ':' in t]
             break
         if r.startswith('G '):
@@ -100,6 +110,7 @@ def marcia(url, eid, n, nomi_classi, lettera='B'):
             o, k = divmod(resto, classi)
             passaggi[g][o][ordine[k]] = v
         m['passaggi'] = passaggi
+        m['bloccato'] = bloccato
     return m
 
 
@@ -111,3 +122,29 @@ def totale(url, eid, definitivo, lettera='B'):
     if definitivo:
         _totali[eid, lettera] = n
     return n
+
+
+_vicoli = {}  # esecuzione -> elenco dei passi che sono vicoli ciechi (solo per file finiti)
+MAX_VICOLI = 50000
+
+
+def vicoli(url, eid, definitivo):
+    """I numeri dei passi (da 1) che sono vicoli ciechi: una riga P seguita subito dalla B dello stesso nodo, cioe' nessun
+    docente utilizzabile in quello slot. Al massimo MAX_VICOLI; ritorna (elenco, troncato)."""
+    if eid in _vicoli:
+        return _vicoli[eid]
+    n, ultimo, elenco, troncato = 0, None, [], False
+    for r in righe(url, eid):
+        if r.startswith('P '):
+            n += 1
+            ultimo = r.split()[1]
+            continue
+        if r.startswith('B ') and ultimo is not None and r.split()[1] == ultimo:
+            if len(elenco) >= MAX_VICOLI:
+                troncato = True
+                break
+            elenco.append(n)
+        ultimo = None
+    if definitivo:
+        _vicoli[eid] = (elenco, troncato)
+    return elenco, troncato

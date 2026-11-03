@@ -471,17 +471,20 @@ function sfogliaMarce(contenitore, dati, url, nomiMotivi) {
 
 // Sfoglia i passi della ricerca registrati con --passi: l'orario parziale a ogni passo, dal passo 0 (orario vuoto).
 // La sezione resta nascosta finche' non si sa che c'e' almeno un passo registrato.
-function sfogliaPassi(sezione, contenitore, dati, url) {
+function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
   const barra = el('input', {type: 'range', min: 0, max: 0, value: 0, style: 'width: 100%'});
   const numero = el('input', {type: 'number', min: 0, value: 0, class: 'stretto'});
   const stato = el('div', {class: 'tenue piccolo'});
   const griglia = el('div', {class: 'scorre'});
-  let totale = null, n = 0, richiesta = 0;
+  const motivi = el('div', {});
+  const infoVicoli = el('div', {class: 'tenue piccolo'});
+  let totale = null, n = 0, richiesta = 0, vicoli = [], vicoliTroncati = false;
   const di = () => totale ? ` di ${numeroIt(totale)}` : '';
   const bottone = (testo, delta) => el('button', {class: 'secondario', type: 'button', testo, onclick: () => vai(n + delta)});
   async function vai(nuovo) {
     n = Math.max(0, totale !== null ? Math.min(totale, nuovo) : nuovo);
     barra.value = numero.value = n;
+    motivi.replaceChildren();
     if (n === 0) {  // il passo 0 non e' nel file: e' l'orario vuoto, prima che la ricerca cominci
       richiesta++;
       stato.textContent = `Passo 0${di()}: orario vuoto, la ricerca non è ancora cominciata.`;
@@ -497,7 +500,16 @@ function sfogliaPassi(sezione, contenitore, dati, url) {
     n = r.n; barra.value = numero.value = n;
     const dove = r.pos >= r.slot ? 'orario completo'
       : `la ricerca sta decidendo ${dati.giorni[r.blocco[0]]} ${dati.ore[r.blocco[1]]} ${dati.classi[r.blocco[2]].nome} (✕)`;
-    stato.textContent = `Passo ${numeroIt(n)}${di()} · ${numeroIt(r.pos)} slot su ${numeroIt(r.slot)} assegnati; ${dove}`;
+    stato.textContent = `Passo ${numeroIt(n)}${di()} · ${numeroIt(r.pos)} slot su ${numeroIt(r.slot)} assegnati; ${dove}`
+      + (r.bloccato ? ' · ⚠ VICOLO CIECO: nessun docente utilizzabile qui, la ricerca torna indietro' : '');
+    stato.style.fontWeight = r.bloccato ? '600' : '';
+    if (r.bloccato) {
+      const per = {};
+      (r.motivi || []).forEach(([p, m]) => (per[m] = per[m] || []).push(dati.docenti[p].nome));
+      const voci = Object.entries(per).map(([m, nomi]) => el('li', {}, [el('strong', {testo: (nomiMotivi[m] || m) + ': '}), el('span', {testo: nomi.join(', ')})]));
+      motivi.replaceChildren(el('h3', {testo: 'Perché non si può andare avanti'}),
+        voci.length ? el('ul', {}, voci) : el('p', {class: 'tenue piccolo', testo: r.motivi ? 'Nessun docente aveva ancora ore da fare in questa classe.' : 'Motivi non registrati: attiva «Motivi degli scarti» nelle opzioni.'}));
+    }
     disegnaOrario(griglia, dati, r.orario, r.pos >= r.slot ? null : r.blocco, null, r.passaggi);
   }
   // Mentre si trascina lo slider l'orario segue in tempo reale (evento input, non solo al rilascio). Una richiesta alla
@@ -515,13 +527,25 @@ function sfogliaPassi(sezione, contenitore, dati, url) {
   numero.addEventListener('change', () => vai(+numero.value));
   contenitore.replaceChildren(el('div', {style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center'}, [
     bottone('⏮', -1e12), bottone('−1000', -1000), bottone('−100', -100), bottone('−1', -1), numero,
-    bottone('+1', 1), bottone('+100', 100), bottone('+1000', 1000), bottone('⏭', 1e12)]), barra, stato, griglia);
+    bottone('+1', 1), bottone('+100', 100), bottone('+1000', 1000), bottone('⏭', 1e12)]),
+    el('div', {style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px'}, [
+      el('button', {class: 'secondario', type: 'button', testo: '◀ vicolo cieco precedente', onclick: () => {
+        const prima = vicoli.filter(v => v < n); if (prima.length) vai(prima[prima.length - 1]); }}),
+      el('button', {class: 'secondario', type: 'button', testo: 'vicolo cieco successivo ▶', onclick: () => {
+        const dopo = vicoli.find(v => v > n); if (dopo) vai(dopo); }}), infoVicoli]),
+    barra, stato, motivi, griglia);
   fetch(url + '?totale=1').then(r => r.json()).then(t => {
     totale = t.totale || 0;
     if (!totale) return;  // nessuna riga P nel file: la sezione resta nascosta
     if (sezione) sezione.style.display = '';
     barra.max = totale;
     vai(0);
+    fetch(url + '?vicoli=1').then(r => r.json()).then(v => {
+      vicoli = v.vicoli || []; vicoliTroncati = !!v.troncato;
+      infoVicoli.textContent = vicoli.length
+        ? `${numeroIt(vicoli.length)}${vicoliTroncati ? '+' : ''} ` + (vicoli.length === 1 && !vicoliTroncati ? 'vicolo cieco' : 'vicoli ciechi') + ` su ${numeroIt(totale)} passi` + (vicoli.length < 30 ? ` (passi ${vicoli.join(', ')})` : '')
+        : 'Nessun vicolo cieco nei passi registrati: la ricerca è sempre andata avanti.';
+    }).catch(() => {});
   }).catch(() => {});
 }
 
