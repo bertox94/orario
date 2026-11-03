@@ -17,7 +17,7 @@
 //   },
 //   "ordine_classi": [...],                     in che ordine la ricerca visita le classi dentro ogni ora
 //   "impossibile": null | "motivo",              motivo della verifica preliminare (allora non si e' cercato)
-//   "esito": {"orari_trovati", "interrotto_per_tempo", "interrotto_per_spazio", "errore_di_scrittura",
+//   "esito": {"orari_trovati", "interrotto_per_tempo", "errore_di_scrittura",
 //             "interrotto_su_richiesta", "secondi",
 //             "nodi", "marce_indietro",
 //             "posizione_massima", "slot"},

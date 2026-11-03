@@ -15,8 +15,7 @@
 #include "../orario/orario.h"
 
 // Scrive in f l'orario con gli slot da 0 a pos - 1 (gli altri compaiono vuoti, "--"), poi per ogni classe le ore
-// svolte di ogni docente. attempt e' il numero d'ordine dell'orario completo. Si usa per gli orari completi e,
-// con -b, per l'orario parziale a ogni marcia indietro.
+// svolte di ogni docente. attempt e' il numero d'ordine dell'orario completo.
 void print(const teaching_slot orario[], const int pos, unsigned long long attempt, FILE *f);
 
 // Marce indietro in formato compatto (opzione -b). Una riga per marcia indietro con solo gli slot cambiati rispetto
@@ -28,8 +27,8 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
 // Le posizioni sono quelle della ricerca: pos = (giorno * ore + ora) * classi + k, con la classe k-esima dell'ordine
 // scritto nell'intestazione.
 // Con --passi N, una riga "P pos da s_da ... s_(pos-1)" (stesso formato delle righe B, stessa catena di differenze) a
-// ogni nodo della ricerca: l'orario parziale con i primi pos slot decisi. Si scrivono al massimo N righe P, poi la
-// ricerca continua senza registrarle. Se il nodo di un passo e' un ramo scartato dalla potatura, subito dopo la riga P
+// ogni nodo della ricerca: l'orario parziale con i primi pos slot decisi. Dopo N nodi registrati la ricerca continua
+// senza scrivere piu' niente (nemmeno le righe B e M). Se il nodo di un passo e' un ramo scartato dalla potatura, subito dopo la riga P
 // c'e' una riga "S m" (m = motivo dello scarto, come l'indice in diagnosi_ramo_scartato: 0 lezioni della classe, 1 ore dei
 // docenti); se invece non ha nessun docente utilizzabile, dopo la P c'e' la riga B della marcia indietro.
 // Con --motivi, subito dopo ogni riga B c'e' una riga "M d:m d:m ...": per ogni docente d che nella classe aveva ancora
