@@ -11,8 +11,8 @@ function el(tag, attributi, figli) {
 }
 
 // Intestazione comune: classe | Lun 08 | Lun 09 | ... (una colonna per giorno e ora).
-function intestazione(dati) {
-  const r1 = el('tr', {}, [el('th', {class: 'classe', rowspan: 2, testo: 'Classe'})]);
+function intestazione(dati, titolo) {
+  const r1 = el('tr', {}, [el('th', {class: 'classe', rowspan: 2, testo: titolo || 'Classe'})]);
   const r2 = el('tr');
   dati.giorni.forEach((g, gi) => {
     r1.appendChild(el('th', {colspan: dati.ore.length, class: 'inizio-giorno', testo: g}));
@@ -40,6 +40,31 @@ function disegnaOrario(contenitore, dati, orario) {
     corpo.appendChild(tr);
   });
   contenitore.replaceChildren(el('table', {class: 'orario'}, [intestazione(dati), corpo]));
+}
+
+// Orario di ogni docente: una riga per docente, nella cella la classe in cui insegna (con il codocente, se c'e').
+// Un docente in codocenza compare in entrambe le righe: nella cella c'e' la classe e, piccolo, l'altro docente.
+function disegnaOrarioDocenti(contenitore, dati, orario) {
+  const corpo = el('tbody');
+  dati.docenti.forEach((d, p) => {
+    const tr = el('tr', {}, [el('td', {class: 'classe', testo: d.nome})]);
+    dati.giorni.forEach((_, g) => dati.ore.forEach((__, o) => {
+      let classe = -1, altro = -1;
+      orario[g][o].forEach(([a, b], c) => {
+        if (a === p) { classe = c; altro = b; } else if (b === p) { classe = c; altro = a; }
+      });
+      const td = el('td', {class: (o === 0 ? 'inizio-giorno ' : '') + (classe < 0 ? 'vuoto' : '')});
+      if (classe < 0) td.textContent = '—';
+      else {
+        td.appendChild(el('span', {testo: dati.classi[classe].nome}));
+        if (altro >= 0) td.appendChild(el('span', {class: 'cod', testo: '+ ' + dati.docenti[altro].nome}));
+        td.title = dati.classi[classe].nome + (altro >= 0 ? ' con ' + dati.docenti[altro].nome : '');
+      }
+      tr.appendChild(td);
+    }));
+    corpo.appendChild(tr);
+  });
+  contenitore.replaceChildren(el('table', {class: 'orario'}, [intestazione(dati, 'Docente'), corpo]));
 }
 
 // Mappa dei blocchi: valore(g, o, c) per ogni slot; colore proporzionale (in scala logaritmica) al massimo.

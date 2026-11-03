@@ -94,6 +94,10 @@ def argomenti(caso, opzioni, progresso=False):
     a += ['-n', str(opzioni.get('orari', 1)), '--dati', opzioni.get('file_dati', 'dati.txt'), '--json', 'risultato.json']
     if opzioni.get('tempo'):
         a += ['--tempo', str(opzioni['tempo'])]
+    for chiave, flag in (('ore_obbligatorie', '--ore-obbligatorie'), ('ore_prof_classe', '--ore-prof-classe'),
+                         ('classi_giorno', '--classi-giorno')):
+        if opzioni.get(chiave) is not None:
+            a += [flag, str(opzioni[chiave])]
     if opzioni.get('motivi', True):
         a.append('--motivi')
     if opzioni.get('ordine_classi') is not None:
