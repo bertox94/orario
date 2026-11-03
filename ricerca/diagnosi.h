@@ -102,7 +102,14 @@ int diagnosi_con_motivi(void);
 const char *diagnosi_nome_motivo(int motivo);
 
 // Scrive su f (una riga JSON) la coda dei docenti dello slot pos e, per ognuno, se e' utilizzabile o perche' no.
-void diagnosi_analizza_slot(const teaching_slot *slot, int pos, int base4d_queue, int queue_size, FILE *f);
+// `scarto`, se non NULL, e' un oggetto JSON aggiunto come campo "potatura": il nodo era un ramo scartato dalla potatura
+// prima di provare i docenti, quindi la coda dello slot e' solo quella che ci sarebbe stata.
+void diagnosi_analizza_slot(const teaching_slot *slot, int pos, int base4d_queue, int queue_size, FILE *f,
+                            const char *scarto);
+
+// Scrive su f i campi JSON (con la virgola davanti) del dettaglio di un ramo scartato per il motivo m (SCARTATO_*):
+// le lezioni della classe (fino_ora, da_riempire, possibili, lezioni...) o le ore di un docente.
+void diagnosi_scrivi_dettaglio_scarto(FILE *f, int motivo, const dettaglio_scarto_t *d);
 
 // Con --motivi: scrive su f una riga "M d:m d:m ..." con, per l'ultima marcia indietro, il motivo m (indice di
 // diagnosi_nome_motivo) per cui ogni docente d, che nella classe aveva ancora ore da fare, non si e' potuto mettere

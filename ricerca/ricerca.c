@@ -284,7 +284,30 @@ int analizza_slot(const char *file, FILE *out) {
     }
     fclose(f);
     teaching_slot *slot = &orario[pos];
+    // le verifiche di potatura che cerca_orario fa all'ingresso del nodo, ognuna con l'esito (anche quando e' rispettata):
+    // se una fallisce la ricerca scarta il nodo senza provare i docenti, e la causa e' la scelta fatta nello slot pos-1
+    char scarto[8192] = "";
+    if (pos > 0) {
+        FILE *m = fmemopen(scarto, sizeof scarto - 1, "w");
+        if (m) {
+            const teaching_slot *causa = &orario[pos - 1];
+            fprintf(m, "{\"classe\": %d, \"ore_classe\": %d, \"ore_classe_fatte\": %d, \"scelta\": [%d, %d], \"verifiche\": [",
+                    causa->classe, classe_info[causa->classe].ore, classe_info[causa->classe].svolte,
+                    causa->insegnante1, causa->insegnante2);
+            const int ok0 = lezioni_della_classe_bastano_dopo(causa);
+            fprintf(m, "{\"motivo\": %d, \"controllata\": true, \"ok\": %s", SCARTATO_LEZIONI_DELLA_CLASSE, ok0 ? "true" : "false");
+            if (!ok0) diagnosi_scrivi_dettaglio_scarto(m, SCARTATO_LEZIONI_DELLA_CLASSE, &dettaglio_scarto);
+            fputs("}, ", m);
+            const int inizio_ora = pos % actual_classi_sezione == 0;
+            const int ok1 = !inizio_ora || ore_rimaste_stanno_nel_tempo_rimasto(slot->giorno, slot->ora);
+            fprintf(m, "{\"motivo\": %d, \"controllata\": %s, \"ok\": %s", SCARTATO_ORE_DEI_DOCENTI, inizio_ora ? "true" : "false",
+                    ok1 ? "true" : "false");
+            if (!ok1) diagnosi_scrivi_dettaglio_scarto(m, SCARTATO_ORE_DEI_DOCENTI, &dettaglio_scarto);
+            fputs("}]}", m);
+            fclose(m);
+        }
+    }
     sort_queue_mul(slot->base4d_queue, queue_sz);
-    diagnosi_analizza_slot(slot, pos, slot->base4d_queue, slot->base4d_queue + queue_sz, out);
+    diagnosi_analizza_slot(slot, pos, slot->base4d_queue, slot->base4d_queue + queue_sz, out, scarto[0] ? scarto : NULL);
     return 1;
 }

@@ -280,7 +280,7 @@ static void dettaglio_docente(const teaching_slot *slot, const int pos, const in
 // Per ogni docente della coda, nell'ordine di priorita': la priorita' (ore ancora da sistemare nella settimana), le ore
 // che gli restano in questa classe e se era utilizzabile nello slot o quale vincolo lo escludeva.
 void diagnosi_analizza_slot(const teaching_slot *slot, const int pos, const int base4d_queue, const int queue_size,
-                            FILE *f) {
+                            FILE *f, const char *scarto) {
     fprintf(f, "{\"slot\": %d, \"lezione_ammessa\": %s, \"coda\": [", pos,
             activities_for_this_class_and_hour(slot) ? "true" : "false");
     for (int ii = base4d_queue; ii < queue_size; ii++) {
@@ -319,7 +319,24 @@ void diagnosi_analizza_slot(const teaching_slot *slot, const int pos, const int 
     fprintf(f, "], \"limiti\": {\"ore_in_classe\": %d, \"classi_al_giorno\": %d, \"ora\": %d, \"giorno\": %d}, \"motivi\": [",
             MAX_ORE_PROF_IN_UNA_CLASSE, MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO, slot->ora, slot->giorno);
     for (int m = 0; m < N_MOTIVI; m++) fprintf(f, "%s\"%s\"", m ? ", " : "", nome_motivo[m]);
-    fprintf(f, ", \"nessuna ora da fare in questa classe\"]}\n");
+    fprintf(f, ", \"nessuna ora da fare in questa classe\"]");
+    if (scarto) fprintf(f, ", \"potatura\": %s", scarto);
+    fputs("}\n", f);
+}
+
+void diagnosi_scrivi_dettaglio_scarto(FILE *f, const int motivo, const dettaglio_scarto_t *d) {
+    if (motivo == SCARTATO_LEZIONI_DELLA_CLASSE) {
+        fprintf(f, ", \"fino_ora\": %d, \"da_riempire\": %d, \"possibili\": %d, \"oggi\": %d, "
+                   "\"slot_oggi\": %d, \"in_un_giorno\": %d, \"slot_al_giorno\": %d, \"giorni_dopo\": %d, "
+                   "\"lezioni\": [", d->fino_ora, d->da_riempire, d->possibili, d->oggi, d->slot_oggi,
+                d->in_un_giorno, d->slot_al_giorno, d->giorni_dopo);
+        for (int k = 0; k < d->n_lezioni; k++)
+            fprintf(f, k ? ", [%d, %d, %d, %d]" : "[%d, %d, %d, %d]", d->lezioni[k][0], d->lezioni[k][1],
+                    d->lezioni[k][2], d->lezioni[k][3]);
+        fputs("]", f);
+    } else
+        fprintf(f, ", \"docente\": %d, \"classe_docente\": %d, \"ore_rimaste\": %d, \"ore_possibili\": %d",
+                d->docente, d->classe_docente, d->ore_rimaste, d->ore_possibili);
 }
 
 void diagnosi_ramo_scartato(const int pos, const int motivo) {

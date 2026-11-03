@@ -223,19 +223,8 @@ static void scrivi_dettagli_slot(FILE *f) {
                     stringa(f, diagnosi_nome_motivo_scarto(m));
                     fprintf(f, ", \"volte\": %lld, \"ore_classe_fatte\": %d, \"scelta\": [%d, %d]",
                             diagnosi_scartati_nello_slot(i, m), us.ore_classe_fatte, us.scelta[0], us.scelta[1]);
-                    if (m == SCARTATO_LEZIONI_DELLA_CLASSE) {
-                        fprintf(f, ", \"fino_ora\": %d, \"da_riempire\": %d, \"possibili\": %d, \"oggi\": %d, "
-                                   "\"slot_oggi\": %d, \"in_un_giorno\": %d, \"slot_al_giorno\": %d, \"giorni_dopo\": %d, "
-                                   "\"lezioni\": [", d.fino_ora, d.da_riempire, d.possibili, d.oggi, d.slot_oggi,
-                                d.in_un_giorno, d.slot_al_giorno, d.giorni_dopo);
-                        for (int k = 0; k < d.n_lezioni; k++)
-                            fprintf(f, k ? ", [%d, %d, %d, %d]" : "[%d, %d, %d, %d]", d.lezioni[k][0], d.lezioni[k][1],
-                                    d.lezioni[k][2], d.lezioni[k][3]);
-                        fputs("]}", f);
-                    }
-                    else
-                        fprintf(f, ", \"docente\": %d, \"classe_docente\": %d, \"ore_rimaste\": %d, \"ore_possibili\": %d}",
-                                d.docente, d.classe_docente, d.ore_rimaste, d.ore_possibili);
+                    diagnosi_scrivi_dettaglio_scarto(f, m, &d);
+                    fputs("}", f);
                 }
                 fputs("]}", f);
             }
