@@ -6,16 +6,18 @@ ORE_OBBLIGATORIE = 5
 MAX_ORE_DOCENTE_IN_CLASSE_AL_GIORNO = 3
 
 
-def leggi(c):
-    """Tutti i dati: calendario, classi, docenti (in ordine di id) e lezioni con i nomi."""
-    cal = c.execute('select giorni, ore from calendario').fetchone()
-    classi = c.execute('select id, nome from classi order by id').fetchall()
-    docenti = c.execute('select id, nome, ingresso from docenti order by id').fetchall()
+def leggi(c, scuola_id):
+    """Tutti i dati di una scuola: calendario, classi, docenti (in ordine di id) e lezioni con i nomi."""
+    cal = c.execute('select giorni, ore from calendario where scuola_id = %s', (scuola_id,)).fetchone()
+    classi = c.execute('select id, nome from classi where scuola_id = %s order by id', (scuola_id,)).fetchall()
+    docenti = c.execute('select id, nome, ingresso from docenti where scuola_id = %s order by id',
+                        (scuola_id,)).fetchall()
     lezioni = c.execute('''
         select l.*, cl.nome as classe, d.nome as docente, cd.nome as codocente
         from lezioni l join classi cl on cl.id = l.classe_id join docenti d on d.id = l.docente_id
         left join docenti cd on cd.id = l.codocente_id
-        order by cl.id, d.nome, l.id''').fetchall()
+        where cl.scuola_id = %s
+        order by cl.id, d.nome, l.id''', (scuola_id,)).fetchall()
     return {'giorni': cal['giorni'], 'ore': cal['ore'], 'classi': classi, 'docenti': docenti, 'lezioni': lezioni}
 
 
@@ -39,25 +41,27 @@ def per_solver(dati):
             'lezioni': lezioni}
 
 
-def scrivi_per_solver(c, file):
+def scrivi_per_solver(c, scuola_id, file):
     with open(file, 'w') as f:
-        json.dump(per_solver(leggi(c)), f, ensure_ascii=False, indent=1)
+        json.dump(per_solver(leggi(c, scuola_id)), f, ensure_ascii=False, indent=1)
 
 
-def sostituisci(c, dati_solver):
+def sostituisci(c, scuola_id, dati_solver):
     """Sostituisce tutti i dati con quelli in formato solver (la sezione "dati" del JSON di --json).
 
     Le lezioni del solver (da solo, o in coppia) si ricompongono in lezioni del sito: le ore in coppia si uniscono
     alle ore da solo dello stesso docente nella stessa classe, se ne ha (quel docente e' il titolare, l'altro il
     codocente); altrimenti diventano una lezione tutta in coppia."""
-    c.execute('delete from lezioni')
-    c.execute('delete from classi')
-    c.execute('delete from docenti')
-    c.execute('update calendario set giorni = %s, ore = %s', (dati_solver['giorni'], dati_solver['ore']))
-    id_classe = [c.execute('insert into classi (nome) values (%s) returning id', (cl['nome'],)).fetchone()['id']
-                 for cl in dati_solver['classi']]
-    id_docente = [c.execute('insert into docenti (nome, ingresso) values (%s, %s) returning id',
-                            (d['nome'], d.get('ingresso', 0))).fetchone()['id'] for d in dati_solver['docenti']]
+    c.execute('delete from lezioni where classe_id in (select id from classi where scuola_id = %s)', (scuola_id,))
+    c.execute('delete from classi where scuola_id = %s', (scuola_id,))
+    c.execute('delete from docenti where scuola_id = %s', (scuola_id,))
+    c.execute('update calendario set giorni = %s, ore = %s where scuola_id = %s',
+              (dati_solver['giorni'], dati_solver['ore'], scuola_id))
+    id_classe = [c.execute('insert into classi (scuola_id, nome) values (%s, %s) returning id',
+                           (scuola_id, cl['nome'])).fetchone()['id'] for cl in dati_solver['classi']]
+    id_docente = [c.execute('insert into docenti (scuola_id, nome, ingresso) values (%s, %s, %s) returning id',
+                            (scuola_id, d['nome'], d.get('ingresso', 0))).fetchone()['id']
+                  for d in dati_solver['docenti']]
     da_solo = {}  # (classe, docente) -> ore da solo
     coppie = []
     for l in dati_solver['lezioni']:
@@ -110,3 +114,19 @@ def riepilogo(dati):
         d['classi'] = len(d['classi'])
     return {'classi': list(classi.values()), 'docenti': list(docenti.values()),
             'ore_totali': sum(cl['ore'] for cl in classi.values()), 'minimo_classe': minimo, 'massimo_classe': massimo}
+
+
+# ---- versioni salvate dei dati ----
+
+def salva_versione(c, scuola_id, nome, motivo, utente=None):
+    """Salva una copia dei dati attuali della scuola (formato solver). Ritorna l'id, o None se non c'e' niente da
+    salvare (nessuna classe e nessun docente)."""
+    dati = leggi(c, scuola_id)
+    if not dati['classi'] and not dati['docenti']:
+        return None
+    r = riepilogo(dati)
+    return c.execute(
+        'insert into versioni_dati (scuola_id, nome, motivo, utente, classi, docenti, ore, dati) '
+        'values (%s, %s, %s, %s, %s, %s, %s, %s) returning id',
+        (scuola_id, nome, motivo, utente, len(dati['classi']), len(dati['docenti']), r['ore_totali'],
+         json.dumps(per_solver(dati), ensure_ascii=False))).fetchone()['id']

@@ -20,7 +20,7 @@ Postgres.app (la 18) deve essere avviato. Una volta sola:
 ```bash
 /Applications/Postgres.app/Contents/Versions/18/bin/createdb orario
 python3 -m pip install --user -r sito/requirements.txt
-python3 -m sito imposta-password
+python3 -m sito crea-utente admin --admin
 ```
 
 Poi, ogni volta:
@@ -132,13 +132,17 @@ sudo chmod 600 /etc/orario-sito.env
 - `SITO_PARALLELI`: casi in parallelo nei test notturni (il Pi 5 ha 4 processori: 3 lascia libero il sito).
 - `SITO_SPAZIO_MB`: spazio massimo per le marce indietro di una prova notturna (comunque non oltre il 90% del libero).
 
-### 5. Password del sito
-
-Con la stessa `SITO_DATI` del punto 4 (la password si salva lì):
+### 5. Primo utente
 
 ```bash
-cd ~/orario && SITO_DATI=/home/UTENTE/orario-dati ~/orario-venv/bin/python -m sito imposta-password
+cd ~/orario && ~/orario-venv/bin/python -m sito crea-utente admin --admin
 ```
+
+Chiede una password (almeno 8 caratteri). Entrando come `admin` si creano da «amministrazione» le scuole e gli altri
+utenti: ogni docente ha il suo nome e la sua password e vede solo le scuole che gli abbini; un amministratore le vede
+tutte. Chi ha una sola scuola va dritto ai suoi dati, gli altri la scelgono dopo l'accesso. Dati, prove e versioni
+salvate sono separati per scuola. Con il sito già in uso con la vecchia password unica, al primo avvio quella password
+diventa l'utente `admin` e i dati finiscono nella «Scuola» 1.
 
 ### 6. Servizio
 

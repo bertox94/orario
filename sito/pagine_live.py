@@ -1,9 +1,9 @@
 """Sezione "Test in tempo reale": un caso lanciato subito, seguito mentre gira (progresso e mappa dei blocchi)."""
 import os
 
-from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, flash, g, jsonify, redirect, render_template, request, url_for
 
-from . import esecutore
+from . import accesso, esecutore
 from .db import conn
 
 bp = Blueprint('live', __name__, url_prefix='/live')
@@ -30,11 +30,12 @@ def indice():
     prove = conn().execute('''
         select p.*, e.id as eid, e.esito, e.marce, e.secondi, e.diagnosi
         from prove p left join esecuzioni e on e.prova_id = p.id
-        where p.tipo = 'live' order by p.id desc limit 50''').fetchall()
-    n_classi = conn().execute('select count(*) as n from classi').fetchone()['n']
+        where p.tipo = 'live' and p.scuola_id = %s order by p.id desc limit 50''', (g.scuola['id'],)).fetchall()
+    n_classi = conn().execute('select count(*) as n from classi where scuola_id = %s', (g.scuola['id'],)).fetchone()['n']
     rilancio = None
     if request.args.get('rilancia'):
-        e = conn().execute('select caso_dati, opzioni from esecuzioni where id = %s', (request.args['rilancia'],)).fetchone()
+        e = conn().execute('select e.caso_dati, e.opzioni from esecuzioni e join prove p on p.id = e.prova_id '
+                           'where e.id = %s and p.scuola_id = %s', (request.args['rilancia'], g.scuola['id'])).fetchone()
         rilancio = e
     return render_template('live/indice.html', prove=prove, n_classi=n_classi, rilancio=rilancio,
                            scuola=bool(request.args.get('scuola')))
@@ -48,7 +49,10 @@ def avvia():
     elif f.get('sorgente') == 'file':
         # solo file delle prove del sito (per esempio il risultato.json di un caso da rifare identico)
         file = os.path.realpath(f.get('file', ''))
-        if not file.startswith(os.path.realpath(_config().cartella_prove) + os.sep) or not os.path.exists(file):
+        radice = os.path.realpath(_config().cartella_prove) + os.sep
+        # solo file delle prove di questa scuola: la cartella di una prova si chiama come il suo id
+        prima = file[len(radice):].split(os.sep)[0] if file.startswith(radice) else ''
+        if not prima.isdigit() or not accesso.prova_della_scuola(int(prima), g.scuola['id']) or not os.path.exists(file):
             flash('File del caso non trovato.', 'errore')
             return redirect(url_for('.indice'))
         caso = {'tipo': 'input', 'file': file, 'nome': f.get('nome') or 'caso riletto'}
@@ -67,7 +71,7 @@ def avvia():
         opzioni['ordine_classi'] = _intero('ordine_classi', 0, 0)
     if opzioni['tempo'] == 0:
         opzioni.pop('tempo')  # senza limite: si ferma col pulsante
-    pid, eid = esecutore.avvia_live(_config(), caso, opzioni)
+    pid, eid = esecutore.avvia_live(_config(), g.scuola['id'], caso, opzioni)
     if eid is None:
         flash('La prova non e\' partita: guarda il messaggio nella pagina della prova.', 'errore')
     return redirect(url_for('.prova', pid=pid))

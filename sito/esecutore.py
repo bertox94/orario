@@ -133,11 +133,11 @@ def ferma_esecuzione(esecuzione_id):
     return a is not None
 
 
-def _caso_della_scuola(config, cartella, c):
+def _caso_della_scuola(config, cartella, c, scuola_id):
     """Fotografia dei dati della scuola in un file, per --input: la prova usa i dati di quel momento."""
     os.makedirs(cartella, exist_ok=True)
     file = os.path.join(cartella, 'dati_scuola.json')
-    modello.scrivi_per_solver(c, file)
+    modello.scrivi_per_solver(c, scuola_id, file)
     return {'tipo': 'input', 'file': file, 'nome': 'dati della scuola'}
 
 
@@ -158,14 +158,15 @@ def vista(cartella):
     p = os.path.join(cartella, 'vista.json')
     return json.load(open(p)) if os.path.exists(p) else None
 
-def avvia_live(config, caso_richiesto, opzioni):
+def avvia_live(config, scuola_id, caso_richiesto, opzioni):
     """Crea la prova, la avvia in un thread e ritorna l'id dell'esecuzione (per la pagina)."""
     with db.connetti(config.database_url) as c:
-        pid = c.execute("insert into prove (tipo, stato, opzioni, commit, inizio) values ('live', 'in corso', %s, %s, now()) "
-                        "returning id", (json.dumps({'caso': caso_richiesto, **opzioni}), solver.commit_attuale())
+        pid = c.execute("insert into prove (scuola_id, tipo, stato, opzioni, commit, inizio) "
+                        "values (%s, 'live', 'in corso', %s, %s, now()) returning id",
+                        (scuola_id, json.dumps({'caso': caso_richiesto, **opzioni}), solver.commit_attuale())
                         ).fetchone()['id']
         cartella = os.path.join(config.cartella_prove, str(pid))
-        caso = _caso_della_scuola(config, cartella, c) if caso_richiesto['tipo'] == 'scuola' else caso_richiesto
+        caso = _caso_della_scuola(config, cartella, c, scuola_id) if caso_richiesto['tipo'] == 'scuola' else caso_richiesto
         c.execute('update prove set nome = %s where id = %s', (nome_caso(caso), pid))
         c.commit()
     pronto = threading.Event()
@@ -205,10 +206,10 @@ def avvia_live(config, caso_richiesto, opzioni):
 
 # ---- test notturni ----
 
-def crea_notturna(c, opzioni, programmata_per=None, nome=None):
-    return c.execute("insert into prove (tipo, nome, stato, opzioni, programmata_per) "
-                     "values ('notturna', %s, 'in coda', %s, %s) returning id",
-                     (nome, json.dumps(opzioni), programmata_per)).fetchone()['id']
+def crea_notturna(c, scuola_id, opzioni, programmata_per=None, nome=None):
+    return c.execute("insert into prove (scuola_id, tipo, nome, stato, opzioni, programmata_per) "
+                     "values (%s, 'notturna', %s, 'in coda', %s, %s) returning id",
+                     (scuola_id, nome, json.dumps(opzioni), programmata_per)).fetchone()['id']
 
 
 def _ciclo_pianificazioni(config):
@@ -219,7 +220,7 @@ def _ciclo_pianificazioni(config):
                 for p in c.execute('select * from pianificazioni where attiva').fetchall():
                     oggi = adesso.date()
                     if adesso.isoweekday() in p['giorni'] and adesso.time() >= p['ora'] and p['ultima_data'] != oggi:
-                        crea_notturna(c, p['opzioni'], adesso, nome=p['nome'])
+                        crea_notturna(c, p['scuola_id'], p['opzioni'], adesso, nome=p['nome'])
                         c.execute('update pianificazioni set ultima_data = %s where id = %s', (oggi, p['id']))
                 c.commit()
         except psycopg.OperationalError as e:
@@ -272,7 +273,7 @@ def _esegui_notturna(config, prova):
         casi = casi_della_notturna(o)
         if o.get('scuola'):
             with db.connetti(config.database_url) as c:
-                casi.insert(0, _caso_della_scuola(config, cartella, c))
+                casi.insert(0, _caso_della_scuola(config, cartella, c, prova['scuola_id']))
         cartella_caso = {nome_caso(k): os.path.join(cartella, nome_cartella(nome_caso(k))) for k in casi}
         base = {'motivi': True, 'ordine_classi': o.get('ordine_classi'), 'ore_obbligatorie': o.get('ore_obbligatorie'),
                 'ore_prof_classe': o.get('ore_prof_classe'), 'classi_giorno': o.get('classi_giorno')}

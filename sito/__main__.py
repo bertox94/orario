@@ -1,7 +1,8 @@
 """Comandi del sito:
 
     python3 -m sito avvia [--host 0.0.0.0] [--porta 8000]   avvia il sito (sul Pi: dal servizio systemd)
-    python3 -m sito imposta-password                        imposta (o cambia) la password di accesso
+    python3 -m sito crea-utente NOME [--admin]              crea un utente (o ne cambia la password)
+    python3 -m sito imposta-password                        come crea-utente admin --admin
     python3 -m sito migra                                   aggiorna il database (lo fa anche "avvia")
 """
 import argparse
@@ -21,6 +22,18 @@ def _con_database(config, azione):
         return azione()
     except psycopg.OperationalError as e:
         sys.exit(descrivi_errore(config.database_url, e))
+
+
+def _crea_utente(config, nome, password, admin):
+    from .accesso import crea_o_aggiorna_utente
+    from .db import connetti, migra
+    def azione():
+        migra(config.database_url)  # le tabelle degli utenti nascono con la migrazione
+        with connetti(config.database_url) as c:
+            crea_o_aggiorna_utente(c, nome, password, admin or None)  # un amministratore vede tutte le scuole
+            c.commit()
+        print('Utente «%s» pronto%s.' % (nome, ' (amministratore)' if admin else ': abbinagli le scuole in Amministrazione'))
+    _con_database(config, azione)
 
 
 def _prova_database(config):
@@ -43,20 +56,23 @@ def main():
     a = sotto.add_parser('avvia', help='avvia il sito')
     a.add_argument('--host', default='127.0.0.1', help='indirizzo su cui ascoltare (0.0.0.0 = tutta la rete locale)')
     a.add_argument('--porta', type=int, default=8000)
-    sotto.add_parser('imposta-password', help='imposta la password di accesso')
+    u = sotto.add_parser('crea-utente', help='crea un utente o cambia la sua password')
+    u.add_argument('nome')
+    u.add_argument('--admin', action='store_true', help='amministratore: vede tutte le scuole e gestisce utenti e scuole')
+    sotto.add_parser('imposta-password', help="come crea-utente admin --admin")
     sotto.add_parser('migra', help='aggiorna il database')
     sotto.add_parser('prova-database', help='controlla il collegamento a Postgres (anche sul Mac) e mostra la versione')
     args = ap.parse_args()
     config = Config()
 
-    if args.comando == 'imposta-password':
-        p1 = getpass.getpass('Nuova password: ')
+    if args.comando in ('crea-utente', 'imposta-password'):
+        nome, admin = (args.nome, args.admin) if args.comando == 'crea-utente' else ('admin', True)
+        p1 = getpass.getpass('Password di %s: ' % nome)
         if len(p1) < 8:
             sys.exit('La password deve avere almeno 8 caratteri.')
         if getpass.getpass('Ripeti: ') != p1:
             sys.exit('Le due password non coincidono.')
-        config.salva_hash_password(generate_password_hash(p1, method='pbkdf2:sha256'))  # scrypt manca nel Python del Mac
-        print('Password salvata in', config.file_password)
+        _crea_utente(config, nome, p1, admin)
     elif args.comando == 'prova-database':
         _prova_database(config)
     elif args.comando == 'migra':

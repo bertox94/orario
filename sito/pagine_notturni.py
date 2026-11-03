@@ -2,7 +2,7 @@
 import datetime
 import json
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, flash, g, redirect, render_template, request, url_for
 
 from . import esecutore, solver
 from .db import conn
@@ -40,6 +40,10 @@ def _opzioni_dal_modulo():
             'classi_giorno': _intero('classi_giorno', 3, 1, 20)}
 
 
+def _sid():
+    return g.scuola['id']
+
+
 def ultime_fasi(prova_id):
     """Per ogni caso della prova, l'esecuzione della fase piu' alta (il suo esito finale), con quante fasi ha fatto."""
     return conn().execute('''
@@ -58,17 +62,18 @@ def _ordina_casi(righe):
 @bp.route('/')
 def indice():
     c = conn()
-    prove = c.execute("select * from prove where tipo = 'notturna' order by coalesce(programmata_per, creata) desc, id desc "
-                      "limit 100").fetchall()
+    prove = c.execute("select * from prove where tipo = 'notturna' and scuola_id = %s "
+                      "order by coalesce(programmata_per, creata) desc, id desc limit 100", (_sid(),)).fetchall()
     conteggi = {r['prova_id']: r for r in c.execute(
-        "select prova_id, count(distinct caso) as casi, count(*) filter (where esito is null) as in_corso "
-        "from esecuzioni group by prova_id").fetchall()}
-    pianificazioni = c.execute('select * from pianificazioni order by ora, id').fetchall()
+        "select e.prova_id, count(distinct e.caso) as casi, count(*) filter (where e.esito is null) as in_corso "
+        "from esecuzioni e join prove p on p.id = e.prova_id where p.scuola_id = %s group by e.prova_id",
+        (_sid(),)).fetchall()}
+    pianificazioni = c.execute('select * from pianificazioni where scuola_id = %s order by ora, id', (_sid(),)).fetchall()
     stasera = datetime.datetime.now().replace(hour=22, minute=0, second=0, microsecond=0)
     return render_template('notturni/indice.html', prove=prove, conteggi=conteggi, pianificazioni=pianificazioni,
                            libero_gb=solver.spazio_libero_mb(_config().dati) / 1024, config=_config(),
                            predefinita=stasera.strftime('%Y-%m-%dT%H:%M'),
-                           n_classi=c.execute('select count(*) as n from classi').fetchone()['n'])
+                           n_classi=c.execute('select count(*) as n from classi where scuola_id = %s', (_sid(),)).fetchone()['n'])
 
 
 @bp.route('/nuova', methods=['POST'])
@@ -80,7 +85,7 @@ def nuova():
     if not o['quanti'] and not o['scuola']:
         flash('La prova non ha casi: indica quanti semi o includi i dati della scuola.', 'errore')
         return redirect(url_for('.indice'))
-    pid = esecutore.crea_notturna(conn(), o, quando, nome=request.form.get('nome') or None)
+    pid = esecutore.crea_notturna(conn(), _sid(), o, quando, nome=request.form.get('nome') or None)
     flash('Prova %d %s.' % (pid, 'messa in coda' if quando is None else 'programmata per ' + quando.strftime('%d/%m %H:%M')), 'ok')
     return redirect(url_for('.prova', pid=pid))
 
@@ -92,8 +97,8 @@ def nuova_pianificazione():
         flash('Scegli almeno un giorno della settimana.', 'errore')
         return redirect(url_for('.indice'))
     ora = datetime.time.fromisoformat(request.form.get('ora') or '22:00')
-    conn().execute('insert into pianificazioni (nome, ora, giorni, opzioni) values (%s, %s, %s, %s)',
-                   (request.form.get('nome') or 'Notturna', ora, giorni,
+    conn().execute('insert into pianificazioni (scuola_id, nome, ora, giorni, opzioni) values (%s, %s, %s, %s, %s)',
+                   (_sid(), request.form.get('nome') or 'Notturna', ora, giorni,
                     json.dumps(_opzioni_dal_modulo())))
     flash('Pianificazione aggiunta.', 'ok')
     return redirect(url_for('.indice'))
@@ -101,13 +106,13 @@ def nuova_pianificazione():
 
 @bp.route('/pianificazioni/<int:pid>/attiva', methods=['POST'])
 def attiva_pianificazione(pid):
-    conn().execute('update pianificazioni set attiva = not attiva where id = %s', (pid,))
+    conn().execute('update pianificazioni set attiva = not attiva where id = %s and scuola_id = %s', (pid, _sid()))
     return redirect(url_for('.indice'))
 
 
 @bp.route('/pianificazioni/<int:pid>/elimina', methods=['POST'])
 def elimina_pianificazione(pid):
-    conn().execute('delete from pianificazioni where id = %s', (pid,))
+    conn().execute('delete from pianificazioni where id = %s and scuola_id = %s', (pid, _sid()))
     return redirect(url_for('.indice'))
 
 
@@ -123,7 +128,7 @@ def prova(pid):
         esiti[k] = esiti.get(k, 0) + 1
     totale = len(esecutore.casi_della_notturna(p['opzioni'])) + (1 if p['opzioni'].get('scuola') else 0)
     altre = conn().execute("select id, nome, creata from prove where tipo = 'notturna' and id <> %s and stato = 'finita' "
-                           "order by id desc limit 30", (pid,)).fetchall()
+                           "and scuola_id = %s order by id desc limit 30", (pid, _sid())).fetchall()
     return render_template('notturni/prova.html', prova=p, casi=casi, esiti=esiti, totale=totale, altre=altre)
 
 
@@ -147,8 +152,8 @@ def elimina(pid):
 def confronta():
     """Confronto tra due prove: per ogni caso l'esito finale nell'una e nell'altra."""
     a, b = request.args.get('a', type=int), request.args.get('b', type=int)
-    pa = conn().execute('select * from prove where id = %s', (a,)).fetchone()
-    pb = conn().execute('select * from prove where id = %s', (b,)).fetchone()
+    pa = conn().execute('select * from prove where id = %s and scuola_id = %s', (a, _sid())).fetchone()
+    pb = conn().execute('select * from prove where id = %s and scuola_id = %s', (b, _sid())).fetchone()
     if not pa or not pb:
         flash('Scegli due prove da confrontare.', 'errore')
         return redirect(url_for('.indice'))

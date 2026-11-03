@@ -10,12 +10,19 @@
 <body>
 <header class="testata">
   <a class="marchio" href="{{ url_for('home') }}">Orario</a>
-  {% if session.get('dentro') %}
+  {% if utente %}
+  {% if scuola %}
   <nav>
     <a href="{{ url_for('dati.indice') }}" class="{{ 'attiva' if request.blueprint == 'dati' }}">Dati della scuola</a>
     <a href="{{ url_for('live.indice') }}" class="{{ 'attiva' if request.blueprint == 'live' }}">Test in tempo reale</a>
     <a href="{{ url_for('notturni.indice') }}" class="{{ 'attiva' if request.blueprint == 'notturni' }}">Test notturni</a>
   </nav>
+  {% endif %}
+  <span class="chi">
+    {% if scuola %}<strong>{{ scuola.nome }}</strong> · <a href="{{ url_for('accesso.scuole', cambia=1) }}">cambia scuola</a> ·{% endif %}
+    {% if utente.amministratore %}<a href="{{ url_for('accesso.amministrazione') }}">amministrazione</a> ·{% endif %}
+    {{ utente.nome }}
+  </span>
   <form method="post" action="{{ url_for('logout') }}" class="esci">
     <input type="hidden" name="_gettone" value="{{ gettone }}">
     <button class="link">Esci</button>

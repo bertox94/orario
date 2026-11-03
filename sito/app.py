@@ -14,7 +14,7 @@ from werkzeug.security import check_password_hash
 
 import psycopg
 
-from . import db
+from . import accesso, db
 from .config import Config
 
 
@@ -28,6 +28,11 @@ def crea_app(config=None, avvia_esecutore=True):
     app.teardown_appcontext(db.chiudi)
 
     db.migra(config.database_url)
+    with db.connetti(config.database_url) as c:
+        if accesso.importa_password_vecchia(c, config):
+            print('La password del sito e\' diventata l\'utente «admin» (amministratore, con accesso a tutte le scuole).',
+                  flush=True)
+        c.commit()
 
     from .pagine_casi import bp as casi
     from .pagine_dati import bp as dati
@@ -36,44 +41,17 @@ def crea_app(config=None, avvia_esecutore=True):
     for bp in (dati, live, notturni, casi):
         app.register_blueprint(bp)
 
-    @app.before_request
-    def controlla_accesso():
-        # pagine pubbliche: login e file statici
-        if request.endpoint in ('login', 'static'):
-            return None
-        if not session.get('dentro'):
-            return redirect(url_for('login', poi=request.full_path))
-        # protezione dei moduli: ogni POST deve portare il gettone della sessione
-        if request.method == 'POST':
-            gettone = request.form.get('_gettone') or request.headers.get('X-Gettone', '')
-            if not hmac.compare_digest(gettone, session.get('gettone', '')):
-                abort(400, 'Modulo scaduto: ricarica la pagina e riprova.')
-        return None
+    app.register_blueprint(accesso.bp)
+    app.before_request(accesso.controlla_accesso)
 
     @app.errorhandler(psycopg.OperationalError)
     def database_non_raggiungibile(errore):
         # per esempio il Mac con Postgres e' spento, in stop o fuori dalla rete
         return render_template('senza_database.html', messaggio=db.descrivi_errore(config.database_url, errore)), 503
 
-    @app.context_processor
-    def variabili_comuni():
-        return {'gettone': session.get('gettone', '')}
+    app.context_processor(accesso.variabili_comuni)
 
-    @app.route('/login', methods=['GET', 'POST'])
-    def login():
-        h = config.hash_password()
-        if h is None:
-            return render_template('senza_password.html'), 503
-        if request.method == 'POST':
-            if check_password_hash(h, request.form.get('password', '')):
-                session.clear()
-                session.permanent = True
-                session['dentro'] = True
-                session['gettone'] = os.urandom(16).hex()
-                poi = request.args.get('poi') or url_for('home')
-                return redirect(poi if poi.startswith('/') and not poi.startswith('//') else url_for('home'))
-            flash('Password sbagliata.', 'errore')
-        return render_template('login.html')
+    app.add_url_rule('/login', 'login', accesso.login, methods=['GET', 'POST'])
 
     @app.route('/logout', methods=['POST'])
     def logout():

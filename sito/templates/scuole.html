@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block titolo %}Scegli la scuola{% endblock %}
+{% block contenuto %}
+<div class="scheda" style="max-width: 520px; margin: 40px auto;">
+  <h1 style="margin-top: 0">Scegli la scuola</h1>
+  {% if elenco %}
+  <form method="post" action="{{ url_for('accesso.scegli_scuola') }}">
+    <input type="hidden" name="_gettone" value="{{ gettone }}">
+    {% for s in elenco %}
+    <p><label class="spunta"><input type="radio" name="scuola" value="{{ s.id }}" {{ 'checked' if loop.first }}> {{ s.nome }}</label></p>
+    {% endfor %}
+    <button>Apri</button>
+  </form>
+  {% else %}
+  <p>Questo utente non ha ancora nessuna scuola. Chiedi all'amministratore di abbinargliene una.</p>
+  {% endif %}
+  <form method="post" action="{{ url_for('logout') }}" style="margin-top: 16px">
+    <input type="hidden" name="_gettone" value="{{ gettone }}"><button class="link">Esci</button>
+  </form>
+</div>
+{% endblock %}

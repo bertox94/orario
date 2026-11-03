@@ -1,11 +1,13 @@
 {% extends 'base.html' %}
 {% block titolo %}Accesso{% endblock %}
 {% block contenuto %}
-<div class="scheda" style="max-width: 360px; margin: 60px auto;">
-  <h1>Accesso</h1>
-  <form method="post" style="display: grid; gap: 12px;">
-    <label>Password <input type="password" name="password" autofocus required></label>
+<div class="scheda" style="max-width: 420px; margin: 60px auto;">
+  <h1 style="margin-top: 0">Accedi</h1>
+  <form method="post">
+    <p><label>Nome utente <input name="nome" autocomplete="username" autofocus required></label></p>
+    <p><label>Password <input type="password" name="password" autocomplete="current-password" required></label></p>
     <button>Entra</button>
   </form>
+  <p class="tenue piccolo">Per avere un utente rivolgiti all'amministratore del sito.</p>
 </div>
 {% endblock %}

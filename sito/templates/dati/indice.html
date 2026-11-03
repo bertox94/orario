@@ -108,6 +108,7 @@
     <h3 style="margin-top: 0">Dati scritti nel programma</h3>
     <p class="tenue piccolo">Copia qui i dati di <code>inizializza_dati()</code> (classi, docenti, lezioni, ore di
       ingresso). Sostituisce tutti i dati presenti.</p>
+    <label class="spunta"><input type="checkbox" name="salva_prima" value="1" checked> Salva prima i dati attuali (si trovano nelle versioni salvate)</label>
     <label class="spunta"><input type="checkbox" name="conferma" value="1"> Sostituisci tutti i dati</label>
     <p><button>Importa</button></p>
   </form>
@@ -117,8 +118,42 @@
     <p class="tenue piccolo">Un file esportato da qui, o il <code>risultato.json</code> di una prova (per esempio un
       caso casuale da studiare con i dati modificabili). Sostituisce tutti i dati presenti.</p>
     <input type="file" name="file" accept=".json,application/json">
+    <label class="spunta"><input type="checkbox" name="salva_prima" value="1" checked> Salva prima i dati attuali (si trovano nelle versioni salvate)</label>
     <label class="spunta"><input type="checkbox" name="conferma" value="1"> Sostituisci tutti i dati</label>
     <p><button>Importa</button></p>
   </form>
+</div>
+<h2 id="versioni">Versioni salvate</h2>
+<form method="post" action="{{ url_for('dati.salva_versione') }}" class="scheda riga" style="margin-bottom: 10px;">
+  <input type="hidden" name="_gettone" value="{{ gettone }}">
+  <label>Salva i dati attuali come <input name="nome" size="32" placeholder="es. prima delle modifiche di settembre"></label>
+  <button>Salva versione</button>
+</form>
+<div class="scorre">
+<table class="dati">
+  <thead><tr><th>Versione</th><th>Quando</th><th>Motivo</th><th class="num">Classi</th><th class="num">Docenti</th><th class="num">Ore</th><th></th></tr></thead>
+  <tbody>
+  {% for v in versioni %}
+    <tr>
+      <td>{{ v.nome }}{% if v.utente %} <span class="tenue piccolo">({{ v.utente }})</span>{% endif %}</td>
+      <td>{{ v.creata|data }}</td><td class="piccolo">{{ v.motivo }}</td>
+      <td class="num">{{ v.classi }}</td><td class="num">{{ v.docenti }}</td><td class="num">{{ v.ore }}</td>
+      <td>
+        <form method="post" action="{{ url_for('dati.ripristina_versione', vid=v.id) }}" class="in-linea"
+              onsubmit="return confirm('Ripristinare questa versione? I dati attuali vengono salvati come nuova versione.')">
+          <input type="hidden" name="_gettone" value="{{ gettone }}"><button class="secondario">Ripristina</button>
+        </form>
+        <a href="{{ url_for('dati.scarica_versione', vid=v.id) }}">Scarica</a>
+        <form method="post" action="{{ url_for('dati.elimina_versione', vid=v.id) }}" class="in-linea"
+              onsubmit="return confirm('Eliminare questa versione?')">
+          <input type="hidden" name="_gettone" value="{{ gettone }}"><button class="link" title="Elimina">✕</button>
+        </form>
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="7" class="tenue">Nessuna versione salvata.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
 </div>
 {% endblock %}
