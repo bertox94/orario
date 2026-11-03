@@ -79,6 +79,9 @@ long long int diagnosi_motivo_del_docente(int prof, int motivo);
 int diagnosi_con_motivi(void);
 const char *diagnosi_nome_motivo(int motivo);
 
+// Scrive su f (una riga JSON) la coda dei docenti dello slot pos e, per ognuno, se e' utilizzabile o perche' no.
+void diagnosi_analizza_slot(const teaching_slot *slot, int pos, int base4d_queue, int queue_size, FILE *f);
+
 // Con --motivi: scrive su f una riga "M d:m d:m ..." con, per l'ultima marcia indietro, il motivo m (indice di
 // diagnosi_nome_motivo) per cui ogni docente d, che nella classe aveva ancora ore da fare, non si e' potuto mettere
 // nello slot. Senza motivi scrive la sola "M".

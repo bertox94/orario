@@ -26,4 +26,8 @@ extern int primo_orario_2[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZI
 // Cerca gli orari a partire dallo slot pos (la prima chiamata e' con pos = 0).
 void cerca_orario(int pos);
 
+// Per il sito: la coda dei docenti dello slot pos, dati i primi pos slot letti da file, e perche' ognuno e' o non e'
+// utilizzabile. Scrive una riga JSON su out. Ritorna 0 se il file non va bene.
+int analizza_slot(const char *file, FILE *out);
+
 #endif //UNTITLED_RICERCA_H
