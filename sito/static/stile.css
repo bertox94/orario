@@ -111,6 +111,8 @@ table.orario th.classe, table.orario td.classe { position: sticky; left: 0; back
 table.orario td { min-width: 62px; height: 36px; line-height: 1.2; }
 table.orario td.inizio-giorno, table.orario th.inizio-giorno { border-left: 2px solid var(--tenue); }
 table.orario td .cod { color: var(--tenue); font-size: 11px; display: block; }
+/* i nomi di docente e codocente restano ciascuno su una riga (la colonna si allarga; la tabella si scorre) */
+table.orario td, table.orario td .cod { white-space: nowrap; }
 table.orario td.vuoto { color: var(--bordo); }
 table.mappa td { min-width: 34px; height: 26px; font-size: 11px; font-variant-numeric: tabular-nums; }
 .legenda { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--tenue); margin: 6px 0; }
@@ -123,3 +125,57 @@ td.blocco { outline: 2px solid #c0392b; outline-offset: -2px; color: #c0392b; fo
   border: 1px solid var(--bordo); border-radius: 6px; padding: 10px 12px; box-shadow: 0 4px 16px rgba(0,0,0,.25); font-size: 13px; pointer-events: none; }
 .pannello-slot tr.scelto td { font-weight: 700; }
 .pannello-slot tr.utilizzabile td { color: var(--ok); }
+
+/* Tabelle larghe: barra di scorrimento e, sotto, un cursore che resta in fondo allo schermo finche' la tabella e'
+   visibile (static/orario.js, aggiornaCursori). Compaiono solo con il mouse sopra la tabella (o sul cursore, o con il
+   cursore selezionato da tastiera); lo spazio resta riservato, cosi' la pagina non si sposta quando compaiono.
+   Senza mouse (telefono, tablet) il cursore non c'e': si scorre la tabella con il dito. */
+.scorre { scrollbar-width: auto; scrollbar-color: transparent transparent; }
+.scorre::-webkit-scrollbar { height: 12px; }
+.scorre::-webkit-scrollbar-track, .scorre::-webkit-scrollbar-thumb { background: transparent; border-radius: 6px; }
+.scorre:hover, .con-cursore:hover .scorre { scrollbar-color: var(--tenue) var(--bordo); }
+.scorre:hover::-webkit-scrollbar-track, .con-cursore:hover .scorre::-webkit-scrollbar-track { background: var(--bordo); }
+.scorre:hover::-webkit-scrollbar-thumb, .con-cursore:hover .scorre::-webkit-scrollbar-thumb { background: var(--tenue); }
+.con-cursore { margin-bottom: 12px; }
+.cursore-tabella {
+  display: block; width: 100%; margin: 6px 0 0; padding: 6px 0;
+  position: sticky; bottom: 0; z-index: 2;
+  background: var(--sfondo); border: none; accent-color: var(--accento); cursor: ew-resize;
+  opacity: 0; transition: opacity .15s;
+}
+.con-cursore:hover .cursore-tabella, .cursore-tabella:focus-visible { opacity: 1; }
+.cursore-tabella[hidden] { display: none; }  /* tabella che non deborda */
+@media (hover: none) {
+  .cursore-tabella { display: none; }
+}
+/* Celle fisse mentre la tabella scorre: l'angolo "Classe" sopra a tutto, poi le intestazioni, poi la colonna delle classi
+   (altrimenti scorrendo le intestazioni delle ore passano sopra l'angolo). */
+table.orario th { z-index: 1; }
+table.orario td.classe { z-index: 2; }
+table.orario th.classe { z-index: 3; }
+
+/* tabella dei blocchi (pagina del caso): righe compatte che si aprono, dettaglio strutturato */
+table.blocchi tr.blocco { cursor: pointer; }
+table.blocchi tr.blocco:hover td { background: var(--accento-tenue); }
+table.blocchi .freccia { color: var(--tenue); display: inline-block; width: 1em; }
+table.blocchi td.contenuto-dettaglio { background: var(--sfondo); padding: 10px 14px 16px; }
+table.blocchi td.contenuto-dettaglio h4 { margin: 10px 0 4px; font-size: 14px; }
+table.blocchi td.contenuto-dettaglio p { margin: 4px 0 8px; max-width: 900px; }
+table.blocchi td.contenuto-dettaglio table.dati { width: auto; margin: 4px 0 10px; }
+table.blocchi tr.non-ci-sta td { color: var(--male); font-weight: 600; }
+table.blocchi tfoot td { font-weight: 600; border-top: 2px solid var(--bordo); }
+table.mappa td.cliccabile { cursor: pointer; }
+
+/* pannello della coda: barra della priorita' (lunghezza = priorita', colore = scelto / utilizzabile / escluso) */
+.barra-priorita { width: 110px; height: 10px; background: var(--bordo); border-radius: 5px; overflow: hidden; }
+.barra-priorita > div { height: 100%; background: var(--tenue); }
+.barra-priorita.scelto > div { background: var(--accento); }
+.barra-priorita.utilizzabile > div { background: var(--ok); }
+.barra-priorita.escluso > div { background: var(--male); opacity: .55; }
+.pannello-slot { max-width: 680px; max-height: 80vh; overflow-y: auto; }
+
+/* pannello della coda: chiusura e, sugli schermi stretti (telefono, iPad in verticale), in basso a tutta larghezza */
+.chiudi-pannello { position: sticky; top: 0; float: right; background: var(--superficie); color: var(--tenue);
+  border: 1px solid var(--bordo); border-radius: 6px; padding: 2px 8px; margin: 0 0 6px 8px; font-size: 16px; }
+.pannello-slot.in-basso { left: 8px; right: 8px; bottom: 8px; top: auto; max-width: none; max-height: 60vh; }
+table.orario td.con-coda { cursor: pointer; }

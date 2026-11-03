@@ -187,6 +187,61 @@ static void scrivi_diagnosi(FILE *f) {
     fputs("]\n  }\n", f);
 }
 
+// Per ogni slot con blocchi: quante volte la ricerca ci e' arrivata e lo stato dell'ultimo blocco (vedi
+// risultati_json.h). Solo gli slot con blocchi, per non appesantire il file.
+static void scrivi_dettagli_slot(FILE *f) {
+    fputs(",\n  \"dettagli_slot\": [", f);
+    int primo = 1;
+    for (int g = 0; g < actual_giorni_settimana; g++)
+        for (int o = 0; o < actual_ore_giornaliere; o++)
+            for (int c = 0; c < actual_classi_sezione; c++) {
+                const int i = slot_di(g, o, c);
+                long long int scartati_tot = 0;
+                for (int m = 0; m < N_MOTIVI_SCARTO; m++) scartati_tot += diagnosi_scartati_nello_slot(i, m);
+                const long long int marce_n = diagnosi_marce_nello_slot(i);
+                if (!marce_n && !scartati_tot) continue;
+                fprintf(f, "%s\n    {\"giorno\": %d, \"ora\": %d, \"classe\": %d, \"visite\": %lld, \"ore_classe\": %d, "
+                           "\"marce\": %lld", primo ? "" : ",", g, o, c, diagnosi_visite_nello_slot(i), classe_info[c].ore,
+                        marce_n);
+                primo = 0;
+                const stato_blocco_t um = diagnosi_ultima_marcia(i);
+                if (um.ore_classe_fatte >= 0) {
+                    fprintf(f, ", \"ultima_marcia\": {\"ore_classe_fatte\": %d, \"docenti_con_ore\": %d, \"docenti\": [",
+                            um.ore_classe_fatte, um.docenti_con_ore);
+                    for (int k = 0; k < um.n_docenti; k++)
+                        fprintf(f, k ? ", [%d, %d, %d]" : "[%d, %d, %d]", um.docenti[k][0], um.docenti[k][1], um.docenti[k][2]);
+                    fputs("]}", f);
+                }
+                fputs(", \"scarti\": [", f);
+                int primo_scarto = 1;
+                for (int m = 0; m < N_MOTIVI_SCARTO; m++) {
+                    dettaglio_scarto_t d;
+                    const stato_blocco_t us = diagnosi_ultimo_scarto(i, m, &d);
+                    if (us.ore_classe_fatte < 0) continue;
+                    fprintf(f, "%s{\"motivo\": ", primo_scarto ? "" : ", ");
+                    primo_scarto = 0;
+                    stringa(f, diagnosi_nome_motivo_scarto(m));
+                    fprintf(f, ", \"volte\": %lld, \"ore_classe_fatte\": %d, \"scelta\": [%d, %d]",
+                            diagnosi_scartati_nello_slot(i, m), us.ore_classe_fatte, us.scelta[0], us.scelta[1]);
+                    if (m == SCARTATO_LEZIONI_DELLA_CLASSE) {
+                        fprintf(f, ", \"fino_ora\": %d, \"da_riempire\": %d, \"possibili\": %d, \"oggi\": %d, "
+                                   "\"slot_oggi\": %d, \"in_un_giorno\": %d, \"slot_al_giorno\": %d, \"giorni_dopo\": %d, "
+                                   "\"lezioni\": [", d.fino_ora, d.da_riempire, d.possibili, d.oggi, d.slot_oggi,
+                                d.in_un_giorno, d.slot_al_giorno, d.giorni_dopo);
+                        for (int k = 0; k < d.n_lezioni; k++)
+                            fprintf(f, k ? ", [%d, %d, %d, %d]" : "[%d, %d, %d, %d]", d.lezioni[k][0], d.lezioni[k][1],
+                                    d.lezioni[k][2], d.lezioni[k][3]);
+                        fputs("]}", f);
+                    }
+                    else
+                        fprintf(f, ", \"docente\": %d, \"classe_docente\": %d, \"ore_rimaste\": %d, \"ore_possibili\": %d}",
+                                d.docente, d.classe_docente, d.ore_rimaste, d.ore_possibili);
+                }
+                fputs("]}", f);
+            }
+    fputs("\n  ]\n", f);
+}
+
 void scrivi_json(const char *file, const int argc, char **argv, const char *impossibile, const double secondi) {
     if (!file) return;
     FILE *f = fopen(file, "w");
@@ -204,6 +259,7 @@ void scrivi_json(const char *file, const int argc, char **argv, const char *impo
     scrivi_esito(f, impossibile, secondi);
     scrivi_orario(f);
     scrivi_diagnosi(f);
+    scrivi_dettagli_slot(f);
     fputs("}\n", f);
     fclose(f);
 }

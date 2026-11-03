@@ -30,6 +30,10 @@ static long long int limite_byte = 0;          // 0 = nessun limite
 
 static int registra_motivi = 0;
 static long long int marce_per_pos[N_SLOT];                // marce indietro per slot
+long long int visite_per_pos[N_SLOT + 1];                  // nodi per slot (+1: la posizione dopo l'ultimo slot)
+static stato_blocco_t ultima_marcia[N_SLOT];
+static stato_blocco_t ultimo_scarto[N_SLOT][N_MOTIVI_SCARTO];
+static dettaglio_scarto_t dettaglio_ultimo_scarto[N_SLOT][N_MOTIVI_SCARTO];
 static long long int motivi_per_pos[N_SLOT][N_MOTIVI];     // motivi di scarto per slot
 static long long int docenti_per_pos[N_SLOT];              // docenti con ore da fare, sommati
 static long long int motivi_per_docente[INSEGNANTE_SZ][N_MOTIVI];
@@ -277,12 +281,39 @@ void diagnosi_analizza_slot(const teaching_slot *slot, const int pos, const int 
 void diagnosi_ramo_scartato(const int pos, const int motivo) {
     scartati_per_pos[pos][motivo]++;
     scartati[motivo]++;
+    const int cla = orario[pos].classe;
+    stato_blocco_t *u = &ultimo_scarto[pos][motivo];
+    u->ore_classe_fatte = classe_info[cla].svolte;
+    u->scelta[0] = orario[pos].insegnante1;
+    u->scelta[1] = orario[pos].insegnante2;
+    dettaglio_ultimo_scarto[pos][motivo] = dettaglio_scarto;
+}
+
+long long int diagnosi_visite_nello_slot(const int pos) { return visite_per_pos[pos]; }
+
+stato_blocco_t diagnosi_ultima_marcia(const int pos) {
+    if (!marce_per_pos[pos]) return (stato_blocco_t){.ore_classe_fatte = -1};
+    return ultima_marcia[pos];
+}
+
+stato_blocco_t diagnosi_ultimo_scarto(const int pos, const int motivo, dettaglio_scarto_t *dettaglio) {
+    *dettaglio = dettaglio_ultimo_scarto[pos][motivo];
+    if (!scartati_per_pos[pos][motivo]) return (stato_blocco_t){.ore_classe_fatte = -1};
+    return ultimo_scarto[pos][motivo];
 }
 
 // Conta la marcia indietro nello slot e, con --motivi, perche' ogni docente con ore da fare nella classe e' stato
 // scartato (per lo slot e per il docente).
 void diagnosi_marcia_indietro(const teaching_slot *slot, const int pos, const int base4d_queue, const int queue_size) {
     marce_per_pos[pos]++;
+    // lo stato in questo momento, per la diagnosi: ore della classe gia' in orario, docenti con ore ancora da fare
+    int con_ore = 0;
+    for (int ii = base4d_queue; ii < queue_size; ii++)
+        if (deve_ancora_svolgere_ore_in_questa_classe(slot->base2d_ci, queue_mul[ii]->teacher)) con_ore++;
+    stato_blocco_t *u = &ultima_marcia[pos];
+    u->ore_classe_fatte = classe_info[slot->classe].svolte;
+    u->docenti_con_ore = con_ore;
+    u->n_docenti = 0;
     n_motivi_ultima_marcia = 0;
     if (!registra_motivi) return;
     for (int ii = base4d_queue; ii < queue_size; ii++) {
@@ -291,6 +322,12 @@ void diagnosi_marcia_indietro(const teaching_slot *slot, const int pos, const in
         const int m = motivo_di_scarto(slot, pos, p, base4d_queue, queue_size);
         motivi_per_pos[pos][m]++;
         motivi_per_docente[p][m]++;
+        if (u->n_docenti < MAX_DOCENTI_BLOCCO) {
+            int *d = u->docenti[u->n_docenti++];
+            d[0] = p;
+            d[1] = m;
+            d[2] = m == 0 ? classe_in_cui_insegna_adesso(slot, pos, p) : -1;
+        }
         docenti_per_pos[pos]++;
         if (n_motivi_ultima_marcia < INSEGNANTE_SZ) {
             motivi_ultima_marcia[n_motivi_ultima_marcia][0] = p;
