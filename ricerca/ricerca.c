@@ -20,6 +20,8 @@ long long int n_gen = 0;
 long long int n_gen_max = SCHEDULES_PER_GB / 5;
 long long int n_backtrack = 0;
 int stampa_backtrack = 0;
+long long passi_max = 0;
+static long long passi_scritti = 0;
 FILE *file_orario;
 int primo_orario_1[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ];
 int primo_orario_2[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ];
@@ -207,6 +209,11 @@ void cerca_orario(const int pos) {
     if (diagnosi_nuovo_nodo(pos)) {
         n_gen_max = 0; // tutte le chiamate tornano subito e lo stato viene annullato normalmente
         return;
+    }
+    // con --passi: l'orario parziale di questo nodo (riga P), finche' non si sono scritte passi_max righe
+    if (pos > 0 && passi_scritti < passi_max && stampa_backtrack == BACKTRACK_COMPATTO) {
+        passi_scritti++;
+        stampa_passo_compatto(file_orario, orario, pos);
     }
     if (pos == orario_len) {
         registra_orario_completo(pos);

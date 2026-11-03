@@ -16,6 +16,7 @@ extern long long int n_backtrack;    // quante volte non si e' potuto scegliere 
 // molto lento e molto grande: circa 30 KB per marcia).
 enum { BACKTRACK_NO, BACKTRACK_COMPATTO, BACKTRACK_GRIGLIA };
 extern int stampa_backtrack;
+extern long long passi_max;         // con -b: a ogni nodo una riga "P" con l'orario parziale, al massimo passi_max (0 = mai)
 extern FILE *file_orario;            // dove si scrivono gli orari trovati (e le marce indietro con stampa_backtrack)
 
 // Il primo orario completo trovato (docenti di ogni slot, -1 = nessuno), valido se n_gen > 0. La ricerca annulla le
