@@ -19,9 +19,15 @@
 #define MAX_LEN_WORDS 50 // lunghezza massima di un nome (giorno, ora, classe, docente), terminatore compreso
 
 // Regole dell'orario.
-#define PRIME_N_ORE_OBBLIGATORIE 5                  // le prime 5 ore di ogni giorno ogni classe ha sempre lezione
-#define MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO 3 // un docente insegna in al massimo 3 classi diverse al giorno
-#define MAX_ORE_PROF_IN_UNA_CLASSE 3                // e al massimo 3 ore al giorno nella stessa classe (contigue)
+// Parametri della ricerca, modificabili da riga di comando (--ore-obbligatorie, --ore-prof-classe, --classi-giorno).
+// I nomi in maiuscolo sono rimasti: ora sono variabili con i valori predefiniti 5, 3 e 3.
+extern int param_ore_obbligatorie;
+extern int param_classi_diverse_al_giorno;
+extern int param_ore_prof_in_una_classe;
+#define PRIME_N_ORE_OBBLIGATORIE param_ore_obbligatorie // ore che ogni classe deve avere ogni giorno (prime della giornata)
+#define LIMITE_CLASSI_DIVERSE 20 // capienza degli array di MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO
+#define MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO param_classi_diverse_al_giorno // classi diverse di un docente al giorno
+#define MAX_ORE_PROF_IN_UNA_CLASSE param_ore_prof_in_una_classe // ore di un docente nella stessa classe al giorno
 
 typedef struct {
     //int aula;

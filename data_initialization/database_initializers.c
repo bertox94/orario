@@ -16,6 +16,10 @@
 
 #include "../printer/printer.h"
 
+int param_ore_obbligatorie = 5;
+int param_classi_diverse_al_giorno = 3;
+int param_ore_prof_in_una_classe = 3;
+
 char giorni_settimana[GIORNO_SETTIMANA_SZ][MAX_LEN_WORDS];
 char ore_giornaliere[ORA_GIORNALIERA_SZ][MAX_LEN_WORDS];
 char classe_sezione[CLASSE_SEZIONE_SZ][MAX_LEN_WORDS];
