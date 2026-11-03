@@ -49,17 +49,27 @@
 
 {% if r.get('diagnosi') %}
 <h2>Dove si e' bloccata la ricerca</h2>
-<p class="tenue piccolo">Marce indietro e rami scartati in ogni slot.</p>
+<p class="tenue piccolo">Per ogni slot, i blocchi della ricerca: le <strong>marce indietro</strong> (nessun docente
+  utilizzabile nello slot) e i <strong>rami scartati</strong> dopo lo slot (la verifica ha visto che, con le scelte fatte
+  fin li', l'orario non si poteva piu' completare, e la ricerca e' tornata indietro subito). I motivi per docente ci sono
+  solo per le marce indietro; i rami scartati hanno il motivo della verifica, nella tabella sotto.</p>
 <div id="mappa"></div>
-<h3>Slot con più marce indietro</h3>
+<h3>Slot con più blocchi</h3>
 <div id="elenco-blocchi" class="scorre"></div>
 {% endif %}
 
-{% if 'orario.txt.gz' in file|map(attribute=0)|list %}
+{% set con_marce = 'orario.txt.gz' in file|map(attribute=0)|list and (e.marce or 0) > 0 %}
+{% if con_marce %}
 <h2>Orario a ogni marcia indietro</h2>
-<p class="tenue piccolo">Le marce indietro registrate con -b: per ognuna l'orario parziale in quel momento, lo slot (✕) dove nessun docente
-  era utilizzabile e, se la prova ha i motivi attivi, perché ogni docente non andava bene. Sfoglia con i pulsanti o la barra: si vede come la ricerca avanza e torna indietro.</p>
+<p class="tenue piccolo">Le {{ e.marce|numero }} marce indietro registrate con -b, nell'ordine in cui sono avvenute. Per
+  ognuna: l'orario parziale in quel momento, lo slot (✕) dove nessun docente era utilizzabile e, se la prova ha i motivi
+  attivi, perché ogni docente non andava bene. La barra e i pulsanti scelgono quale marcia vedere (1 = la prima,
+  {{ e.marce|numero }} = l'ultima): scorrendo si vede dove la ricerca avanza e dove torna indietro. Passando il mouse su
+  una cella compare la coda dei docenti di quello slot e perché ognuno era o non era utilizzabile.</p>
 <div id="marce"></div>
+{% elif 'orario.txt.gz' in file|map(attribute=0)|list %}
+<h2>Orario a ogni marcia indietro</h2>
+<p class="tenue">Le marce indietro erano registrate (-b), ma non ce n'e' stata nessuna: non c'e' niente da sfogliare.</p>
 {% endif %}
 
 {% if e.diagnosi_testo %}
@@ -96,8 +106,8 @@ if (risultato.orario) {
   disegnaOrario(document.getElementById('orario'), risultato.dati, risultato.orario);
   disegnaOrarioDocenti(document.getElementById('orario-docenti'), risultato.dati, risultato.orario);
 }
-{% if 'orario.txt.gz' in file|map(attribute=0)|list %}sfogliaMarce(document.getElementById('marce'), risultato.dati, {{ url_for('casi.marce_indietro', eid=e.id)|tojson }}, {{ (r.get('diagnosi') or {}).get('nomi_motivi', [])|tojson }});{% endif %}
-if (risultato.diagnosi) elencoBlocchi(document.getElementById('elenco-blocchi'), risultato.dati, (g, o, c) => risultato.diagnosi.marce[g][o][c], 10);
+{% if 'orario.txt.gz' in file|map(attribute=0)|list and (e.marce or 0) > 0 %}sfogliaMarce(document.getElementById('marce'), risultato.dati, {{ url_for('casi.marce_indietro', eid=e.id)|tojson }}, {{ (r.get('diagnosi') or {}).get('nomi_motivi', [])|tojson }});{% endif %}
+if (risultato.diagnosi) elencoBlocchi(document.getElementById('elenco-blocchi'), risultato.dati, risultato.diagnosi, 10);
 if (risultato.diagnosi) disegnaMappa(document.getElementById('mappa'), risultato.dati, blocchiDaRisultato(risultato.diagnosi), 'marce indietro + rami scartati');
 </script>
 {% endif %}

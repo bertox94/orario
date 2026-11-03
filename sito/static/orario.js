@@ -128,22 +128,34 @@ function blocchiDaProgresso(dati, p) {
 
 function numeroIt(v) { return v == null ? '-' : Number(v).toLocaleString('it-IT'); }
 
-// Gli slot dove la ricerca si e' bloccata di piu': conteggio e percentuale sul totale.
-function elencoBlocchi(contenitore, dati, valore, quanti) {
+// Gli slot dove la ricerca si e' bloccata di piu', dal JSON del solver: marce indietro (nessun docente utilizzabile
+// nello slot) e rami scartati dopo lo slot (la potatura vede che da li' l'orario non si puo' piu' completare), con il
+// motivo dei rami scartati e la percentuale sul totale dei blocchi.
+function elencoBlocchi(contenitore, dati, diagnosi, quanti) {
+  const scartati = Object.entries(diagnosi.scartati || {});  // [motivo, tabella [g][o][c]]
   const righe = [];
   let totale = 0;
   dati.giorni.forEach((gn, g) => dati.ore.forEach((on, o) => dati.classi.forEach((cl, c) => {
-    const v = valore(g, o, c);
-    totale += v;
-    if (v > 0) righe.push({v, nome: `${gn} ${on} ${cl.nome}`});
+    const marce = diagnosi.marce[g][o][c];
+    const perche = scartati.filter(([, t]) => t[g][o][c] > 0).map(([m, t]) => `${m} (${numeroIt(t[g][o][c])})`);
+    const rami = scartati.reduce((s, [, t]) => s + t[g][o][c], 0);
+    totale += marce + rami;
+    if (marce + rami > 0) righe.push({marce, rami, perche, nome: `${gn} ${on} ${cl.nome}`});
   })));
-  righe.sort((a, b) => b.v - a.v);
+  if (!righe.length) {
+    contenitore.replaceChildren(el('p', {class: 'tenue', testo: 'Nessun blocco: la ricerca e\' arrivata all\'orario senza mai tornare indietro.'}));
+    return;
+  }
+  righe.sort((a, b) => (b.marce + b.rami) - (a.marce + a.rami));
   const corpo = el('tbody');
   righe.slice(0, quanti).forEach(r => corpo.appendChild(el('tr', {}, [
-    el('td', {testo: r.nome}), el('td', {class: 'num', testo: numeroIt(r.v)}),
-    el('td', {class: 'num', testo: (100 * r.v / totale).toLocaleString('it-IT', {maximumFractionDigits: 2}) + '%'})])));
+    el('td', {testo: r.nome}), el('td', {class: 'num', testo: numeroIt(r.marce)}), el('td', {class: 'num', testo: numeroIt(r.rami)}),
+    el('td', {class: 'piccolo', testo: r.perche.join('; ')}),
+    el('td', {class: 'num', testo: (100 * (r.marce + r.rami) / totale).toLocaleString('it-IT', {maximumFractionDigits: 2}) + '%'})])));
   contenitore.replaceChildren(el('table', {class: 'dati'}, [
-    el('thead', {}, [el('tr', {}, [el('th', {testo: 'Slot'}), el('th', {class: 'num', testo: 'Marce indietro'}), el('th', {class: 'num', testo: '% del totale'})])]), corpo]));
+    el('thead', {}, [el('tr', {}, [el('th', {testo: 'Slot'}), el('th', {class: 'num', testo: 'Marce indietro'}),
+      el('th', {class: 'num', testo: 'Rami scartati'}), el('th', {testo: 'Perché i rami sono stati scartati'}),
+      el('th', {class: 'num', testo: '% dei blocchi'})])]), corpo]));
 }
 
 // Sfoglia le marce indietro registrate con -b: l'orario parziale a ogni marcia, con lo slot dove si e' bloccata.
