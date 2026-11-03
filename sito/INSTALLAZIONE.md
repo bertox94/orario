@@ -206,9 +206,7 @@ Una prova in corso al momento del riavvio risulta "interrotta".
      lezioni. I **totali** di ogni classe e di ogni docente si aggiornano subito, con l'avviso se una classe ha meno
      ore delle obbligatorie o più degli slot, o se un docente ha più ore di quante ne può fare dalla sua ora di ingresso.
      I dati veri non cambiano; la prova conserva la propria copia e la si può rifare identica;
-   - *Dati casuali*: seme, numero di classi, docenti in ritardo. Con «Nomi dei docenti della scuola» (attiva di
-     default, anche nei test notturni) i docenti prendono i nomi di quelli inseriti nei Dati della scuola, nell'ordine,
-     invece di D001, D002...; se la scuola ne ha meno di quelli del caso, gli altri restano D###. Cambiano solo i nomi.
+   - *Dati casuali*: seme, numero di classi, docenti in ritardo.
 3. **Ricerca**: tempo massimo, quanti orari trovare, ordine delle classi, motivi degli scarti, marce indietro (`-b`, con
    lo spazio massimo in MB, che finisce nel database).
 4. **Parametri della ricerca**: ore obbligatorie al giorno (5), ore massime di un docente nella stessa classe al giorno (3),

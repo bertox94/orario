@@ -94,8 +94,7 @@ def avvia():
         opzioni['ordine_classi'] = _intero('ordine_classi', 0, 0)
     if opzioni['tempo'] == 0:
         opzioni.pop('tempo')  # senza limite: si ferma col pulsante
-    pid, eid = esecutore.avvia_live(_config(), g.scuola['id'], caso, opzioni, dati_input, caso.get('nome'),
-                                    usa_nomi=bool(f.get('usa_nomi')))
+    pid, eid = esecutore.avvia_live(_config(), g.scuola['id'], caso, opzioni, dati_input, caso.get('nome'))
     if eid is None:
         flash('La prova non e\' partita: guarda il messaggio nella pagina della prova.', 'errore')
     return redirect(url_for('.prova', pid=pid))

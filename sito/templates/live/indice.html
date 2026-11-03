@@ -25,7 +25,6 @@
     <label>Seme <input type="number" name="seme" min="0" value="{{ c.get('seme', 1) }}"></label>
     <label>Classi <input type="number" name="classi" min="1" max="120" value="{{ c.get('classi', 8) }}"></label>
     <label class="spunta"><input type="checkbox" name="ritardi" value="1" {{ 'checked' if c.get('ritardi') }}> Docenti in ritardo</label>
-    <label class="spunta" title="Nei dati casuali i docenti prendono i nomi di quelli inseriti nei Dati della scuola invece di D001, D002..."><input type="checkbox" name="usa_nomi" value="1" checked> Nomi dei docenti della scuola</label>
   </div>
 
   {% if dati %}
