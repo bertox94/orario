@@ -211,10 +211,8 @@ void cerca_orario(const int pos) {
         return;
     }
     // con --passi: l'orario parziale di questo nodo (riga P), finche' non si sono scritte passi_max righe
-    int passo_scritto = 0;
     if (pos > 0 && passi_scritti < passi_max && stampa_backtrack == BACKTRACK_COMPATTO) {
         passi_scritti++;
-        passo_scritto = 1;
         stampa_passo_compatto(file_orario, orario, pos);
     }
     if (pos == orario_len) {
@@ -226,13 +224,11 @@ void cerca_orario(const int pos) {
     // dopo lo slot di una classe: le lezioni che le restano bastano per gli slot che deve ancora riempire?
     if (pos > 0 && !lezioni_della_classe_bastano_dopo(&orario[pos - 1])) {
         diagnosi_ramo_scartato(pos - 1, SCARTATO_LEZIONI_DELLA_CLASSE);
-        if (passo_scritto) fprintf(file_orario, "S %d\n", SCARTATO_LEZIONI_DELLA_CLASSE);  // il passo appena scritto e' un ramo scartato
         return;
     }
     // a ogni inizio ora: le ore che mancano ai docenti stanno ancora nel tempo rimasto?
     if (pos > 0 && pos % actual_classi_sezione == 0 && !ore_rimaste_stanno_nel_tempo_rimasto(slot->giorno, slot->ora)) {
         diagnosi_ramo_scartato(pos - 1, SCARTATO_ORE_DEI_DOCENTI);
-        if (passo_scritto) fprintf(file_orario, "S %d\n", SCARTATO_ORE_DEI_DOCENTI);
         return;
     }
 
