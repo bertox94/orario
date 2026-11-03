@@ -32,8 +32,8 @@
     <input type="hidden" name="sorgente" value="esecuzione">
     <input type="hidden" name="eid" value="{{ e.id }}">
     <input type="hidden" name="nome" value="{{ e.caso }} (riletto)">
-    {% for k, v in (e.opzioni or {}).items() if k in ('tempo', 'orari', 'max_mb', 'ordine_classi', 'ore_obbligatorie', 'ore_prof_classe', 'classi_giorno') and v is not none %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
-    {% if (e.opzioni or {}).get('motivi', True) %}<input type="hidden" name="motivi" value="1">{% endif %}
+    {% for k, v in (e.opzioni or {}).items() if k in ('tempo', 'orari', 'ordine_classi', 'ore_obbligatorie', 'ore_prof_classe', 'classi_giorno') and v is not none %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+    {% if (e.opzioni or {}).get('passi') %}<input type="hidden" name="passi" value="1"><input type="hidden" name="max_passi" value="{{ e.opzioni.passi }}">{% endif %}
     <button class="secondario" title="Stessi dati e stesso ordine della coda: rifa' esattamente la stessa ricerca">Rifai identico dal JSON</button>
   </form>
   {% endif %}
@@ -41,25 +41,29 @@
 
 {% if r.get('orario') %}
 <h2>Orario trovato</h2>
+<p class="tenue piccolo">Passando il mouse su una cella: la coda dei docenti in quel punto, in ordine di priorità, con chi è
+  stato scelto, chi era utilizzabile e perché gli altri no.</p>
 <div id="orario" class="scorre"></div>
 <h2>Orario per docente</h2>
 <p class="tenue piccolo">Una riga per ogni docente: dove insegna in ogni ora (con il codocente, se c'è).</p>
 <div id="orario-docenti" class="scorre"></div>
 {% endif %}
 
-{% if r.get('diagnosi') %}
-<h2>Dove si e' bloccata la ricerca</h2>
-<p class="tenue piccolo">Marce indietro e rami scartati in ogni slot.</p>
-<div id="mappa"></div>
-<h3>Slot con più marce indietro</h3>
-<div id="elenco-blocchi" class="scorre"></div>
-{% endif %}
-
 {% if 'orario.txt.gz' in file|map(attribute=0)|list %}
-<h2>Orario a ogni marcia indietro</h2>
-<p class="tenue piccolo">Le marce indietro registrate con -b: per ognuna l'orario parziale in quel momento, lo slot (✕) dove nessun docente
-  era utilizzabile e, se la prova ha i motivi attivi, perché ogni docente non andava bene. Sfoglia con i pulsanti o la barra: si vede come la ricerca avanza e torna indietro.</p>
-<div id="marce"></div>
+<div id="sezione-passi" style="display: none">
+<h2>La ricerca passo passo</h2>
+<p class="tenue piccolo">L'orario a ogni passo della ricerca, dal passo 0 (orario vuoto) in poi.
+  Lo slot ✕ è quello che la ricerca sta per decidere. Il colore di ogni cella indica quante volte la ricerca è tornata
+  su quella posizione fino al passo mostrato: bianco = attraversata una volta sola (la ricerca è andata avanti senza intoppi),
+  più scuro = più passaggi (passaci sopra per il numero esatto). Lo slider aggiorna l'orario mentre lo trascini.
+  I <strong>blocchi</strong> sono le vere marce indietro: un <strong>vicolo cieco</strong> (nessun docente utilizzabile e lo slot
+  non può restare vuoto) o un <strong>ramo scartato</strong> (la scelta appena fatta rende impossibile finire l'orario e la
+  ricerca torna indietro subito; la cella della scelta è evidenziata). I pulsanti sotto la barra saltano da un blocco
+  all'altro. Un'ora buca (nessun docente ma lo slot può restare vuoto e la ricerca prosegue) è segnalata nella riga di stato
+  ma non è un blocco. Durante l'animazione la pagina scorre da sola per tenere in vista la cella che si sta decidendo.
+  Oltre il numero di passi scelto nelle opzioni la registrazione si ferma (la ricerca continua).</p>
+<div id="passi"></div>
+</div>
 {% endif %}
 
 {% if e.diagnosi_testo %}
@@ -91,14 +95,15 @@
 {% block script %}
 {% if r.get('dati') %}
 <script>
-const risultato = {{ {'dati': r.dati, 'orario': r.get('orario'), 'diagnosi': r.get('diagnosi')}|tojson }};
+const risultato = {{ {'dati': r.dati, 'orario': r.get('orario'), 'diagnosi': r.get('diagnosi'), 'dettagli': r.get('dettagli_slot'), 'ordine': r.get('ordine_classi')}|tojson }};
 if (risultato.orario) {
-  disegnaOrario(document.getElementById('orario'), risultato.dati, risultato.orario);
-  disegnaOrarioDocenti(document.getElementById('orario-docenti'), risultato.dati, risultato.orario);
+  // passando il mouse su una cella: la coda dei docenti in quel punto del percorso che ha portato all'orario
+  const codaOrario = risultato.ordine ? codaAlPassaggio(risultato.dati, {{ url_for('casi.analisi_slot', eid=e.id)|tojson }})(
+    {chiave: 'orario', orario: risultato.orario, ordine: risultato.ordine, limite: null}) : null;
+  disegnaOrario(document.getElementById('orario'), risultato.dati, risultato.orario, null, codaOrario);
+  disegnaOrarioDocenti(document.getElementById('orario-docenti'), risultato.dati, risultato.orario, codaOrario);
 }
-{% if 'orario.txt.gz' in file|map(attribute=0)|list %}sfogliaMarce(document.getElementById('marce'), risultato.dati, {{ url_for('casi.marce_indietro', eid=e.id)|tojson }}, {{ (r.get('diagnosi') or {}).get('nomi_motivi', [])|tojson }});{% endif %}
-if (risultato.diagnosi) elencoBlocchi(document.getElementById('elenco-blocchi'), risultato.dati, (g, o, c) => risultato.diagnosi.marce[g][o][c], 10);
-if (risultato.diagnosi) disegnaMappa(document.getElementById('mappa'), risultato.dati, blocchiDaRisultato(risultato.diagnosi), 'marce indietro + rami scartati');
+{% if 'orario.txt.gz' in file|map(attribute=0)|list %}sfogliaPassi(document.getElementById('sezione-passi'), document.getElementById('passi'), risultato.dati, {{ url_for('casi.passi', eid=e.id)|tojson }}, {{ (r.get('diagnosi') or {}).get('nomi_motivi', [])|tojson }});{% endif %}
 </script>
 {% endif %}
 {% endblock %}

@@ -30,12 +30,6 @@ def crea_app(config=None, avvia_esecutore=True):
 
     db.migra(config.database_url)
     app.config['SECRET_KEY'] = db.chiave_segreta(config.database_url)
-    with db.connetti(config.database_url) as c:
-        if accesso.importa_password_vecchia(c, config):
-            print('La password del sito e\' diventata l\'utente «admin» (amministratore, con accesso a tutte le scuole).',
-                  flush=True)
-        c.commit()
-
     from .pagine_casi import bp as casi
     from .pagine_dati import bp as dati
     from .pagine_live import bp as live
@@ -93,22 +87,22 @@ def registra_filtri(app):
 
     @app.template_filter('classe_esito')
     def classe_esito(esito):
-        """Classe CSS di un esito o di uno stato: "interrotto (file troppo grande)" -> esito-interrotto."""
+        """Classe CSS di un esito o di uno stato: "interrotto (errore di scrittura)" -> esito-interrotto."""
         if not esito:
             return 'esito-in-corso'
         return 'esito-' + re.sub(r'\s*\(.*', '', esito).strip().replace(' ', '-')
 
     @app.template_filter('opzioni')
     def opzioni(o):
-        """Le opzioni di un'esecuzione in parole: "tempo 60 s · -b fino a 150 MB · motivi"."""
+        """Le opzioni di un'esecuzione in parole: "tempo 60 s · passo passo (100.000 passi) · ordine delle classi 3"."""
         o = o or {}
         parti = ['tempo %s s' % o['tempo'] if o.get('tempo') else 'senza limite di tempo']
         if o.get('orari', 1) != 1:
             parti.append('%s orari' % o['orari'])
-        if o.get('backtrack'):
-            parti.append('-b fino a %s MB' % o.get('max_mb', '?'))
-        if o.get('motivi'):
-            parti.append('motivi degli scarti')
+        if o.get('passi'):
+            parti.append('passo passo (%s passi)' % numero(o['passi']))
+        elif o.get('backtrack'):  # prove vecchie: solo le marce indietro
+            parti.append('marce indietro (-b)')
         if o.get('ordine_classi') is not None:
             parti.append('ordine delle classi %s' % o['ordine_classi'])
         if o.get('ore_obbligatorie') not in (None, 5):
