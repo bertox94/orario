@@ -241,6 +241,13 @@ ricerca continua senza registrare). Nella pagina del caso compare la sezione «L
 passo 0 (orario vuoto) all'ultimo passo registrato, con i pulsanti ±1, ±100 e ±1000. Lo slot ✕ è quello che la ricerca
 sta per decidere. I passi finiscono nello stesso file delle marce indietro, quindi vale lo stesso limite di spazio.
 
+Passando il mouse su una cella (o toccandola, su iPad e telefono) si apre la finestra con la coda dei docenti di quello
+slot. Per ogni docente c'è l'esito di tutti i vincoli, uno per riga: libero, già entrato, massimo di ore, ore attaccate,
+massimo di classi al giorno, codocente, regola del sabato (✔ rispettato, ✘ non rispettato, – non si applica). Il
+pulsante in cima nasconde o mostra queste frasi. La finestra si scorre con la rotella o con il dito; con il mouse resta
+aperta se ci porti sopra il puntatore, e si chiude con ✕ o toccando fuori. Un passo in cui non c'era nessun docente
+utilizzabile è segnalato come «vicolo cieco», con i motivi, e i pulsanti sotto la barra saltano da uno all'altro.
+
 ## Come si usa il test manuale (Test in tempo reale)
 
 1. **Dati della scuola**: inserire calendario, classi, docenti (con l'ora di ingresso) e lezioni (ore, codocente, ore in

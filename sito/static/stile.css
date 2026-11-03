@@ -122,7 +122,7 @@ table.mappa td { min-width: 34px; height: 26px; font-size: 11px; font-variant-nu
 input.stretto { width: 5em; }
 td.blocco { outline: 2px solid #c0392b; outline-offset: -2px; color: #c0392b; font-weight: 700; }
 .pannello-slot { position: fixed; z-index: 20; max-width: 640px; background: var(--superficie); color: var(--testo);
-  border: 1px solid var(--bordo); border-radius: 6px; padding: 10px 12px; box-shadow: 0 4px 16px rgba(0,0,0,.25); font-size: 13px; pointer-events: none; }
+  border: 1px solid var(--bordo); border-radius: 6px; padding: 10px 12px; box-shadow: 0 4px 16px rgba(0,0,0,.25); font-size: 13px; }
 .pannello-slot tr.scelto td { font-weight: 700; }
 .pannello-slot tr.utilizzabile td { color: var(--ok); }
 
@@ -172,7 +172,18 @@ table.mappa td.cliccabile { cursor: pointer; }
 .barra-priorita.scelto > div { background: var(--accento); }
 .barra-priorita.utilizzabile > div { background: var(--ok); }
 .barra-priorita.escluso > div { background: var(--male); opacity: .55; }
-.pannello-slot { max-width: 680px; max-height: 80vh; overflow-y: auto; }
+/* il pannello si scorre con il dito o la rotella: tocchi e rotella restano nel pannello (non fanno scorrere la pagina dietro);
+   l'altezza massima la imposta orario.js in base allo spazio che resta sullo schermo */
+.pannello-slot { max-width: 680px; max-height: 80vh; overflow-y: auto; overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+.pannello-slot ul.vincoli { list-style: none; margin: 2px 0 6px; padding: 0 0 0 4px; font-size: 12px; }
+.pannello-slot ul.vincoli li { margin: 1px 0; }
+.pannello-slot ul.vincoli li .segno { display: inline-block; width: 1.3em; font-weight: 700; }
+.pannello-slot ul.vincoli li.si .segno { color: var(--ok); }
+.pannello-slot ul.vincoli li.no { color: var(--male); }
+.pannello-slot ul.vincoli li.na { color: var(--tenue); }
+.pannello-slot.senza-vincoli tr.riga-vincoli { display: none; }
+.pannello-slot .barra-comandi { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 4px 0; }
 
 /* pannello della coda: chiusura e, sugli schermi stretti (telefono, iPad in verticale), in basso a tutta larghezza */
 .chiudi-pannello { position: sticky; top: 0; float: right; background: var(--superficie); color: var(--tenue);

@@ -374,14 +374,35 @@ function codaAlPassaggio(dati, urlAnalisi) {
   document.body.appendChild(pannello);
   const cache = {};
   let timer = null, cellaAperta = null;
-  const nascondi = () => { clearTimeout(timer); pannello.style.display = 'none'; cellaAperta = null; };
+  let rettangolo = null, timerChiusura = null;
+  const nascondi = () => { clearTimeout(timer); clearTimeout(timerChiusura); pannello.style.display = 'none'; cellaAperta = null; };
+  // Posizione e altezza in base al contenuto: mai oltre lo schermo, e se il contenuto e' piu' alto il pannello si scorre
+  // (con il dito o la rotella). Si chiama dopo ogni cambio di contenuto.
+  const posiziona = () => {
+    if (pannello.style.display === 'none') return;
+    if (window.innerWidth >= 760 && rettangolo) {
+      pannello.style.maxHeight = (window.innerHeight - 16) + 'px';
+      pannello.style.left = Math.max(8, Math.min(rettangolo.right + 8, window.innerWidth - pannello.offsetWidth - 8)) + 'px';
+      pannello.style.top = Math.max(8, Math.min(rettangolo.top, window.innerHeight - pannello.offsetHeight - 8)) + 'px';
+    } else {
+      pannello.style.maxHeight = pannello.style.left = pannello.style.top = '';
+    }
+  };
   chiudi.addEventListener('click', ev => { ev.stopPropagation(); nascondi(); });
   pannello.addEventListener('click', ev => ev.stopPropagation());
+  // con il mouse: spostandosi dalla cella al pannello (per scorrerlo con la rotella) il pannello resta aperto
+  pannello.addEventListener('mouseenter', () => clearTimeout(timerChiusura));
+  pannello.addEventListener('mouseleave', () => { if (!SENZA_MOUSE) nascondi(); });
   document.addEventListener('click', () => { if (cellaAperta) nascondi(); });  // tocco fuori: chiude
   const C = dati.classi.length, O = dati.ore.length;
   return fonte => (g, o, c, td, ev) => {
     clearTimeout(timer);
-    if (g == null) { nascondi(); return; }
+    if (g == null) {  // il mouse e' uscito dalla cella: breve attesa, il tempo di arrivare sul pannello
+      clearTimeout(timerChiusura);
+      timerChiusura = setTimeout(nascondi, 250);
+      return;
+    }
+    clearTimeout(timerChiusura);
     const tocco = ev && ev.type === 'click';
     if (tocco && SENZA_MOUSE && cellaAperta === td) { nascondi(); return; }  // secondo tocco sulla stessa cella: chiude
     const f = typeof fonte === 'function' ? fonte() : fonte;
@@ -394,14 +415,9 @@ function codaAlPassaggio(dati, urlAnalisi) {
       pannello.style.display = 'block';
       // schermo stretto (telefono, iPad in verticale): il pannello in basso, largo come lo schermo
       pannello.classList.toggle('in-basso', window.innerWidth < 760);
-      if (window.innerWidth >= 760) {
-        const x = td.getBoundingClientRect();
-        pannello.style.left = Math.max(8, Math.min(x.right + 8, window.innerWidth - 680)) + 'px';
-        pannello.style.top = Math.max(8, Math.min(x.top, window.innerHeight - 440)) + 'px';
-      } else {
-        pannello.style.left = pannello.style.top = '';
-      }
+      rettangolo = td.getBoundingClientRect();
       contenuto.textContent = 'Calcolo della coda...';
+      posiziona();
       if (!cache[chiave]) {
         const slot = [];
         for (let i = 0; i < pos; i++) {
@@ -417,7 +433,9 @@ function codaAlPassaggio(dati, urlAnalisi) {
       }
       if (pannello.style.display === 'none' || cellaAperta !== td) return;
       mostraAnalisi(contenuto, dati, cache[chiave], f.orario[g][o][c], `${dati.giorni[g]} ${dati.ore[o]} ${dati.classi[c].nome}`,
-        f.limite != null && pos === f.limite, c, o);
+        f.limite != null && pos === f.limite ? (f.testoLimite || true) : false, c, o, pannello);
+      posiziona();
+      pannello.scrollTop = 0;
     }, tocco ? 0 : 250);
   };
 }
@@ -459,7 +477,7 @@ function sfogliaMarce(contenitore, dati, url, nomiMotivi) {
     }
   }
   barra.addEventListener('change', () => vai(+barra.value));
-  numero.addEventListener('change', () => vai(+numero.value));
+  numero.addEventListener('change', () => { if (+numero.value !== n) vai(+numero.value); });  // lo stesso numero: niente ridisegno (un tocco su una cella non va perso)
   contenitore.replaceChildren(el('div', {style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center'}, [
     bottone('⏮', -1e12), bottone('−1000', -1000), bottone('−100', -100), bottone('−1', -1), numero,
     bottone('+1', 1), bottone('+100', 100), bottone('+1000', 1000), bottone('⏭', 1e12)]), barra, stato, motivi, griglia);
@@ -477,8 +495,13 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
   const stato = el('div', {class: 'tenue piccolo'});
   const griglia = el('div', {class: 'scorre'});
   const motivi = el('div', {});
-  const infoVicoli = el('div', {class: 'tenue piccolo'});
-  let totale = null, n = 0, richiesta = 0, vicoli = [], vicoliTroncati = false;
+  // spazio riservato (la riga si riempie dopo il caricamento: senza, la tabella si sposta e un tocco puo' finire su un'altra cella)
+  const infoVicoli = el('div', {class: 'tenue piccolo', style: 'min-height: 2.6em; flex: 1 1 100%'});
+  let totale = null, n = 0, richiesta = 0, vicoli = [], vicoliTroncati = false, ultimo = null;
+  // passando il mouse (o toccando) una cella: la coda dei docenti in quel punto e i vincoli, come nelle marce indietro
+  const passaggio = codaAlPassaggio(dati, url.replace(/passi$/, 'analisi'))(
+    () => ultimo && {chiave: 'passo' + n, orario: ultimo.orario, ordine: ultimo.ordine, limite: ultimo.pos,
+      testoLimite: ultimo.bloccato ? ' · qui la ricerca si è bloccata (vicolo cieco)' : ultimo.pos >= ultimo.slot ? ' · orario completo' : ' · qui la ricerca sta decidendo'});
   const di = () => totale ? ` di ${numeroIt(totale)}` : '';
   const bottone = (testo, delta) => el('button', {class: 'secondario', type: 'button', testo, onclick: () => vai(n + delta)});
   async function vai(nuovo) {
@@ -488,6 +511,7 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
     if (n === 0) {  // il passo 0 non e' nel file: e' l'orario vuoto, prima che la ricerca cominci
       richiesta++;
       stato.textContent = `Passo 0${di()}: orario vuoto, la ricerca non è ancora cominciata.`;
+      ultimo = null;
       disegnaOrario(griglia, dati, dati.giorni.map(() => dati.ore.map(() => dati.classi.map(() => [-1, -1]))), null, null,
         dati.giorni.map(() => dati.ore.map(() => dati.classi.map(() => 0))));
       return;
@@ -510,7 +534,8 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
       motivi.replaceChildren(el('h3', {testo: 'Perché non si può andare avanti'}),
         voci.length ? el('ul', {}, voci) : el('p', {class: 'tenue piccolo', testo: r.motivi ? 'Nessun docente aveva ancora ore da fare in questa classe.' : 'Motivi non registrati: attiva «Motivi degli scarti» nelle opzioni.'}));
     }
-    disegnaOrario(griglia, dati, r.orario, r.pos >= r.slot ? null : r.blocco, null, r.passaggi);
+    ultimo = r;
+    disegnaOrario(griglia, dati, r.orario, r.pos >= r.slot ? null : r.blocco, passaggio, r.passaggi);
   }
   // Mentre si trascina lo slider l'orario segue in tempo reale (evento input, non solo al rilascio). Una richiesta alla
   // volta: se nel frattempo la barra si e' mossa, dopo la risposta si carica subito l'ultima posizione raggiunta.
@@ -524,7 +549,7 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
     } finally { occupato = false; }
   }
   barra.addEventListener('input', () => { numero.value = barra.value; segui(+barra.value); });
-  numero.addEventListener('change', () => vai(+numero.value));
+  numero.addEventListener('change', () => { if (+numero.value !== n) vai(+numero.value); });  // lo stesso numero: niente ridisegno (un tocco su una cella non va perso)
   contenitore.replaceChildren(el('div', {style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center'}, [
     bottone('⏮', -1e12), bottone('−1000', -1000), bottone('−100', -100), bottone('−1', -1), numero,
     bottone('+1', 1), bottone('+100', 100), bottone('+1000', 1000), bottone('⏭', 1e12)]),
@@ -571,13 +596,55 @@ function spiegaMotivo(dati, a, c, classe, ora) {
   }
 }
 
+// Una frase per ognuno dei sette vincoli che il solver controlla per un docente in uno slot (a.coda[].vincoli, nello
+// stesso ordine di diagnosi.c, vincoli_docente): rispettato (ok = 1), non rispettato (0) o non applicabile (-1).
+function vincoliDocente(dati, a, c, classe, ora) {
+  const d = c.dettaglio || {}, v = c.vincoli || [];
+  const nomeOra = i => dati.ore[i], nomeClasse = i => dati.classi[i].nome, nomeDoc = i => dati.docenti[i].nome;
+  const oggi = d.oggi || [], qui = oggi.filter(x => x[1] === classe).map(x => x[0]);
+  const lista = x => x.map(nomeOra).join(', ');
+  const ore = n => n === 1 ? '1 ora' : `${n} ore`;
+  const cl = [...new Set(oggi.map(x => x[1]))];
+  const L = a.limiti || {};
+  const frasi = [];
+  frasi.push([v[0],
+    v[0] ? `Libero: non è in un'altra classe alle ${nomeOra(ora)}.`
+         : `Occupato: alle ${nomeOra(ora)} è già ${d.occupato_in >= 0 ? 'in ' + nomeClasse(d.occupato_in) : 'in un\'altra classe'}.`]);
+  frasi.push([v[1],
+    v[1] ? (d.ingresso ? `Già entrato: entra alle ${nomeOra(d.ingresso)}, ora sono le ${nomeOra(ora)}.` : 'Già entrato: entra dalla prima ora.')
+         : `Non ancora entrato: entra alle ${nomeOra(d.ingresso)}, ora sono le ${nomeOra(ora)}.`]);
+  frasi.push([v[2],
+    v[2] ? (qui.length ? `Massimo di ore rispettato: oggi ha fatto ${ore(qui.length)} in questa classe (alle ${lista(qui)}), il massimo è ${L.ore_in_classe}.`
+                       : `Massimo di ore rispettato: oggi non ha ancora fatto lezione in questa classe (il massimo è ${L.ore_in_classe} ore).`)
+         : `Massimo di ore superato: oggi ha già fatto ${ore(qui.length)} in questa classe (alle ${lista(qui)}), il massimo è ${L.ore_in_classe}.`]);
+  frasi.push([v[3],
+    v[3] ? (qui.length ? `Ore attaccate: oggi ha insegnato qui alle ${lista(qui)}, quindi alle ${nomeOra(ora)} continua il suo blocco.`
+                       : 'Ore attaccate: oggi non ha ancora fatto lezione in questa classe, può cominciare ora.')
+         : `Ore non attaccate: oggi ha insegnato qui alle ${lista(qui)} ma non alle ${nomeOra(ora - 1)}; il blocco è finito e non può tornare.`]);
+  frasi.push([v[4],
+    v[4] ? `Classi al giorno rispettate: oggi è in ${cl.length === 1 ? '1 classe' : cl.length + ' classi'}${cl.length ? ' (' + cl.map(nomeClasse).join(', ') + ')' : ''}, il massimo è ${L.classi_al_giorno}.`
+         : `Troppe classi oggi: è già in ${cl.length} classi (${oggi.map(x => nomeClasse(x[1]) + ' alle ' + nomeOra(x[0])).join(', ')}), il massimo è ${L.classi_al_giorno}.`]);
+  const partner = (d.partner || []).map(([q, st, k]) => nomeDoc(q) + ' (' + (st === 0 ? 'occupato' + (k >= 0 ? ' in ' + nomeClasse(k) : '')
+    : st === 1 ? 'non ancora entrato' : st === 2 ? 'al massimo di ore in classe oggi' : st === 3 ? 'ore non attaccate' : st === 4 ? 'al massimo di classi oggi' : 'libero') + ')');
+  frasi.push([v[5],
+    v[5] ? (d.da_solo ? 'Da solo o in coppia: ha ore da fare anche da solo, quindi può fare lezione da solo.'
+                      : `Codocente: ha un codocente utilizzabile (${c.codocente_libero >= 0 ? nomeDoc(c.codocente_libero) : 'sì'}).`)
+         : `Nessun codocente: ha solo ore in coppia e nessun codocente è utilizzabile${partner.length ? ' — ' + partner.join(', ') : ''}.`]);
+  frasi.push([v[6],
+    v[6] === -1 ? 'Regola del sabato: non si applica, perché non è sabato.'
+      : v[6] ? 'Regola del sabato: rispettata.'
+             : `Regola del sabato: non rispettata, nell'ora precedente ${(d.ora_precedente || []).map(nomeDoc).join(' e ') || 'un altro docente'} deve finire le sue ore in questa classe.`]);
+  return frasi.map(([ok, testo]) => ({stato: ok === -1 ? 'na' : ok ? 'si' : 'no', testo}));
+}
+
 // Il contenuto del pannello al passaggio del mouse: scelto nello slot, coda in ordine di priorita', esito di ognuno.
-function mostraAnalisi(pannello, dati, a, scelto, titolo, bloccato, classe, ora) {
+let mostraVincoli = true;  // le frasi per vincolo si vedono finche' non si nascondono (vale per tutte le aperture)
+function mostraAnalisi(pannello, dati, a, scelto, titolo, bloccato, classe, ora, finestra) {
   if (!a || a.errore) { pannello.textContent = (a && a.errore) || 'Analisi non disponibile.'; return; }
   const [p, q] = scelto;
   const nome = i => dati.docenti[i].nome;
   const testa = el('div', {}, [el('strong', {testo: titolo}),
-    el('span', {class: 'tenue', testo: bloccato ? ' · qui la ricerca si è bloccata'
+    el('span', {class: 'tenue', testo: bloccato ? (typeof bloccato === 'string' ? bloccato : ' · qui la ricerca si è bloccata')
       : p < 0 ? ' · slot lasciato vuoto' : ` · scelto: ${nome(p)}${q >= 0 ? ' + ' + nome(q) : ''}`})]);
   // in ordine di priorita' (la coda del solver; a parita' l'ordine e' quello della coda)
   const con = a.coda.filter(c => c.ore_classe > 0).map((c, i) => [c, i]).sort((x, y) => y[0].priorita - x[0].priorita || x[1] - y[1]).map(x => x[0]);
@@ -592,13 +659,24 @@ function mostraAnalisi(pannello, dati, a, scelto, titolo, bloccato, classe, ora)
     // la barra: lunghezza = priorita' (rispetto alla massima della coda), colore = scelto / utilizzabile / escluso
     const barra = el('div', {class: 'barra-priorita ' + stato, title: `priorità ${c.priorita}`},
       [el('div', {style: `width: ${(100 * c.priorita / massima).toFixed(1)}%`})]);
-    corpo.appendChild(el('tr', {class: stato === 'escluso' ? '' : stato}, [
+    const frasi = vincoliDocente(dati, a, c, classe, ora);
+    const riga = el('tr', {class: stato === 'escluso' ? '' : stato}, [
       el('td', {testo: nome(c.docente), style: 'white-space: nowrap'}), el('td', {}, [barra]), el('td', {class: 'num', testo: c.priorita}),
       el('td', {class: 'num', title: 'ore ancora da fare / ore totali in questa classe', testo: `${c.ore_classe}/${c.ore_totali_classe}`}),
-      el('td', {testo: esito})]));
+      el('td', {testo: esito})]);
+    corpo.appendChild(riga);
+    corpo.appendChild(el('tr', {class: 'riga-vincoli'}, [el('td', {colspan: 5}, [el('ul', {class: 'vincoli'},
+      frasi.map(f => el('li', {class: f.stato}, [el('span', {class: 'segno', testo: f.stato === 'si' ? '✔' : f.stato === 'no' ? '✘' : '–'}), el('span', {testo: f.testo})])))])]));
   });
+  // interruttore delle frasi per vincolo (resta com'e' alla prossima apertura)
+  if (finestra) finestra.classList.toggle('senza-vincoli', !mostraVincoli);
+  const interruttore = el('button', {type: 'button', class: 'secondario', testo: mostraVincoli ? 'Nascondi le frasi per vincolo' : 'Mostra le frasi per vincolo',
+    onclick: ev => { ev.stopPropagation(); mostraVincoli = !mostraVincoli; if (finestra) finestra.classList.toggle('senza-vincoli', !mostraVincoli);
+      interruttore.textContent = mostraVincoli ? 'Nascondi le frasi per vincolo' : 'Mostra le frasi per vincolo'; }});
   pannello.replaceChildren(testa,
-    a.lezione_ammessa ? el('span') : el('div', {class: 'tenue piccolo', testo: 'In questo slot la classe non può più fare lezione: può solo restare vuoto.'}),
+    el('ul', {class: 'vincoli'}, [el('li', {class: a.lezione_ammessa ? 'si' : 'no'}, [el('span', {class: 'segno', testo: a.lezione_ammessa ? '✔' : '✘'}),
+      el('span', {testo: a.lezione_ammessa ? 'La classe può ancora fare lezione in quest\'ora.' : 'La classe non può più fare lezione in quest\'ora: lo slot può solo restare vuoto.'})])]),
+    el('div', {class: 'barra-comandi'}, [interruttore]),
     el('p', {class: 'tenue piccolo', testo: 'Coda dei docenti per priorità (ore ancora da sistemare nella settimana); a parità di priorità l\'ordine dipende dalla ricerca. «Ore in classe» = ancora da fare / totali.'}),
     el('table', {class: 'dati'}, [el('thead', {}, [el('tr', {}, [el('th', {testo: 'Docente'}), el('th', {testo: 'Priorità'}), el('th', {class: 'num', testo: ''}),
       el('th', {class: 'num', testo: 'Ore in classe'}), el('th', {testo: 'Esito'})])]), corpo]),
