@@ -43,6 +43,8 @@
 //   -n MAX: si ferma dopo MAX orari completi
 //   --tempo SEC: interrompe la ricerca dopo SEC secondi (la diagnosi viene stampata comunque)
 //   --motivi: nella diagnosi indica anche perche' i docenti vengono scartati negli slot con piu' marce indietro
+//   --passi N: con -b, scrive nel file degli orari una riga "P" con l'orario parziale a ogni nodo della ricerca
+//              (dal primo slot deciso in poi), al massimo N righe: per rivedere la ricerca passo passo dal sito
 //   --dati FILE: scrive in FILE la descrizione dei dati (classi, docenti, lezioni, codocenze)
 //   --senza-verifica: salta la verifica preliminare dei dati (che segnala i casi impossibili prima di cercare)
 //   --json FILE: alla fine scrive in FILE dati, esito, primo orario trovato e diagnosi per slot, in JSON (per il sito)
@@ -107,6 +109,8 @@ static Opzioni leggi_opzioni(const int argc, char **argv) {
             o.file_dati = argv[++i];
         } else if (!strcmp(argv[i], "--senza-verifica")) {
             o.senza_verifica = 1;
+        } else if (!strcmp(argv[i], "--passi") && i + 1 < argc) {
+            passi_max = atoll(argv[++i]);
         } else if (!strcmp(argv[i], "--motivi")) {
             o.con_motivi = 1;
         } else if (!strcmp(argv[i], "--ore-obbligatorie") && i + 1 < argc) {

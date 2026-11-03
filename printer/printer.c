@@ -206,6 +206,8 @@ void stampa_intestazione_marce_compatte(FILE *f) {
                "scritto, quelli prima come nella riga B precedente. Slot: \"i\" docente, \"i+j\" coppia, \"-\" vuoto.\n");
     fprintf(f, "# Con --motivi, dopo ogni riga B c'e' una riga \"M d:m ...\": il motivo m per cui il docente d (con ore da fare nella "
                "classe) non si e' potuto mettere nello slot (i nomi dei motivi sono in \"nomi_motivi\" del JSON).\n");
+    fprintf(f, "# Con --passi N, una riga \"P pos da ...\" (stesso formato e stessa catena delle righe B) a ogni nodo "
+               "della ricerca, al massimo N.\n");
     fprintf(f, "# Gli orari completi sono scritti per intero, come senza -b.\n");
     fprintf(f, "G %d %d %d\n", actual_giorni_settimana, actual_ore_giornaliere, actual_classi_sezione);
     // ordine delle classi dentro ogni ora (lo stesso per tutte le ore)
@@ -216,12 +218,12 @@ void stampa_intestazione_marce_compatte(FILE *f) {
     for (int p = 0; p < actual_insegnanti; p++) fprintf(f, "D %d %s\n", p, insegnanti[p]);
 }
 
-void stampa_marcia_compatta(FILE *f, const teaching_slot orario[], const int pos) {
+static void stampa_riga_compatta(FILE *f, const char lettera, const teaching_slot orario[], const int pos) {
     // primo slot diverso dall'ultima riga scritta (la ricerca cambia solo la coda del percorso)
     int da = 0;
     while (da < pos && da < n_ultimi && orario[da].insegnante1 == ultimi_1[da] && orario[da].insegnante2 == ultimi_2[da])
         da++;
-    fprintf(f, "B %d %d", pos, da);
+    fprintf(f, "%c %d %d", lettera, pos, da);
     for (int i = da; i < pos; i++) {
         const int a = orario[i].insegnante1, b = orario[i].insegnante2;
         if (a < 0) fprintf(f, " -");
@@ -232,6 +234,15 @@ void stampa_marcia_compatta(FILE *f, const teaching_slot orario[], const int pos
     }
     fprintf(f, "\n");
     n_ultimi = pos;
+}
+
+void stampa_marcia_compatta(FILE *f, const teaching_slot orario[], const int pos) {
+    stampa_riga_compatta(f, 'B', orario, pos);
+}
+
+// Un passo della ricerca (opzione --passi): l'orario parziale a un nodo, stesso formato e stessa catena delle righe B.
+void stampa_passo_compatto(FILE *f, const teaching_slot orario[], const int pos) {
+    stampa_riga_compatta(f, 'P', orario, pos);
 }
 
 // Riepilogo dei dati su stdout: giorni, ore, ore di ogni classe, ore di ogni docente e ore di ogni docente per classe.
