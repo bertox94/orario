@@ -133,6 +133,32 @@ function blocchiDaProgresso(dati, p) {
 
 function numeroIt(v) { return v == null ? '-' : Number(v).toLocaleString('it-IT'); }
 
+// Il motivo di un ramo scartato in parole: il solver scrive una frase breve (diagnosi.c, nome_motivo_scarto), qui
+// spiegata per intero. La verifica sulle lezioni guarda la classe dello slot appena deciso, quindi la si puo' nominare;
+// quella sulle ore dei docenti non dice quale docente. n = quante volte e' successo dopo quello slot.
+function spiegaScarto(motivo, classe, n) {
+  const volte = n === 1 ? '1 volta' : `${numeroIt(n)} volte`;
+  const dopo = 'Con le scelte fatte fino a questo slot, ';
+  const indietro = ' La ricerca ha annullato la scelta e ne ha provata un\'altra';
+  if (motivo.startsWith('alla classe non bastano')) {
+    return `${dopo}la classe ${classe} non può più fare lezione in tutte le ore obbligatorie che le restano: le lezioni ` +
+      `che le mancano non bastano a riempirle, perché ogni docente può insegnare solo dalla sua ora di ingresso e solo ` +
+      `per un numero massimo di ore al giorno nella stessa classe.${indietro} (${volte}).`;
+  }
+  if (motivo.startsWith('le ore che mancano a un docente')) {
+    return `${dopo}a un docente restano più ore da fare di quante ne possa ancora fare nel resto della settimana ` +
+      `(può insegnare solo dalla sua ora di ingresso, e in una classe solo per un massimo di ore al giorno).${indietro} (${volte}).`;
+  }
+  return `${motivo} (${volte}).`;
+}
+
+// Le marce indietro in parole: nello slot nessun docente si poteva mettere (i motivi per docente sono piu' sotto).
+function spiegaMarce(n) {
+  const volte = n === 1 ? '1 volta' : `${numeroIt(n)} volte`;
+  return `In questo slot nessun docente si poteva mettere, quindi la ricerca è tornata indietro (${volte}): i motivi ` +
+    `docente per docente sono in «Orario a ogni marcia indietro» (con -b) e nella diagnosi completa.`;
+}
+
 // Gli slot dove la ricerca si e' bloccata di piu', dal JSON del solver: marce indietro (nessun docente utilizzabile
 // nello slot) e rami scartati dopo lo slot (la potatura vede che da li' l'orario non si puo' piu' completare), con il
 // motivo dei rami scartati e la percentuale sul totale dei blocchi.
@@ -142,7 +168,8 @@ function elencoBlocchi(contenitore, dati, diagnosi, quanti) {
   let totale = 0;
   dati.giorni.forEach((gn, g) => dati.ore.forEach((on, o) => dati.classi.forEach((cl, c) => {
     const marce = diagnosi.marce[g][o][c];
-    const perche = scartati.filter(([, t]) => t[g][o][c] > 0).map(([m, t]) => `${m} (${numeroIt(t[g][o][c])})`);
+    const perche = (marce ? [spiegaMarce(marce)] : []).concat(
+      scartati.filter(([, t]) => t[g][o][c] > 0).map(([m, t]) => spiegaScarto(m, cl.nome, t[g][o][c])));
     const rami = scartati.reduce((s, [, t]) => s + t[g][o][c], 0);
     totale += marce + rami;
     if (marce + rami > 0) righe.push({marce, rami, perche, nome: `${gn} ${on} ${cl.nome}`});
@@ -155,11 +182,11 @@ function elencoBlocchi(contenitore, dati, diagnosi, quanti) {
   const corpo = el('tbody');
   righe.slice(0, quanti).forEach(r => corpo.appendChild(el('tr', {}, [
     el('td', {testo: r.nome}), el('td', {class: 'num', testo: numeroIt(r.marce)}), el('td', {class: 'num', testo: numeroIt(r.rami)}),
-    el('td', {class: 'piccolo', testo: r.perche.join('; ')}),
+    el('td', {class: 'piccolo', testo: r.perche.join(' ')}),
     el('td', {class: 'num', testo: (100 * (r.marce + r.rami) / totale).toLocaleString('it-IT', {maximumFractionDigits: 2}) + '%'})])));
   contenitore.replaceChildren(el('table', {class: 'dati'}, [
     el('thead', {}, [el('tr', {}, [el('th', {testo: 'Slot'}), el('th', {class: 'num', testo: 'Marce indietro'}),
-      el('th', {class: 'num', testo: 'Rami scartati'}), el('th', {testo: 'Perché i rami sono stati scartati'}),
+      el('th', {class: 'num', testo: 'Rami scartati'}), el('th', {testo: 'Perché la ricerca è tornata indietro'}),
       el('th', {class: 'num', testo: '% dei blocchi'})])]), corpo]));
 }
 
