@@ -53,7 +53,8 @@ def controlla_dati(out):
     n docenti)."""
     errori = []
     classi = [int(m.group(1)) for m in re.finditer(r'^Classe \S+:\s+(\d+) ore', out, re.M)]
-    docenti = [int(m.group(1)) for m in re.finditer(r'^Ins\. \S+\s*: (\d+) ore', out, re.M)]
+    # i nomi dei docenti possono avere spazi ("M. Bu"): tutto fino ai due punti
+    docenti = [int(m.group(1)) for m in re.finditer(r'^Ins\. .+?\s*: (\d+) ore$', out, re.M)]
     if not classi or not docenti:
         errori.append("dati non trovati nell'output")
     errori += ['classe con %d ore' % o for o in classi if not 29 <= o <= 36]
