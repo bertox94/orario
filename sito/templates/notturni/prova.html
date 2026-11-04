@@ -15,7 +15,7 @@
   <div class="scheda"><div class="numero">{% if prova.inizio %}{{ (prova.fine - prova.inizio).total_seconds()|durata if prova.fine else 'in corso' }}{% else %}-{% endif %}</div>
     <div class="etichetta">durata{% if prova.inizio %} (dal {{ prova.inizio|data }}){% endif %}</div></div>
 </div>
-<p class="tenue piccolo">Semi {{ o.semi_da }}–{{ o.semi_da + o.quanti - 1 }}, {{ o.classi }} classi, {{ o.varianti|join(' e ') }}{{ ', dati della scuola' if o.scuola }} ·
+<p class="tenue piccolo">Semi {{ o.semi_da }}–{{ o.semi_da + o.quanti - 1 }}, {{ o.classi }} classi, {{ o.varianti|join(' e ') }}{{ ', dati della scuola' if o.scuola }}{{ ', ' ~ o.file.nome if o.get('file') }} ·
   fasi {{ o.fase1 }} s / {{ o.fase2 }} s / {{ o.fase3 }} s{{ ' (passo passo, ' ~ (o.passi|numero) ~ ' passi)' if o.get('passi') else (' con -b' if o.backtrack) }} · solver {{ prova.commit or '?' }}</p>
 
 <p>

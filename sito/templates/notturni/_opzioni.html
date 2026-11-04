@@ -6,6 +6,7 @@
   <label class="spunta"><input type="checkbox" name="variante_normale" value="1" checked> normali</label>
   <label class="spunta"><input type="checkbox" name="variante_ritardi" value="1" checked> con ritardi</label>
   <label class="spunta"><input type="checkbox" name="scuola" value="1" {{ 'disabled' if not n_classi }}> anche i dati della scuola</label>
+  <label>anche i dati di un file JSON <input type="file" name="file" accept=".json,application/json" style="font: inherit"></label>
 </div>
 <div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-top: 10px;">
   <label>Fase 1 (s) <input type="number" name="fase1" min="1" value="60"></label>
@@ -21,4 +22,6 @@
 </div>
 <p class="tenue piccolo">Fase 1: tutti i casi, ognuno al massimo per il tempo indicato. Fase 2: di nuovo, piu' a lungo,
   i casi non finiti. Fase 3: i casi ancora non finiti, registrando la ricerca passo passo (i primi passi indicati, nel
-  database) per rivederla dalla pagina del caso. {{ config.paralleli }} casi alla volta.</p>
+  database) per rivederla dalla pagina del caso. {{ config.paralleli }} casi alla volta. Il file JSON (esportato dai dati
+  della scuola o il <code>risultato.json</code> di una prova) aggiunge un caso con quei dati; per una prova ricorrente i
+  dati del file si conservano nella pianificazione.</p>

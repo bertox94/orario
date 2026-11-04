@@ -172,6 +172,42 @@ def _caso_della_scuola(c, scuola_id, prova_id):
     return _caso_con_dati(c, prova_id, modello.per_solver(modello.leggi(c, scuola_id)), 'dati della scuola')
 
 
+# ---- dati da un file caricato ----
+
+def verifica_dati(config, dati):
+    """Fa controllare al solver (--solo-verifica) dei dati in formato --input. Ritorna (dati normalizzati dal solver,
+    None) oppure (None, messaggio di errore)."""
+    exe = solver.compila(cartella_bin=config.cartella_bin)
+    cartella = _cartella_lavoro(config)
+    try:
+        file = os.path.join(cartella, 'dati.json')
+        with open(file, 'w') as f:
+            json.dump(dati, f, ensure_ascii=False)
+        r = solver.esegui(exe, {'tipo': 'input', 'file': file}, {'solo_verifica': True, 'motivi': False, 'tempo': 60}, cartella)
+    finally:
+        shutil.rmtree(cartella, ignore_errors=True)
+    if r['esito'] == 'errore nei dati' or not r.get('json'):
+        return None, r.get('errore_dati') or r['esito']
+    return r['json']['dati'], None
+
+
+def dati_da_file_caricato(config, f):
+    """I dati di un caso da un file JSON caricato dal modulo (un file esportato dai dati della scuola oppure il
+    risultato.json di una prova). Ritorna (dati in formato --input, nome del caso, None) oppure (None, None, errore)."""
+    try:
+        contenuto = json.load(f)
+    except ValueError:
+        return None, None, 'Il file non e\' JSON valido.'
+    dati = contenuto.get('dati', contenuto) if isinstance(contenuto, dict) else None
+    if not isinstance(dati, dict) or 'lezioni' not in dati:
+        return None, None, 'Formato del file sconosciuto: serve un file esportato dai dati o il risultato.json di una prova.'
+    dati, errore = verifica_dati(config, dati)
+    if errore:
+        return None, None, 'File non valido: %s' % errore
+    nome = (f.filename or 'file').rsplit('/', 1)[-1][:60]
+    return dati, 'file %s' % nome, None
+
+
 # ---- test in tempo reale ----
 
 def prepara_vista(config, exe, caso, prova_id):
@@ -311,10 +347,12 @@ def _esegui_notturna(config, prova):
     try:
         exe = solver.compila(cartella_bin=config.cartella_bin)
         casi = casi_della_notturna(o)
-        if o.get('scuola'):
-            with db.connetti(config.database_url) as c:
+        with db.connetti(config.database_url) as c:
+            if o.get('file'):  # i dati di un file caricato, conservati nelle opzioni della prova
+                casi.insert(0, _caso_con_dati(c, pid, o['file']['dati'], o['file']['nome']))
+            if o.get('scuola'):
                 casi.insert(0, _caso_della_scuola(c, prova['scuola_id'], pid))
-                c.commit()
+            c.commit()
         base = {'motivi': True, 'ordine_classi': o.get('ordine_classi'), 'ore_obbligatorie': o.get('ore_obbligatorie'),
                 'ore_prof_classe': o.get('ore_prof_classe'), 'classi_giorno': o.get('classi_giorno')}
         ultimi = {}  # nome caso -> ultimo risultato

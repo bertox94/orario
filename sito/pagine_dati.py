@@ -8,7 +8,7 @@ import tempfile
 import psycopg
 from flask import Blueprint, Response, current_app, flash, g, redirect, render_template, request, url_for
 
-from . import modello, solver
+from . import esecutore, modello, solver
 from .db import conn
 
 bp = Blueprint('dati', __name__, url_prefix='/dati')
@@ -313,17 +313,11 @@ def importa_file():
     if not request.form.get('conferma') or not f:
         flash('Scegli un file e spunta la conferma: l\'importazione sostituisce tutti i dati presenti.', 'errore')
         return redirect(url_for('.indice'))
-    try:
-        contenuto = json.load(f)
-    except ValueError:
-        flash('Il file non e\' JSON valido.', 'errore')
+    dati, nome, errore = esecutore.dati_da_file_caricato(_config(), f)
+    if errore:
+        flash(errore, 'errore')
         return redirect(url_for('.indice'))
-    dati = contenuto.get('dati', contenuto) if isinstance(contenuto, dict) else None
-    r = _verifica(dati) if isinstance(dati, dict) else {'esito': 'errore nei dati', 'errore_dati': 'formato sconosciuto'}
-    if r['esito'] == 'errore nei dati' or not r.get('json'):
-        flash('File non valido: %s' % (r.get('errore_dati') or r['esito']), 'errore')
-        return redirect(url_for('.indice'))
-    _sostituisci_con_copia(r['json']['dati'], 'Dati importati dal file.', 'file %s' % (f.filename or '')[:60])
+    _sostituisci_con_copia(dati, 'Dati importati dal file.', nome)
     return redirect(url_for('.indice'))
 
 

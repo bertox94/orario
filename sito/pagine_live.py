@@ -56,6 +56,9 @@ def avvia():
     dati_input = None
     if f.get('sorgente') == 'scuola':
         caso = {'tipo': 'scuola'}
+    elif f.get('sorgente') == 'file' and not (request.files.get('file') and request.files['file'].filename):
+        flash('Scegli il file JSON da caricare.', 'errore')
+        return redirect(url_for('.indice'))
     elif f.get('sorgente') == 'modificati':
         # test manuale: i dati della scuola con le modifiche del modulo (ore di ingresso, ore, codocenze), senza
         # cambiare i dati veri
@@ -66,6 +69,14 @@ def avvia():
             return redirect(url_for('.indice', modificati=1))
         caso = {'tipo': 'input', 'nome': 'dati modificati'}
         dati_input = modello.per_solver(dati)
+    elif f.get('sorgente') == 'file':
+        # i dati di un file JSON caricato (esportato dai dati, o il risultato.json di una prova)
+        dati, nome, errore = esecutore.dati_da_file_caricato(_config(), request.files.get('file'))
+        if errore:
+            flash(errore, 'errore')
+            return redirect(url_for('.indice'))
+        caso = {'tipo': 'input', 'nome': nome}
+        dati_input = dati
     elif f.get('sorgente') == 'esecuzione':
         # rifa' una ricerca con gli stessi dati (e lo stesso ordine) di un'esecuzione di questa scuola
         vecchia = conn().execute('select e.risultato, e.caso_dati from esecuzioni e join prove p on p.id = e.prova_id '

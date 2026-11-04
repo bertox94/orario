@@ -266,7 +266,9 @@ evidenziato nell'orario, non i docenti dello slot in esame, la cui coda non è m
      lezioni. I **totali** di ogni classe e di ogni docente si aggiornano subito, con l'avviso se una classe ha meno
      ore delle obbligatorie o più degli slot, o se un docente ha più ore di quante ne può fare dalla sua ora di ingresso.
      I dati veri non cambiano; la prova conserva la propria copia e la si può rifare identica;
-   - *Dati casuali*: seme, numero di classi, docenti in ritardo.
+   - *Dati casuali*: seme, numero di classi, docenti in ritardo;
+   - *Da un file JSON*: un file esportato dai dati della scuola (anche di un'altra scuola) o il `risultato.json` di una
+     prova; la prova usa quei dati senza toccare quelli della scuola.
 3. **Ricerca**: tempo massimo, quanti orari trovare, registrazione passo passo (con il numero di passi). Sotto «Parametri
    avanzati»: ore obbligatorie al giorno (5), ore massime di un docente nella stessa classe al giorno (3), classi diverse
    per docente al giorno (3) e l'ordine delle classi (un seed). I motivi di scarto dei docenti si registrano sempre.
@@ -278,5 +280,6 @@ evidenziato nell'orario, non i docenti dello slot in esame, la cui coda non è m
 6. **Casi dei test notturni da verificare**: in «Test in tempo reale» sotto il modulo c'è l'elenco degli ultimi casi non
    risolti dei notturni; «Verifica» li carica nel modulo (stessi dati e opzioni, anche per i dati della scuola) per rifarli
    a mano con altri parametri, tempo o ordine delle classi. Lo stesso pulsante «Verifica a mano» c'è nella pagina di ogni prova notturna.
-7. **Test notturni**: batterie di casi (casuali e/o dati della scuola) in tre fasi, subito, a un'ora o ogni settimana;
-   si confrontano due prove tra loro.
+7. **Test notturni**: batterie di casi (casuali, dati della scuola e/o i dati di un file JSON caricato) in tre fasi,
+   subito, a un'ora o ogni settimana (per le prove ricorrenti i dati del file restano nella pianificazione); si
+   confrontano due prove tra loro.

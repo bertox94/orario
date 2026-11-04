@@ -4,7 +4,7 @@
 <h1>Test in tempo reale</h1>
 {% set c = rilancio.caso_dati if rilancio else {} %}
 {% set o = rilancio.opzioni if rilancio else {} %}
-<form method="post" action="{{ url_for('live.avvia') }}" class="scheda" id="caso">
+<form method="post" action="{{ url_for('live.avvia') }}" class="scheda" id="caso" enctype="multipart/form-data">
   <input type="hidden" name="_gettone" value="{{ gettone }}">
   <h2 style="margin-top: 0">Caso</h2>
   <div class="riga" style="display: flex; flex-wrap: wrap; gap: 16px; align-items: end;">
@@ -16,6 +16,8 @@
       Dati della scuola, modificati per questa prova</label>
     <label class="spunta"><input type="radio" name="sorgente" value="casuale"
       {{ 'checked' if not preseleziona_scuola and not modificati and c.get('tipo', 'casuale') == 'casuale' }}> Dati casuali</label>
+    <label class="spunta"><input type="radio" name="sorgente" value="file"> Da un file JSON
+      <input type="file" name="file" accept=".json,application/json" style="font: inherit"></label>
     {% if c.get('tipo') == 'input' %}
     <label class="spunta"><input type="radio" name="sorgente" value="esecuzione" checked> {{ c.nome }}</label>
     <input type="hidden" name="eid" value="{{ rilancio.id }}"><input type="hidden" name="nome" value="{{ c.nome }}">
@@ -26,6 +28,8 @@
     <label>Classi <input type="number" name="classi" min="1" max="120" value="{{ c.get('classi', 8) }}"></label>
     <label class="spunta"><input type="checkbox" name="ritardi" value="1" {{ 'checked' if c.get('ritardi') }}> Docenti in ritardo</label>
   </div>
+  <p class="tenue piccolo">Il file JSON è un file esportato dai dati della scuola (anche di un'altra scuola) oppure il
+    <code>risultato.json</code> di una prova: la prova usa quei dati senza toccare quelli della scuola.</p>
 
   {% if dati %}
   <details id="modifiche" {{ 'open' if modificati }}>

@@ -29,9 +29,19 @@ def _intero(nome, predefinito, minimo=0, massimo=None):
 
 
 def _opzioni_dal_modulo():
+    """Le opzioni di una prova notturna (o di una pianificazione) dal modulo. Con un file JSON caricato i suoi dati
+    finiscono nelle opzioni (chiave 'file'), cosi' la prova, anche ricorrente, li ha sempre. Alza ValueError se il file
+    non va bene."""
     f = request.form
     varianti = [v for v in ('normale', 'ritardi') if f.get('variante_' + v)]
-    return {'semi_da': _intero('semi_da', 1), 'quanti': _intero('quanti', 20, 0, 10000),
+    file = None
+    caricato = request.files.get('file')
+    if caricato and caricato.filename:
+        dati, nome, errore = esecutore.dati_da_file_caricato(_config(), caricato)
+        if errore:
+            raise ValueError(errore)
+        file = {'nome': nome, 'dati': dati}
+    return {'file': file, 'semi_da': _intero('semi_da', 1), 'quanti': _intero('quanti', 20, 0, 10000),
             'classi': _intero('classi', 8, 1, 120), 'varianti': varianti or ['normale'],
             'scuola': bool(f.get('scuola')), 'ordine_classi': _intero('ordine_classi', 0) if f.get('ordine_classi', '').strip().isdigit() else None,
             'fase1': _intero('fase1', 60, 1), 'fase2': _intero('fase2', 600), 'fase3': _intero('fase3', 600),
@@ -78,12 +88,16 @@ def indice():
 
 @bp.route('/nuova', methods=['POST'])
 def nuova():
-    o = _opzioni_dal_modulo()
+    try:
+        o = _opzioni_dal_modulo()
+    except ValueError as e:
+        flash(str(e), 'errore')
+        return redirect(url_for('.indice'))
     quando = None
     if request.form.get('quando') == 'ora_data' and request.form.get('ora_data'):
         quando = datetime.datetime.fromisoformat(request.form['ora_data']).astimezone()
-    if not o['quanti'] and not o['scuola']:
-        flash('La prova non ha casi: indica quanti semi o includi i dati della scuola.', 'errore')
+    if not o['quanti'] and not o['scuola'] and not o['file']:
+        flash('La prova non ha casi: indica quanti semi, includi i dati della scuola o carica un file.', 'errore')
         return redirect(url_for('.indice'))
     pid = esecutore.crea_notturna(conn(), _sid(), o, quando, nome=request.form.get('nome') or None)
     flash('Prova %d %s.' % (pid, 'messa in coda' if quando is None else 'programmata per ' + quando.strftime('%d/%m %H:%M')), 'ok')
@@ -97,9 +111,13 @@ def nuova_pianificazione():
         flash('Scegli almeno un giorno della settimana.', 'errore')
         return redirect(url_for('.indice'))
     ora = datetime.time.fromisoformat(request.form.get('ora') or '22:00')
+    try:
+        o = _opzioni_dal_modulo()
+    except ValueError as e:
+        flash(str(e), 'errore')
+        return redirect(url_for('.indice'))
     conn().execute('insert into pianificazioni (scuola_id, nome, ora, giorni, opzioni) values (%s, %s, %s, %s, %s)',
-                   (_sid(), request.form.get('nome') or 'Notturna', ora, giorni,
-                    json.dumps(_opzioni_dal_modulo())))
+                   (_sid(), request.form.get('nome') or 'Notturna', ora, giorni, json.dumps(o)))
     flash('Pianificazione aggiunta.', 'ok')
     return redirect(url_for('.indice'))
 

@@ -35,7 +35,7 @@
 {% if prove|length > 1 %}<p><button form="confronto" class="secondario">Confronta A con B</button></p>{% endif %}
 
 <h2>Nuova prova</h2>
-<form method="post" action="{{ url_for('notturni.nuova') }}" class="scheda">
+<form method="post" action="{{ url_for('notturni.nuova') }}" class="scheda" enctype="multipart/form-data">
   <input type="hidden" name="_gettone" value="{{ gettone }}">
   <div class="riga" style="display: flex; flex-wrap: wrap; gap: 16px; align-items: end; margin-bottom: 10px;">
     <label>Nome <input name="nome" placeholder="es. prima della modifica X" size="28"></label>
@@ -58,7 +58,7 @@
       <td>{{ p.ora.strftime('%H:%M') }}</td>
       <td>{% for g in p.giorni %}{{ nomi_giorni[g] }}{{ ' ' if not loop.last }}{% endfor %}</td>
       <td class="piccolo">semi {{ p.opzioni.semi_da }}–{{ p.opzioni.semi_da + p.opzioni.quanti - 1 }}, {{ p.opzioni.classi }} classi,
-        {{ p.opzioni.varianti|join(' e ') }}{{ ', scuola' if p.opzioni.scuola }}</td>
+        {{ p.opzioni.varianti|join(' e ') }}{{ ', scuola' if p.opzioni.scuola }}{{ ', ' ~ p.opzioni.file.nome if p.opzioni.get('file') }}</td>
       <td>{{ p.ultima_data or '-' }}</td>
       <td>
         <form method="post" action="{{ url_for('notturni.attiva_pianificazione', pid=p.id) }}" class="in-linea">
@@ -78,7 +78,7 @@
 </table>
 
 <h3>Nuova prova ricorrente</h3>
-<form method="post" action="{{ url_for('notturni.nuova_pianificazione') }}" class="scheda">
+<form method="post" action="{{ url_for('notturni.nuova_pianificazione') }}" class="scheda" enctype="multipart/form-data">
   <input type="hidden" name="_gettone" value="{{ gettone }}">
   <div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-bottom: 10px;">
     <label>Nome <input name="nome" value="Notturna" size="16"></label>
