@@ -259,7 +259,29 @@ function codaAlPassaggio(dati, urlAnalisi) {
   pannello.addEventListener('mouseleave', () => { if (!SENZA_MOUSE) nascondi(); });
   document.addEventListener('click', () => { if (cellaAperta) nascondi(); });  // tocco fuori: chiude
   const C = dati.classi.length, O = dati.ore.length;
-  return fonte => (g, o, c, td, ev) => {
+  // Scarica (se non in cache) l'analisi dello slot pos per lo stato f; usata dall'hover e dal precaricamento.
+  async function carica(f, pos) {
+    const chiave = `${f.chiave}:${pos}`;
+    if (cache[chiave]) return chiave;
+    const slot = [];
+    for (let i = 0; i < pos; i++) {
+      const gg = Math.floor(i / (O * C)), oo = Math.floor(i / C) % O, cc = f.ordine[i % C];
+      const [p, q] = f.orario[gg][oo][cc];
+      slot.push(p < 0 ? '-' : q >= 0 ? `${p}+${q}` : String(p));
+    }
+    try {
+      const risp = await fetch(urlAnalisi, {method: 'POST', body: JSON.stringify({pos, slot}),
+        headers: {'Content-Type': 'application/json', 'X-Gettone': window.GETTONE}});
+      const r = await risp.json();
+      if (r.potatura && pos > 0) {  // la causa e' la scelta dello slot prima
+        const k = pos - 1, cc = f.ordine[k % C];
+        r.potatura.slotNome = `${dati.giorni[Math.floor(k / (O * C))]} ${dati.ore[Math.floor(k / C) % O]} ${dati.classi[cc].nome}`;
+      }
+      cache[chiave] = r;
+    } catch (e) { cache[chiave] = {errore: 'Analisi non disponibile.'}; }
+    return chiave;
+  }
+  const al = fonte => (g, o, c, td, ev) => {
     clearTimeout(timer);
     if (g == null) {  // il mouse e' uscito dalla cella: breve attesa, il tempo di arrivare sul pannello
       clearTimeout(timerChiusura);
@@ -282,23 +304,7 @@ function codaAlPassaggio(dati, urlAnalisi) {
       rettangolo = td.getBoundingClientRect();
       contenuto.textContent = 'Calcolo della coda...';
       posiziona();
-      if (!cache[chiave]) {
-        const slot = [];
-        for (let i = 0; i < pos; i++) {
-          const gg = Math.floor(i / (O * C)), oo = Math.floor(i / C) % O, cc = f.ordine[i % C];
-          const [p, q] = f.orario[gg][oo][cc];
-          slot.push(p < 0 ? '-' : q >= 0 ? `${p}+${q}` : String(p));
-        }
-        try {
-          const risp = await fetch(urlAnalisi, {method: 'POST', body: JSON.stringify({pos, slot}),
-            headers: {'Content-Type': 'application/json', 'X-Gettone': window.GETTONE}});
-          cache[chiave] = await risp.json();
-          if (cache[chiave].potatura && pos > 0) {  // la causa e' la scelta dello slot prima
-            const k = pos - 1, cc = f.ordine[k % C];
-            cache[chiave].potatura.slotNome = `${dati.giorni[Math.floor(k / (O * C))]} ${dati.ore[Math.floor(k / C) % O]} ${dati.classi[cc].nome}`;
-          }
-        } catch (e) { cache[chiave] = {errore: 'Analisi non disponibile.'}; }
-      }
+      await carica(f, pos);
       if (pannello.style.display === 'none' || cellaAperta !== td) return;
       mostraAnalisi(contenuto, dati, cache[chiave], f.orario[g][o][c], `${dati.giorni[g]} ${dati.ore[o]} ${dati.classi[c].nome}`,
         f.limite != null && pos === f.limite ? (f.testoLimite || true) : false, c, o, pannello);
@@ -306,6 +312,12 @@ function codaAlPassaggio(dati, urlAnalisi) {
       pannello.scrollTop = 0;
     }, tocco ? 0 : 250);
   };
+  // precarica in cache la finestra dello slot pos (per la cella evidenziata del passo corrente)
+  al.precarica = (fonte, pos) => {
+    const f = typeof fonte === 'function' ? fonte() : fonte;
+    if (f && pos != null && pos >= 0 && (f.limite == null || pos <= f.limite)) carica(f, pos);
+  };
+  return al;
 }
 
 // La ricerca passo passo (registrata con --passi): l'orario parziale a ogni passo, dal passo 0 (orario vuoto), con lo
