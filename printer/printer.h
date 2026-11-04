@@ -32,8 +32,7 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
 //   S m                           subito dopo la P di un nodo scartato dalla potatura (m: 0 lezioni della classe, 1 ore
 //                                 dei docenti, come diagnosi_ramo_scartato); se invece il nodo non ha nessun docente
 //                                 utilizzabile, dopo la P c'e' la sua riga B
-//   R pos                         ogni volta che la ricerca torna al nodo pos dopo aver annullato la scelta del suo slot
-// Dopo N righe P la ricerca continua senza scrivere piu' niente (nemmeno B, M, R), cosi' il file resta piccolo.
+// Dopo N righe P la ricerca continua senza scrivere piu' niente (nemmeno B, M), cosi' il file resta piccolo.
 // Con --motivi, subito dopo ogni riga B c'e' una riga "M d:m d:m ...": per ogni docente d che nella classe aveva ancora
 // ore da fare, il motivo m (come in "nomi_motivi" del JSON) per cui non si e' potuto mettere nello slot.
 void stampa_intestazione_marce_compatte(FILE *f);
