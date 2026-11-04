@@ -109,9 +109,9 @@ function disegnaOrarioDocenti(contenitore, dati, orario, alPassaggio) {
   contenitore.replaceChildren(el('table', {class: 'orario'}, [intestazione(dati, 'Docente'), corpo]));
 }
 
-// Statistiche dei dati del caso: per ogni docente le classi in cui insegna (con le ore) e le codocenze, piu' un
-// grafo delle codocenze (docenti su un cerchio, un arco per coppia, spessore = ore insieme). I dati non cambiano
-// durante la ricerca: si disegna una volta sola.
+// Statistiche dei dati del caso: per ogni classe le ore da fare e quante ne restano buche, per ogni docente le classi
+// in cui insegna (con le ore) e le codocenze, piu' un grafo delle codocenze (docenti su un cerchio, un arco per
+// coppia, spessore = ore insieme). I dati non cambiano durante la ricerca: si disegna una volta sola.
 function disegnaDocentiCaso(contenitore, dati) {
   if (!contenitore || contenitore.dataset.fatto || !dati || !dati.lezioni) return;
   contenitore.dataset.fatto = '1';
@@ -130,7 +130,31 @@ function disegnaDocentiCaso(contenitore, dati) {
       coppie[k] = (coppie[k] || 0) + l.ore;
     }
   }
-  // tabella
+  // tabella delle classi: ore da fare, slot della settimana e ore buche (slot che resteranno vuoti)
+  const slotSettimana = dati.giorni.length * dati.ore.length;
+  const corpoClassi = el('tbody');
+  let oreTot = 0, lezTot = 0;
+  dati.classi.forEach((cl, c) => {
+    const lez = dati.lezioni.filter(l => l.classe === c).reduce((s, l) => s + l.ore, 0);
+    const ore = cl.ore != null ? cl.ore : lez;
+    oreTot += ore; lezTot += lez;
+    const buche = slotSettimana - ore;
+    corpoClassi.appendChild(el('tr', {}, [el('td', {testo: cl.nome, style: 'white-space: nowrap'}),
+      el('td', {class: 'num', testo: ore}), el('td', {class: 'num', testo: lez}),
+      el('td', {class: 'num', testo: slotSettimana}),
+      el('td', {class: 'num' + (buche < 0 ? ' avviso' : ''), testo: buche})]));
+  });
+  corpoClassi.appendChild(el('tr', {style: 'font-weight: 600'}, [el('td', {testo: 'Totale'}),
+    el('td', {class: 'num', testo: oreTot}), el('td', {class: 'num', testo: lezTot}),
+    el('td', {class: 'num', testo: slotSettimana * dati.classi.length}),
+    el('td', {class: 'num', testo: slotSettimana * dati.classi.length - oreTot})]));
+  const tabellaClassi = el('div', {class: 'scorre', style: 'flex: 1 1 320px'}, [el('table', {class: 'dati'}, [
+    el('thead', {}, [el('tr', {}, [el('th', {testo: 'Classe'}), el('th', {class: 'num', title: 'ore di lezione che la classe deve fare', testo: 'Ore'}),
+      el('th', {class: 'num', title: 'somma delle ore delle sue lezioni', testo: 'Lezioni'}),
+      el('th', {class: 'num', title: 'slot della settimana (giorni × ore)', testo: 'Slot'}),
+      el('th', {class: 'num', title: 'slot che resteranno vuoti (solo dopo le ore obbligatorie)', testo: 'Buche'})])]), corpoClassi])]);
+
+  // tabella dei docenti
   const corpo = el('tbody');
   perDocente.forEach((s, d) => {
     if (!s.tot) return;
@@ -187,7 +211,7 @@ function disegnaDocentiCaso(contenitore, dati) {
         + (senza ? ` ${senza} docenti senza codocenze non sono nel grafo.` : '')})]);
   }
   contenitore.replaceChildren(el('div', {style: 'display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start'},
-    grafo ? [tabella, grafo] : [tabella]));
+    [tabellaClassi, tabella, ...(grafo ? [grafo] : [])]));
 }
 
 // Mappa dei blocchi (prova in corso): valore(g, o, c) per ogni slot; colore proporzionale (in scala logaritmica) al massimo.
