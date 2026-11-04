@@ -21,8 +21,9 @@
 </p>
 
 <h2>Dove si blocca la ricerca</h2>
-<p class="tenue piccolo">Marce indietro e rami scartati in ogni slot, aggiornati ogni secondo. Pochi slot molto
-  colorati = blocco localizzato (spesso un caso impossibile o una scelta sbagliata poco prima).</p>
+<p class="tenue piccolo">Quante volte la ricerca si è bloccata in ogni slot, aggiornato ogni secondo: nessun docente
+  utilizzabile in quello slot, oppure ramo scartato subito dopo quella scelta. Pochi slot molto colorati = blocco
+  localizzato (spesso un caso impossibile o una scelta sbagliata poco prima).</p>
 <div id="mappa" class="scorre"><p class="tenue">In attesa dei primi dati…</p></div>
 
 <div id="sezione-passi" style="display: none">
@@ -69,7 +70,7 @@ async function aggiorna() {
     const totale = dati ? dati.giorni.length * dati.ore.length * dati.classi.length : 0;
     document.getElementById('posizione').textContent = p.pos + ' / ' + p.pos_max + (totale ? ' di ' + totale : '');
     if (totale) document.getElementById('barra').style.width = (100 * p.pos_max / totale).toFixed(1) + '%';
-    if (dati) disegnaMappa(document.getElementById('mappa'), dati, blocchiDaProgresso(dati, p), 'marce indietro + rami scartati');
+    if (dati) disegnaMappa(document.getElementById('mappa'), dati, blocchiDaProgresso(dati, p), 'blocchi');
   }
   setTimeout(aggiorna, 1000);
 }
