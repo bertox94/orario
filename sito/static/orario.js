@@ -146,19 +146,20 @@ function compatto(v) {
   return String(v);
 }
 
-// Dal JSON del solver (pagina del caso): blocchi in uno slot = marce indietro + rami scartati dopo lo slot.
+// I blocchi di uno slot per la mappa: quante volte la ricerca e' arrivata a quello slot mentre era la posizione massima
+// raggiunta, senza superarla (diagnosi.blocchi del JSON del solver). Le prove fatte prima di questo conteggio hanno
+// solo marce indietro e rami scartati: si sommano quelli.
 function blocchiDaRisultato(diagnosi) {
+  if (diagnosi.blocchi) return (g, o, c) => diagnosi.blocchi[g][o][c];
   const scartati = Object.values(diagnosi.scartati || {});
   return (g, o, c) => diagnosi.marce[g][o][c] + scartati.reduce((s, t) => s + t[g][o][c], 0);
 }
 
-// Dalla riga di progresso (prova in corso): tabelle piatte con indice (g * ore + o) * classi + c.
+// Lo stesso dalla riga di progresso (prova in corso): tabella piatta con indice (g * ore + o) * classi + c.
 function blocchiDaProgresso(dati, p) {
   const O = dati.ore.length, C = dati.classi.length;
-  return (g, o, c) => {
-    const i = (g * O + o) * C + c;
-    return (p.marce_slot[i] || 0) + (p.scartati_slot[i] || 0);
-  };
+  const t = p.blocchi_slot || p.marce_slot || [];
+  return (g, o, c) => t[(g * O + o) * C + c] || 0;
 }
 
 function numeroIt(v) { return v == null ? '-' : Number(v).toLocaleString('it-IT'); }
