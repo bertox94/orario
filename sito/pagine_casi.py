@@ -77,7 +77,9 @@ def passi_della_ricerca(eid):
     nomi = [cl['nome'] for cl in ((e['risultato'] or {}).get('dati') or {}).get('classi', [])]
     try:
         if request.args.get('totale'):
-            return jsonify({'totale': passi.totale(url, eid, finito)})
+            # se il solver lo ha scritto nel JSON si usa quello: contarli vorrebbe dire leggere tutto il file
+            n = (((e['risultato'] or {}).get('esito') or {}).get('passi_registrati'))
+            return jsonify({'totale': n if n is not None else passi.totale(url, eid, finito)})
         if request.args.get('da'):
             return jsonify(passi.blocco_passi(url, eid, request.args.get('da', 1, type=int), request.args.get('k', 500, type=int), nomi))
         if request.args.get('vicoli'):
