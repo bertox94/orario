@@ -38,6 +38,7 @@ def avvia(app):
     _avviato = True
     config = app.config['SITO']
     riprendi_dopo_riavvio(config)
+    pianificazioni_predefinite(config)
     threading.Thread(target=_ciclo_pianificazioni, args=(config,), daemon=True, name='pianificazioni').start()
     threading.Thread(target=_ciclo_notturni, args=(config,), daemon=True, name='notturni').start()
 
@@ -170,6 +171,37 @@ def _caso_con_dati(c, prova_id, dati, nome):
 def _caso_della_scuola(c, scuola_id, prova_id):
     """Fotografia dei dati della scuola: la prova usa i dati di quel momento."""
     return _caso_con_dati(c, prova_id, modello.per_solver(modello.leggi(c, scuola_id)), 'dati della scuola')
+
+
+# ---- pianificazione predefinita ----
+
+# La prova notturna consigliata: ogni notte alle 22, i semi 1-20 con 8 classi nelle due varianti, piu' i dati della
+# scuola; fasi 60 / 600 / 600 s, fase 3 con la ricerca passo passo.
+PIANIFICAZIONE_PREDEFINITA = {'semi_da': 1, 'quanti': 20, 'classi': 8, 'varianti': ['normale', 'ritardi'], 'scuola': True,
+                              'file': None, 'ordine_classi': None, 'fase1': 60, 'fase2': 600, 'fase3': 600,
+                              'passi': 100000, 'ore_obbligatorie': 5, 'ore_prof_classe': 3, 'classi_giorno': 3}
+
+
+def pianificazioni_predefinite(config):
+    """All'avvio: la pianificazione predefinita alle scuole che non ne hanno mai avuta una."""
+    with db.connetti(config.database_url) as c:
+        pianificazione_predefinita(c)
+        c.commit()
+
+
+def pianificazione_predefinita(c, scuola_id=None):
+    """A ogni scuola (o alla sola scuola_id) che non ha mai avuto una pianificazione ne crea una predefinita (vedi
+    sopra), una volta sola: se poi la si cancella o la si sospende non si ricrea (lo ricorda la tabella impostazioni)."""
+    scuole = c.execute('select id, nome from scuole where %s::int is null or id = %s order by id', (scuola_id, scuola_id)).fetchall()
+    for s in scuole:
+        chiave = 'pianificazione_predefinita_%d' % s['id']
+        if c.execute('select 1 from impostazioni where nome = %s', (chiave,)).fetchone():
+            continue
+        if not c.execute('select 1 from pianificazioni where scuola_id = %s', (s['id'],)).fetchone():
+            c.execute('insert into pianificazioni (scuola_id, nome, ora, giorni, opzioni) values (%s, %s, %s, %s, %s)',
+                      (s['id'], 'Notturna', datetime.time(22, 0), [1, 2, 3, 4, 5, 6, 7], json.dumps(PIANIFICAZIONE_PREDEFINITA)))
+            print('Scuola «%s»: aggiunta la prova notturna predefinita (ogni notte alle 22).' % s['nome'], flush=True)
+        c.execute("insert into impostazioni (nome, valore) values (%s, 'fatto') on conflict do nothing", (chiave,))
 
 
 # ---- dati da un file caricato ----

@@ -282,4 +282,6 @@ evidenziato nell'orario, non i docenti dello slot in esame, la cui coda non è m
    a mano con altri parametri, tempo o ordine delle classi. Lo stesso pulsante «Verifica a mano» c'è nella pagina di ogni prova notturna.
 7. **Test notturni**: batterie di casi (casuali, dati della scuola e/o i dati di un file JSON caricato) in tre fasi,
    subito, a un'ora o ogni settimana (per le prove ricorrenti i dati del file restano nella pianificazione); si
-   confrontano due prove tra loro.
+   confrontano due prove tra loro. Ogni scuola nasce con una prova ricorrente predefinita, «Notturna»: ogni notte alle
+   22, i semi 1–20 con 8 classi (normali e con ritardi) più i dati della scuola, fasi 60 / 600 / 600 s, fase 3 passo
+   passo. Si può sospendere, cambiare o cancellare: non viene ricreata.

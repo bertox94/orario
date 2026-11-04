@@ -37,6 +37,8 @@ def crea_scuola(c, nome):
     """Una scuola nuova, con il calendario predefinito. Ritorna l'id."""
     sid = c.execute('insert into scuole (nome) values (%s) returning id', (nome,)).fetchone()['id']
     c.execute('insert into calendario (scuola_id, giorni, ore) values (%s, %s, %s)', (sid,) + CALENDARIO_PREDEFINITO)
+    from . import esecutore  # importato qui: esecutore importa modello e solver, che non servono al login
+    esecutore.pianificazione_predefinita(c, sid)  # la prova notturna consigliata, finche' non la si cambia
     return sid
 
 
