@@ -245,8 +245,8 @@ massimo di classi al giorno, codocente, regola del sabato (✔ rispettato, ✘ n
 pulsante in cima nasconde o mostra queste frasi. La finestra si scorre con la rotella o con il dito; con il mouse resta
 aperta se ci porti sopra il puntatore, e si chiude con ✕ o toccando fuori. Un passo in cui non c'era nessun docente
 utilizzabile è segnalato, con i motivi. I «blocchi» sono i vicoli ciechi: tutti i controlli passano
-ma nessun docente è utilizzabile e lo slot non può restare vuoto; i rami scartati dalla potatura non si contano (sono
-scelte errate già rilevate dal codice, e dalla potatura anticipata non sono nemmeno più passi registrati). L'ora buca,
+ma nessun docente è utilizzabile e lo slot non può restare vuoto; i rami scartati dalla potatura si vedono come passi
+ma non si contano tra i blocchi (sono scelte errate già rilevate dal codice). L'ora buca,
 in cui la ricerca prosegue con lo slot vuoto, si vede nella riga di stato ma non è un blocco. I pulsanti sotto la barra
 saltano da un vicolo cieco all'altro e durante l'animazione la pagina scorre per tenere in vista la cella che si sta
 decidendo. Nella finestra, per ogni docente utilizzabile, c'è anche l'esito della potatura: se mettendolo il ramo
