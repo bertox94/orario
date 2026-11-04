@@ -26,6 +26,7 @@ static double prossimo_progresso = 0;
 
 static int registra_motivi = 0;
 static long long int marce_per_pos[N_SLOT];                // marce indietro per slot
+long long int blocchi_per_pos[N_SLOT + 1];                 // arrivi alla frontiera per slot (vedi diagnosi.h)
 long long int visite_per_pos[N_SLOT + 1];                  // nodi per slot (+1: la posizione dopo l'ultimo slot)
 static stato_blocco_t ultima_marcia[N_SLOT];
 static stato_blocco_t ultimo_scarto[N_SLOT][N_MOTIVI_SCARTO];
@@ -74,27 +75,18 @@ void diagnosi_richiesta_di_arresto(const int segnale) {
 }
 
 // Una riga di avanzamento: PROGRESSO {"secondi", "nodi", "marce", "scartati", "pos", "pos_max", "trovati",
-// "marce_slot", "scartati_slot"}. Le due tabelle per slot sono piatte, nell'ordine [giorno][ora][classe] con la classe
-// come indice dei dati (come nel JSON finale): indice (giorno * ore + ora) * classi + classe.
+// "blocchi_slot"}. La tabella per slot (i blocchi, vedi diagnosi_blocchi_nello_slot) e' piatta, nell'ordine [giorno][ora][classe]
+// con la classe come indice dei dati (come nel JSON finale): indice (giorno * ore + ora) * classi + classe.
 static void stampa_progresso(const int pos, const double adesso) {
     long long int scartati_tot = 0;
     for (int m = 0; m < N_MOTIVI_SCARTO; m++) scartati_tot += scartati[m];
     printf("PROGRESSO {\"secondi\": %.1f, \"nodi\": %lld, \"marce\": %lld, \"scartati\": %lld, \"pos\": %d, "
-           "\"pos_max\": %d, \"trovati\": %lld, \"marce_slot\": [", adesso - inizio_ricerca, nodi, n_backtrack,
+           "\"pos_max\": %d, \"trovati\": %lld, \"blocchi_slot\": [", adesso - inizio_ricerca, nodi, n_backtrack,
            scartati_tot, pos, pos_max, n_gen);
     for (int g = 0; g < actual_giorni_settimana; g++)
         for (int o = 0; o < actual_ore_giornaliere; o++)
             for (int c = 0; c < actual_classi_sezione; c++)
-                printf(g + o + c ? ",%lld" : "%lld", marce_per_pos[slot_di(g, o, c)]);
-    printf("], \"scartati_slot\": [");
-    for (int g = 0; g < actual_giorni_settimana; g++)
-        for (int o = 0; o < actual_ore_giornaliere; o++)
-            for (int c = 0; c < actual_classi_sezione; c++) {
-                const int i = slot_di(g, o, c);
-                long long int n = 0;
-                for (int m = 0; m < N_MOTIVI_SCARTO; m++) n += scartati_per_pos[i][m];
-                printf(g + o + c ? ",%lld" : "%lld", n);
-            }
+                printf(g + o + c ? ",%lld" : "%lld", blocchi_per_pos[slot_di(g, o, c)]);
     printf("]}\n");
     fflush(stdout);
 }
@@ -392,6 +384,7 @@ void diagnosi_scrivi_motivi_ultima_marcia(FILE *f) {
 /* ---- lettura dei contatori ---- */
 
 long long int diagnosi_marce_nello_slot(const int pos) { return marce_per_pos[pos]; }
+long long int diagnosi_blocchi_nello_slot(const int pos) { return blocchi_per_pos[pos]; }
 
 long long int diagnosi_scartati_nello_slot(const int pos, const int motivo_scarto) {
     return scartati_per_pos[pos][motivo_scarto];

@@ -54,6 +54,11 @@ static long long int marce(const int pos, const int arg) {
     return diagnosi_marce_nello_slot(pos);
 }
 
+static long long int blocchi(const int pos, const int arg) {
+    (void) arg;
+    return diagnosi_blocchi_nello_slot(pos);
+}
+
 static long long int scartati(const int pos, const int motivo_scarto) {
     return diagnosi_scartati_nello_slot(pos, motivo_scarto);
 }
@@ -143,7 +148,9 @@ static void scrivi_orario(FILE *f) {
 }
 
 static void scrivi_diagnosi(FILE *f) {
-    fputs("  \"diagnosi\": {\n    \"marce\": ", f);
+    fputs("  \"diagnosi\": {\n    \"blocchi\": ", f);
+    tabella_per_slot(f, blocchi, 0);
+    fputs(",\n    \"marce\": ", f);
     tabella_per_slot(f, marce, 0);
     fputs(",\n    \"scartati\": {", f);
     for (int m = 0; m < N_MOTIVI_SCARTO; m++) {
