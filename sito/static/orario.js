@@ -710,7 +710,7 @@ function spiegaMotivo(dati, a, c, classe, ora) {
         : st === 1 ? 'non ancora entrato' : st === 2 ? 'al massimo di ore in classe oggi' : st === 3 ? 'ore non contigue' : st === 4 ? 'al massimo di classi oggi' : 'libero') + ')');
       return 'ha solo ore in codocenza' + (p.length ? ': con ' + p.join(', ') : '') + ': nessun codocente utilizzabile'; }
     case 6: return `regola del sabato: nell'ora precedente ${(d.ora_precedente || []).map(nomeDoc).join(' e ')} deve continuare`;
-    case 7: return `un altro docente (${d.obbligato >= 0 ? nomeDoc(d.obbligato) : 'al limite delle sue ore'}) doveva per forza insegnare qui: gli altri non sono stati provati`;
+    case 7: return `non provato: ${a.obbligato >= 0 ? nomeDoc(a.obbligato) : 'un altro docente'} doveva per forza insegnare qui (è al limite delle sue ore e questa è la sua ultima classe possibile dell'ora)`;
     case 8: return 'non ha ore da fare in questa classe';
     default: return a.motivi[c.motivo];
   }
