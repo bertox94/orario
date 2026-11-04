@@ -297,6 +297,13 @@ function codaAlPassaggio(dati, urlAnalisi) {
             const k = pos - 1, cc = f.ordine[k % C];
             cache[chiave].potatura.slotNome = `${dati.giorni[Math.floor(k / (O * C))]} ${dati.ore[Math.floor(k / C) % O]} ${dati.classi[cc].nome}`;
           }
+          if (f.scarto && pos === f.limite - 1) {  // la scelta che ha causato lo scarto: anche le verifiche del nodo dopo
+            const slot2 = [...slot, (([p, q]) => p < 0 ? '-' : q >= 0 ? `${p}+${q}` : String(p))(f.orario[Math.floor(pos / (O * C))][Math.floor(pos / C) % O][f.ordine[pos % C]])];
+            const risp2 = await fetch(urlAnalisi, {method: 'POST', body: JSON.stringify({pos: pos + 1, slot: slot2}),
+              headers: {'Content-Type': 'application/json', 'X-Gettone': window.GETTONE}});
+            const dopo = await risp2.json();
+            if (dopo.potatura) { dopo.potatura.slotNome = `${dati.giorni[g]} ${dati.ore[o]} ${dati.classi[c].nome}`; cache[chiave].dopo = dopo.potatura; }
+          }
         } catch (e) { cache[chiave] = {errore: 'Analisi non disponibile.'}; }
       }
       if (pannello.style.display === 'none' || cellaAperta !== td) return;
@@ -322,7 +329,7 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
   let totale = null, n = 0, richiesta = 0, vicoli = [], vicoliTroncati = false, ultimo = null;
   // passando il mouse (o toccando) una cella: la coda dei docenti in quel punto e i vincoli, come nell'orario trovato
   const passaggio = codaAlPassaggio(dati, url.replace(/passi$/, 'analisi'))(
-    () => ultimo && {chiave: 'passo' + n, orario: ultimo.orario, ordine: ultimo.ordine, limite: ultimo.pos,
+    () => ultimo && {chiave: 'passo' + n, orario: ultimo.orario, ordine: ultimo.ordine, limite: ultimo.pos, scarto: ultimo.esito === 'scarto',
       testoLimite: ultimo.esito === 'scarto' ? ' · ramo scartato: la ricerca è tornata indietro subito dopo la scelta evidenziata'
       : ultimo.bloccato ? (ultimo.esito === 'vuoto' ? ' · qui nessun docente era utilizzabile: lo slot resta vuoto' : ' · qui nessun docente era utilizzabile (vicolo cieco)')
       : ultimo.pos >= ultimo.slot ? ' · orario completo' : ' · qui la ricerca sta decidendo'});
@@ -635,32 +642,11 @@ function mostraAnalisi(pannello, dati, a, scelto, titolo, bloccato, classe, ora,
       interruttore.textContent = mostraVincoli ? 'Nascondi le frasi per vincolo' : 'Mostra le frasi per vincolo'; }});
   // verifiche di potatura, fatte appena la ricerca entra nel nodo: una riga per ognuna. Se una fallisce la ricerca scarta il
   // ramo senza provare i docenti di questo slot (la causa e' la scelta fatta nello slot prima).
-  let causa = null, scartato = false;
-  if (a.potatura) {
-    const pot = a.potatura, C = pot.classe >= 0 ? dati.classi[pot.classe].nome : '';
-    const det = {classe: pot.classe, ore_classe: pot.ore_classe};
-    const nomeScelta = coppia(dati, pot.scelta[0], pot.scelta[1]);
-    const righe = pot.verifiche.map(v => {
-      const base = {...v, classe: pot.classe, ore_classe_fatte: pot.ore_classe_fatte, scelta: pot.scelta, slotNome: pot.slotNome};
-      if (v.motivo === 0)
-        return {v, base, ok: v.ok ? 1 : 0, testo: v.ok ? `Lezioni della classe ${C}: dopo la scelta in ${pot.slotNome} (${nomeScelta}) le lezioni che le restano bastano per gli slot che deve ancora riempire.`
-          : `Lezioni della classe ${C}: dopo la scelta in ${pot.slotNome} (${nomeScelta}) le lezioni che le restano NON bastano per gli slot che deve ancora riempire.`};
-      return {v, base, ok: !v.controllata ? -1 : v.ok ? 1 : 0, testo: !v.controllata ? 'Ore dei docenti: si controlla solo a inizio ora, e questo slot non è il primo dell\'ora.'
-        : v.ok ? 'Ore dei docenti: le ore che mancano a ogni docente stanno ancora nel tempo rimasto della settimana.'
-        : 'Ore dei docenti: le ore che mancano a un docente NON stanno più nel tempo rimasto della settimana.'};
-    });
-    scartato = righe.some(r => r.ok === 0);
-    const dettagli = righe.filter(r => r.ok === 0).flatMap(r => r.v.motivo === 0 ? dettaglioScartoLezioni(dati, det, r.base, pot.slotNome)
-      : dettaglioScartoDocenti(dati, det, r.base, pot.slotNome));
-    causa = el('div', {class: 'causa-scarto' + (scartato ? ' scartato' : '')}, [
-      el('p', {}, [el('strong', {testo: scartato ? '✂ Ramo scartato dalla potatura: ' : 'Verifiche di potatura (all\'ingresso in questo slot): '}),
-        el('span', {testo: scartato ? 'la ricerca non ha provato nessun docente qui. Non dipende dai docenti di questo slot: la coda sotto è quella che ci sarebbe stata, ma la ricerca non l\'ha mai guardata, perché una verifica è fallita.'
-          : 'tutte rispettate, quindi la ricerca prosegue a provare i docenti.'})]),
-      el('ul', {class: 'vincoli'}, righe.map(r => el('li', {class: r.ok === -1 ? 'na' : r.ok ? 'si' : 'no'},
-        [el('span', {class: 'segno', testo: r.ok === -1 ? '–' : r.ok ? '✔' : '✘'}), el('span', {testo: r.testo})]))),
-      ...dettagli]);
-  }
-  pannello.replaceChildren(testa, ...(causa ? [causa] : []),
+  const potatura = a.potatura ? bloccoPotatura(dati, a.potatura, false) : null;
+  const causa = potatura && potatura.nodo, scartato = !!(potatura && potatura.scartato);
+  // nello slot che ha causato lo scarto del ramo successivo: le verifiche di quel nodo, che sono quelle fallite
+  const dopo = a.dopo ? bloccoPotatura(dati, a.dopo, true) : null;
+  pannello.replaceChildren(testa, ...(dopo ? [dopo.nodo] : []), ...(causa ? [causa] : []),
     el('ul', {class: 'vincoli'}, [el('li', {class: a.lezione_ammessa ? 'si' : 'no'}, [el('span', {class: 'segno', testo: a.lezione_ammessa ? '✔' : '✘'}),
       el('span', {testo: a.lezione_ammessa ? 'La classe può ancora fare lezione in quest\'ora.' : 'La classe non può più fare lezione in quest\'ora: lo slot può solo restare vuoto.'})])]),
     el('div', {class: 'barra-comandi'}, [interruttore]),
@@ -668,6 +654,38 @@ function mostraAnalisi(pannello, dati, a, scelto, titolo, bloccato, classe, ora,
     el('table', {class: 'dati'}, [el('thead', {}, [el('tr', {}, [el('th', {testo: 'Docente'}), el('th', {testo: 'Priorità'}), el('th', {class: 'num', testo: ''}),
       el('th', {class: 'num', testo: 'Ore in classe'}), el('th', {testo: 'Esito'})])]), corpo]),
     el('p', {class: 'tenue piccolo', testo: [con.length > MAX ? `altri ${con.length - MAX} docenti con ore da fare in coda` : '', senza ? `${senza} docenti senza ore da fare in questa classe` : ''].filter(Boolean).join(' · ')}));
+}
+
+// Le verifiche di potatura di un nodo (da --analizza-slot): una riga per ognuna, con il dettaglio di quelle fallite.
+// `dopo`: le verifiche sono quelle del nodo che viene dopo lo slot mostrato (la finestra e' quella dello slot che ha
+// causato lo scarto), non quelle dell'ingresso nello slot mostrato. Ritorna {nodo, scartato}.
+function bloccoPotatura(dati, pot, dopo) {
+  const C = pot.classe >= 0 ? dati.classi[pot.classe].nome : '';
+  const det = {classe: pot.classe, ore_classe: pot.ore_classe};
+  const nomeScelta = coppia(dati, pot.scelta[0], pot.scelta[1]);
+  const righe = pot.verifiche.map(v => {
+    const base = {...v, classe: pot.classe, ore_classe_fatte: pot.ore_classe_fatte, scelta: pot.scelta, slotNome: pot.slotNome};
+    if (v.motivo === 0)
+      return {v, base, ok: v.ok ? 1 : 0, testo: v.ok ? `Lezioni della classe ${C}: dopo la scelta in ${pot.slotNome} (${nomeScelta}) le lezioni che le restano bastano per gli slot che deve ancora riempire.`
+        : `Lezioni della classe ${C}: dopo la scelta in ${pot.slotNome} (${nomeScelta}) le lezioni che le restano NON bastano per gli slot che deve ancora riempire.`};
+    return {v, base, ok: !v.controllata ? -1 : v.ok ? 1 : 0, testo: !v.controllata ? 'Ore dei docenti: si controlla solo a inizio ora, e lo slot dopo non è il primo dell\'ora.'
+      : v.ok ? 'Ore dei docenti: le ore che mancano a ogni docente stanno ancora nel tempo rimasto della settimana.'
+      : 'Ore dei docenti: le ore che mancano a un docente NON stanno più nel tempo rimasto della settimana.'};
+  });
+  const scartato = righe.some(r => r.ok === 0);
+  const dettagli = righe.filter(r => r.ok === 0).flatMap(r => r.v.motivo === 0 ? dettaglioScartoLezioni(dati, det, r.base, pot.slotNome)
+    : dettaglioScartoDocenti(dati, det, r.base, pot.slotNome));
+  const titolo = dopo ? (scartato ? '✂ Dopo questa scelta il ramo è stato scartato: ' : 'Verifiche di potatura dopo questa scelta: ')
+    : (scartato ? '✂ Ramo scartato dalla potatura: ' : 'Verifiche di potatura (all\'ingresso in questo slot): ');
+  const spiegazione = dopo ? (scartato ? 'la ricerca è tornata indietro subito, senza provare nessun docente nello slot dopo.' : 'tutte rispettate.')
+    : (scartato ? 'la ricerca non ha provato nessun docente qui. Non dipende dai docenti di questo slot: la coda sotto è quella che ci sarebbe stata, ma la ricerca non l\'ha mai guardata, perché una verifica è fallita.'
+      : 'tutte rispettate, quindi la ricerca prosegue a provare i docenti.');
+  const nodo = el('div', {class: 'causa-scarto' + (scartato ? ' scartato' : '')}, [
+    el('p', {}, [el('strong', {testo: titolo}), el('span', {testo: spiegazione})]),
+    el('ul', {class: 'vincoli'}, righe.map(r => el('li', {class: r.ok === -1 ? 'na' : r.ok ? 'si' : 'no'},
+      [el('span', {class: 'segno', testo: r.ok === -1 ? '–' : r.ok ? '✔' : '✘'}), el('span', {testo: r.testo})]))),
+    ...dettagli]);
+  return {nodo, scartato};
 }
 
 // Cursore sotto ogni tabella larga (contenitori .scorre): sempre visibile, fa scorrere la tabella in orizzontale e
