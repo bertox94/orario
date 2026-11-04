@@ -75,9 +75,8 @@
 
 {% if (r.get('diagnosi') or {}).get('blocchi') or (r.get('diagnosi') or {}).get('marce') %}
 <h2>Dove si è bloccata la ricerca</h2>
-<p class="tenue piccolo">Quante volte la ricerca ha trovato un problema in uno slot: ci è passata senza riuscire a mettere un docente
-  (anche se poi lo slot è rimasto vuoto) oppure ha scartato il ramo per la scelta fatta lì. Non conta le volte che
-  è dovuta ripassare da uno slot in cui un docente c'era, per colpa di uno slot più avanti. Un solo slot molto colorato =
+<p class="tenue piccolo">Quante volte la ricerca è passata da uno slot senza riuscire a mettere nessun docente (vicolo cieco).
+  I rami scartati dalla potatura non contano: sono scelte errate già rilevate dal codice. Un solo slot molto colorato =
   ricerca ferma lì (spesso un caso impossibile o una scelta sbagliata poco prima).</p>
 <div id="mappa"></div>
 {% endif %}
@@ -89,10 +88,9 @@
   Lo slot ✕ è quello che la ricerca sta per decidere. Il colore di ogni cella indica quante volte la ricerca è tornata
   su quella posizione fino al passo mostrato: bianco = attraversata una volta sola (la ricerca è andata avanti senza intoppi),
   più scuro = più passaggi (passaci sopra per il numero esatto). Lo slider aggiorna l'orario mentre lo trascini.
-  I <strong>blocchi</strong> sono le vere marce indietro: un <strong>vicolo cieco</strong> (nessun docente utilizzabile e lo slot
-  non può restare vuoto) o un <strong>ramo scartato</strong> (la scelta appena fatta rende impossibile finire l'orario e la
-  ricerca torna indietro subito; la cella della scelta è evidenziata). I pulsanti sotto la barra saltano da un blocco
-  all'altro. Un'ora buca (nessun docente ma lo slot può restare vuoto e la ricerca prosegue) è segnalata nella riga di stato
+  I <strong>blocchi</strong> sono i <strong>vicoli ciechi</strong>: tutti i controlli passano ma nessun docente è
+  utilizzabile e lo slot non può restare vuoto, quindi la ricerca torna indietro — quasi sempre per colpa di qualche
+  scelta fatta prima. I pulsanti sotto la barra saltano da un vicolo cieco all'altro. Un'ora buca (nessun docente ma lo slot può restare vuoto e la ricerca prosegue) è segnalata nella riga di stato
   ma non è un blocco. Durante l'animazione la pagina scorre da sola per tenere in vista la cella che si sta decidendo.
   Oltre il numero di passi scelto nelle opzioni la registrazione si ferma (la ricerca continua).</p>
 <div id="passi"></div>

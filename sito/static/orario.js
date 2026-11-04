@@ -152,13 +152,11 @@ function compatto(v) {
   return String(v);
 }
 
-// I blocchi di uno slot per la mappa: i problemi trovati li': le volte che la ricerca ci e' passata senza riuscire a
-// mettere un docente (marce indietro, anche con lo slot poi rimasto vuoto) piu' i rami scartati dalla potatura. Si
-// sommano i due conteggi del JSON (diagnosi.blocchi, scritto dalle versioni del solver che contavano gli arrivi alla
-// frontiera, non vale).
+// I vicoli ciechi di uno slot per la mappa: le volte che la ricerca ci e' passata senza riuscire a mettere nessun
+// docente (tutti i vincoli passati ma nessuno utilizzabile). Non i rami scartati dalla potatura: quelli sono
+// scelte errate gia' rilevate dal codice.
 function blocchiDaRisultato(diagnosi) {
-  const scartati = Object.values(diagnosi.scartati || {});
-  return (g, o, c) => diagnosi.marce[g][o][c] + scartati.reduce((s, t) => s + t[g][o][c], 0);
+  return (g, o, c) => diagnosi.marce[g][o][c];
 }
 
 // Lo stesso dalla riga di progresso (prova in corso): tabella piatta con indice (g * ore + o) * classi + c.
@@ -328,7 +326,7 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
       testoLimite: ultimo.esito === 'scarto' ? ' · ramo scartato qui: una verifica di potatura fallisce prima di provare i docenti, la ricerca torna indietro'
       : ultimo.bloccato ? (ultimo.esito === 'vuoto' ? ' · qui nessun docente era utilizzabile: lo slot resta vuoto' : ' · qui nessun docente era utilizzabile (vicolo cieco)')
       : ultimo.pos >= ultimo.slot ? ' · orario completo' : ' · qui la ricerca sta decidendo'});
-  const veri = () => vicoli.filter(v => v[1] === 'indietro' || v[1] === 'scarto');  // i blocchi: veri ritorni indietro
+  const veri = () => vicoli.filter(v => v[1] === 'indietro');  // i vicoli ciechi: nessun docente messo
   const di = () => totale ? ` di ${numeroIt(totale)}` : '';
   function scriviStato(r) {
     const scarto = r.esito === 'scarto';
@@ -502,26 +500,24 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
   barra.addEventListener('input', () => { numero.value = barra.value; segui(+barra.value); });
   numero.addEventListener('change', () => { if (+numero.value !== n) vai(+numero.value); });  // lo stesso numero: niente ridisegno (un tocco su una cella non va perso)
   contenitore.replaceChildren(el('div', {style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center'}, [
-    bottone('⏮', -1e12), bottone('−1000', -1000), bottone('−100', -100), bottone('−1', -1), numero,
-    bottone('+1', 1), bottone('+100', 100), bottone('+1000', 1000), bottone('⏭', 1e12)]),
+    bottone('⏮', -1e12), bottone('−1000', -1000), bottone('−100', -100), bottone('−10', -10), bottone('−1', -1), numero,
+    bottone('+1', 1), bottone('+10', 10), bottone('+100', 100), bottone('+1000', 1000), bottone('⏭', 1e12)]),
     el('div', {style: 'display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:6px 0'}, [bottonePlay, el('label', {class: 'piccolo tenue', style: 'display:flex;gap:6px;align-items:center'}, [el('span', {testo: 'Velocità'}), sliderVelocita]), etichettaVelocita]),
     el('div', {style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px'}, [
       el('button', {class: 'secondario', type: 'button', testo: '◀ blocco precedente', onclick: () => {
         const prima = veri().filter(v => v[0] < n); if (prima.length) vai(prima[prima.length - 1][0]); }}),
       el('button', {class: 'secondario', type: 'button', testo: 'blocco successivo ▶', onclick: () => {
         const dopo = veri().find(v => v[0] > n); if (dopo) vai(dopo[0]); }}), infoVicoli]),
-    barra, stato, motivi, griglia);
+    barra, stato, griglia, motivi);  // i motivi sotto la tabella: sopra spingerebbero giu' tabella e comandi
   function aggiornaVicoli() {
     return fetch(url + '?vicoli=1').then(r => r.json()).then(v => {
       vicoli = v.vicoli || []; vicoliTroncati = !!v.troncato;
-      const vuoti = vicoli.filter(v => v[1] === 'vuoto').length, ciechi = vicoli.filter(v => v[1] === 'indietro').length,
-        scarti = vicoli.filter(v => v[1] === 'scarto').length, blocchi = ciechi + scarti;
+      const ciechi = veri().length;
       const più = vicoliTroncati ? '+' : '';
-      infoVicoli.textContent = blocchi
-        ? `${numeroIt(blocchi)}${più} ${blocchi === 1 && !più ? 'marcia indietro' : 'marce indietro'}: ${numeroIt(ciechi)} vicoli ciechi (nessun docente utilizzabile), ${numeroIt(scarti)} rami scartati` +
-          (vuoti ? ` · ${numeroIt(vuoti)} ore buche non contate (nessun docente, lo slot resta vuoto e la ricerca prosegue)` : '') +
-          (blocchi < 30 ? ` · passi ${veri().map(v => v[0]).join(', ')}` : '')
-        : 'Nessuna marcia indietro tra i passi registrati: la ricerca è sempre andata avanti' + (vuoti ? ` (${numeroIt(vuoti)} ore buche non contate).` : '.');
+      infoVicoli.textContent = ciechi
+        ? `${numeroIt(ciechi)}${più} ${ciechi === 1 && !più ? 'vicolo cieco' : 'vicoli ciechi'} (nessun docente utilizzabile)` +
+          (ciechi < 30 ? ` · passi ${veri().map(v => v[0]).join(', ')}` : '')
+        : 'Nessun vicolo cieco tra i passi registrati: la ricerca ha sempre trovato un docente.';
     }).catch(() => {});
   }
   fetch(url + '?totale=1').then(r => r.json()).then(t => {
