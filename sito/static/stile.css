@@ -113,6 +113,12 @@ table.orario td.inizio-giorno, table.orario th.inizio-giorno { border-left: 2px 
 table.orario td .cod { color: var(--tenue); font-size: 11px; display: block; }
 /* i nomi di docente e codocente restano ciascuno su una riga (la colonna si allarga; la tabella si scorre) */
 table.orario td, table.orario td .cod { white-space: nowrap; }
+/* passo passo: dimensioni fisse (table-layout fixed + larghezza data da orario.js), i nomi lunghi si troncano
+   con i puntini (il nome completo resta nel titolo della cella) */
+table.orario.fissa { table-layout: fixed; }
+table.orario.fissa th.classe, table.orario.fissa td.classe { width: 64px; overflow: hidden; text-overflow: ellipsis; }
+table.orario.fissa td { overflow: hidden; }
+table.orario.fissa td span { display: block; overflow: hidden; text-overflow: ellipsis; }
 table.orario td.vuoto { color: var(--bordo); }
 table.mappa td { min-width: 34px; height: 26px; font-size: 11px; font-variant-numeric: tabular-nums; }
 .legenda { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--tenue); margin: 6px 0; }

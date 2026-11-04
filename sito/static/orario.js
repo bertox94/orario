@@ -60,7 +60,12 @@ function disegnaOrario(contenitore, dati, orario, blocco, alPassaggio, passaggi,
     }));
     corpo.appendChild(tr);
   });
-  contenitore.replaceChildren(el('table', {class: 'orario'}, [intestazione(dati), corpo]));
+  // nel passo passo (contenitore con data-fisso) la tabella ha dimensioni fisse: le colonne non cambiano larghezza
+  // quando i nomi compaiono e scompaiono da un passo all'altro
+  const fissa = contenitore.dataset && contenitore.dataset.fisso;
+  const tabella = el('table', {class: 'orario' + (fissa ? ' fissa' : '')}, [intestazione(dati), corpo]);
+  if (fissa) tabella.style.width = (64 + 86 * dati.giorni.length * dati.ore.length) + 'px';
+  contenitore.replaceChildren(tabella);
 }
 
 // Collega una cella al pannello della coda: con il mouse si apre passandoci sopra, con il dito (iPad, telefono: niente
@@ -450,10 +455,22 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi, analisiLocale
   const numero = el('input', {type: 'number', min: 0, value: 0, class: 'stretto'});
   const stato = el('div', {class: 'tenue piccolo'});
   const griglia = el('div', {class: 'scorre'});
+  griglia.dataset.fisso = '1';  // tabella a dimensioni fisse: leggibile anche mentre i passi cambiano
   const motivi = el('div', {});
   // spazio riservato (la riga si riempie dopo il caricamento: senza, la tabella si sposta e un tocco puo' finire su un'altra cella)
   const infoVicoli = el('div', {class: 'tenue piccolo', style: 'min-height: 2.6em; flex: 1 1 100%'});
+  const inputLimite = el('input', {type: 'number', min: 1, class: 'stretto', placeholder: 'tutti',
+    title: 'Limita i passi mostrati: lo slider, i pulsanti e l\'animazione si fermano a questo passo'});
+  inputLimite.addEventListener('change', () => {
+    const v = Math.floor(+inputLimite.value);
+    limitePassi = v > 0 ? v : null;
+    barra.max = massimo() || 0;
+    vai(Math.min(n, massimo() || 0));
+  });
   let totale = null, n = 0, richiesta = 0, vicoli = [], vicoliTroncati = false, ultimo = null, precarica = 0;
+  // limite facoltativo dei passi mostrati: lo slider, i pulsanti e l'animazione si fermano li'
+  let limitePassi = null;
+  const massimo = () => limitePassi && totale ? Math.min(limitePassi, totale) : totale;
   // passando il mouse (o toccando) una cella: la coda dei docenti in quel punto e i vincoli, come nell'orario trovato
   const fonteFinestra = () => ultimo && {chiave: 'passo' + n, orario: ultimo.orario, ordine: ultimo.ordine, limite: ultimo.pos,
       testoLimite: ultimo.esito === 'scarto' ? ' · ramo scartato qui: una verifica di potatura fallisce prima di provare i docenti, la ricerca torna indietro'
@@ -461,7 +478,7 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi, analisiLocale
       : ultimo.pos >= ultimo.slot ? ' · orario completo' : ' · qui la ricerca sta decidendo'};
   const passaggio = codaAlPassaggio(dati, url.replace(/passi$/, 'analisi'), analisiLocale)(fonteFinestra);
   const veri = () => vicoli.filter(v => v[1] === 'indietro');  // i vicoli ciechi: nessun docente messo
-  const di = () => totale ? ` di ${numeroIt(totale)}` : '';
+  const di = () => totale ? ` di ${numeroIt(massimo())}${limitePassi && limitePassi < totale ? ` (${numeroIt(totale)} registrati)` : ''}` : '';
   function scriviStato(r) {
     const scarto = r.esito === 'scarto';
     const dove = scarto ? `la ricerca entra in ${dati.giorni[r.blocco[0]]} ${dati.ore[r.blocco[1]]} ${dati.classi[r.blocco[2]].nome} (✕)`
@@ -564,7 +581,7 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi, analisiLocale
     let quanti = Math.floor(anim.acc);
     anim.acc -= quanti;
     let fatti = 0;
-    while (quanti > 0 && anim.passi.length) {
+    while (quanti > 0 && anim.passi.length && n < massimo()) {
       const [pos, da, nuovi, codice] = anim.passi.shift();
       anim.ripreso = [2, 4, 5, 6].includes(anim.ultimoCodice) ? da : null;
       if (anim.slot.length > da) anim.slot.length = da;
@@ -575,13 +592,13 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi, analisiLocale
     }
     if (fatti) { barra.value = numero.value = n; disegnaLocale(anim.ultimoCodice); }
     if (anim.passi.length < dimensioneBlocco() / 2) prossimoBlocco();
-    if (!anim.passi.length && anim.finito && !anim.carica) { ferma(true); return; }  // arrivato in fondo
+    if (n >= massimo() || (!anim.passi.length && anim.finito && !anim.carica)) { ferma(true); return; }  // arrivato in fondo (o al limite)
     anim.raf = requestAnimationFrame(passo);
   }
   const bottone = (testo, delta) => el('button', {class: 'secondario', type: 'button', testo, onclick: () => vai(n + delta)});
   async function vai(nuovo) {
     if (anim.attiva) ferma(false);  // un comando a mano ferma l'animazione
-    n = Math.max(0, totale !== null ? Math.min(totale, nuovo) : nuovo);
+    n = Math.max(0, totale !== null ? Math.min(massimo(), nuovo) : nuovo);
     barra.value = numero.value = n;
     motivi.replaceChildren();
     if (n === 0) {  // il passo 0 non e' nel file: e' l'orario vuoto, prima che la ricerca cominci
@@ -645,13 +662,15 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi, analisiLocale
   numero.addEventListener('change', () => { if (+numero.value !== n) vai(+numero.value); });  // lo stesso numero: niente ridisegno (un tocco su una cella non va perso)
   contenitore.replaceChildren(el('div', {style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center'}, [
     bottone('⏮', -1e12), bottone('−1000', -1000), bottone('−100', -100), bottone('−10', -10), bottone('−1', -1), numero,
-    bottone('+1', 1), bottone('+10', 10), bottone('+100', 100), bottone('+1000', 1000), bottone('⏭', 1e12)]),
+    bottone('+1', 1), bottone('+10', 10), bottone('+100', 100), bottone('+1000', 1000), bottone('⏭', 1e12),
+    el('label', {class: 'piccolo tenue', style: 'display: flex; gap: 6px; align-items: center; margin-left: 8px'},
+      [el('span', {testo: 'mostra fino al passo'}), inputLimite])]),
     el('div', {style: 'display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:6px 0'}, [bottonePlay, el('label', {class: 'piccolo tenue', style: 'display:flex;gap:6px;align-items:center'}, [el('span', {testo: 'Velocità'}), sliderVelocita]), etichettaVelocita]),
     el('div', {style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px'}, [
       el('button', {class: 'secondario', type: 'button', testo: '◀ blocco precedente', onclick: () => {
-        const prima = veri().filter(v => v[0] < n); if (prima.length) vai(prima[prima.length - 1][0]); }}),
+        const prima = veri().filter(v => v[0] < Math.min(n, massimo() + 1)); if (prima.length) vai(prima[prima.length - 1][0]); }}),
       el('button', {class: 'secondario', type: 'button', testo: 'blocco successivo ▶', onclick: () => {
-        const dopo = veri().find(v => v[0] > n); if (dopo) vai(dopo[0]); }}), infoVicoli]),
+        const dopo = veri().find(v => v[0] > n && v[0] <= massimo()); if (dopo) vai(dopo[0]); }}), infoVicoli]),
     barra, stato, griglia, motivi);  // i motivi sotto la tabella: sopra spingerebbero giu' tabella e comandi
   function aggiornaVicoli() {
     return fetch(url + '?vicoli=1').then(r => r.json()).then(v => {
@@ -668,7 +687,7 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi, analisiLocale
     totale = t.totale || 0;
     if (!totale) return;  // nessuna riga P nel file: la sezione resta nascosta
     if (sezione) sezione.style.display = '';
-    barra.max = totale;
+    barra.max = massimo();
     vai(0);
     aggiornaVicoli();
   }).catch(() => {});
