@@ -104,11 +104,22 @@ static inline void post_chiamata_ricorsiva(teaching_slot *slot, QueueItem *it, Q
     classe_info[slot->classe].svolte--;
 }
 
+// Con --passi: la ricerca e' tornata al nodo pos dopo aver annullato la scelta del suo slot (riga R), cosi' nel visore
+// si vede anche il ritorno indietro, non solo l'ingresso nel nodo successivo. Non si scrive quando la ricerca sta solo
+// risalendo per finire (orari trovati, tempo scaduto, fermata).
+static inline void registra_ritorno(const int pos) {
+    if (passi_max > 0 && passi_scritti < passi_max && stampa_backtrack == BACKTRACK_COMPATTO && n_gen < n_gen_max) {
+        passi_scritti++;
+        fprintf(file_orario, "R %d\n", pos);
+    }
+}
+
 // Assegna lo slot (da solo o in coppia), prosegue la ricerca e annulla.
 static inline void assegna_e_prosegui(teaching_slot *slot, const int pos, QueueItem *it, QueueItem *jt) {
     prep_chiamata_ricorsiva(slot, it, jt);
     cerca_orario(pos + 1);
     post_chiamata_ricorsiva(slot, it, jt);
+    registra_ritorno(pos);
 }
 
 /* ---- un nodo della ricerca ---- */
@@ -190,6 +201,7 @@ static void prova_ora_buca(const teaching_slot *slot, const int pos) {
         n_ore_buche[slot->base2d_gc + cla]++;
         cerca_orario(pos + 1);
         n_ore_buche[slot->base2d_gc + cla]--;
+        registra_ritorno(pos);
     }
 }
 
