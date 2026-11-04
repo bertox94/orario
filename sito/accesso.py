@@ -146,11 +146,15 @@ def login():
             session['utente_id'] = u['id']
             session['gettone'] = os.urandom(16).hex()
             poi = request.args.get('poi') or url_for('home')
-            return redirect(poi if poi.startswith('/') and not poi.startswith('//') else url_for('home'))
+            poi = poi if poi.startswith('/') and not poi.startswith('//') else url_for('home')
+            return redirect(poi + ('&' if '?' in poi else '?') + 'entrato=1')
         _falliti[chiave] = (n + 1 if time.time() - quando < ATTESA_SECONDI else 1, time.time())
         flash('Nome o password sbagliati.', 'errore')
     if not conn().execute('select 1 from utenti limit 1').fetchone():
         return render_template('senza_password.html'), 503
+    if 'entrato=1' in request.args.get('poi', ''):  # l'accesso era riuscito ma il browser non ha rimandato il cookie
+        flash('L\'accesso era riuscito ma il browser non ha conservato il cookie: controlla che i cookie siano attivi '
+              'e che l\'indirizzo sia quello giusto (http o https).', 'errore')
     return render_template('login.html')
 
 

@@ -7,12 +7,18 @@ Sezioni (blueprint): dati della scuola (pagine_dati), test in tempo reale (pagin
 import datetime
 import re
 
-from flask import Flask, redirect, render_template, session, url_for
+from flask import Flask, redirect, render_template, request, session, url_for
+from flask.sessions import SecureCookieSessionInterface
 
 import psycopg
 
 from . import accesso, db
 from .config import Config
+
+
+class SessioneSecureSoloInHttps(SecureCookieSessionInterface):
+    def get_cookie_secure(self, app):
+        return request.is_secure  # con SITO_PROXY=1 e' il protocollo visto dal proxy (X-Forwarded-Proto)
 
 
 def crea_app(config=None, avvia_esecutore=True):
@@ -21,7 +27,10 @@ def crea_app(config=None, avvia_esecutore=True):
     app.config['SITO'] = config
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     app.config['SESSION_COOKIE_HTTPONLY'] = True
-    app.config['SESSION_COOKIE_SECURE'] = config.https
+    # Il cookie di sessione e' Secure solo quando la pagina arriva in HTTPS (Tailscale, proxy): cosi' il sito funziona
+    # anche in chiaro sulla rete locale. Con un cookie sempre Secure, dal browser in http il login riusciva ma il cookie
+    # non veniva salvato e si tornava alla pagina di accesso senza errori.
+    app.session_interface = SessioneSecureSoloInHttps()
     if config.proxy:  # dietro un proxy fidato (SITO_PROXY=1): indirizzo del client e protocollo dalle intestazioni
         from werkzeug.middleware.proxy_fix import ProxyFix
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)

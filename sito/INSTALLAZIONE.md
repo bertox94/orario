@@ -205,21 +205,14 @@ sito installa Tailscale sul proprio telefono o computer e accede con l'indirizzo
 3. Pubblicare il sito sulla rete privata con HTTPS: `sudo tailscale serve --bg 8000` (con una versione diversa
    verificare la sintassi con `tailscale serve --help`). Il comando scrive l'indirizzo, per esempio
    `https://orario-pi.nome-rete.ts.net`.
-4. In `/etc/orario-sito.env` aggiungere:
-
-   ```
-   SITO_HTTPS=1
-   SITO_PROXY=1
-   ```
-
-   e in `orario-sito.service` cambiare `--host 0.0.0.0` in `--host 127.0.0.1` (il sito risponde solo a Tailscale, non
-   più alla rete locale in chiaro). Poi `sudo systemctl daemon-reload && sudo systemctl restart orario-sito`.
+4. In `/etc/orario-sito.env` aggiungere `SITO_PROXY=1`. Se il sito deve rispondere **solo** a Tailscale, in
+   `orario-sito.service` cambiare `--host 0.0.0.0` in `--host 127.0.0.1`; lasciando `0.0.0.0` resta raggiungibile anche
+   in chiaro sulla rete locale (`http://192.168.1.5:8000`). Poi `sudo systemctl daemon-reload && sudo systemctl restart orario-sito`.
 5. Provare dal telefono con Tailscale attivo (e Wi-Fi spento) aprendo l'indirizzo del punto 3.
 
-`SITO_HTTPS=1` rende il cookie di sessione «Secure» (non parte su HTTP); `SITO_PROXY=1` fa leggere l'indirizzo vero del
-client dalle intestazioni del proxy, così il limite ai tentativi di login conta ogni persona e non il proxy. Non
-attivare `SITO_PROXY` se il sito è raggiungibile direttamente senza proxy: le intestazioni si potrebbero falsificare.
-Il Mac con Postgres può restare sulla rete locale: il Pi lo raggiunge come prima.
+Il cookie di sessione è «Secure» da solo quando la pagina arriva in HTTPS, e normale in HTTP: si può entrare sia da
+Tailscale sia dalla rete locale. `SITO_PROXY=1` fa leggere indirizzo e protocollo veri del client dalle intestazioni
+del proxy, così il limite ai tentativi di login conta ogni persona e non il proxy.
 
 ## Sito sul Mac invece che sul Pi
 
