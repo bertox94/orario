@@ -37,6 +37,17 @@
     <button class="secondario" title="Stessi dati e stesso ordine della coda: rifa' esattamente la stessa ricerca">Rifai identico dal JSON</button>
   </form>
   {% if e.esito != 'trovato' %}
+  {% set prossimo = ((e.opzioni or {}).get('ordine_classi') or 0) + 1 %}
+  <form method="post" action="{{ url_for('live.avvia') }}" class="in-linea">
+    <input type="hidden" name="_gettone" value="{{ gettone }}">
+    <input type="hidden" name="sorgente" value="esecuzione">
+    <input type="hidden" name="eid" value="{{ e.id }}">
+    <input type="hidden" name="nome" value="{{ e.caso|replace(' (ordine ' ~ (e.opzioni or {}).get('ordine_classi') ~ ')', '') }} (ordine {{ prossimo }})">
+    {% for k, v in (e.opzioni or {}).items() if k in ('tempo', 'orari', 'ore_obbligatorie', 'ore_prof_classe', 'classi_giorno') and v is not none %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+    {% if (e.opzioni or {}).get('passi') %}<input type="hidden" name="passi" value="1"><input type="hidden" name="max_passi" value="{{ e.opzioni.passi }}">{% endif %}
+    <input type="hidden" name="ordine_classi" value="{{ prossimo }}">
+    <button class="secondario" title="Stessi dati, ordine delle classi {{ prossimo }}: un nuovo test in tempo reale">Ritenta con un ordine diverso ({{ prossimo }})</button>
+  </form>
   <form method="post" action="{{ url_for('notturni.ordini') }}" class="in-linea" style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center">
     <input type="hidden" name="_gettone" value="{{ gettone }}">
     <input type="hidden" name="eid" value="{{ e.id }}">
