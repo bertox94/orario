@@ -28,26 +28,32 @@ int primo_orario_2[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ]
 
 /* ---- coda dei docenti di uno slot ---- */
 
-// Comparison function for qsort
-static int compare_queue_items(const void *a, const void *b) {
-    // Cast the void pointers to pointers to QueueItem*
-    const QueueItem *itemA = *(const QueueItem **) a;
-    const QueueItem *itemB = *(const QueueItem **) b;
-
-    // Sort by priority (descending: highest priority first)
-    if (itemA->priority < itemB->priority) return 1;
-    if (itemA->priority > itemB->priority) return -1;
-    // a parita' di priorita' prima il docente con l'indice piu' basso: l'ordine dipende solo dallo stato della ricerca e
-    // non dalla storia, cosi' --analizza-slot (che rifa' lo stato da zero) mostra la coda nell'ordine in cui la ricerca
-    // la prova davvero
-    return itemA->teacher - itemB->teacher;
+// Chiave di ordinamento di un docente nella coda: priorita' (piu' alta prima) e, a parita', indice piu' basso prima.
+// L'ordine e' totale e dipende solo dallo stato della ricerca, non dalla storia: cosi' --analizza-slot (che rifa' lo
+// stato da zero) mostra la coda nell'ordine in cui la ricerca la prova davvero.
+static inline long long chiave_coda(const QueueItem *x) {
+    return ((long long) x->priority << 20) | (0xFFFFF - x->teacher);
 }
 
-// Ordina la copia della coda di uno slot (da start, n docenti) per priorita' decrescente: si prova prima chi ha piu'
-// ore ancora da fare, a parita' di priorita' chi ha l'indice piu' basso (l'ordine e' totale e non dipende dalla storia).
+// Ordina la copia della coda di uno slot (da start, n docenti) per chiave decrescente: si prova prima chi ha piu' ore
+// ancora da fare, a parita' chi ha l'indice piu' basso. Ordinamento per inserzione: da una visita all'altra la coda
+// cambia di poco ed e' quasi gia' in ordine, e cosi' costa molto meno di qsort.
 static void sort_queue_mul(size_t start, size_t n) {
-    // qsort has an average time complexity of O(N log N)
-    qsort(&queue_mul[start], n, sizeof(QueueItem *), compare_queue_items);
+    QueueItem **q = &queue_mul[start];
+    long long k[INSEGNANTE_SZ];
+    for (size_t i = 0; i < n; i++) k[i] = chiave_coda(q[i]);
+    for (size_t i = 1; i < n; i++) {
+        QueueItem *x = q[i];
+        const long long kx = k[i];
+        size_t j = i;
+        while (j > 0 && k[j - 1] < kx) {
+            q[j] = q[j - 1];
+            k[j] = k[j - 1];
+            j--;
+        }
+        q[j] = x;
+        k[j] = kx;
+    }
 }
 
 /* ---- assegnare uno slot e annullare ---- */
@@ -250,7 +256,7 @@ void cerca_orario(const int pos) {
 // Rifa' lo stato della ricerca fino allo slot pos, con l'orario parziale letto da `file` (prima riga: pos; poi i primi
 // pos slot come nel formato compatto: "i", "i+j" o "-"), e scrive la coda dei docenti dello slot pos con per ognuno il
 // motivo per cui non va bene (vedi diagnosi_analizza_slot). Ritorna 0 se il file non va bene.
-// La priorita', le ore e l'ordine della coda sono esattamente quelli della ricerca (vedi compare_queue_items).
+// La priorita', le ore e l'ordine della coda sono esattamente quelli della ricerca (vedi chiave_coda).
 int analizza_slot(const char *file, FILE *out) {
     FILE *f = fopen(file, "r");
     if (!f) return 0;
