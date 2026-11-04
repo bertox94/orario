@@ -225,9 +225,10 @@ altrimenti sito e prove notturne si fermano.
 
 ## La ricerca passo passo
 
-Nel test in tempo reale, spuntando «Registra la ricerca passo passo» il solver scrive l'orario parziale a ogni passo
-della computazione, fino al numero di passi scelto nel campo accanto (predefinito 100.000; oltre, la ricerca continua
-senza registrare). Lo stesso fa la fase 3 dei test notturni per i casi non finiti. Nella pagina del caso compare la sezione
+Nel test in tempo reale il solver scrive sempre l'orario parziale a ogni passo della computazione, fino al numero di
+passi scelto nel campo (predefinito 10.000.000; raggiunto il numero la ricerca si ferma, esito «fermato»). Lo stesso fa la
+fase 3 dei test notturni per i casi non finiti (predefinito 10.000.000 passi registrati; qui la ricerca continua fino al
+tempo della fase). Nella pagina del caso compare la sezione
 «La ricerca passo passo»: uno slider dal passo 0 (orario vuoto) all'ultimo passo registrato, con i pulsanti ±1, ±100 e
 ±1000. Lo slot ✕ è quello che la ricerca sta per decidere. Sopra c'è la mappa «Dove si è bloccata la ricerca», la stessa
 della prova in corso: per ogni slot, quante volte la ricerca ci è arrivata mentre era il più avanzato raggiunto senza

@@ -7,7 +7,7 @@ Un caso e' un dizionario:
     {'tipo': 'input', 'file': '/percorso/dati.json'}        dati letti da file (per esempio quelli della scuola)
     {'tipo': 'programma'}                                    i dati scritti nel programma
 e le opzioni della ricerca:
-    {'tempo': 60, 'orari': 1, 'motivi': True, 'passi': 100000, 'ordine_classi': None,
+    {'tempo': 60, 'orari': 1, 'motivi': True, 'passi': 10000000, 'ordine_classi': None,
      'ore_obbligatorie': 5, 'ore_prof_classe': 3, 'classi_giorno': 3}
     tempo       secondi massimi (assente = senza limite: si ferma col pulsante o quando ha finito)
     orari       quanti orari completi trovare prima di fermarsi

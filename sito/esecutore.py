@@ -26,7 +26,7 @@ from . import archivio, db, modello, solver
 
 # esecuzioni (id) in corso -> (id della prova, solver.Esecuzione, fase, nome del caso): per leggere il progresso e per fermarle
 ATTIVE = {}
-PASSI_NOTTURNI = 100000  # nodi registrati nella fase 3 dei test notturni, se la prova non dice altro
+PASSI_NOTTURNI = 10000000  # nodi registrati nella fase 3 dei test notturni, se la prova non dice altro
 _lock = threading.Lock()
 _avviato = False
 
@@ -199,7 +199,7 @@ def _caso_della_scuola(c, scuola_id, prova_id):
 # scuola; fasi 60 / 600 / 600 s, fase 3 con la ricerca passo passo.
 PIANIFICAZIONE_PREDEFINITA = {'semi_da': 1, 'quanti': 20, 'classi': 8, 'varianti': ['normale', 'ritardi'], 'scuola': True,
                               'file': None, 'ordine_classi': None, 'fase1': 60, 'fase2': 600, 'fase3': 600,
-                              'passi': 100000, 'ore_obbligatorie': 5, 'ore_prof_classe': 3, 'classi_giorno': 3}
+                              'passi': 10000000, 'ore_obbligatorie': 5, 'ore_prof_classe': 3, 'classi_giorno': 3}
 
 
 def pianificazioni_predefinite(config):
