@@ -798,7 +798,7 @@ function mostraAnalisi(pannello, dati, a, scelto, titolo, bloccato, classe, ora,
       if (v.motivo === 0)
         return {v, base, ok: v.ok ? 1 : 0, testo: v.ok ? `Lezioni della classe ${C}: dopo la scelta in ${pot.slotNome} (${nomeScelta}) le lezioni che le restano bastano per gli slot che deve ancora riempire.`
           : `Lezioni della classe ${C}: dopo la scelta in ${pot.slotNome} (${nomeScelta}) le lezioni che le restano NON bastano per gli slot che deve ancora riempire.`};
-      return {v, base, ok: !v.controllata ? -1 : v.ok ? 1 : 0, testo: !v.controllata ? 'Ore dei docenti: si controlla solo a inizio ora, e questo slot non è il primo dell\'ora.'
+      return {v, base, ok: !v.controllata ? -1 : v.ok ? 1 : 0, testo: !v.controllata ? 'Ore dei docenti: si controlla a inizio ora o subito dopo un\'ora buca, e qui non è il caso.'
         : v.ok ? 'Ore dei docenti: le ore che mancano a ogni docente stanno ancora nel tempo rimasto della settimana.'
         : 'Ore dei docenti: le ore che mancano a un docente NON stanno più nel tempo rimasto della settimana.'};
     });
