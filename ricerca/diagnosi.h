@@ -21,7 +21,7 @@ extern long long int nodi_a_pos_max;      // a quale nodo e' stata raggiunta
 extern double limite_secondi;             // se > 0 la ricerca si ferma dopo tanti secondi
 extern double inizio_ricerca;
 extern int interrotto_per_tempo;
-extern int interrotto_su_richiesta;       // arrivato SIGTERM (il pulsante "Ferma" del sito)
+extern int interrotto_su_richiesta;       // arrivato SIGTERM (il pulsante «Ferma» del sito) o raggiunto il limite di passi (--ferma-ai-passi)
 extern int errore_di_scrittura;           // non si e' piu' potuto scrivere il file degli orari (disco pieno, limite
                                           // del sistema alla dimensione dei file, gzip terminato)
 

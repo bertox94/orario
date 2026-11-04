@@ -21,6 +21,7 @@ long long int n_gen_max = SCHEDULES_PER_GB / 5;
 long long int n_backtrack = 0;
 int stampa_backtrack = 0;
 long long passi_max = 0;
+int ferma_ai_passi = 0;
 static long long passi_scritti = 0;
 FILE *file_orario;
 int primo_orario_1[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ];
@@ -285,8 +286,14 @@ void cerca_orario(const int pos) {
         passi_scritti++;
         passo_scritto = 1;
         stampa_passo_compatto(file_orario, orario, pos);
-        if (passi_scritti == passi_max) fflush(file_orario);  // l'ultimo passo registrato arriva subito a chi legge (il sito
-                                                               // conta i passi per fermare la ricerca)
+        if (passi_scritti == passi_max) {
+            fflush(file_orario);  // l'ultimo passo registrato arriva subito a chi legge
+            if (ferma_ai_passi) {  // fermata esatta al passo N: deterministica, al contrario di tempo o segnali
+                interrotto_su_richiesta = 1;
+                n_gen_max = 0;  // tutte le chiamate tornano subito e lo stato viene annullato normalmente
+                return;
+            }
+        }
     }
     if (pos == orario_len) {
         registra_orario_completo(pos);
