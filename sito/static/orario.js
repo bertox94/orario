@@ -26,7 +26,8 @@ function intestazione(dati, titolo) {
 // Griglia dell'orario: orario[g][o][c] = [docente, codocente] (-1 = nessuno).
 // passaggi (facoltativo): [g][o][c] = quante volte la ricerca e' passata da quella posizione; colora lo sfondo
 // delle celle con la stessa scala di calore della mappa (logaritmica, piu' scuro = piu' volte).
-function disegnaOrario(contenitore, dati, orario, blocco, alPassaggio, passaggi) {
+// `cambiata`: [g, o, c] della cella dove la ricerca e' tornata e ha scelto un altro docente (bordo tratteggiato).
+function disegnaOrario(contenitore, dati, orario, blocco, alPassaggio, passaggi, cambiata) {
   let massimo = 0;  // il primo passaggio e' normale: si colora solo cio' che e' stato attraversato piu' di una volta
   if (passaggi) dati.giorni.forEach((_, g) => dati.ore.forEach((__, o) => dati.classi.forEach((___, c) => {
     massimo = Math.max(massimo, passaggi[g][o][c] - 1);
@@ -37,7 +38,8 @@ function disegnaOrario(contenitore, dati, orario, blocco, alPassaggio, passaggi)
     dati.giorni.forEach((_, g) => dati.ore.forEach((__, o) => {
       const [p, q] = orario[g][o][c];
       const qui = blocco && blocco[0] === g && blocco[1] === o && blocco[2] === c;
-      const td = el('td', {class: (o === 0 ? 'inizio-giorno ' : '') + (p < 0 ? 'vuoto ' : '') + (qui ? 'blocco' : '')});
+      const cambiataQui = cambiata && cambiata[0] === g && cambiata[1] === o && cambiata[2] === c;
+      const td = el('td', {class: (o === 0 ? 'inizio-giorno ' : '') + (p < 0 ? 'vuoto ' : '') + (qui ? 'blocco ' : '') + (cambiataQui ? 'cambiata' : '')});
       if (p < 0) td.textContent = qui ? '✕' : '—';
       else {
         td.appendChild(el('span', {testo: dati.docenti[p].nome}));
@@ -331,7 +333,6 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
   function scriviStato(r) {
     const scarto = r.esito === 'scarto';
     const dove = scarto ? `la ricerca entra in ${dati.giorni[r.blocco[0]]} ${dati.ore[r.blocco[1]]} ${dati.classi[r.blocco[2]].nome} (✕)`
-      : r.ripreso != null && !r.esito && !r.bloccato ? `tornata indietro: ha scelto un altro docente in ${dati.giorni[r.blocco[0]]} ${dati.ore[r.blocco[1]]} ${dati.classi[r.blocco[2]].nome} (✕)`
       : r.pos >= r.slot ? 'orario completo'
       : `la ricerca sta decidendo ${dati.giorni[r.blocco[0]]} ${dati.ore[r.blocco[1]]} ${dati.classi[r.blocco[2]].nome} (✕)`;
     const perche = {1: 'i docenti non avrebbero più ore sufficienti per finire', 0: 'la classe non potrebbe più completare le sue lezioni'}[r.motivoScarto]
@@ -341,7 +342,8 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
       : r.esito === 'vuoto' ? ' · ⚠ NESSUN DOCENTE UTILIZZABILE: lo slot resta vuoto (ora buca) e la ricerca prosegue'
       : r.esito === 'indietro' ? ' · ⚠ VICOLO CIECO: nessun docente utilizzabile e lo slot non può restare vuoto, la ricerca torna indietro'
       : ' · ⚠ NESSUN DOCENTE UTILIZZABILE: com\'è andata dopo non è registrato';
-    stato.textContent = `Passo ${numeroIt(n)}${di()} · ${numeroIt(r.pos)} slot su ${numeroIt(r.slot)} assegnati; ${dove}${nota}`;
+    const tornata = r.cambiata ? `tornata indietro: ha scelto un altro docente in ${dati.giorni[r.cambiata[0]]} ${dati.ore[r.cambiata[1]]} ${dati.classi[r.cambiata[2]].nome} (tratteggiato); ` : '';
+    stato.textContent = `Passo ${numeroIt(n)}${di()} · ${numeroIt(r.pos)} slot su ${numeroIt(r.slot)} assegnati; ${tornata}${dove}${nota}`;
     stato.style.fontWeight = r.bloccato || scarto ? '600' : '';
   }
 
@@ -412,13 +414,14 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
     const pos = anim.slot.length, completo = pos >= G * O * C;
     const scarto = codice >= 4;
     // se il passo e' anche un blocco (nessun docente utilizzabile, ramo scartato) la cella evidenziata e' quella del blocco
-    const ripreso = codice === 0 && anim.ripreso != null ? anim.ripreso : null;
-    const k = ripreso != null ? ripreso : Math.min(pos, G * O * C - 1);
+    const ripreso = anim.ripreso != null ? anim.ripreso : null;
+    const k = Math.min(pos, G * O * C - 1);
     const blocco = [Math.floor(k / (O * C)), Math.floor(k / C) % O, anim.ordine[k % C]];
-    const r = {n, pos, slot: G * O * C, blocco, ripreso, bloccato: codice > 0 && !scarto, motivoScarto: scarto ? (codice === 6 ? -1 : codice - 4) : null,
+    const cambiata = ripreso != null ? [Math.floor(ripreso / (O * C)), Math.floor(ripreso / C) % O, anim.ordine[ripreso % C]] : null;
+    const r = {n, pos, slot: G * O * C, blocco, ripreso, cambiata, bloccato: codice > 0 && !scarto, motivoScarto: scarto ? (codice === 6 ? -1 : codice - 4) : null,
       esito: {1: 'vuoto', 2: 'indietro', 4: 'scarto', 5: 'scarto', 6: 'scarto'}[codice] || null};
     scriviStato(r);
-    disegnaOrario(griglia, dati, orario, completo && ripreso == null ? null : blocco, null, passaggi);
+    disegnaOrario(griglia, dati, orario, completo && !r.esito ? null : blocco, null, passaggi, cambiata);
     teniInVista();
   }
   function passo(t) {
@@ -464,9 +467,9 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
     if (r.errore) { stato.textContent = r.errore; griglia.replaceChildren(); return; }
     n = r.n; barra.value = numero.value = n;
     if (r.scarto != null) { r.esito = 'scarto'; r.motivoScarto = r.scarto; }  // ramo scartato: la potatura scatta entrando in questo slot
-    if (r.ripreso != null && !r.esito && !r.bloccato) {  // tornata indietro: si evidenzia lo slot dove ha cambiato docente
+    if (r.ripreso != null) {  // tornata indietro: si segna lo slot dove ha cambiato docente (il bordo resta dove la ricerca sta decidendo)
       const k = r.ripreso, C = dati.classi.length, O = dati.ore.length;
-      r.blocco = [Math.floor(k / (O * C)), Math.floor(k / C) % O, r.ordine[k % C]];
+      r.cambiata = [Math.floor(k / (O * C)), Math.floor(k / C) % O, r.ordine[k % C]];
     }
     scriviStato(r);
     if (r.bloccato) {
@@ -477,7 +480,7 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
         voci.length ? el('ul', {}, voci) : el('p', {class: 'tenue piccolo', testo: r.motivi ? 'Nessun docente aveva ancora ore da fare in questa classe.' : 'Motivi non registrati: attiva «Motivi degli scarti» nelle opzioni.'}));
     }
     ultimo = r;
-    disegnaOrario(griglia, dati, r.orario, r.pos >= r.slot && r.ripreso == null ? null : r.blocco, passaggio, r.passaggi);
+    disegnaOrario(griglia, dati, r.orario, r.pos >= r.slot && !r.esito && !r.bloccato ? null : r.blocco, passaggio, r.passaggi, r.cambiata);
     teniInVista();
   }
   // la cella evidenziata deve restare visibile: se e' fuori dallo schermo la pagina (e la tabella) scorrono fino a lei

@@ -122,6 +122,8 @@ table.mappa td { min-width: 34px; height: 26px; font-size: 11px; font-variant-nu
 input.stretto { width: 5em; }
 td.blocco { outline: 2px solid #c0392b; outline-offset: -2px; color: #c0392b; font-weight: 700; }
 td.blocco { scroll-margin: 120px 40px; }
+/* la ricerca e' tornata qui e ha scelto un altro docente (il bordo pieno resta dove sta decidendo) */
+td.cambiata { outline: 2px dashed #c0392b; outline-offset: -2px; }
 .pannello-slot { position: fixed; z-index: 20; max-width: 640px; background: var(--superficie); color: var(--testo);
   border: 1px solid var(--bordo); border-radius: 6px; padding: 10px 12px; box-shadow: 0 4px 16px rgba(0,0,0,.25); font-size: 13px; }
 .pannello-slot tr.scelto td { font-weight: 700; }
