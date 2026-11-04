@@ -285,7 +285,9 @@ function compatto(v) {
 // docente (tutti i vincoli passati ma nessuno utilizzabile). Non i rami scartati dalla potatura: quelli sono
 // scelte errate gia' rilevate dal codice.
 function blocchiDaRisultato(diagnosi) {
-  return (g, o, c) => diagnosi.marce[g][o][c];
+  // «blocchi» e' il conteggio giusto (senza le ore buche); «marce» e' il ripiego per le prove piu' vecchie
+  const t = diagnosi.blocchi || diagnosi.marce;
+  return (g, o, c) => t[g][o][c];
 }
 
 // Lo stesso dalla riga di progresso (prova in corso): tabella piatta con indice (g * ore + o) * classi + c.
