@@ -32,8 +32,8 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
 // c'e' una riga "S m" (m = motivo dello scarto, come l'indice in diagnosi_ramo_scartato: 0 lezioni della classe, 1 ore dei
 // docenti); se invece non ha nessun docente utilizzabile, dopo la P c'e' la riga B della marcia indietro.
 // Sempre con --passi, una riga "R pos" ogni volta che la ricerca torna al nodo pos dopo aver annullato la scelta del
-// suo slot (e' la marcia indietro vista dal nodo che la subisce): l'orario parziale e' quello dei primi pos slot. Le
-// righe R contano nel limite N come le P.
+// suo slot (e' la marcia indietro vista dal nodo che la subisce): l'orario parziale e' quello dei primi pos slot. Il
+// limite N conta solo le righe P (nodi); le R si fermano insieme a loro.
 // Con --motivi, subito dopo ogni riga B c'e' una riga "M d:m d:m ...": per ogni docente d che nella classe aveva ancora
 // ore da fare, il motivo m (come in "nomi_motivi" del JSON) per cui non si e' potuto mettere nello slot.
 void stampa_intestazione_marce_compatte(FILE *f);
