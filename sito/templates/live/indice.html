@@ -24,10 +24,13 @@
     {% endif %}
   </div>
   <div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; align-items: end;">
-    <label>Seme <input type="number" name="seme" min="0" value="{{ c.get('seme', 1) }}"></label>
+    <label>Seme dei dati casuali <input type="number" name="seme" min="0" value="{{ c.get('seme', 1) }}"></label>
     <label>Classi <input type="number" name="classi" min="1" max="120" value="{{ c.get('classi', 8) }}"></label>
     <label class="spunta"><input type="checkbox" name="ritardi" value="1" {{ 'checked' if c.get('ritardi') }}> Docenti in ritardo</label>
   </div>
+  <p class="tenue piccolo">Il seme dei dati casuali decide <em>quale scuola inventare</em>: classi, docenti, lezioni e codocenze
+    (stesso seme = stessi dati). Vale solo per «Dati casuali». È diverso dall'ordine delle classi, tra i parametri avanzati,
+    che riguarda la ricerca.</p>
   <p class="tenue piccolo">Il file JSON è un file esportato dai dati della scuola (anche di un'altra scuola) oppure il
     <code>risultato.json</code> di una prova: la prova usa quei dati senza toccare quelli della scuola.</p>
 
@@ -68,7 +71,7 @@
     <label>Tempo massimo (s, 0 = senza limite) <input type="number" name="tempo" min="0" value="{{ o.get('tempo', 60) }}"></label>
     <label>Orari da trovare <input type="number" name="orari" min="1" value="{{ o.get('orari', 1) }}"></label>
     <label class="spunta"><input type="checkbox" name="passi" value="1" {{ 'checked' if o.get('passi') or not rilancio }}> Registra la ricerca passo passo</label>
-    <label>fino a <input type="number" name="max_passi" min="1" max="10000000" value="{{ o.get('passi', 100000) }}" class="stretto"> passi</label>
+    <label>fino a <input type="number" name="max_passi" min="1" max="10000000" value="{{ o.get('passi', 100000) }}" style="width: 8em"> passi</label>
   </div>
   <p class="tenue piccolo">La registrazione passo passo mostra nella pagina del risultato l'orario a ogni nodo della ricerca, con
     i blocchi (vicoli ciechi e rami scartati) e la coda dei docenti in ogni cella; si ferma dopo i passi indicati, così
@@ -79,8 +82,11 @@
       <label>Ore obbligatorie ogni giorno <input type="number" name="ore_obbligatorie" min="1" max="6" value="{{ o.get('ore_obbligatorie', 5) }}"></label>
       <label>Ore di un docente nella stessa classe al giorno (max) <input type="number" name="ore_prof_classe" min="1" max="6" value="{{ o.get('ore_prof_classe', 3) }}"></label>
       <label>Classi diverse per docente al giorno (max) <input type="number" name="classi_giorno" min="1" max="20" value="{{ o.get('classi_giorno', 3) }}"></label>
-      <label>Ordine delle classi (seed, vuoto = in ordine) <input type="number" name="ordine_classi" min="0" value="{{ o.ordine_classi if o.get('ordine_classi') is not none else '' }}"></label>
+      <label>Ordine delle classi (numero, vuoto = in ordine) <input type="number" name="ordine_classi" min="0" value="{{ o.ordine_classi if o.get('ordine_classi') is not none else '' }}"></label>
     </div>
+    <p class="tenue piccolo">L'ordine delle classi decide <em>in che ordine la ricerca riempie le classi</em> dentro ogni ora,
+      a parità di dati: vuoto = C01, C02, C03…; un numero le mescola (stesso numero = stesso ordine). Vale per qualunque caso,
+      anche per i dati della scuola: lo stesso caso con un ordine diverso può bloccarsi o no.</p>
   </details>
   <p><button>Avvia</button></p>
 </form>
