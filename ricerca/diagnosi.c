@@ -26,7 +26,7 @@ static double prossimo_progresso = 0;
 
 static int registra_motivi = 0;
 static long long int marce_per_pos[N_SLOT];                // marce indietro per slot
-long long int blocchi_per_pos[N_SLOT + 1];                 // arrivi alla frontiera per slot (vedi diagnosi.h)
+long long int blocchi_per_pos[N_SLOT + 1];                 // problemi per slot: marce + rami scartati (vedi diagnosi.h)
 long long int visite_per_pos[N_SLOT + 1];                  // nodi per slot (+1: la posizione dopo l'ultimo slot)
 static stato_blocco_t ultima_marcia[N_SLOT];
 static stato_blocco_t ultimo_scarto[N_SLOT][N_MOTIVI_SCARTO];
@@ -317,6 +317,7 @@ void diagnosi_scrivi_dettaglio_scarto(FILE *f, const int motivo, const dettaglio
 
 void diagnosi_ramo_scartato(const int pos, const int motivo) {
     scartati_per_pos[pos][motivo]++;
+    blocchi_per_pos[pos]++;
     scartati[motivo]++;
     const int cla = orario[pos].classe;
     stato_blocco_t *u = &ultimo_scarto[pos][motivo];
@@ -343,6 +344,7 @@ stato_blocco_t diagnosi_ultimo_scarto(const int pos, const int motivo, dettaglio
 // scartato (per lo slot e per il docente).
 void diagnosi_marcia_indietro(const teaching_slot *slot, const int pos, const int base4d_queue, const int queue_size) {
     marce_per_pos[pos]++;
+    blocchi_per_pos[pos]++;
     // lo stato in questo momento, per la diagnosi: ore della classe gia' in orario, docenti con ore ancora da fare
     int con_ore = 0;
     for (int ii = base4d_queue; ii < queue_size; ii++)
