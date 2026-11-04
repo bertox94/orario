@@ -14,6 +14,7 @@
 
 // Contatori. Sono qui (e non nascosti nel .c) perche' i piccoli aggiornamenti per nodo sono static inline.
 extern long long int nodi;                // chiamate della ricerca
+extern long long int blocchi_per_pos[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ + 1];
 extern long long int visite_per_pos[];    // quante volte la ricerca e' arrivata a ogni slot
 extern int pos_max;                       // posizione piu' avanzata raggiunta
 extern long long int nodi_a_pos_max;      // a quale nodo e' stata raggiunta
@@ -50,6 +51,7 @@ static inline int diagnosi_nuovo_nodo(const int pos) {
         pos_max = pos;
         nodi_a_pos_max = nodi;
     }
+    if (pos == pos_max) blocchi_per_pos[pos]++;  // arrivata di nuovo alla frontiera senza superarla (vedi diagnosi_blocchi_nello_slot)
     if ((nodi & 0xFFFF) == 0) return diagnosi_controllo_periodico(pos);
     return 0;
 }
@@ -90,6 +92,10 @@ void diagnosi_marcia_indietro(const teaching_slot *slot, int pos, int base4d_que
 // I contatori per slot (pos = posizione nell'orario) e per docente, per chi li vuole esportare (risultati_json.c).
 // I motivi (per slot e per docente) si contano solo con --motivi: diagnosi_con_motivi() dice se sono validi.
 long long int diagnosi_marce_nello_slot(int pos);
+// I blocchi di uno slot, per la mappa: quante volte la ricerca e' arrivata a quello slot mentre era la posizione massima
+// raggiunta (la frontiera), cioe' ci ha sbattuto contro senza riuscire ad andare oltre. Quando la ricerca supera la
+// frontiera il conteggio continua sul nuovo slot massimo: la mappa mostra dove la ricerca si e' fermata piu' a lungo.
+long long int diagnosi_blocchi_nello_slot(int pos);
 long long int diagnosi_scartati_nello_slot(int pos, int motivo_scarto);
 long long int diagnosi_motivo_nello_slot(int pos, int motivo);
 long long int diagnosi_motivo_del_docente(int prof, int motivo);

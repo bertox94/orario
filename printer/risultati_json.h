@@ -23,6 +23,8 @@
 //             "posizione_massima", "slot"},
 //   "orario": null | [g][o][c] = [docente, codocente]   primo orario trovato; -1 = nessuno (slot vuoto o da solo)
 //   "diagnosi": {
+//     "blocchi": [g][o][c],                      arrivi a ogni slot mentre era la posizione massima raggiunta (dove la
+//                                                ricerca ha sbattuto senza andare oltre), per la mappa
 //     "marce": [g][o][c],                        marce indietro in ogni slot
 //     "scartati": {"<motivo>": [g][o][c]},       rami scartati dalla potatura dopo ogni slot, per motivo
 //     "nomi_motivi": [...],
