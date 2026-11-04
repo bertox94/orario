@@ -495,7 +495,7 @@ function codaAlPassaggio(dati, urlAnalisi, locale) {
 function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi, analisiLocale) {
   const barra = el('input', {type: 'range', min: 0, max: 0, value: 0, style: 'width: 100%'});
   const numero = el('input', {type: 'number', min: 0, value: 0, class: 'stretto'});
-  const stato = el('div', {class: 'tenue piccolo'});
+  const stato = el('div', {class: 'tenue piccolo stato-passo'});
   const griglia = el('div', {class: 'scorre'});
   griglia.dataset.fisso = '1';  // tabella a dimensioni fisse: leggibile anche mentre i passi cambiano
   const motivi = el('div', {});
