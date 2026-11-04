@@ -22,7 +22,7 @@
 // La ricerca e' una visita in profondita' con marcia indietro (ricerca/ricerca.c) che riempie gli slot in ordine:
 // giorno, ora, classe. Prima di cercare si verificano alcune condizioni necessarie sui dati (ricerca/fattibilita.c).
 
-// Uso: ./untitled [seed] [-b [--passi N]] [--casuale SEME [--classi N] [--ritardi]] [-n MAX] [--tempo SEC] [--motivi]
+// Uso: ./untitled [seed] [-b [--passi N] [--ferma-ai-passi]] [--casuale SEME [--classi N] [--ritardi]] [-n MAX] [--tempo SEC] [--motivi]
 //                  [--dati FILE] [--orario FILE] [--json FILE] [--input FILE] [--solo-verifica] [--progresso]
 //                  [--ore-obbligatorie N] [--ore-prof-classe N] [--classi-giorno N] [--analizza-slot FILE]
 //   seed: l'ordine delle classi viene mescolato (stesso seed = stesso ordine)
@@ -32,6 +32,8 @@
 //              in poi), e la riga "S" per i nodi scartati dalla potatura (rari: la potatura si fa prima di entrare nel nodo): per rivedere la ricerca passo
 //              passo dal sito. La registrazione (righe P, S, B e M)
 //              si ferma dopo N nodi (righe P), cosi' il file resta piccolo anche se la ricerca va avanti a lungo.
+//   --ferma-ai-passi: con --passi N, al passo N si ferma anche la ricerca (esito "Interrotto su richiesta"), esattamente
+//              nello stesso punto a ogni esecuzione: con gli stessi dati il risultato e' sempre identico.
 //   --orario FILE: dove scrivere gli orari (default orario.txt); se FILE finisce in .gz si scrive compresso con gzip
 //   --analizza-slot FILE: non cerca; rifa' lo stato fino a uno slot con l'orario parziale in FILE (prima riga la posizione,
 //                poi gli slot come nel formato di -b) e scrive su una riga "ANALISI {json}" la coda dei docenti di quello
@@ -103,6 +105,8 @@ static Opzioni leggi_opzioni(const int argc, char **argv) {
             o.file_dati = argv[++i];
         } else if (!strcmp(argv[i], "--passi") && i + 1 < argc) {
             passi_max = atoll(argv[++i]);
+        } else if (!strcmp(argv[i], "--ferma-ai-passi")) {
+            ferma_ai_passi = 1;
         } else if (!strcmp(argv[i], "--motivi")) {
             o.con_motivi = 1;
         } else if (!strcmp(argv[i], "--ore-obbligatorie") && i + 1 < argc) {
