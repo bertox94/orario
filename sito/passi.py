@@ -4,7 +4,7 @@ Il formato e' descritto in printer/printer.h. Intestazione: "G giorni ore classi
 ricerca>". Poi una riga "P pos da s_da ... s_(pos-1)" per ogni nodo della ricerca (un passo: i primi pos slot sono decisi,
 scritti come differenze rispetto alla riga prima), seguita eventualmente da "B pos ..." (nessun docente utilizzabile in
 quel nodo) con "M d:m ..." (i motivi, docente per docente), oppure da "S m" (nodo scartato dalla potatura, motivo m).
-Le righe "R pos" (ritorno a un nodo) non servono qui. Il file si scorre dal principio decompresso a pezzi, senza
+I file registrati da versioni precedenti del solver hanno anche righe "R pos" (ritorno a un nodo): si saltano. Il file si scorre dal principio decompresso a pezzi, senza
 tenerlo in memoria.
 
 Il tipo di un passo lo dice il passo successivo, con una regola sola: se sta nello stesso slot o prima, la ricerca e'
