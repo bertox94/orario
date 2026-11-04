@@ -112,28 +112,68 @@ static inline void post_chiamata_ricorsiva(teaching_slot *slot, QueueItem *it, Q
     classe_info[slot->classe].svolte--;
 }
 
-// Assegna lo slot (da solo o in coppia), prosegue la ricerca e annulla.
+// Verifica di potatura prima di assegnare: si aggiornano solo i contatori che il conto delle lezioni legge (4 per
+// docente), si fa la verifica, e si annullano. Se la verifica fallisce non si entra mai nel nodo e non si registra
+// nessun passo: il docente viene scartato qui, come gli altri vincoli. Solo i candidati che hanno gia' passato tutti
+// gli altri controlli (libero, idoneo, sabato) arrivano fin qui.
+static inline int potatura_prima_di_assegnare(teaching_slot *slot, const int pos, QueueItem *it, QueueItem *jt) {
+    if (pos + 1 >= orario_len) return -1;  // ultimo slot: nessuna verifica, l'orario sara' completo
+    // aggiorna i contatori che il conto delle lezioni legge: le ore fatte e l'assegnazione dello slot (serve per la
+    // capienza di oggi, che guarda se il docente era nella classe nell'ora prima). Non si toccano la priorita',
+    // l'occupazione del docente (prof_gia_impegnato_giorno_ora) e il contatore delle assegnazioni.
+    classe_docente[slot->base2d_ci + it->teacher].svolte++;
+    ore_fatte_da_un_prof_in_una_classe_in_giorno[slot->base3d_gci + it->teacher]++;
+    slot->insegnante1 = it->teacher;
+    if (jt) {
+        classe_docente[slot->base2d_ci + jt->teacher].svolte++;
+        ore_fatte_da_un_prof_in_una_classe_in_giorno[slot->base3d_gci + jt->teacher]++;
+        codocenza[idx_codocenza(slot->classe, it->teacher, jt->teacher)].svolte++;
+        slot->insegnante2 = jt->teacher;
+    } else {
+        classe_docente[slot->base2d_ci + it->teacher].alone_svolte++;
+    }
+    classe_info[slot->classe].svolte++;
+    // verifica
+    int motivo = -1;
+    if (!lezioni_della_classe_bastano_dopo(slot))
+        motivo = SCARTATO_LEZIONI_DELLA_CLASSE;
+    else if ((pos + 1) % actual_classi_sezione == 0
+             && !ore_rimaste_stanno_nel_tempo_rimasto(orario[pos + 1].giorno, orario[pos + 1].ora))
+        motivo = SCARTATO_ORE_DEI_DOCENTI;
+    // annulla
+    classe_docente[slot->base2d_ci + it->teacher].svolte--;
+    ore_fatte_da_un_prof_in_una_classe_in_giorno[slot->base3d_gci + it->teacher]--;
+    slot->insegnante1 = -1;
+    if (jt) {
+        classe_docente[slot->base2d_ci + jt->teacher].svolte--;
+        ore_fatte_da_un_prof_in_una_classe_in_giorno[slot->base3d_gci + jt->teacher]--;
+        codocenza[idx_codocenza(slot->classe, it->teacher, jt->teacher)].svolte--;
+        slot->insegnante2 = -1;
+    } else {
+        classe_docente[slot->base2d_ci + it->teacher].alone_svolte--;
+    }
+    classe_info[slot->classe].svolte--;
+    return motivo;
+}
+
+// Assegna lo slot (da solo o in coppia), prosegue la ricerca e annulla. Prima verifica la potatura: se il ramo
+// verrebbe scartato al nodo successivo, non si entra e si registra lo scarto qui (nessun passo in piu').
 static inline void assegna_e_prosegui(teaching_slot *slot, const int pos, QueueItem *it, QueueItem *jt) {
+    const int scarto = potatura_prima_di_assegnare(slot, pos, it, jt);
+    if (scarto >= 0) {
+        diagnosi_ramo_scartato(pos, scarto);
+        blocchi_per_pos[pos]++;
+        return;
+    }
     prep_chiamata_ricorsiva(slot, it, jt);
     cerca_orario(pos + 1);
     post_chiamata_ricorsiva(slot, it, jt);
 }
 
-// Vedi ricerca.h: le stesse verifiche che cerca_orario fa all'ingresso del nodo successivo, senza muovere la ricerca.
+// Vedi ricerca.h: le stesse verifiche di potatura che assegna_e_prosegui fa prima di entrare nel nodo successivo.
 int potatura_se_messo(const int pos, const int ii, const int jj) {
-    teaching_slot *slot = &orario[pos];
-    QueueItem *it = queue_mul[ii], *jt = jj >= 0 ? queue_mul[jj] : NULL;
-    prep_chiamata_ricorsiva(slot, it, jt);
-    int motivo = -1;
-    if (pos + 1 < orario_len) {  // il nodo dopo l'ultimo slot e' l'orario completo: nessuna verifica
-        if (!lezioni_della_classe_bastano_dopo(slot))
-            motivo = SCARTATO_LEZIONI_DELLA_CLASSE;
-        else if ((pos + 1) % actual_classi_sezione == 0
-                 && !ore_rimaste_stanno_nel_tempo_rimasto(orario[pos + 1].giorno, orario[pos + 1].ora))
-            motivo = SCARTATO_ORE_DEI_DOCENTI;
-    }
-    post_chiamata_ricorsiva(slot, it, jt);
-    return motivo;
+    QueueItem *jt = jj >= 0 ? queue_mul[jj] : NULL;
+    return potatura_prima_di_assegnare(&orario[pos], pos, queue_mul[ii], jt);
 }
 
 /* ---- un nodo della ricerca ---- */
@@ -207,13 +247,20 @@ static void prova_tutti_i_docenti(teaching_slot *slot, const int pos, const int 
 
 // Prova a lasciare lo slot vuoto (ora buca, solo oltre le ore obbligatorie): lo slot e' gia' -1/-1 (vedi post_chiamata_*).
 // Dopo la buca la classe non fa altre lezioni quel giorno: le ore che le mancano devono stare nei giorni dopo.
+// La potatura si fa qui: la buca non passa per assegna_e_prosegui.
 static void prova_ora_buca(const teaching_slot *slot, const int pos) {
     const int cla = slot->classe;
     if (slot->ora >= PRIME_N_ORE_OBBLIGATORIE
         && classe_info[cla].ore - classe_info[cla].svolte
            <= (actual_giorni_settimana - slot->giorno - 1) * actual_ore_giornaliere) {
         n_ore_buche[slot->base2d_gc + cla]++;
-        cerca_orario(pos + 1);
+        // potatura: con la buca le lezioni della classe bastano ancora? (tiene conto degli ingressi e del massimo giornaliero)
+        if (pos + 1 < orario_len && !lezioni_della_classe_bastano_dopo(slot)) {
+            diagnosi_ramo_scartato(pos, SCARTATO_LEZIONI_DELLA_CLASSE);
+            blocchi_per_pos[pos]++;
+        } else {
+            cerca_orario(pos + 1);
+        }
         n_ore_buche[slot->base2d_gc + cla]--;
     }
 }
@@ -249,18 +296,8 @@ void cerca_orario(const int pos) {
     }
 
     teaching_slot *slot = &orario[pos];
-    // dopo lo slot di una classe: le lezioni che le restano bastano per gli slot che deve ancora riempire?
-    if (pos > 0 && !lezioni_della_classe_bastano_dopo(&orario[pos - 1])) {
-        diagnosi_ramo_scartato(pos - 1, SCARTATO_LEZIONI_DELLA_CLASSE);
-        if (passo_scritto) fprintf(file_orario, "S %d\n", SCARTATO_LEZIONI_DELLA_CLASSE);  // il passo appena scritto e' un ramo scartato
-        return;
-    }
-    // a ogni inizio ora: le ore che mancano ai docenti stanno ancora nel tempo rimasto?
-    if (pos > 0 && pos % actual_classi_sezione == 0 && !ore_rimaste_stanno_nel_tempo_rimasto(slot->giorno, slot->ora)) {
-        diagnosi_ramo_scartato(pos - 1, SCARTATO_ORE_DEI_DOCENTI);
-        if (passo_scritto) fprintf(file_orario, "S %d\n", SCARTATO_ORE_DEI_DOCENTI);
-        return;
-    }
+    // la potatura (lezioni della classe, ore dei docenti) si fa in assegna_e_prosegui, prima di entrare nel nodo:
+    // il docente che non passa viene scartato li', senza registrare un passo in piu'
 
     // prima si provano i docenti (se nello slot puo' esserci lezione), poi lo slot vuoto (se ammesso)
     sort_queue_mul(slot->base4d_queue, queue_sz);
