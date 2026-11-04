@@ -287,7 +287,9 @@ void diagnosi_analizza_slot(const teaching_slot *slot, const int pos, const int 
                         potatura = potatura_se_messo(pos, ii, jj);  // l'ultimo fallito: il suo dettaglio e' quello fresco
                     }
                 }
-                if (potatura != -2) motivo = -1;  // utilizzabile (anche se poi il ramo verrebbe scartato)
+                // utilizzabile (anche se poi il ramo verrebbe scartato), ma non se un altro docente era
+                // obbligato qui: in quel caso la ricerca non l'ha nemmeno provato (motivo 7)
+                if (potatura != -2 && (obbligato < 0 || p == obbligato)) motivo = -1;
             }
             // docente qui non utilizzabile: l'esito della potatura si calcola lo stesso, come ipotesi (le lezioni che
             // avrebbe da fare, da solo o con ciascun codocente con ore insieme, senza i vincoli di contorno): la
