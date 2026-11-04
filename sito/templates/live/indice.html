@@ -92,14 +92,24 @@
 
 {% if non_risolti %}
 <h2>Casi dei test notturni da verificare</h2>
-<p class="tenue piccolo">Gli ultimi casi non risolti dei test notturni di questa scuola: «Verifica» li apre qui sopra con gli stessi dati e le stesse opzioni, per rifarli a mano (cambiando parametri, tempo, ordine delle classi).</p>
+<p class="tenue piccolo">Gli ultimi casi non risolti dei test notturni di questa scuola: «Verifica» li apre qui sopra con gli stessi dati e le stesse opzioni, per rifarli a mano (cambiando parametri, tempo, ordine delle classi).
+  La ✕ toglie il caso dall'elenco (l'esecuzione e i suoi file restano).</p>
+<form method="post" action="{{ url_for('live.verificato_tutti') }}" style="margin: 0 0 8px">
+  <input type="hidden" name="_gettone" value="{{ gettone }}">
+  <button class="secondario" type="submit">Svuota l'elenco</button>
+</form>
 <div class="scorre"><table class="dati">
-  <thead><tr><th>Prova</th><th>Caso</th><th>Esito</th><th class="num">Marce indietro</th><th>Diagnosi</th><th></th></tr></thead>
+  <thead><tr><th>Prova</th><th>Caso</th><th>Quando</th><th>Esito</th><th class="num">Marce indietro</th><th>Diagnosi</th><th></th></tr></thead>
   <tbody>{% for n in non_risolti %}
     <tr><td><a href="{{ url_for('notturni.prova', pid=n.prova_id) }}">{{ n.prova_id }}{{ ' – ' + n.prova_nome if n.prova_nome }}</a></td>
-      <td>{{ n.caso }}</td><td><span class="esito {{ n.esito|classe_esito }}">{{ n.esito }}</span></td>
+      <td>{{ n.caso }}</td><td class="piccolo" style="white-space: nowrap">{{ n.quando|data if n.quando }}</td>
+      <td><span class="esito {{ n.esito|classe_esito }}">{{ n.esito }}</span></td>
       <td class="num">{{ n.marce|numero }}</td><td class="piccolo">{{ n.diagnosi or '' }}</td>
-      <td><a class="bottone secondario" href="{{ url_for('live.indice', rilancia=n.id) }}#caso">Verifica</a></td></tr>
+      <td style="white-space: nowrap"><a class="bottone secondario" href="{{ url_for('live.indice', rilancia=n.id) }}#caso">Verifica</a>
+        <form method="post" action="{{ url_for('live.verificato', eid=n.id) }}" style="display: inline">
+          <input type="hidden" name="_gettone" value="{{ gettone }}">
+          <button class="secondario" type="submit" title="Togli dall'elenco (l'esecuzione resta)">✕</button>
+        </form></td></tr>
   {% endfor %}</tbody></table></div>
 {% endif %}
 

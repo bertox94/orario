@@ -25,7 +25,7 @@ def _intero(nome, predefinito, minimo=None, massimo=None):
 
 
 @bp.route('/')
-def indice():
+def indice():  # noqa: C901 - la pagina riunisce modulo, prove recenti e casi da verificare
     prove = conn().execute('''
         select p.*, e.id as eid, e.esito, e.marce, e.secondi, e.diagnosi
         from prove p left join esecuzioni e on e.prova_id = p.id
@@ -37,15 +37,7 @@ def indice():
                            'where e.id = %s and p.scuola_id = %s', (request.args['rilancia'], g.scuola['id'])).fetchone()
         rilancio = e
     dati = modello.leggi(conn(), g.scuola['id']) if n_classi else None
-    # ultimo esito di ogni caso dei test notturni che non e' arrivato a una conclusione
-    non_risolti = conn().execute('''
-        select * from (
-            select distinct on (e.prova_id, e.caso) e.id, e.prova_id, e.caso, e.esito, e.marce, e.diagnosi, p.nome as prova_nome
-            from esecuzioni e join prove p on p.id = e.prova_id
-            where p.tipo = 'notturna' and p.scuola_id = %s and e.esito is not null
-            order by e.prova_id, e.caso, e.fase desc) x
-        where esito not in ('trovato', 'nessuna soluzione', 'impossibile', 'verifica superata')
-        order by prova_id desc, id limit 40''', (g.scuola['id'],)).fetchall()
+    non_risolti = conn().execute(_NON_RISOLTI + ' limit 40', (g.scuola['id'],)).fetchall()
     return render_template('live/indice.html', prove=prove, n_classi=n_classi, dati=dati, non_risolti=non_risolti, rilancio=rilancio,
                            preseleziona_scuola=bool(request.args.get("scuola")), modificati=bool(request.args.get('modificati')))
 
@@ -138,6 +130,35 @@ def stato(pid):
         if request.args.get('con_dati'):
             r['dati'] = esecutore.vista(conn(), pid)
     return jsonify(r)
+
+
+# Ultimo esito di ogni caso dei test notturni che non e' arrivato a una conclusione, non ancora segnato come
+# verificato (la X nell'elenco segna l'ultima fase del caso: le fasi precedenti non riemergono perche' il
+# distinct prende sempre la piu' alta).
+_NON_RISOLTI = '''
+    select * from (
+        select distinct on (e.prova_id, e.caso) e.id, e.prova_id, e.caso, e.esito, e.marce, e.diagnosi, e.verificato,
+               coalesce(e.fine, e.inizio) as quando, p.nome as prova_nome
+        from esecuzioni e join prove p on p.id = e.prova_id
+        where p.tipo = 'notturna' and p.scuola_id = %s and e.esito is not null
+        order by e.prova_id, e.caso, e.fase desc) x
+    where esito not in ('trovato', 'nessuna soluzione', 'impossibile', 'verifica superata') and not verificato
+    order by prova_id desc, id'''
+
+
+@bp.route('/verificato/<int:eid>', methods=['POST'])
+def verificato(eid):
+    """Toglie un caso dall'elenco «da verificare» (l'esecuzione e i suoi file restano)."""
+    conn().execute('update esecuzioni set verificato = true where id = %s', (eid,))
+    return redirect(url_for('.indice'))
+
+
+@bp.route('/verificato-tutti', methods=['POST'])
+def verificato_tutti():
+    """Svuota l'elenco «da verificare»: segna verificati tutti i casi che vi compaiono ora."""
+    conn().execute('update esecuzioni set verificato = true where id in (select id from (' + _NON_RISOLTI + ') t)',
+                   (g.scuola['id'],))
+    return redirect(url_for('.indice'))
 
 
 @bp.route('/<int:pid>/ferma', methods=['POST'])

@@ -70,6 +70,7 @@ _PROPRIETA = {
     ('dati', 'did'): 'select 1 from docenti where id = %s and scuola_id = %s',
     ('dati', 'lid'): 'select 1 from lezioni l join classi c on c.id = l.classe_id where l.id = %s and c.scuola_id = %s',
     ('casi', 'eid'): 'select 1 from esecuzioni e join prove p on p.id = e.prova_id where e.id = %s and p.scuola_id = %s',
+    ('live', 'eid'): 'select 1 from esecuzioni e join prove p on p.id = e.prova_id where e.id = %s and p.scuola_id = %s',
     ('live', 'pid'): 'select 1 from prove where id = %s and scuola_id = %s',
     ('notturni', 'pid'): 'select 1 from prove where id = %s and scuola_id = %s',
 }
