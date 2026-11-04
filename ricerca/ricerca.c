@@ -179,6 +179,9 @@ int potatura_se_messo(const int pos, const int ii, const int jj) {
 static int docente_obbligato(const int pos) {
     if (ora_al_limite != pos / actual_classi_sezione) return -1;
     const teaching_slot *slot = &orario[pos];
+    // se la classe non puo' piu' fare lezione in quest'ora, qui non si mette nessuno: nessun docente e' obbligato
+    // (e vietare l'ora buca lascerebbe il nodo senza alcuna mossa)
+    if (!activities_for_this_class_and_hour(slot)) return -1;
     const int fine_ora = pos - pos % actual_classi_sezione + actual_classi_sezione;
     for (int p = 0; p < actual_insegnanti; p++) {
         if (!docente_al_limite[p] || prof_gia_impegnato_giorno_ora[slot->base3d_goi + p]
@@ -186,7 +189,8 @@ static int docente_obbligato(const int pos) {
             continue;
         int altra_classe = 0;
         for (int i = pos + 1; i < fine_ora && !altra_classe; i++)
-            altra_classe = deve_ancora_svolgere_ore_in_questa_classe(orario[i].base2d_ci, p);
+            altra_classe = deve_ancora_svolgere_ore_in_questa_classe(orario[i].base2d_ci, p)
+                           && activities_for_this_class_and_hour(&orario[i]);  // solo dove la classe puo' fare lezione
         if (!altra_classe) return p;
     }
     return -1;
