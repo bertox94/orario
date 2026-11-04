@@ -36,6 +36,19 @@
     {% if (e.opzioni or {}).get('passi') %}<input type="hidden" name="passi" value="1"><input type="hidden" name="max_passi" value="{{ e.opzioni.passi }}">{% endif %}
     <button class="secondario" title="Stessi dati e stesso ordine della coda: rifa' esattamente la stessa ricerca">Rifai identico dal JSON</button>
   </form>
+  {% if e.esito != 'trovato' %}
+  <form method="post" action="{{ url_for('notturni.ordini') }}" class="in-linea" style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center">
+    <input type="hidden" name="_gettone" value="{{ gettone }}">
+    <input type="hidden" name="eid" value="{{ e.id }}">
+    <span>Riprova con altri ordini delle classi:</span>
+    <label>da <input type="number" name="ordini_da" min="0" value="1" class="stretto"></label>
+    <label>quanti <input type="number" name="ordini_quanti" min="1" max="200" value="20" class="stretto"></label>
+    <label>tempo (s) ciascuno <input type="number" name="tempo" min="1" value="{{ e.opzioni.tempo if (e.opzioni or {}).get('tempo') else 60 }}" class="stretto"></label>
+    <button class="secondario" title="Stessi dati (classi, docenti, lezioni), solo l'ordine in cui la ricerca riempie le classi cambia: una prova con un caso per ordine, in parallelo">Avvia</button>
+  </form>
+  <p class="tenue piccolo" style="margin: 4px 0 0">Stesse classi e stessi docenti, cambia solo l'ordine con cui la ricerca riempie le classi: la prova mostra quali ordini
+    trovano un orario, in quanto tempo e in quanti nodi.</p>
+  {% endif %}
   {% endif %}
 </div>
 

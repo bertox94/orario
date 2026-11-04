@@ -57,6 +57,8 @@ def riprendi_dopo_riavvio(config):
 def nome_caso(caso):
     if caso['tipo'] == 'casuale':
         return 'seme %d%s' % (caso['seme'], ' ritardi' if caso.get('ritardi') else '')
+    if caso.get('ordine_classi') is not None:
+        return 'ordine %d' % caso['ordine_classi']
     return caso.get('nome', 'dati della scuola')
 
 
@@ -78,6 +80,8 @@ def _salva_risultato(c, esecuzione_id, r):
 
 def esegui_caso(config, exe, prova_id, caso, fase, opzioni):
     """Esegue un caso registrandolo nel database (prima "in corso", poi con il risultato). Ritorna il risultato."""
+    if caso.get('ordine_classi') is not None:  # prove con gli stessi dati e ordini delle classi diversi: l'ordine e' del caso
+        opzioni = {**opzioni, 'ordine_classi': caso['ordine_classi']}
     with db.connetti(config.database_url) as c:
         eid = _nuova_esecuzione(c, prova_id, caso, fase, opzioni)
         c.commit()
@@ -379,6 +383,8 @@ def _annullata(config, prova_id):
 
 
 def casi_della_notturna(o):
+    """I casi casuali di una prova notturna dalle sue opzioni (semi e varianti). A questi _esegui_notturna aggiunge i
+    dati della scuola, quelli di un file e, con 'ordini', lo stesso caso ripetuto con ogni ordine delle classi."""
     casi = []
     varianti = o.get('varianti', ['normale', 'ritardi'])
     for seme in range(o.get('semi_da', 1), o.get('semi_da', 1) + o.get('quanti', 0)):
@@ -395,7 +401,11 @@ def _esegui_notturna(config, prova):
         casi = casi_della_notturna(o)
         with db.connetti(config.database_url) as c:
             if o.get('file'):  # i dati di un file caricato, conservati nelle opzioni della prova
-                casi.insert(0, _caso_con_dati(c, pid, o['file']['dati'], o['file']['nome']))
+                caso_file = _caso_con_dati(c, pid, o['file']['dati'], o['file']['nome'])
+                if o.get('ordini'):  # lo stesso caso con ogni ordine delle classi («Riprova con altri ordini»)
+                    casi[0:0] = [{**caso_file, 'ordine_classi': k} for k in o['ordini']]
+                else:
+                    casi.insert(0, caso_file)
             if o.get('scuola'):
                 casi.insert(0, _caso_della_scuola(c, prova['scuola_id'], pid))
             c.commit()

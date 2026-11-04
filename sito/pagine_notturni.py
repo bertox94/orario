@@ -65,6 +65,8 @@ def _ordina_casi(righe):
     """Dati della scuola prima, poi per seme e variante."""
     def chiave(r):
         d = r['caso_dati']
+        if d.get('ordine_classi') is not None:
+            return (0, d['ordine_classi'], 0)
         return (0, 0, 0) if d.get('tipo') != 'casuale' else (1, d.get('seme', 0), int(bool(d.get('ritardi'))))
     return sorted(righe, key=chiave)
 
@@ -101,6 +103,30 @@ def nuova():
         return redirect(url_for('.indice'))
     pid = esecutore.crea_notturna(conn(), _sid(), o, quando, nome=request.form.get('nome') or None)
     flash('Prova %d %s.' % (pid, 'messa in coda' if quando is None else 'programmata per ' + quando.strftime('%d/%m %H:%M')), 'ok')
+    return redirect(url_for('.prova', pid=pid))
+
+
+@bp.route('/ordini', methods=['POST'])
+def ordini():
+    """Da un caso fallito: lo stesso caso (stessi dati, stessi docenti) con ordini delle classi diversi, uno per caso,
+    come prova notturna immediata a una sola fase. Nella pagina della prova si vede quali ordini trovano l'orario, in
+    quanto tempo e in quanti nodi."""
+    eid = request.form.get('eid', type=int)
+    e = conn().execute('select e.id, e.caso, e.risultato, e.opzioni from esecuzioni e join prove p on p.id = e.prova_id '
+                       'where e.id = %s and p.scuola_id = %s', (eid, _sid())).fetchone()
+    if not e or not (e['risultato'] or {}).get('dati'):
+        flash('Dati del caso non trovati.', 'errore')
+        return redirect(url_for('.indice'))
+    da, quanti = _intero('ordini_da', 1, 0), _intero('ordini_quanti', 20, 1, 200)
+    tempo = _intero('tempo', 60, 1, 24 * 3600)
+    o = e['opzioni'] or {}
+    opzioni = {'semi_da': 1, 'quanti': 0, 'classi': 8, 'varianti': [], 'scuola': False,
+               'file': {'nome': e['caso'], 'dati': e['risultato']['dati']}, 'ordini': list(range(da, da + quanti)),
+               'ordine_classi': None, 'fase1': tempo, 'fase2': 0, 'fase3': 0, 'passi': o.get('passi', esecutore.PASSI_NOTTURNI),
+               'ore_obbligatorie': o.get('ore_obbligatorie', 5), 'ore_prof_classe': o.get('ore_prof_classe', 3),
+               'classi_giorno': o.get('classi_giorno', 3)}
+    pid = esecutore.crea_notturna(conn(), _sid(), opzioni, None, nome='%s: ordini %d–%d' % (e['caso'], da, da + quanti - 1))
+    flash('Prova %d messa in coda: %d ordini delle classi, %d s ciascuno.' % (pid, quanti, tempo), 'ok')
     return redirect(url_for('.prova', pid=pid))
 
 
@@ -157,7 +183,9 @@ def prova(pid):
     for r in casi:
         k = r['esito'] or 'in corso'
         esiti[k] = esiti.get(k, 0) + 1
-    totale = len(esecutore.casi_della_notturna(p['opzioni'])) + (1 if p['opzioni'].get('scuola') else 0)
+    o = p['opzioni']
+    totale = len(esecutore.casi_della_notturna(o)) + (1 if o.get('scuola') else 0) \
+        + (len(o['ordini']) if o.get('ordini') else 1 if o.get('file') else 0)
     altre = conn().execute("select id, nome, creata from prove where tipo = 'notturna' and id <> %s and stato = 'finita' "
                            "and scuola_id = %s order by id desc limit 30", (pid, _sid())).fetchall()
     return render_template('notturni/prova.html', prova=p, casi=casi, esiti=esiti, totale=totale, altre=altre)
@@ -176,7 +204,8 @@ def stato(pid):
     fase = n['fase']
     # avanzamento della fase in corso: casi finiti su quelli che la fase deve fare (fase 1: tutti; fasi 2 e 3: i casi
     # non finiti nella fase prima)
-    totale = len(esecutore.casi_della_notturna(o)) + (1 if o.get('scuola') else 0) + (1 if o.get('file') else 0)
+    totale = len(esecutore.casi_della_notturna(o)) + (1 if o.get('scuola') else 0) \
+        + (len(o['ordini']) if o.get('ordini') else 1 if o.get('file') else 0)
     if fase > 1:
         totale = conn().execute('select count(*) as n from esecuzioni where prova_id = %s and fase = %s and not finito',
                                 (pid, fase - 1)).fetchone()['n']

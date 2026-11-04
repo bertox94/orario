@@ -15,7 +15,7 @@
   <div class="scheda"><div class="numero">{% if prova.inizio %}{{ (prova.fine - prova.inizio).total_seconds()|durata if prova.fine else 'in corso' }}{% else %}-{% endif %}</div>
     <div class="etichetta">durata{% if prova.inizio %} (dal {{ prova.inizio|data }}){% endif %}</div></div>
 </div>
-<p class="tenue piccolo">Semi {{ o.semi_da }}–{{ o.semi_da + o.quanti - 1 }}, {{ o.classi }} classi, {{ o.varianti|join(' e ') }}{{ ', dati della scuola' if o.scuola }}{{ ', ' ~ o.file.nome if o.get('file') }} ·
+<p class="tenue piccolo">{% if o.get('ordini') %}{{ o.file.nome }} con {{ o.ordini|length }} ordini delle classi ({{ o.ordini[0] }}–{{ o.ordini[-1] }}){% else %}Semi {{ o.semi_da }}–{{ o.semi_da + o.quanti - 1 }}, {{ o.classi }} classi, {{ o.varianti|join(' e ') }}{{ ', dati della scuola' if o.scuola }}{{ ', ' ~ o.file.nome if o.get('file') }}{% endif %} ·
   fasi {{ o.fase1 }} s / {{ o.fase2 }} s / {{ o.fase3 }} s{{ ' (passo passo, ' ~ (o.passi|numero) ~ ' passi)' if o.get('passi') else (' con -b' if o.backtrack) }} · solver {{ prova.commit or '?' }}</p>
 
 <p>
@@ -51,20 +51,21 @@
 <p><label class="spunta"><input type="checkbox" id="solo-problemi"> Solo i casi non risolti</label></p>
 <div class="scorre">
 <table class="dati" id="casi">
-  <thead><tr><th>Caso</th><th>Esito finale</th><th class="num">Fasi</th><th class="num">Marce indietro</th><th class="num">Durata</th><th>Diagnosi</th><th></th></tr></thead>
+  <thead><tr><th>Caso</th><th>Esito finale</th><th class="num">Fasi</th><th class="num">Nodi</th><th class="num">Marce indietro</th><th class="num">Durata</th><th>Diagnosi</th><th></th></tr></thead>
   <tbody>
   {% for r in casi %}
     <tr data-risolto="{{ 1 if r.esito in ('trovato', 'nessuna soluzione', 'impossibile') else 0 }}">
       <td><a href="{{ url_for('casi.caso', eid=r.id) }}">{{ r.caso }}</a></td>
       <td><span class="esito {{ r.esito|classe_esito }}">{{ r.esito or 'in corso' }}</span></td>
       <td class="num">{{ r.n_fasi }}</td>
+      <td class="num">{{ ((r.risultato or {}).get('esito') or {}).get('nodi')|numero }}</td>
       <td class="num">{{ r.marce|numero }}</td>
       <td class="num">{{ r.secondi|durata }}</td>
       <td class="piccolo">{{ r.diagnosi or '' }}</td>
       <td>{% if r.esito %}<a class="bottone secondario" href="{{ url_for('live.indice', rilancia=r.id) }}" title="Apre il caso nei test in tempo reale con le stesse opzioni">Verifica a mano</a>{% endif %}</td>
     </tr>
   {% else %}
-    <tr><td colspan="7" class="tenue">Nessun caso ancora avviato.</td></tr>
+    <tr><td colspan="8" class="tenue">Nessun caso ancora avviato.</td></tr>
   {% endfor %}
   </tbody>
 </table>

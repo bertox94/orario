@@ -271,7 +271,9 @@ evidenziato nell'orario, non i docenti dello slot in esame, la cui coda non è m
    (anche per docente) e file da scaricare (dati, uscita, orari, ricerca passo passo `.gz`, JSON). «Rifai identico» ripete
    esattamente la stessa ricerca; «Rilancia in tempo reale» riporta le opzioni nel modulo.
 5. **Capire dove si blocca**: nella pagina di un caso usa «La ricerca passo passo» (vedi sopra): lo slider, l'animazione, i
-   blocchi e la finestra con la coda dei docenti e i vincoli.
+   blocchi e la finestra con la coda dei docenti e i vincoli. Per un caso non risolto, «Riprova con altri ordini delle
+   classi» lancia una prova con gli stessi dati e un caso per ogni ordine (da N, quanti, tempo ciascuno): la pagina della
+   prova mostra per ogni ordine esito, nodi e durata, cioè quali ordini trovano l'orario e quanto costano.
 6. **Casi dei test notturni da verificare**: in «Test in tempo reale» sotto il modulo c'è l'elenco degli ultimi casi non
    risolti dei notturni; «Verifica» li carica nel modulo (stessi dati e opzioni, anche per i dati della scuola) per rifarli
    a mano con altri parametri, tempo o ordine delle classi. Lo stesso pulsante «Verifica a mano» c'è nella pagina di ogni prova notturna.
