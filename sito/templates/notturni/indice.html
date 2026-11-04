@@ -21,7 +21,7 @@
       <td><a href="{{ url_for('notturni.prova', pid=p.id) }}">{{ p.nome or 'prova ' ~ p.id }}</a></td>
       <td><span class="esito {{ p.stato|classe_esito }}">{{ p.stato }}</span></td>
       <td>{{ (p.inizio or p.programmata_per or p.creata)|data }}</td>
-      <td class="num">{{ n.casi if n else 0 }}{% if n and n.in_corso %} <span class="tenue">({{ n.in_corso }} in corso)</span>{% endif %}</td>
+      <td class="num">{{ n.casi if n else 0 }}{% if p.stato == 'in corso' %} <span class="tenue avanzamento" data-pid="{{ p.id }}">in corso…</span>{% endif %}</td>
       <td class="piccolo">{% for k, v in ((p.riepilogo or {}).get('esiti') or {}).items() %}{{ k }}: {{ v }}{{ ', ' if not loop.last }}{% endfor %}</td>
       <td class="num">{% if p.inizio and p.fine %}{{ (p.fine - p.inizio).total_seconds()|durata }}{% else %}-{% endif %}</td>
       <td class="piccolo tenue">{{ p.commit or '' }}</td>
@@ -61,6 +61,10 @@
         {{ p.opzioni.varianti|join(' e ') }}{{ ', scuola' if p.opzioni.scuola }}{{ ', ' ~ p.opzioni.file.nome if p.opzioni.get('file') }}</td>
       <td>{{ p.ultima_data or '-' }}</td>
       <td>
+        <form method="post" action="{{ url_for('notturni.avvia_pianificazione', pid=p.id) }}" class="in-linea">
+          <input type="hidden" name="_gettone" value="{{ gettone }}">
+          <button class="secondario" title="Fa partire subito questa prova (vale come quella di oggi)">Avvia adesso</button>
+        </form>
         <form method="post" action="{{ url_for('notturni.attiva_pianificazione', pid=p.id) }}" class="in-linea">
           <input type="hidden" name="_gettone" value="{{ gettone }}">
           <button class="link">{{ 'Sospendi' if p.attiva else 'Riattiva' }}</button>
@@ -90,4 +94,22 @@
   {% include 'notturni/_opzioni.html' %}
   <button>Aggiungi</button>
 </form>
+{% endblock %}
+
+{% block script %}
+<script>
+// avanzamento delle prove in corso nell'elenco, ogni 5 secondi
+const avanzamenti = [...document.querySelectorAll('.avanzamento[data-pid]')];
+async function aggiornaAvanzamenti() {
+  for (const el of avanzamenti) {
+    try {
+      const r = await (await fetch("{{ url_for('notturni.stato', pid=0) }}".replace('/0/', '/' + el.dataset.pid + '/'))).json();
+      if (r.stato !== 'in corso') { location.reload(); return; }
+      el.textContent = `fase ${r.fase}: ${r.fase_fatti} / ${r.fase_totale} finiti, ${r.in_corso.length} in esecuzione`;
+    } catch (e) {}
+  }
+  if (avanzamenti.length) setTimeout(aggiornaAvanzamenti, 5000);
+}
+aggiornaAvanzamenti();
+</script>
 {% endblock %}

@@ -38,7 +38,7 @@
 </p>
 
 {% if prova.stato == 'in corso' %}
-<h2>In corso</h2>
+<h2>In corso <span class="tenue piccolo" id="fase-avanzamento" style="font-weight: normal"></span></h2>
 <p class="tenue piccolo">I casi che stanno girando adesso, aggiornati ogni 2 secondi: la barra è il tempo usato della fase,
   gli slot sono quello che la ricerca sta decidendo e il più avanzato raggiunto. La tabella sotto si aggiorna quando un caso finisce.</p>
 <div class="scorre"><table class="dati" id="in-corso">
@@ -86,6 +86,7 @@ async function aggiornaProgresso() {
   try { r = await (await fetch("{{ url_for('notturni.stato', pid=prova.id) }}")).json(); }
   catch (e) { setTimeout(aggiornaProgresso, 5000); return; }
   if (r.stato !== 'in corso' || r.finite !== finiteAllInizio) { location.reload(); return; }
+  document.getElementById('fase-avanzamento').textContent = `· fase ${r.fase}: ${r.fase_fatti} / ${r.fase_totale} casi finiti`;
   const corpo = document.querySelector('#in-corso tbody');
   const durata = s => s >= 60 ? `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')} s` : `${s} s`;
   corpo.replaceChildren(...(r.in_corso.length ? r.in_corso : []).map(c => {

@@ -122,6 +122,19 @@ def nuova_pianificazione():
     return redirect(url_for('.indice'))
 
 
+@bp.route('/pianificazioni/<int:pid>/avvia', methods=['POST'])
+def avvia_pianificazione(pid):
+    """Fa partire subito una prova con le opzioni della pianificazione (per esempio se l'ora e' gia' passata o il sito
+    era spento): conta come la prova di oggi, cosi' stanotte non riparte."""
+    p = conn().execute('select * from pianificazioni where id = %s and scuola_id = %s', (pid, _sid())).fetchone()
+    if not p:
+        abort(404)
+    nuova = esecutore.crea_notturna(conn(), _sid(), p['opzioni'], None, nome=p['nome'])
+    conn().execute('update pianificazioni set ultima_data = current_date where id = %s', (pid,))
+    flash('Prova %d messa in coda: parte tra pochi secondi.' % nuova, 'ok')
+    return redirect(url_for('.prova', pid=nuova))
+
+
 @bp.route('/pianificazioni/<int:pid>/attiva', methods=['POST'])
 def attiva_pianificazione(pid):
     conn().execute('update pianificazioni set attiva = not attiva where id = %s and scuola_id = %s', (pid, _sid()))
@@ -157,15 +170,24 @@ def stato(pid):
     p = conn().execute('select stato, opzioni from prove where id = %s and scuola_id = %s', (pid, _sid())).fetchone()
     if not p:
         abort(404)
-    n = conn().execute('select count(*) filter (where esito is not null) as finite, count(distinct caso) as casi '
-                       'from esecuzioni where prova_id = %s', (pid,)).fetchone()
+    n = conn().execute('select count(*) filter (where esito is not null) as finite, count(distinct caso) as casi, '
+                       'coalesce(max(fase), 1) as fase from esecuzioni where prova_id = %s', (pid,)).fetchone()
     o = p['opzioni']
+    fase = n['fase']
+    # avanzamento della fase in corso: casi finiti su quelli che la fase deve fare (fase 1: tutti; fasi 2 e 3: i casi
+    # non finiti nella fase prima)
+    totale = len(esecutore.casi_della_notturna(o)) + (1 if o.get('scuola') else 0) + (1 if o.get('file') else 0)
+    if fase > 1:
+        totale = conn().execute('select count(*) as n from esecuzioni where prova_id = %s and fase = %s and not finito',
+                                (pid, fase - 1)).fetchone()['n']
+    fatti = conn().execute('select count(*) as n from esecuzioni where prova_id = %s and fase = %s and esito is not null',
+                           (pid, fase)).fetchone()['n']
     tempi = {1: o.get('fase1', 60), 2: o.get('fase2', 600), 3: o.get('fase3', 600)}
     in_corso = esecutore.progresso_prova(pid)
     for c in in_corso:
         c['tempo'] = tempi.get(c['fase'])
     return jsonify({'stato': p['stato'], 'finite': n['finite'], 'casi': n['casi'], 'in_corso': in_corso,
-                    'fase': max([c['fase'] for c in in_corso], default=None)})
+                    'fase': fase, 'fase_fatti': fatti, 'fase_totale': totale})
 
 
 @bp.route('/<int:pid>/annulla', methods=['POST'])

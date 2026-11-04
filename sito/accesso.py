@@ -73,7 +73,7 @@ _PROPRIETA = {
     ('live', 'pid'): 'select 1 from prove where id = %s and scuola_id = %s',
     ('notturni', 'pid'): 'select 1 from prove where id = %s and scuola_id = %s',
 }
-_PIANIFICAZIONI = ('notturni.attiva_pianificazione', 'notturni.elimina_pianificazione')
+_PIANIFICAZIONI = ('notturni.avvia_pianificazione', 'notturni.attiva_pianificazione', 'notturni.elimina_pianificazione')
 
 
 def appartiene(tipo_blueprint, parametro, valore, scuola_id, endpoint=''):
