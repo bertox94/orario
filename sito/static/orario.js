@@ -165,7 +165,7 @@ function disegnaDocentiCaso(contenitore, dati) {
   const corpo = el('tbody');
   perDocente.forEach((s, d) => {
     if (!s.tot) return;
-    const classi = Object.entries(s.classi).sort((x, y) => y[1].ore - x[1].ore);
+    const classi = Object.entries(s.classi).sort((x, y) => +x[0] - +y[0]);  // in ordine di classe, uguale per tutti
     classi.forEach(([c, v], i) => {
       const con = Object.entries(v.con).map(([q, ore]) => `${nome(+q)} ×${ore}`).join(' · ');
       const riga = el('tr', {class: i ? 'seguito' : ''}, []);
