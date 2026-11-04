@@ -4,7 +4,9 @@
 - Test notturni: una prova alla volta, quando arriva la sua ora; i casi girano in parallelo (SITO_PARALLELI) in tre
   fasi come tests/casuali.py: fase 1 breve, fase 2 lunga per i non finiti, fase 3 registrando la ricerca passo passo
   (--passi, compressa, nel database) per quelli ancora non finiti.
-- Pianificazioni: ogni giorno indicato, all'ora indicata, creano una prova notturna.
+- Pianificazioni: ogni giorno indicato, all'ora indicata, creano una prova notturna (ogni scuola ne ha una
+  predefinita, vedi PIANIFICAZIONE_PREDEFINITA). Una prova «ordini» (da un caso non risolto) ripete lo stesso caso
+  con ordini delle classi diversi.
 
 Se il sito si riavvia mentre una prova gira, al riavvio la prova risulta "interrotta" (i processi sono persi).
 """
@@ -12,7 +14,6 @@ import concurrent.futures
 import datetime
 import json
 import os
-import re
 import shutil
 import tempfile
 import threading
@@ -222,20 +223,29 @@ def pianificazione_predefinita(c, scuola_id=None):
         c.execute("insert into impostazioni (nome, valore) values (%s, 'fatto') on conflict do nothing", (chiave,))
 
 
-# ---- dati da un file caricato ----
+# ---- solo la verifica preliminare: per leggere i dati di un caso ----
 
-def verifica_dati(config, dati):
-    """Fa controllare al solver (--solo-verifica) dei dati in formato --input. Ritorna (dati normalizzati dal solver,
-    None) oppure (None, messaggio di errore)."""
+def solo_verifica(config, caso=None, dati=None):
+    """Esegue il solver con --solo-verifica su un caso, o su dei dati in formato --input: niente ricerca, ma il JSON con
+    i dati normalizzati (classi, giorni, ore, docenti, lezioni) e l'esito della verifica. Ritorna il risultato
+    (vedi solver.interpreta); r['json']['dati'] sono i dati, se il solver li ha accettati."""
     exe = solver.compila(cartella_bin=config.cartella_bin)
     cartella = _cartella_lavoro(config)
     try:
-        file = os.path.join(cartella, 'dati.json')
-        with open(file, 'w') as f:
-            json.dump(dati, f, ensure_ascii=False)
-        r = solver.esegui(exe, {'tipo': 'input', 'file': file}, {'solo_verifica': True, 'motivi': False, 'tempo': 60}, cartella)
+        if caso is None:
+            file = os.path.join(cartella, 'dati.json')
+            with open(file, 'w') as f:
+                json.dump(dati, f, ensure_ascii=False)
+            caso = {'tipo': 'input', 'file': file}
+        return solver.esegui(exe, _prepara_caso(config, caso, cartella),
+                             {'solo_verifica': True, 'motivi': False, 'tempo': 60}, os.path.join(cartella, 'verifica'))
     finally:
         shutil.rmtree(cartella, ignore_errors=True)
+
+
+def verifica_dati(config, dati):
+    """Dati in formato --input controllati dal solver. Ritorna (dati normalizzati, None) oppure (None, errore)."""
+    r = solo_verifica(config, dati=dati)
     if r['esito'] == 'errore nei dati' or not r.get('json'):
         return None, r.get('errore_dati') or r['esito']
     return r['json']['dati'], None
@@ -260,15 +270,10 @@ def dati_da_file_caricato(config, f):
 
 # ---- test in tempo reale ----
 
-def prepara_vista(config, exe, caso, prova_id):
+def prepara_vista(config, caso, prova_id):
     """Salva nella prova i dati del caso (classi, giorni, ore, docenti), presi da una --solo-verifica lampo: servono
     alla pagina della prova per disegnare la mappa dei blocchi mentre la ricerca gira."""
-    cartella = _cartella_lavoro(config)
-    try:
-        r = solver.esegui(exe, _prepara_caso(config, caso, cartella),
-                          {'solo_verifica': True, 'motivi': False, 'tempo': 60}, os.path.join(cartella, 'vista'))
-    finally:
-        shutil.rmtree(cartella, ignore_errors=True)
+    r = solo_verifica(config, caso)
     if r.get('json'):
         with db.connetti(config.database_url) as c:
             c.execute('update prove set vista = %s where id = %s',
@@ -303,7 +308,7 @@ def avvia_live(config, scuola_id, caso_richiesto, opzioni, dati_input=None, nome
     def lavoro():
         try:
             exe = solver.compila(cartella_bin=config.cartella_bin)
-            prepara_vista(config, exe, caso, pid)
+            prepara_vista(config, caso, pid)
             with db.connetti(config.database_url) as c:
                 stato['eid'] = _nuova_esecuzione(c, pid, caso, 1, opzioni)
                 c.commit()

@@ -12,8 +12,8 @@ e le opzioni della ricerca:
     tempo       secondi massimi (assente = senza limite: si ferma col pulsante o quando ha finito)
     orari       quanti orari completi trovare prima di fermarsi
     motivi      --motivi: per ogni marcia indietro il motivo di scarto di ogni docente (diagnosi e ricerca passo passo)
-    passi       -b --passi N: registra la ricerca passo passo (orario.txt.gz), al massimo N nodi
-    ordine_classi   seed con cui mescolare l'ordine delle classi (assente = in ordine)
+    passi       -b --passi N: registra la ricerca passo passo (orario.txt.gz), i primi N nodi
+    ordine_classi   numero con cui mescolare l'ordine delle classi (assente = in ordine)
     ore_obbligatorie, ore_prof_classe, classi_giorno   parametri delle regole, solo se diversi dai predefiniti
     solo_verifica   solo la verifica preliminare dei dati (per leggere i dati del caso senza cercare)
 """
@@ -22,7 +22,6 @@ import json
 import os
 import re
 import select
-import shutil
 import subprocess
 import threading
 import time
@@ -92,7 +91,7 @@ def commit_attuale():
 
 def argomenti(caso, opzioni, progresso=False):
     """La riga di comando (senza l'eseguibile) per un caso con le sue opzioni. I file escono nella cartella corrente:
-    dati.txt, risultato.json e orario.txt (orario.txt.gz con -b)."""
+    dati.txt, risultato.json e orario.txt (orario.txt.gz, con dentro anche la ricerca passo passo, con 'passi')."""
     a = []
     if caso['tipo'] == 'casuale':
         a += ['--casuale', str(caso['seme']), '--classi', str(caso.get('classi', 8))]
@@ -121,8 +120,8 @@ def argomenti(caso, opzioni, progresso=False):
 
 
 class Esecuzione:
-    """Un processo del solver in corso. Il sito ne tiene uno per ogni test in tempo reale (per il progresso e per
-    fermarlo); casuali.py usa direttamente esegui()."""
+    """Un processo del solver in corso. Il sito ne tiene uno per ogni esecuzione (per il progresso e per fermarla);
+    tests/casuali.py usa direttamente esegui()."""
 
     # nome della pipe da cui il sito legge la registrazione passo passo (al posto del file orario.txt.gz)
     PIPE_REGISTRAZIONE = 'registrazione.txt'

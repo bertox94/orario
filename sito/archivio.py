@@ -24,7 +24,7 @@ def salva_file(url, eid, nome, percorso):
 
 
 class Scrittore:
-    """Scrive un file a pezzi mentre arriva (le marce indietro di un'esecuzione lunga): in memoria resta al massimo
+    """Scrive un file a pezzi mentre arriva (la ricerca passo passo di un'esecuzione): in memoria resta al massimo
     un pezzo."""
 
     def __init__(self, url, eid, nome):

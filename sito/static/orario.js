@@ -316,7 +316,7 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
   // spazio riservato (la riga si riempie dopo il caricamento: senza, la tabella si sposta e un tocco puo' finire su un'altra cella)
   const infoVicoli = el('div', {class: 'tenue piccolo', style: 'min-height: 2.6em; flex: 1 1 100%'});
   let totale = null, n = 0, richiesta = 0, vicoli = [], vicoliTroncati = false, ultimo = null;
-  // passando il mouse (o toccando) una cella: la coda dei docenti in quel punto e i vincoli, come nelle marce indietro
+  // passando il mouse (o toccando) una cella: la coda dei docenti in quel punto e i vincoli, come nell'orario trovato
   const passaggio = codaAlPassaggio(dati, url.replace(/passi$/, 'analisi'))(
     () => ultimo && {chiave: 'passo' + n, orario: ultimo.orario, ordine: ultimo.ordine, limite: ultimo.pos,
       testoLimite: ultimo.esito === 'scarto' ? ' · ramo scartato: la ricerca è tornata indietro subito dopo la scelta evidenziata'
@@ -329,11 +329,14 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
     const dove = scarto ? `ultima scelta: ${dati.giorni[r.blocco[0]]} ${dati.ore[r.blocco[1]]} ${dati.classi[r.blocco[2]].nome} (✕)`
       : r.pos >= r.slot ? 'orario completo'
       : `la ricerca sta decidendo ${dati.giorni[r.blocco[0]]} ${dati.ore[r.blocco[1]]} ${dati.classi[r.blocco[2]].nome} (✕)`;
-    stato.textContent = `Passo ${numeroIt(n)}${di()} · ${numeroIt(r.pos)} slot su ${numeroIt(r.slot)} assegnati; ${dove}`
-      + (scarto ? ` · ✂ RAMO SCARTATO: con questa scelta ${r.motivoScarto === 1 ? 'i docenti non avrebbero più ore sufficienti per finire' : r.motivoScarto === 0 ? 'la classe non potrebbe più completare le sue lezioni' : 'la ricerca non può più finire l\'orario (il motivo non è registrato in questa prova)'}, la ricerca torna indietro subito`
-        : !r.bloccato ? '' : r.esito === 'vuoto' ? ' · ⚠ NESSUN DOCENTE UTILIZZABILE: lo slot resta vuoto (ora buca) e la ricerca prosegue'
-        : r.esito === 'indietro' ? ' · ⚠ VICOLO CIECO: nessun docente utilizzabile e lo slot non può restare vuoto, la ricerca torna indietro'
-        : ' · ⚠ NESSUN DOCENTE UTILIZZABILE: com\'è andata dopo non è registrato');
+    const perche = {1: 'i docenti non avrebbero più ore sufficienti per finire', 0: 'la classe non potrebbe più completare le sue lezioni'}[r.motivoScarto]
+      || 'la ricerca non può più finire l\'orario (il motivo non è registrato in questa prova)';
+    const nota = scarto ? ` · ✂ RAMO SCARTATO: con questa scelta ${perche}, la ricerca torna indietro subito`
+      : !r.bloccato ? ''
+      : r.esito === 'vuoto' ? ' · ⚠ NESSUN DOCENTE UTILIZZABILE: lo slot resta vuoto (ora buca) e la ricerca prosegue'
+      : r.esito === 'indietro' ? ' · ⚠ VICOLO CIECO: nessun docente utilizzabile e lo slot non può restare vuoto, la ricerca torna indietro'
+      : ' · ⚠ NESSUN DOCENTE UTILIZZABILE: com\'è andata dopo non è registrato';
+    stato.textContent = `Passo ${numeroIt(n)}${di()} · ${numeroIt(r.pos)} slot su ${numeroIt(r.slot)} assegnati; ${dove}${nota}`;
     stato.style.fontWeight = r.bloccato || scarto ? '600' : '';
   }
 
@@ -398,12 +401,15 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
     });
     const passaggi = dati.giorni.map(() => dati.ore.map(() => dati.classi.map(() => 0)));
     for (const i in anim.conta) passaggi[Math.floor(i / (O * C))][Math.floor(i / C) % O][anim.ordine[i % C]] = anim.conta[i];
+    // codice del passo come in passi.py (_codice): 0 normale, 1 ora buca, 2 vicolo cieco, 3 senza esito, 4/5 ramo
+    // scartato (motivo 0/1), 6 ritorno senza motivo. Per un ramo scartato la cella evidenziata e' la scelta che l'ha
+    // causato (lo slot prima), come fa vai() con la risposta del server.
     const pos = anim.slot.length, completo = pos >= G * O * C;
     const scarto = codice >= 4;
     const k = scarto ? pos - 1 : Math.min(pos, G * O * C - 1);
     const blocco = [Math.floor(k / (O * C)), Math.floor(k / C) % O, anim.ordine[k % C]];
     const r = {n, pos, slot: G * O * C, blocco, bloccato: codice > 0 && !scarto, motivoScarto: scarto ? (codice === 6 ? -1 : codice - 4) : null,
-      esito: scarto ? 'scarto' : codice === 1 ? 'vuoto' : codice === 2 ? 'indietro' : null};
+      esito: {1: 'vuoto', 2: 'indietro', 4: 'scarto', 5: 'scarto', 6: 'scarto'}[codice] || null};
     scriviStato(r);
     disegnaOrario(griglia, dati, orario, completo && !scarto ? null : blocco, null, passaggi);
     teniInVista();
@@ -679,7 +685,7 @@ function aggiornaCursori() {
   });
 }
 
-// Le tabelle si disegnano e ridisegnano dopo il caricamento (orario, mappa in tempo reale, marce indietro): si
+// Le tabelle si disegnano e ridisegnano dopo il caricamento (orario, mappa in tempo reale, passo passo): si
 // ricontrolla poco dopo ogni cambiamento della pagina (raggruppando quelli vicini) e a ogni ridimensionamento.
 // setTimeout e non requestAnimationFrame: quest'ultimo e' sospeso finche' la scheda non e' in primo piano.
 (() => {

@@ -128,7 +128,6 @@ def variabili_comuni():
 # ---- login e scelta della scuola ----
 
 def login():
-    from flask import current_app
     if request.method == 'POST':
         nome, password = request.form.get('nome', '').strip(), request.form.get('password', '')
         chiave = (request.remote_addr, nome.lower())

@@ -1,14 +1,11 @@
 """Sezione "Dati della scuola": calendario, classi, docenti e lezioni, al posto dei dati scritti nel programma."""
 import datetime
 import json
-import os
-import shutil
-import tempfile
 
 import psycopg
 from flask import Blueprint, Response, current_app, flash, g, redirect, render_template, request, url_for
 
-from . import esecutore, modello, solver
+from . import esecutore, modello
 from .db import conn
 
 bp = Blueprint('dati', __name__, url_prefix='/dati')
@@ -43,23 +40,6 @@ def _salva(azione, messaggio_ok):
     except psycopg.errors.CheckViolation:
         flash('Valori non validi (controlla ore e codocente).', 'errore')
     return False
-
-
-def _verifica(dati_solver=None, caso=None):
-    """Esegue il solver con --solo-verifica sui dati (formato solver) o su un caso. Ritorna il risultato."""
-    cfg = _config()
-    exe = solver.compila(cartella_bin=cfg.cartella_bin)
-    os.makedirs(cfg.lavoro, exist_ok=True)
-    cartella = tempfile.mkdtemp(prefix='verifica-', dir=cfg.lavoro)
-    try:
-        if caso is None:
-            file = os.path.join(cartella, 'dati.json')
-            with open(file, 'w') as f:
-                json.dump(dati_solver, f, ensure_ascii=False)
-            caso = {'tipo': 'input', 'file': file}
-        return solver.esegui(exe, caso, {'solo_verifica': True, 'motivi': False, 'tempo': 60}, cartella)
-    finally:
-        shutil.rmtree(cartella, ignore_errors=True)
 
 
 # ---- riepilogo ----
@@ -279,7 +259,7 @@ def verifica():
     if not dati['classi'] or not dati['docenti']:
         flash('Prima inserisci almeno una classe e un docente.', 'errore')
         return redirect(url_for('.indice'))
-    r = _verifica(modello.per_solver(dati))
+    r = esecutore.solo_verifica(_config(), dati=modello.per_solver(dati))
     if r['esito'] == 'verifica superata':
         flash('Verifica preliminare superata: nessuna condizione necessaria violata (non garantisce che un orario '
               'esista: lo dice solo la ricerca).', 'ok')
@@ -298,7 +278,7 @@ def importa_programma():
     if not request.form.get('conferma'):
         flash('Spunta la conferma: l\'importazione sostituisce tutti i dati presenti.', 'errore')
         return redirect(url_for('.indice'))
-    r = _verifica(caso={'tipo': 'programma'})
+    r = esecutore.solo_verifica(_config(), {'tipo': 'programma'})
     if not r.get('json'):
         flash('Il solver non ha scritto i dati (%s).' % r['esito'], 'errore')
         return redirect(url_for('.indice'))
