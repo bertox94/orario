@@ -70,12 +70,11 @@
   <div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
     <label>Tempo massimo (s, 0 = senza limite) <input type="number" name="tempo" min="0" value="{{ o.get('tempo', 60) }}"></label>
     <label>Orari da trovare <input type="number" name="orari" min="1" value="{{ o.get('orari', 1) }}"></label>
-    <label class="spunta"><input type="checkbox" name="passi" value="1" {{ 'checked' if o.get('passi') or not rilancio }}> Registra la ricerca passo passo</label>
-    <label>fino a <input type="number" name="max_passi" min="1" max="10000000" value="{{ o.get('passi', 100000) }}" style="width: 8em"> passi</label>
+    <label>Ricerca passo passo: registra e ferma la ricerca dopo <input type="number" name="max_passi" min="1" max="10000000" value="{{ o.get('passi', 10000000) }}" style="width: 8em"> passi</label>
   </div>
   <p class="tenue piccolo">La registrazione passo passo mostra nella pagina del risultato l'orario a ogni nodo della ricerca, con
-    i blocchi (vicoli ciechi e rami scartati) e la coda dei docenti in ogni cella; dopo i passi indicati
-    la registrazione finisce e la ricerca si ferma (esito «fermato»), così il file resta piccolo e non si aspetta il tempo massimo.</p>
+    i blocchi (vicoli ciechi e rami scartati) e la coda dei docenti in ogni cella; raggiunti i passi indicati
+    la registrazione finisce e la ricerca si ferma (esito «fermato»). Con molti passi il file registrato diventa grande.</p>
   <details {{ 'open' if o.get('ordine_classi') is not none or o.get('ore_obbligatorie') or o.get('ore_prof_classe') or o.get('classi_giorno') }}>
     <summary><strong>Parametri avanzati</strong> (regole dell'orario e ordine delle classi)</summary>
     <div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-top: 10px;">
