@@ -207,7 +207,7 @@ void stampa_intestazione_marce_compatte(FILE *f) {
     fprintf(f, "# Con --motivi, dopo ogni riga B c'e' una riga \"M d:m ...\": il motivo m per cui il docente d (con ore da fare nella "
                "classe) non si e' potuto mettere nello slot (i nomi dei motivi sono in \"nomi_motivi\" del JSON).\n");
     fprintf(f, "# Con --passi N: \"P pos da ...\" (stesso formato e stessa catena delle righe B) a ogni nodo della ricerca, "
-               "\"S m\" dopo la P di un nodo scartato dalla potatura, \"R pos\" a ogni ritorno al nodo pos; al massimo N righe P.\n");
+               "\"S m\" dopo la P di un nodo scartato dalla potatura; al massimo N righe P.\n");
     fprintf(f, "# Gli orari completi sono scritti per intero, come senza -b.\n");
     fprintf(f, "G %d %d %d\n", actual_giorni_settimana, actual_ore_giornaliere, actual_classi_sezione);
     // ordine delle classi dentro ogni ora (lo stesso per tutte le ore)
