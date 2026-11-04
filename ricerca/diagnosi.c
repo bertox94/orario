@@ -288,6 +288,20 @@ void diagnosi_analizza_slot(const teaching_slot *slot, const int pos, const int 
                 }
                 if (potatura != -2) motivo = -1;  // utilizzabile (anche se poi il ramo verrebbe scartato)
             }
+            // docente qui non utilizzabile: l'esito della potatura si calcola lo stesso, come ipotesi (le lezioni che
+            // avrebbe da fare, da solo o con ciascun codocente con ore insieme, senza i vincoli di contorno): la
+            // finestra del sito lo mostra per tutti i docenti con ore da fare
+            if (potatura == -2) {
+                if (deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(slot->base2d_ci, p))
+                    potatura = potatura_se_messo(pos, ii, -1);
+                for (int jj = base4d_queue; jj < queue_size && potatura != -1; jj++) {
+                    const int q = queue_mul[jj]->teacher;
+                    if (q != p && docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(slot->classe, p, q)) {
+                        const int m = potatura_se_messo(pos, ii, jj);
+                        potatura = potatura == -2 || m == -1 ? m : potatura;
+                    }
+                }
+            }
         }
         fprintf(f, "%s{\"docente\": %d, \"priorita\": %g, \"ore_classe\": %d, \"ore_totali_classe\": %d, \"motivo\": %d",
                 ii > base4d_queue ? ", " : "", p, queue_mul[ii]->priority, ore_rimaste,
