@@ -106,12 +106,11 @@ static inline void post_chiamata_ricorsiva(teaching_slot *slot, QueueItem *it, Q
 
 // Con --passi: la ricerca e' tornata al nodo pos dopo aver annullato la scelta del suo slot (riga R), cosi' nel visore
 // si vede anche il ritorno indietro, non solo l'ingresso nel nodo successivo. Non si scrive quando la ricerca sta solo
-// risalendo per finire (orari trovati, tempo scaduto, fermata).
+// risalendo per finire (orari trovati, tempo scaduto, fermata). Le righe R non contano nel limite N (che e' sui nodi,
+// cioe' sulle righe P): sono al massimo quante le P, quindi il file resta comunque limitato.
 static inline void registra_ritorno(const int pos) {
-    if (passi_max > 0 && passi_scritti < passi_max && stampa_backtrack == BACKTRACK_COMPATTO && n_gen < n_gen_max) {
-        passi_scritti++;
+    if (passi_max > 0 && passi_scritti < passi_max && stampa_backtrack == BACKTRACK_COMPATTO && n_gen < n_gen_max)
         fprintf(file_orario, "R %d\n", pos);
-    }
 }
 
 // Assegna lo slot (da solo o in coppia), prosegue la ricerca e annulla.
