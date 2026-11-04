@@ -29,7 +29,7 @@
 //   -b / --backtrack: scrive nel file dell'orario anche ogni marcia indietro, in formato compatto (una riga con gli slot
 //                     cambiati, vedi printer.h). Senza, il file contiene solo gli orari completi.
 //   --passi N: con -b, scrive anche una riga "P" con l'orario parziale a ogni nodo della ricerca (dal primo slot deciso
-//              in poi), e la riga "S" per i nodi scartati dalla potatura: per rivedere la ricerca passo
+//              in poi), e la riga "S" per i nodi scartati dalla potatura (rari: la potatura si fa prima di entrare nel nodo): per rivedere la ricerca passo
 //              passo dal sito. La registrazione (righe P, S, B e M)
 //              si ferma dopo N nodi (righe P), cosi' il file resta piccolo anche se la ricerca va avanti a lungo.
 //   --orario FILE: dove scrivere gli orari (default orario.txt); se FILE finisce in .gz si scrive compresso con gzip
