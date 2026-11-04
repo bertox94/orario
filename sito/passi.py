@@ -132,15 +132,18 @@ def passo(url, eid, n, nomi_classi):
         n, pos (slot decisi: la ricerca sta per decidere lo slot pos), blocco [g, o, c] di quello slot, ordine (k-esima
         classe della ricerca -> indice nei dati), orario [g][o][c] = [docente, codocente] con -1 negli slot non assegnati,
         passaggi [g][o][c] = quante volte la ricerca ha deciso quella posizione fino a questo passo,
-        bloccato (nessun docente utilizzabile in questo nodo) con i motivi [[docente, motivo]] (con --motivi, altrimenti
+        ripreso (se il passo viene dopo un ritorno indietro: la posizione dove la ricerca e' tornata e ha scelto un altro
+        docente, altrimenti None), bloccato (nessun docente utilizzabile in questo nodo) con i motivi [[docente, motivo]] (con --motivi, altrimenti
         None), esito 'vuoto' / 'indietro' / 'scarto' / None (vedi _codice) e scarto (motivo del ramo scartato: 0 lezioni
         della classe, 1 ore dei docenti, -1 non registrato) oppure None."""
     scorri = _scorri(url, eid, nomi_classi)
     giorni, ore, classi, ordine = next(scorri)
     if not classi:
         return None
-    slot, conta, ultimo = [], {}, None
+    slot, conta, ultimo, ripreso = [], {}, None, None
     for passo_ in scorri:
+        # dopo un ritorno indietro (codici 2, 4, 5, 6) questo passo riparte da `da`: li' la ricerca ha scelto un altro docente
+        ripreso = passo_[2] if ultimo and ultimo[4] in (2, 4, 5, 6) else None
         ultimo = passo_
         _applica(slot, passo_[2], passo_[3])
         conta[passo_[1] - 1] = conta.get(passo_[1] - 1, 0) + 1  # il passo ha deciso lo slot pos - 1
@@ -167,7 +170,7 @@ def passo(url, eid, n, nomi_classi):
     o, k = divmod(resto, classi)
     return {'n': visti, 'pos': pos, 'slot': giorni * ore * classi, 'blocco': [g, o, ordine[k]], 'orario': griglia,
             'ordine': ordine, 'passaggi': passaggi, 'bloccato': codice in (1, 2, 3), 'esito': TIPO[codice],
-            'motivi': motivi, 'scarto': _motivo_scarto(codice)}
+            'motivi': motivi, 'scarto': _motivo_scarto(codice), 'ripreso': ripreso}
 
 
 def totale(url, eid, definitivo):

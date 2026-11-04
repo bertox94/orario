@@ -327,6 +327,7 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
   function scriviStato(r) {
     const scarto = r.esito === 'scarto';
     const dove = scarto ? `ultima scelta: ${dati.giorni[r.blocco[0]]} ${dati.ore[r.blocco[1]]} ${dati.classi[r.blocco[2]].nome} (✕)`
+      : r.ripreso != null ? `tornata indietro: ha scelto un altro docente in ${dati.giorni[r.blocco[0]]} ${dati.ore[r.blocco[1]]} ${dati.classi[r.blocco[2]].nome} (✕)`
       : r.pos >= r.slot ? 'orario completo'
       : `la ricerca sta decidendo ${dati.giorni[r.blocco[0]]} ${dati.ore[r.blocco[1]]} ${dati.classi[r.blocco[2]].nome} (✕)`;
     const perche = {1: 'i docenti non avrebbero più ore sufficienti per finire', 0: 'la classe non potrebbe più completare le sue lezioni'}[r.motivoScarto]
@@ -373,7 +374,7 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
     anim.conta = {};
     r.iniziale.conta.forEach(([i, v]) => { anim.conta[i] = v; });
     anim.ordine = r.ordine; anim.passi = r.passi; anim.da = n + 1 + r.passi.length; anim.finito = r.finito;
-    anim.attiva = true; anim.acc = 0; anim.t = 0;
+    anim.attiva = true; anim.acc = 0; anim.t = 0; anim.ultimoCodice = 0; anim.ripreso = null;
     bottonePlay.textContent = '⏸ Pausa';
     anim.raf = requestAnimationFrame(passo);
   }
@@ -406,12 +407,13 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
     // causato (lo slot prima), come fa vai() con la risposta del server.
     const pos = anim.slot.length, completo = pos >= G * O * C;
     const scarto = codice >= 4;
-    const k = scarto ? pos - 1 : Math.min(pos, G * O * C - 1);
+    const ripreso = !scarto && anim.ripreso != null ? anim.ripreso : null;
+    const k = scarto ? pos - 1 : ripreso != null ? ripreso : Math.min(pos, G * O * C - 1);
     const blocco = [Math.floor(k / (O * C)), Math.floor(k / C) % O, anim.ordine[k % C]];
-    const r = {n, pos, slot: G * O * C, blocco, bloccato: codice > 0 && !scarto, motivoScarto: scarto ? (codice === 6 ? -1 : codice - 4) : null,
+    const r = {n, pos, slot: G * O * C, blocco, ripreso, bloccato: codice > 0 && !scarto, motivoScarto: scarto ? (codice === 6 ? -1 : codice - 4) : null,
       esito: {1: 'vuoto', 2: 'indietro', 4: 'scarto', 5: 'scarto', 6: 'scarto'}[codice] || null};
     scriviStato(r);
-    disegnaOrario(griglia, dati, orario, completo && !scarto ? null : blocco, null, passaggi);
+    disegnaOrario(griglia, dati, orario, completo && !scarto && ripreso == null ? null : blocco, null, passaggi);
     teniInVista();
   }
   function passo(t) {
@@ -424,6 +426,7 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
     let fatti = 0;
     while (quanti > 0 && anim.passi.length) {
       const [pos, da, nuovi, codice] = anim.passi.shift();
+      anim.ripreso = [2, 4, 5, 6].includes(anim.ultimoCodice) ? da : null;
       if (anim.slot.length > da) anim.slot.length = da;
       while (anim.slot.length < da) anim.slot.push('-');
       nuovi.forEach(x => anim.slot.push(x));
@@ -460,6 +463,10 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
       r.esito = 'scarto'; r.motivoScarto = r.scarto;
       r.blocco = [Math.floor(k / (O * C)), Math.floor(k / C) % O, r.ordine[k % C]];
     }
+    if (r.ripreso != null && r.esito !== 'scarto') {  // tornata indietro: si evidenzia lo slot dove ha cambiato docente
+      const k = r.ripreso, C = dati.classi.length, O = dati.ore.length;
+      r.blocco = [Math.floor(k / (O * C)), Math.floor(k / C) % O, r.ordine[k % C]];
+    }
     scriviStato(r);
     if (r.bloccato) {
       const per = {};
@@ -469,7 +476,7 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
         voci.length ? el('ul', {}, voci) : el('p', {class: 'tenue piccolo', testo: r.motivi ? 'Nessun docente aveva ancora ore da fare in questa classe.' : 'Motivi non registrati: attiva «Motivi degli scarti» nelle opzioni.'}));
     }
     ultimo = r;
-    disegnaOrario(griglia, dati, r.orario, r.pos >= r.slot && r.esito !== 'scarto' ? null : r.blocco, passaggio, r.passaggi);
+    disegnaOrario(griglia, dati, r.orario, r.pos >= r.slot && r.esito !== 'scarto' && r.ripreso == null ? null : r.blocco, passaggio, r.passaggi);
     teniInVista();
   }
   // la cella evidenziata deve restare visibile: se e' fuori dallo schermo la pagina (e la tabella) scorrono fino a lei
