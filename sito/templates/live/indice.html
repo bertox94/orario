@@ -94,11 +94,11 @@
 <h2>Casi dei test notturni da verificare</h2>
 <p class="tenue piccolo">Gli ultimi casi non risolti dei test notturni di questa scuola: «Verifica» li apre qui sopra con gli stessi dati e le stesse opzioni, per rifarli a mano (cambiando parametri, tempo, ordine delle classi).
   La ✕ toglie il caso dall'elenco (l'esecuzione e i suoi file restano).</p>
-<form method="post" action="{{ url_for('live.verificato_tutti') }}" style="margin: 0 0 8px">
+<form method="post" action="{{ url_for('live.verificato_tutti') }}" style="margin: 0 0 8px" id="svuota-verificare">
   <input type="hidden" name="_gettone" value="{{ gettone }}">
   <button class="secondario" type="submit">Svuota l'elenco</button>
 </form>
-<div class="scorre"><table class="dati">
+<div class="scorre" id="da-verificare"><table class="dati">
   <thead><tr><th>Prova</th><th>Caso</th><th>Quando</th><th>Esito</th><th class="num">Marce indietro</th><th>Diagnosi</th><th></th></tr></thead>
   <tbody>{% for n in non_risolti %}
     <tr><td><a href="{{ url_for('notturni.prova', pid=n.prova_id) }}">{{ n.prova_id }}{{ ' – ' + n.prova_nome if n.prova_nome }}</a></td>
@@ -110,6 +110,8 @@
           <input type="hidden" name="_gettone" value="{{ gettone }}">
           <button class="secondario" type="submit" title="Togli dall'elenco (l'esecuzione resta)">✕</button>
         </form></td></tr>
+  {% else %}
+    <tr class="vuoto-verificare"><td colspan="7" class="tenue">Nessun caso da verificare.</td></tr>
   {% endfor %}</tbody></table></div>
 {% endif %}
 

@@ -150,7 +150,8 @@ _NON_RISOLTI = '''
 def verificato(eid):
     """Toglie un caso dall'elenco «da verificare» (l'esecuzione e i suoi file restano)."""
     conn().execute('update esecuzioni set verificato = true where id = %s', (eid,))
-    return redirect(url_for('.indice'))
+    # dalla pagina, con JavaScript, la riga sparisce senza ricaricare: basta la conferma
+    return jsonify({'ok': True}) if request.headers.get('X-Gettone') else redirect(url_for('.indice'))
 
 
 @bp.route('/verificato-tutti', methods=['POST'])
@@ -158,7 +159,7 @@ def verificato_tutti():
     """Svuota l'elenco «da verificare»: segna verificati tutti i casi che vi compaiono ora."""
     conn().execute('update esecuzioni set verificato = true where id in (select id from (' + _NON_RISOLTI + ') t)',
                    (g.scuola['id'],))
-    return redirect(url_for('.indice'))
+    return jsonify({'ok': True}) if request.headers.get('X-Gettone') else redirect(url_for('.indice'))
 
 
 @bp.route('/<int:pid>/ferma', methods=['POST'])
