@@ -223,7 +223,8 @@ def stato(pid):
 def annulla(pid):
     esecutore.annulla_notturna(_config(), pid)
     flash('Prova annullata (i casi in corso si fermano in modo ordinato).', 'ok')
-    return redirect(url_for('.prova', pid=pid))
+    # dal pulsante «Ferma» dell'elenco si torna all'elenco, da quello della prova alla prova
+    return redirect(url_for('.indice') if request.form.get('torna') == 'indice' else url_for('.prova', pid=pid))
 
 
 @bp.route('/<int:pid>/elimina', methods=['POST'])

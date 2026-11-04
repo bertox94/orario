@@ -10,7 +10,7 @@
 <div class="scorre">
 <table class="dati">
   <thead><tr><th title="Scegli due prove da confrontare">A</th><th>B</th><th>#</th><th>Nome</th><th>Stato</th><th>Quando</th>
-    <th class="num">Casi</th><th>Esiti</th><th class="num">Durata</th><th>Solver</th></tr></thead>
+    <th class="num">Casi</th><th>Esiti</th><th class="num">Durata</th><th>Solver</th><th></th></tr></thead>
   <tbody>
   {% for p in prove %}
     {% set n = conteggi.get(p.id) %}
@@ -25,9 +25,17 @@
       <td class="piccolo">{% for k, v in ((p.riepilogo or {}).get('esiti') or {}).items() %}{{ k }}: {{ v }}{{ ', ' if not loop.last }}{% endfor %}</td>
       <td class="num">{% if p.inizio and p.fine %}{{ (p.fine - p.inizio).total_seconds()|durata }}{% else %}-{% endif %}</td>
       <td class="piccolo tenue">{{ p.commit or '' }}</td>
+      <td>{% if p.stato == 'in corso' %}
+        <form method="post" action="{{ url_for('notturni.annulla', pid=p.id) }}" class="in-linea"
+              onsubmit="return confirm('Fermare la prova {{ p.id }}? I casi in corso si fermano in modo ordinato.')">
+          <input type="hidden" name="_gettone" value="{{ gettone }}">
+          <input type="hidden" name="torna" value="indice">
+          <button class="pericolo" type="submit">Ferma</button>
+        </form>
+      {% endif %}</td>
     </tr>
   {% else %}
-    <tr><td colspan="10" class="tenue">Nessuna prova.</td></tr>
+    <tr><td colspan="11" class="tenue">Nessuna prova.</td></tr>
   {% endfor %}
   </tbody>
 </table>
