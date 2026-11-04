@@ -50,8 +50,9 @@ static inline int diagnosi_nuovo_nodo(const int pos) {
     if (pos > pos_max) {
         pos_max = pos;
         nodi_a_pos_max = nodi;
+    } else if (pos == pos_max) {
+        blocchi_per_pos[pos]++;  // arrivata di nuovo alla frontiera senza superarla (vedi diagnosi_blocchi_nello_slot)
     }
-    if (pos == pos_max) blocchi_per_pos[pos]++;  // arrivata di nuovo alla frontiera senza superarla (vedi diagnosi_blocchi_nello_slot)
     if ((nodi & 0xFFFF) == 0) return diagnosi_controllo_periodico(pos);
     return 0;
 }
