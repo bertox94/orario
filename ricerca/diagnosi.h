@@ -10,7 +10,7 @@
 #include "../orario/orario.h"
 #include "vincoli.h"
 
-#define N_MOTIVI 7
+#define N_MOTIVI 8
 
 // Contatori. Sono qui (e non nascosti nel .c) perche' i piccoli aggiornamenti per nodo sono static inline.
 extern long long int nodi;                // chiamate della ricerca
@@ -86,7 +86,9 @@ stato_blocco_t diagnosi_ultimo_scarto(int pos, int motivo_scarto, dettaglio_scar
 void diagnosi_ramo_scartato(int pos, int motivo);
 
 // Un nodo in cui non si e' potuto scegliere nessun docente. base4d_queue/queue_size delimitano la coda dei docenti.
-void diagnosi_marcia_indietro(const teaching_slot *slot, int pos, int base4d_queue, int queue_size);
+// `obbligato`: il docente che la potatura ha reso obbligatorio in questo slot (-1 se nessuno): gli altri non sono
+// stati provati, e il motivo del loro scarto e' quello.
+void diagnosi_marcia_indietro(const teaching_slot *slot, int pos, int base4d_queue, int queue_size, int obbligato);
 
 // I contatori per slot (pos = posizione nell'orario) e per docente, per chi li vuole esportare (risultati_json.c).
 // I motivi (per slot e per docente) si contano solo con --motivi: diagnosi_con_motivi() dice se sono validi.
@@ -105,7 +107,7 @@ const char *diagnosi_nome_motivo(int motivo);
 // `scarto`, se non NULL, e' un oggetto JSON aggiunto come campo "potatura": il nodo era un ramo scartato dalla potatura
 // prima di provare i docenti, quindi la coda dello slot e' solo quella che ci sarebbe stata.
 void diagnosi_analizza_slot(const teaching_slot *slot, int pos, int base4d_queue, int queue_size, FILE *f,
-                            const char *scarto);
+                            const char *scarto, int obbligato);
 
 // Scrive su f i campi JSON (con la virgola davanti) del dettaglio di un ramo scartato per il motivo m (SCARTATO_*):
 // le lezioni della classe (fino_ora, da_riempire, possibili, lezioni...) o le ore di un docente.

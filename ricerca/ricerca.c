@@ -172,6 +172,26 @@ int potatura_se_messo(const int pos, const int ii, const int jj) {
     return potatura_prima_di_assegnare(&orario[pos], pos, queue_mul[ii], jt);
 }
 
+// Un docente "al limite" (vedi vincoli.h) la cui ultima classe possibile dell'ora e' quella dello slot pos e'
+// OBBLIGATO qui: ogni scelta che non lo include gli fa perdere un'ora che non puo' perdere, e il ramo morirebbe
+// comunque al controllo successivo. In quel caso si provano solo le combinazioni con lui, e niente ora buca.
+// Ritorna il docente obbligato, o -1. Vale solo se docente_al_limite[] e' stato riempito per questa ora.
+static int docente_obbligato(const int pos) {
+    if (ora_al_limite != pos / actual_classi_sezione) return -1;
+    const teaching_slot *slot = &orario[pos];
+    const int fine_ora = pos - pos % actual_classi_sezione + actual_classi_sezione;
+    for (int p = 0; p < actual_insegnanti; p++) {
+        if (!docente_al_limite[p] || prof_gia_impegnato_giorno_ora[slot->base3d_goi + p]
+            || !deve_ancora_svolgere_ore_in_questa_classe(slot->base2d_ci, p))
+            continue;
+        int altra_classe = 0;
+        for (int i = pos + 1; i < fine_ora && !altra_classe; i++)
+            altra_classe = deve_ancora_svolgere_ore_in_questa_classe(orario[i].base2d_ci, p);
+        if (!altra_classe) return p;
+    }
+    return -1;
+}
+
 /* ---- un nodo della ricerca ---- */
 
 // Un orario completo: lo si conta e lo si scrive.
@@ -189,9 +209,9 @@ static void registra_orario_completo(const int pos) {
 // riga M dei motivi con --motivi). Con --passi si scrive solo se anche il nodo e' stato registrato (passo_scritto): le
 // righe B senza la loro P non servirebbero e il file deve restare piccolo.
 static void registra_marcia_indietro(const teaching_slot *slot, const int pos, const int queue_size,
-                                     const int passo_scritto) {
+                                     const int passo_scritto, const int obbligato) {
     n_backtrack++;
-    diagnosi_marcia_indietro(slot, pos, slot->base4d_queue, queue_size);
+    diagnosi_marcia_indietro(slot, pos, slot->base4d_queue, queue_size, obbligato);
     if (stampa_backtrack == BACKTRACK_COMPATTO && (passi_max == 0 || passo_scritto)) {
         stampa_marcia_compatta(file_orario, orario, pos);
         if (diagnosi_con_motivi()) diagnosi_scrivi_motivi_ultima_marcia(file_orario);
@@ -262,7 +282,7 @@ static void prova_slot_con_docenti(teaching_slot *slot, const int pos, const int
     const long long int assegnazioni_prima = n_assegnazioni;
     const int queue_size = slot->base4d_queue + queue_sz;
     prova_tutti_i_docenti(slot, pos, queue_size, obbligato);
-    if (n_assegnazioni == assegnazioni_prima) registra_marcia_indietro(slot, pos, queue_size, passo_scritto);
+    if (n_assegnazioni == assegnazioni_prima) registra_marcia_indietro(slot, pos, queue_size, passo_scritto, obbligato);
 }
 
 void cerca_orario(const int pos) {
@@ -314,25 +334,9 @@ void cerca_orario(const int pos) {
         ora_al_limite = pos / actual_classi_sezione;
     }
 
-    // un docente "al limite" la cui ultima classe possibile dell'ora e' questa e' OBBLIGATO qui: ogni scelta che non
-    // lo include gli fa perdere un'ora che non puo' perdere, e il ramo morirebbe comunque al controllo successivo.
-    // In quel caso si provano solo le combinazioni con lui, e niente ora buca.
-    int obbligato = -1;
-    if (ora_al_limite == pos / actual_classi_sezione) {
-        const int fine_ora = pos - pos % actual_classi_sezione + actual_classi_sezione;
-        for (int p = 0; p < actual_insegnanti && obbligato < 0; p++) {
-            if (!docente_al_limite[p] || prof_gia_impegnato_giorno_ora[slot->base3d_goi + p]
-                || !deve_ancora_svolgere_ore_in_questa_classe(slot->base2d_ci, p))
-                continue;
-            int altra_classe = 0;
-            for (int i = pos + 1; i < fine_ora && !altra_classe; i++)
-                altra_classe = deve_ancora_svolgere_ore_in_questa_classe(orario[i].base2d_ci, p);
-            if (!altra_classe) {
-                obbligato = p;
-                deduzioni_obbligato++;
-            }
-        }
-    }
+    // un docente "al limite" la cui ultima classe possibile dell'ora e' questa e' OBBLIGATO qui (vedi docente_obbligato)
+    const int obbligato = docente_obbligato(pos);
+    if (obbligato >= 0) deduzioni_obbligato++;
 
     // prima si provano i docenti (se nello slot puo' esserci lezione), poi lo slot vuoto (se ammesso)
     sort_queue_mul(slot->base4d_queue, queue_sz);
@@ -406,6 +410,10 @@ int analizza_slot(const char *file, FILE *out) {
         }
     }
     sort_queue_mul(slot->base4d_queue, queue_sz);
-    diagnosi_analizza_slot(slot, pos, slot->base4d_queue, slot->base4d_queue + queue_sz, out, scarto[0] ? scarto : NULL);
+    // come nella ricerca: i docenti al limite di quest'ora e l'eventuale obbligato in questo slot
+    segna_docenti_al_limite(slot->giorno, slot->ora);
+    ora_al_limite = pos / actual_classi_sezione;
+    diagnosi_analizza_slot(slot, pos, slot->base4d_queue, slot->base4d_queue + queue_sz, out, scarto[0] ? scarto : NULL,
+                           docente_obbligato(pos));
     return 1;
 }
