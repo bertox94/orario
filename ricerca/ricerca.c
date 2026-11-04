@@ -37,12 +37,14 @@ static int compare_queue_items(const void *a, const void *b) {
     // Sort by priority (descending: highest priority first)
     if (itemA->priority < itemB->priority) return 1;
     if (itemA->priority > itemB->priority) return -1;
-    return 0;
+    // a parita' di priorita' prima il docente con l'indice piu' basso: l'ordine dipende solo dallo stato della ricerca e
+    // non dalla storia, cosi' --analizza-slot (che rifa' lo stato da zero) mostra la coda nell'ordine in cui la ricerca
+    // la prova davvero
+    return itemA->teacher - itemB->teacher;
 }
 
 // Ordina la copia della coda di uno slot (da start, n docenti) per priorita' decrescente: si prova prima chi ha piu'
-// ore ancora da fare. A parita' di priorita' l'ordine non e' fissato (qsort non e' stabile) e dipende da come la copia
-// era ordinata la volta prima: per questo cambiare la potatura puo' cambiare l'ordine in cui si trovano gli orari.
+// ore ancora da fare, a parita' di priorita' chi ha l'indice piu' basso (l'ordine e' totale e non dipende dalla storia).
 static void sort_queue_mul(size_t start, size_t n) {
     // qsort has an average time complexity of O(N log N)
     qsort(&queue_mul[start], n, sizeof(QueueItem *), compare_queue_items);
@@ -248,8 +250,7 @@ void cerca_orario(const int pos) {
 // Rifa' lo stato della ricerca fino allo slot pos, con l'orario parziale letto da `file` (prima riga: pos; poi i primi
 // pos slot come nel formato compatto: "i", "i+j" o "-"), e scrive la coda dei docenti dello slot pos con per ognuno il
 // motivo per cui non va bene (vedi diagnosi_analizza_slot). Ritorna 0 se il file non va bene.
-// La priorita' e le ore sono quelle esatte; a parita' di priorita' l'ordine della coda dipende dalla storia della
-// ricerca e qui e' solo quello iniziale.
+// La priorita', le ore e l'ordine della coda sono esattamente quelli della ricerca (vedi compare_queue_items).
 int analizza_slot(const char *file, FILE *out) {
     FILE *f = fopen(file, "r");
     if (!f) return 0;
