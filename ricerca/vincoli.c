@@ -226,6 +226,25 @@ int lezioni_della_classe_bastano_dopo(const teaching_slot *slot) {
 }
 
 // Le due condizioni sui docenti (vedi sopra); la prima calcola in totale[] le ore rimaste di ogni docente per la seconda.
+int docente_al_limite[INSEGNANTE_SZ];
+
+// Vedi vincoli.h. Stesso conto di ore_totali_stanno_nel_tempo_rimasto, con l'uguaglianza al posto del superamento.
+void segna_docenti_al_limite(const int giorno, const int ora) {
+    const int giorni_dopo = actual_giorni_settimana - giorno - 1;
+    int totale[INSEGNANTE_SZ] = {0};
+    for (int cc = 0; cc < actual_classi_sezione; cc++) {
+        const classe_docente_t *cd = &classe_docente[cc * INSEGNANTE_SZ];
+        for (int p = 0; p < actual_insegnanti; p++) totale[p] += cd[p].ore - cd[p].svolte;
+    }
+    for (int p = 0; p < actual_insegnanti; p++) {
+        const int entrato = ora >= docente_info[p].ora_entrata;
+        const int da = entrato ? ora : docente_info[p].ora_entrata;
+        const int disponibili = (actual_ore_giornaliere - da)
+                                + (actual_ore_giornaliere - docente_info[p].ora_entrata) * giorni_dopo;
+        docente_al_limite[p] = entrato && totale[p] > 0 && totale[p] == disponibili;
+    }
+}
+
 int ore_rimaste_stanno_nel_tempo_rimasto(const int giorno, const int ora) {
     int totale[INSEGNANTE_SZ] = {0};
     return ore_in_classe_stanno_nel_tempo_rimasto(giorno, ora, totale)
