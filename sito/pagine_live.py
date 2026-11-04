@@ -98,6 +98,7 @@ def avvia():
     opzioni = {'tempo': _intero('tempo', 60, 0, 24 * 3600), 'orari': _intero('orari', 1, 1, 1000), 'motivi': True}
     if f.get('passi'):  # registra la ricerca passo passo, fino a questo numero di nodi
         opzioni['passi'] = _intero('max_passi', 100000, 1, 10000000)
+        opzioni['ferma_ai_passi'] = True  # nei test a mano la ricerca si ferma insieme alla registrazione
     # parametri della ricerca: nel JSON delle opzioni solo se diversi dai predefiniti (5, 3, 3)
     for chiave, predefinito, massimo in (('ore_obbligatorie', 5, 6), ('ore_prof_classe', 3, 6), ('classi_giorno', 3, 20)):
         v = _intero(chiave, predefinito, 1, massimo)

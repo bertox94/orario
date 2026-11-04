@@ -74,8 +74,8 @@
     <label>fino a <input type="number" name="max_passi" min="1" max="10000000" value="{{ o.get('passi', 100000) }}" style="width: 8em"> passi</label>
   </div>
   <p class="tenue piccolo">La registrazione passo passo mostra nella pagina del risultato l'orario a ogni nodo della ricerca, con
-    i blocchi (vicoli ciechi e rami scartati) e la coda dei docenti in ogni cella; si ferma dopo i passi indicati, così
-    il file resta piccolo anche se la ricerca va avanti a lungo.</p>
+    i blocchi (vicoli ciechi e rami scartati) e la coda dei docenti in ogni cella; dopo i passi indicati
+    la registrazione finisce e la ricerca si ferma (esito «fermato»), così il file resta piccolo e non si aspetta il tempo massimo.</p>
   <details {{ 'open' if o.get('ordine_classi') is not none or o.get('ore_obbligatorie') or o.get('ore_prof_classe') or o.get('classi_giorno') }}>
     <summary><strong>Parametri avanzati</strong> (regole dell'orario e ordine delle classi)</summary>
     <div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-top: 10px;">

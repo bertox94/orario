@@ -126,11 +126,13 @@ class Esecuzione:
     # nome della pipe da cui il sito legge la registrazione passo passo (al posto del file orario.txt.gz)
     PIPE_REGISTRAZIONE = 'registrazione.txt'
 
-    def __init__(self, exe, args, cartella, timeout=None, su_progresso=None, su_gz=None):
+    def __init__(self, exe, args, cartella, timeout=None, su_progresso=None, su_gz=None, ferma_dopo=None):
         """su_gz: funzione che riceve a pezzi la registrazione della ricerca (orario.txt.gz) compressa, invece di
         lasciarla scrivere sul disco: il solver scrive il testo in una pipe con nome, qui lo si comprime (gzip, livello 1)
         e i byte vanno direttamente a chi li conserva (il database), senza un processo gzip in piu'. Il file resta
-        piccolo da solo: il solver smette di registrare dopo --passi nodi."""
+        piccolo da solo: il solver smette di registrare dopo --passi nodi (e con ferma_dopo, un numero di passi, si
+        ferma anche la ricerca: esito 'fermato')."""
+        self.ferma_dopo = ferma_dopo
         os.makedirs(cartella, exist_ok=True)
         self.su_gz = su_gz
         self.errore_gz = None
@@ -157,6 +159,7 @@ class Esecuzione:
         arrivato finora si decomprime da solo (vedi passi.righe)."""
         compressore = zlib.compressobj(1, zlib.DEFLATED, 16 + zlib.MAX_WBITS)  # formato gzip
         fd = os.open(percorso, os.O_RDONLY | os.O_NONBLOCK)  # non blocca: il solver lo apre quando serve
+        passi, coda = 0, b'\n'  # passi = righe P viste; coda = gli ultimi byte, per le righe spezzate tra due pezzi
         try:
             while True:
                 pronti = select.select([fd], [], [], 0.5)[0]
@@ -165,6 +168,13 @@ class Esecuzione:
                     if not pezzo:
                         break  # il solver ha chiuso il file
                     self._pezzo_gz(compressore.compress(pezzo) + compressore.flush(zlib.Z_SYNC_FLUSH))
+                    if self.ferma_dopo:
+                        dati = coda + pezzo
+                        coda = dati[-2:]
+                        passi += dati.count(b'\nP ')
+                        if passi >= self.ferma_dopo:
+                            self.ferma_dopo = None  # una volta sola
+                            self.ferma()
                 elif self.processo.poll() is not None:
                     break  # il solver e' finito senza (piu') scrivere
             self._pezzo_gz(compressore.flush())  # chiusura del file gzip
