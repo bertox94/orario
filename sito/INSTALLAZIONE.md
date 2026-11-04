@@ -248,8 +248,8 @@ utilizzabile è segnalato, con i motivi. I «blocchi» sono i vicoli ciechi: tut
 ma nessun docente è utilizzabile e lo slot non può restare vuoto; i rami scartati dalla potatura si vedono come passi
 ma non si contano tra i blocchi (sono scelte errate già rilevate dal codice). L'ora buca,
 in cui la ricerca prosegue con lo slot vuoto, si vede nella riga di stato ma non è un blocco. I pulsanti sotto la barra
-si fermano su ogni segnalazione (vicoli ciechi, ore buche senza nessun docente utilizzabile, rami scartati) e durante
-l'animazione la pagina scorre per tenere in vista la cella che si sta decidendo. Nella finestra, per ogni docente utilizzabile, c'è anche l'esito della potatura: se mettendolo il ramo
+saltano da un vicolo cieco all'altro e durante l'animazione la pagina scorre per tenere in vista la cella che si sta
+decidendo. Nella finestra, per ogni docente utilizzabile, c'è anche l'esito della potatura: se mettendolo il ramo
 verrebbe scartato subito, e perché.
 
 ### L'analisi nel browser (WebAssembly)

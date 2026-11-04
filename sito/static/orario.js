@@ -461,7 +461,6 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi, analisiLocale
       : ultimo.pos >= ultimo.slot ? ' · orario completo' : ' · qui la ricerca sta decidendo'};
   const passaggio = codaAlPassaggio(dati, url.replace(/passi$/, 'analisi'), analisiLocale)(fonteFinestra);
   const veri = () => vicoli.filter(v => v[1] === 'indietro');  // i vicoli ciechi: nessun docente messo
-  // i pulsanti si fermano su ogni segnalazione: vicoli ciechi, ore buche senza docente, rami scartati
   const di = () => totale ? ` di ${numeroIt(totale)}` : '';
   function scriviStato(r) {
     const scarto = r.esito === 'scarto';
@@ -650,23 +649,19 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi, analisiLocale
     el('div', {style: 'display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:6px 0'}, [bottonePlay, el('label', {class: 'piccolo tenue', style: 'display:flex;gap:6px;align-items:center'}, [el('span', {testo: 'Velocità'}), sliderVelocita]), etichettaVelocita]),
     el('div', {style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px'}, [
       el('button', {class: 'secondario', type: 'button', testo: '◀ blocco precedente', onclick: () => {
-        const prima = vicoli.filter(v => v[0] < n); if (prima.length) vai(prima[prima.length - 1][0]); }}),
+        const prima = veri().filter(v => v[0] < n); if (prima.length) vai(prima[prima.length - 1][0]); }}),
       el('button', {class: 'secondario', type: 'button', testo: 'blocco successivo ▶', onclick: () => {
-        const dopo = vicoli.find(v => v[0] > n); if (dopo) vai(dopo[0]); }}), infoVicoli]),
+        const dopo = veri().find(v => v[0] > n); if (dopo) vai(dopo[0]); }}), infoVicoli]),
     barra, stato, griglia, motivi);  // i motivi sotto la tabella: sopra spingerebbero giu' tabella e comandi
   function aggiornaVicoli() {
     return fetch(url + '?vicoli=1').then(r => r.json()).then(v => {
       vicoli = v.vicoli || []; vicoliTroncati = !!v.troncato;
-      const ciechi = veri().length, vuoti = vicoli.filter(v => v[1] === 'vuoto').length,
-        scarti = vicoli.filter(v => v[1] === 'scarto').length;
+      const ciechi = veri().length;
       const più = vicoliTroncati ? '+' : '';
-      infoVicoli.textContent = (ciechi
+      infoVicoli.textContent = ciechi
         ? `${numeroIt(ciechi)}${più} ${ciechi === 1 && !più ? 'vicolo cieco' : 'vicoli ciechi'} (nessun docente utilizzabile)` +
           (ciechi < 30 ? ` · passi ${veri().map(v => v[0]).join(', ')}` : '')
-        : 'Nessun vicolo cieco tra i passi registrati')
-        + (vuoti ? ` · ${numeroIt(vuoti)} ore buche senza nessun docente utilizzabile` : '')
-        + (scarti ? ` · ${numeroIt(scarti)} rami scartati` : '')
-        + '; i pulsanti si fermano su ognuno.';
+        : 'Nessun vicolo cieco tra i passi registrati: la ricerca ha sempre trovato un docente.';
     }).catch(() => {});
   }
   fetch(url + '?totale=1').then(r => r.json()).then(t => {
