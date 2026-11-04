@@ -790,6 +790,15 @@ function vincoliDocente(dati, a, c, classe, ora) {
         perche = `la classe ${dati.classi[det.classe].nome} arriverebbe a ${det.ore_classe_fatte} ore su ${det.ore_classe} e dovrebbe ancora riempire per forza ${det.da_riempire} slot ` +
           (ultima ? 'entro la fine della settimana' : `entro le ${dati.ore[det.fino_ora]} di ogni giorno`) +
           `, ma le lezioni che le resterebbero ne possono coprire al massimo ${det.possibili}.`;
+        // quali lezioni non ci stanno, e perche': senza questo il conto sembra sbagliato (le ore residue ci sarebbero,
+        // ma non si possono piazzare per l'ora di ingresso, il massimo giornaliero o le ore attaccate)
+        const ferme = (det.lezioni || []).filter(([, , rim, poss]) => poss < rim).slice(0, 3).map(([p, q, rim, poss]) => {
+          const tardi = [p, q].filter(x => x >= 0 && dati.docenti[x].ingresso && (ultima || dati.docenti[x].ingresso > det.fino_ora))
+            .map(x => `${dati.docenti[x].nome} entra alle ${dati.ore[dati.docenti[x].ingresso]}`);
+          return `${coppia(dati, p, q)} ha ${ore(rim)} ma non ne può più fare${poss ? ' più di ' + poss : ''}` +
+            (tardi.length ? ` (${tardi.join(', ')})` : ' (massimo di ore al giorno nella classe, e ore attaccate)');
+        });
+        if (ferme.length) perche += ' ' + ferme.join('; ') + '.';
       }
     } else {
       perche = 'le ore che mancano ai docenti non starebbero più nel tempo rimasto della settimana.';
