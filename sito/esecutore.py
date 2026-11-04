@@ -125,6 +125,7 @@ def _esegui(config, exe, prova_id, eid, caso, opzioni, fase=1):
         scrittore = archivio.Scrittore(config.database_url, eid, 'orario.txt.gz') if opzioni.get('passi') else None
         e = solver.Esecuzione(exe, solver.argomenti(caso_file, opzioni, progresso=True), cartella,
                               timeout=opzioni.get('tempo'), su_gz=scrittore.scrivi if scrittore else None)
+        e.scrittore = scrittore  # per leggere la ricerca passo passo mentre gira (pezzi_in_corso)
         with _lock:
             ATTIVE[eid] = (prova_id, e, fase, nome_caso(caso))
         try:
@@ -160,6 +161,21 @@ def ferma_esecuzione(esecuzione_id):
     if a:
         a[1].ferma()
     return a is not None
+
+
+def pezzi_in_corso(esecuzione_id):
+    """La registrazione passo passo di un'esecuzione che sta girando, a pezzi: quelli gia' nel database piu' quello
+    ancora in memoria nello scrittore. None se l'esecuzione non e' in corso (o non registra)."""
+    with _lock:
+        a = ATTIVE.get(esecuzione_id)
+    if not a or not getattr(a[1], 'scrittore', None):
+        return None
+    scrittore = a[1].scrittore
+
+    def pezzi():
+        yield from archivio.pezzi(scrittore.url, esecuzione_id, scrittore.nome)
+        yield bytes(scrittore.buf)  # copia del pezzo non ancora scritto
+    return pezzi()
 
 
 def progresso_prova(prova_id):

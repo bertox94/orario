@@ -69,11 +69,18 @@ def passi_della_ricerca(eid):
         ?vicoli=1   l'elenco dei blocchi (vicoli ciechi, rami scartati, ore buche)
         ?da=N&k=K   K passi da N in poi come sole differenze (per l'animazione)"""
     e = conn().execute('select risultato, esito from esecuzioni where id = %s', (eid,)).fetchone()
-    if not e or 'orario.txt.gz' not in archivio.dimensioni(conn(), eid):
+    if not e:
         abort(404)
-    url = current_app.config['SITO'].database_url
     finito = e['esito'] is not None
+    if finito and 'orario.txt.gz' not in archivio.dimensioni(conn(), eid):
+        abort(404)
+    if not finito and esecutore.pezzi_in_corso(eid) is None:
+        return jsonify({'totale': 0, 'vicoli': [], 'troncato': False, 'errore': 'Nessun passo registrato.'})
+    url = current_app.config['SITO'].database_url
     nomi = [cl['nome'] for cl in ((e['risultato'] or {}).get('dati') or {}).get('classi', [])]
+    if not nomi and not finito:  # in corso non c'e' ancora il JSON: i nomi delle classi dalla vista della prova
+        v = conn().execute('select p.vista from prove p join esecuzioni e on e.prova_id = p.id where e.id = %s', (eid,)).fetchone()
+        nomi = [cl['nome'] for cl in ((v['vista'] if v else None) or {}).get('classi', [])]
     try:
         if request.args.get('totale'):
             return jsonify({'totale': passi.totale(url, eid, finito)})

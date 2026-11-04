@@ -300,7 +300,9 @@ function codaAlPassaggio(dati, urlAnalisi) {
 // La ricerca passo passo (registrata con --passi): l'orario parziale a ogni passo, dal passo 0 (orario vuoto), con lo
 // slider (aggiorna in tempo reale), i pulsanti, l'animazione a velocita' regolabile e i pulsanti dei blocchi (vicoli
 // ciechi e rami scartati). La sezione resta nascosta finche' non si sa che c'e' almeno un passo registrato.
-function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
+// Con inCorso (la ricerca sta ancora girando) i passi registrati crescono: il totale e i blocchi si rileggono ogni
+// 3 secondi e lo slider si allunga; si puo' sfogliare quello che c'e' gia'.
+function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi, inCorso) {
   const barra = el('input', {type: 'range', min: 0, max: 0, value: 0, style: 'width: 100%'});
   const numero = el('input', {type: 'number', min: 0, value: 0, class: 'stretto'});
   const stato = el('div', {class: 'tenue piccolo'});
@@ -487,13 +489,8 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
       el('button', {class: 'secondario', type: 'button', testo: 'blocco successivo ▶', onclick: () => {
         const dopo = veri().find(v => v[0] > n); if (dopo) vai(dopo[0]); }}), infoVicoli]),
     barra, stato, motivi, griglia);
-  fetch(url + '?totale=1').then(r => r.json()).then(t => {
-    totale = t.totale || 0;
-    if (!totale) return;  // nessuna riga P nel file: la sezione resta nascosta
-    if (sezione) sezione.style.display = '';
-    barra.max = totale;
-    vai(0);
-    fetch(url + '?vicoli=1').then(r => r.json()).then(v => {
+  function aggiornaVicoli() {
+    return fetch(url + '?vicoli=1').then(r => r.json()).then(v => {
       vicoli = v.vicoli || []; vicoliTroncati = !!v.troncato;
       const vuoti = vicoli.filter(v => v[1] === 'vuoto').length, ciechi = vicoli.filter(v => v[1] === 'indietro').length,
         scarti = vicoli.filter(v => v[1] === 'scarto').length, blocchi = ciechi + scarti;
@@ -504,7 +501,27 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
           (blocchi < 30 ? ` · passi ${veri().map(v => v[0]).join(', ')}` : '')
         : 'Nessuna marcia indietro tra i passi registrati: la ricerca è sempre andata avanti' + (vuoti ? ` (${numeroIt(vuoti)} ore buche non contate).` : '.');
     }).catch(() => {});
-  }).catch(() => {});
+  }
+  function aggiornaTotale() {
+    return fetch(url + '?totale=1').then(r => r.json()).then(t => {
+      const nuovo = t.totale || 0;
+      if (!nuovo || nuovo === totale) return;  // nessuna riga P (ancora): la sezione resta nascosta
+      const primo = totale === null || !totale;
+      totale = nuovo;
+      if (sezione) sezione.style.display = '';
+      barra.max = totale;
+      if (primo) vai(0);
+      else if (!anim.attiva) {  // la riga di stato dice il nuovo totale
+        if (ultimo) scriviStato(ultimo);
+        else if (n === 0) stato.textContent = `Passo 0${di()}: orario vuoto, la ricerca non è ancora cominciata.`;
+      }
+      aggiornaVicoli();
+    }).catch(() => {});
+  }
+  aggiornaTotale();
+  if (inCorso) {
+    const timer = setInterval(() => { if (!document.body.contains(contenitore)) clearInterval(timer); else aggiornaTotale(); }, 3000);
+  }
 }
 
 // Spiegazione a parole del perche' un docente non va bene nello slot, con i dettagli (ore, classi, orari).

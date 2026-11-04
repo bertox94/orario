@@ -24,12 +24,20 @@
 <p class="tenue piccolo">Marce indietro e rami scartati in ogni slot, aggiornati ogni secondo. Pochi slot molto
   colorati = blocco localizzato (spesso un caso impossibile o una scelta sbagliata poco prima).</p>
 <div id="mappa" class="scorre"><p class="tenue">In attesa dei primi dati…</p></div>
+
+<div id="sezione-passi" style="display: none">
+<h2>La ricerca passo passo (in corso)</h2>
+<p class="tenue piccolo">I passi registrati finora: lo slider si allunga man mano che la ricerca va avanti (arrivano con qualche
+  secondo di ritardo). Lo slot ✕ è quello che la ricerca sta per decidere; passando il mouse (o toccando) una cella si
+  apre la coda dei docenti in quel punto. Il resto della spiegazione è nella pagina del risultato.</p>
+<div id="passi"></div>
+</div>
 {% endblock %}
 
 {% block script %}
 <script>
 const indirizzo = "{{ url_for('live.stato', pid=prova.id) }}";
-let dati = null;
+let dati = null, passiAvviati = false;
 
 async function aggiorna() {
   let r;
@@ -37,6 +45,11 @@ async function aggiorna() {
     r = await (await fetch(indirizzo + (dati ? '' : '?con_dati=1'))).json();
   } catch (e) { setTimeout(aggiorna, 2000); return; }
   if (r.dati) dati = r.dati;
+  if (r.eid && !passiAvviati && dati) {  // la ricerca passo passo di quello che c'e' gia' (se il test la registra)
+    passiAvviati = true;
+    sfogliaPassi(document.getElementById('sezione-passi'), document.getElementById('passi'), dati,
+      "{{ url_for('casi.passi', eid=0) }}".replace('/0/', '/' + r.eid + '/'), [], true);
+  }
   if (r.esito) { location.href = "{{ url_for('casi.caso', eid=0) }}".replace('/0', '/' + r.eid); return; }
   if (r.stato === 'errore' || r.stato === 'interrotta') {
     document.getElementById('messaggio').innerHTML = '';

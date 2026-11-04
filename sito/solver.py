@@ -26,6 +26,7 @@ import shutil
 import subprocess
 import threading
 import time
+import zlib
 
 RADICE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -123,16 +124,23 @@ class Esecuzione:
     """Un processo del solver in corso. Il sito ne tiene uno per ogni test in tempo reale (per il progresso e per
     fermarlo); casuali.py usa direttamente esegui()."""
 
+    # nome della pipe da cui il sito legge la registrazione passo passo (al posto del file orario.txt.gz)
+    PIPE_REGISTRAZIONE = 'registrazione.txt'
+
     def __init__(self, exe, args, cartella, timeout=None, su_progresso=None, su_gz=None):
-        """su_gz: funzione che riceve a pezzi la registrazione compressa della ricerca (orario.txt.gz), invece di
-        scriverla sul disco: il file e' una pipe con nome e i byte vanno direttamente a chi li conserva (il database).
-        Il file resta piccolo da solo, perche' il solver smette di registrare dopo --passi nodi."""
+        """su_gz: funzione che riceve a pezzi la registrazione della ricerca (orario.txt.gz) compressa, invece di
+        lasciarla scrivere sul disco: il solver scrive il testo in una pipe con nome, qui lo si comprime (gzip, livello 1)
+        e i byte vanno direttamente a chi li conserva (il database). Si comprime qui e non nel solver perche' gzip
+        trattiene l'uscita finche' non ha finito, mentre cosi' ogni pezzo e' leggibile subito (la ricerca passo passo
+        si puo' sfogliare mentre gira). Il file resta piccolo da solo: il solver smette di registrare dopo --passi nodi."""
         os.makedirs(cartella, exist_ok=True)
         self.su_gz = su_gz
         self.errore_gz = None
         self.thread_gz = None
-        if su_gz and '-b' in args:
-            os.mkfifo(os.path.join(cartella, 'orario.txt.gz'))
+        con_pipe = su_gz and '-b' in args
+        if con_pipe:
+            args = [self.PIPE_REGISTRAZIONE if a == 'orario.txt.gz' else a for a in args]
+            os.mkfifo(os.path.join(cartella, self.PIPE_REGISTRAZIONE))
         self.cartella = cartella
         self.timeout = timeout
         self.su_progresso = su_progresso
@@ -141,12 +149,15 @@ class Esecuzione:
         self.inizio = time.time()
         self.processo = subprocess.Popen([exe] + args, cwd=cartella, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                          text=True, bufsize=1)
-        if su_gz and '-b' in args:
-            self.thread_gz = threading.Thread(target=self._leggi_gz, args=(os.path.join(cartella, 'orario.txt.gz'),),
-                                              daemon=True)
+        if con_pipe:
+            self.thread_gz = threading.Thread(target=self._leggi_registrazione,
+                                              args=(os.path.join(cartella, self.PIPE_REGISTRAZIONE),), daemon=True)
             self.thread_gz.start()
 
-    def _leggi_gz(self, percorso):
+    def _leggi_registrazione(self, percorso):
+        """Legge la pipe e manda a su_gz i pezzi compressi; ogni pezzo e' chiuso con un sync flush, cosi' quello che e'
+        arrivato finora si decomprime da solo (vedi passi.righe)."""
+        compressore = zlib.compressobj(1, zlib.DEFLATED, 16 + zlib.MAX_WBITS)  # formato gzip
         fd = os.open(percorso, os.O_RDONLY | os.O_NONBLOCK)  # non blocca: il solver lo apre quando serve
         try:
             while True:
@@ -155,15 +166,16 @@ class Esecuzione:
                     pezzo = os.read(fd, 1 << 20)
                     if not pezzo:
                         break  # il solver ha chiuso il file
-                    self._pezzo_gz(pezzo)
+                    self._pezzo_gz(compressore.compress(pezzo) + compressore.flush(zlib.Z_SYNC_FLUSH))
                 elif self.processo.poll() is not None:
                     break  # il solver e' finito senza (piu') scrivere
+            self._pezzo_gz(compressore.flush())  # chiusura del file gzip
         finally:
             os.close(fd)
 
     def _pezzo_gz(self, pezzo):
-        if self.errore_gz:
-            return  # dopo l'errore i byte si leggono e si scartano, cosi' gzip non resta bloccato sulla pipe
+        if self.errore_gz or not pezzo:
+            return  # dopo l'errore i byte si leggono e si scartano, cosi' il solver non resta bloccato sulla pipe
         try:
             self.su_gz(pezzo)
         except Exception as ex:  # noqa: BLE001 - per esempio il database non risponde
