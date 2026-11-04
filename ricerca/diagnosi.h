@@ -94,8 +94,9 @@ void diagnosi_marcia_indietro(const teaching_slot *slot, int pos, int base4d_que
 // I motivi (per slot e per docente) si contano solo con --motivi: diagnosi_con_motivi() dice se sono validi.
 long long int diagnosi_marce_nello_slot(int pos);
 // I vicoli ciechi di uno slot, per la mappa: quante volte la ricerca ci e' passata senza riuscire a mettere nessun
-// docente (tutti i vincoli passano ma nessuno e' utilizzabile). Non conta i rami scartati dalla potatura, che sono
-// solo scelte errate gia' rilevate dal codice, ne' i ripassi in cui un docente c'era.
+// docente E senza poter lasciare l'ora buca, cioe' i punti in cui si e' davvero bloccata. Non conta i rami scartati
+// dalla potatura (scelte errate gia' rilevate dal codice), le ore buche (li' la ricerca prosegue) ne' i ripassi in
+// cui un docente c'era. Il passo passo del sito usa la stessa regola.
 long long int diagnosi_blocchi_nello_slot(int pos);
 long long int diagnosi_scartati_nello_slot(int pos, int motivo_scarto);
 long long int diagnosi_motivo_nello_slot(int pos, int motivo);
