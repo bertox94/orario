@@ -826,9 +826,12 @@ function mostraAnalisi(pannello, dati, a, scelto, titolo, bloccato, classe, ora,
     const e = c.docente === p || c.docente === q;
     // potatura_dopo (solo per gli utilizzabili): mettendo questo docente, il passo dopo supererebbe le verifiche di potatura?
     const poiScartato = c.potatura_dopo != null && c.potatura_dopo >= 0;
-    const esito = (e ? 'scelto' : c.motivo < 0 ? (bloccato ? 'utilizzabile' : 'utilizzabile (non scelto in questo ramo)') : spiegaMotivo(dati, a, c, classe, ora))
+    const esito = (e ? 'scelto'
+      // la classe non puo' fare lezione in quest'ora: nessun docente viene provato, lo slot puo' solo restare vuoto
+      : c.motivo < 0 && !a.lezione_ammessa ? 'non provato: la classe non può fare lezione in quest\'ora'
+      : c.motivo < 0 ? (bloccato ? 'utilizzabile' : 'utilizzabile (non scelto in questo ramo)') : spiegaMotivo(dati, a, c, classe, ora))
       + (poiScartato ? ' · ✂ poi il ramo verrebbe scartato' : '');
-    const stato = e ? 'scelto' : c.motivo < 0 ? 'utilizzabile' : 'escluso';
+    const stato = e ? 'scelto' : c.motivo < 0 && a.lezione_ammessa ? 'utilizzabile' : 'escluso';
     // la barra: lunghezza = priorita' (rispetto alla massima della coda), colore = scelto / utilizzabile / escluso
     const barra = el('div', {class: 'barra-priorita ' + stato, title: `priorità ${c.priorita}`},
       [el('div', {style: `width: ${(100 * c.priorita / massima).toFixed(1)}%`})]);
