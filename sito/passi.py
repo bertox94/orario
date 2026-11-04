@@ -13,7 +13,7 @@ import zlib
 
 from . import archivio
 
-MAX_BYTE = 4 * 2 ** 30  # oltre questa quantita' di testo decompresso la pagina rinuncia (il file si puo' scaricare)
+MAX_BYTE = 400 * 2 ** 30  # oltre questa quantita' di testo decompresso la pagina rinuncia (il file si puo' scaricare)
 MAX_BLOCCO = 2000  # passi per richiesta nell'animazione
 MAX_VICOLI = 50000  # blocchi elencati al massimo
 _totali = {}  # esecuzione -> numero di passi (solo per file finiti)

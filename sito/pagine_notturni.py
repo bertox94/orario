@@ -45,7 +45,7 @@ def _opzioni_dal_modulo():
             'classi': _intero('classi', 8, 1, 120), 'varianti': varianti or ['normale'],
             'scuola': bool(f.get('scuola')), 'ordine_classi': _intero('ordine_classi', 0) if f.get('ordine_classi', '').strip().isdigit() else None,
             'fase1': _intero('fase1', 60, 1), 'fase2': _intero('fase2', 600), 'fase3': _intero('fase3', 600),
-            'passi': _intero('passi', esecutore.PASSI_NOTTURNI, 1, 1000000000),
+            'passi': _intero('passi', esecutore.PASSI_NOTTURNI, 1, 100000000000),
             'ore_obbligatorie': _intero('ore_obbligatorie', 5, 1, 6), 'ore_prof_classe': _intero('ore_prof_classe', 3, 1, 6),
             'classi_giorno': _intero('classi_giorno', 3, 1, 20)}
 
