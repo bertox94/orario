@@ -282,8 +282,7 @@ void diagnosi_analizza_slot(const teaching_slot *slot, const int pos, const int 
                         && docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(slot->classe, p, q)
                         && sabato_esaurisci_priorita_subito(pos, slot->giorno, slot->ora, slot->base2d_ci, p, q)
                         && docente_idoneo(slot, pos, q)) {
-                        const int m = potatura_se_messo(pos, ii, jj);
-                        potatura = potatura == -2 || m == -1 ? m : potatura;
+                        potatura = potatura_se_messo(pos, ii, jj);  // l'ultimo fallito: il suo dettaglio e' quello fresco
                     }
                 }
                 if (potatura != -2) motivo = -1;  // utilizzabile (anche se poi il ramo verrebbe scartato)
@@ -296,10 +295,8 @@ void diagnosi_analizza_slot(const teaching_slot *slot, const int pos, const int 
                     potatura = potatura_se_messo(pos, ii, -1);
                 for (int jj = base4d_queue; jj < queue_size && potatura != -1; jj++) {
                     const int q = queue_mul[jj]->teacher;
-                    if (q != p && docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(slot->classe, p, q)) {
-                        const int m = potatura_se_messo(pos, ii, jj);
-                        potatura = potatura == -2 || m == -1 ? m : potatura;
-                    }
+                    if (q != p && docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(slot->classe, p, q))
+                        potatura = potatura_se_messo(pos, ii, jj);
                 }
             }
         }
@@ -307,6 +304,13 @@ void diagnosi_analizza_slot(const teaching_slot *slot, const int pos, const int 
                 ii > base4d_queue ? ", " : "", p, queue_mul[ii]->priority, ore_rimaste,
                 classe_docente[slot->base2d_ci + p].ore, motivo);
         if (potatura != -2) fprintf(f, ", \"potatura_dopo\": %d", potatura);
+        if (potatura >= 0) {
+            // il conto fallito dell'ultima simulazione, per la finestra: come il blocco "potatura" del nodo scartato
+            fprintf(f, ", \"potatura_dettaglio\": {\"classe\": %d, \"ore_classe\": %d, \"ore_classe_fatte\": %d",
+                    slot->classe, classe_info[slot->classe].ore, classe_info[slot->classe].svolte + 1);
+            diagnosi_scrivi_dettaglio_scarto(f, potatura, &dettaglio_scarto);
+            fprintf(f, "}");
+        }
         if (ore_rimaste > 0) {
             fprintf(f, ", \"vincoli\": ");
             vincoli_docente(slot, pos, p, base4d_queue, queue_size, f);
