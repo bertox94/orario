@@ -259,8 +259,8 @@ static void dettaglio_docente(const teaching_slot *slot, const int pos, const in
 // che gli restano in questa classe e se era utilizzabile nello slot o quale vincolo lo escludeva.
 void diagnosi_analizza_slot(const teaching_slot *slot, const int pos, const int base4d_queue, const int queue_size,
                             FILE *f, const char *scarto, const int obbligato) {
-    fprintf(f, "{\"slot\": %d, \"lezione_ammessa\": %s, \"coda\": [", pos,
-            activities_for_this_class_and_hour(slot) ? "true" : "false");
+    fprintf(f, "{\"slot\": %d, \"lezione_ammessa\": %s, \"obbligato\": %d, \"coda\": [", pos,
+            activities_for_this_class_and_hour(slot) ? "true" : "false", obbligato);
     for (int ii = base4d_queue; ii < queue_size; ii++) {
         const int p = queue_mul[ii]->teacher;
         const int ore_rimaste = classe_docente[slot->base2d_ci + p].ore - classe_docente[slot->base2d_ci + p].svolte;
