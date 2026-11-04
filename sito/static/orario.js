@@ -594,6 +594,10 @@ function vincoliDocente(dati, a, c, classe, ora) {
     v[6] === -1 ? 'Regola del sabato: non si applica, perché non è sabato.'
       : v[6] ? 'Regola del sabato: rispettata.'
              : `Regola del sabato: non rispettata, nell'ora precedente ${(d.ora_precedente || []).map(nomeDoc).join(' e ') || 'un altro docente'} deve finire le sue ore in questa classe.`]);
+  if (c.potatura_dopo != null) frasi.push([c.potatura_dopo < 0 ? 1 : 0,
+    c.potatura_dopo < 0 ? 'Verifiche di potatura: mettendolo qui, il passo dopo le supererebbe e la ricerca andrebbe avanti.'
+      : c.potatura_dopo === 0 ? 'Verifiche di potatura: mettendolo qui, il ramo verrebbe scartato subito, perché alla classe non basterebbero più le lezioni per gli slot da riempire per forza.'
+      : 'Verifiche di potatura: mettendolo qui, il ramo verrebbe scartato subito, perché le ore che mancano ai docenti non starebbero più nel tempo rimasto della settimana.']);
   return frasi.map(([ok, testo]) => ({stato: ok === -1 ? 'na' : ok ? 'si' : 'no', testo}));
 }
 
@@ -614,7 +618,10 @@ function mostraAnalisi(pannello, dati, a, scelto, titolo, bloccato, classe, ora,
   const MAX = 14;
   con.slice(0, MAX).forEach(c => {
     const e = c.docente === p || c.docente === q;
-    const esito = e ? 'scelto' : c.motivo < 0 ? 'utilizzabile (non scelto in questo ramo)' : spiegaMotivo(dati, a, c, classe, ora);
+    // potatura_dopo (solo per gli utilizzabili): mettendo questo docente, il passo dopo supererebbe le verifiche di potatura?
+    const poiScartato = c.potatura_dopo != null && c.potatura_dopo >= 0;
+    const esito = (e ? 'scelto' : c.motivo < 0 ? 'utilizzabile (non scelto in questo ramo)' : spiegaMotivo(dati, a, c, classe, ora))
+      + (poiScartato ? ' · ✂ poi il ramo verrebbe scartato' : '');
     const stato = e ? 'scelto' : c.motivo < 0 ? 'utilizzabile' : 'escluso';
     // la barra: lunghezza = priorita' (rispetto alla massima della coda), colore = scelto / utilizzabile / escluso
     const barra = el('div', {class: 'barra-priorita ' + stato, title: `priorità ${c.priorita}`},
