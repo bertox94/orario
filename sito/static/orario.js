@@ -331,7 +331,7 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
   function scriviStato(r) {
     const scarto = r.esito === 'scarto';
     const dove = scarto ? `la ricerca entra in ${dati.giorni[r.blocco[0]]} ${dati.ore[r.blocco[1]]} ${dati.classi[r.blocco[2]].nome} (✕)`
-      : r.ripreso != null ? `tornata indietro: ha scelto un altro docente in ${dati.giorni[r.blocco[0]]} ${dati.ore[r.blocco[1]]} ${dati.classi[r.blocco[2]].nome} (✕)`
+      : r.ripreso != null && !r.esito && !r.bloccato ? `tornata indietro: ha scelto un altro docente in ${dati.giorni[r.blocco[0]]} ${dati.ore[r.blocco[1]]} ${dati.classi[r.blocco[2]].nome} (✕)`
       : r.pos >= r.slot ? 'orario completo'
       : `la ricerca sta decidendo ${dati.giorni[r.blocco[0]]} ${dati.ore[r.blocco[1]]} ${dati.classi[r.blocco[2]].nome} (✕)`;
     const perche = {1: 'i docenti non avrebbero più ore sufficienti per finire', 0: 'la classe non potrebbe più completare le sue lezioni'}[r.motivoScarto]
@@ -411,7 +411,8 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
     // causato (lo slot prima), come fa vai() con la risposta del server.
     const pos = anim.slot.length, completo = pos >= G * O * C;
     const scarto = codice >= 4;
-    const ripreso = !scarto && anim.ripreso != null ? anim.ripreso : null;
+    // se il passo e' anche un blocco (nessun docente utilizzabile, ramo scartato) la cella evidenziata e' quella del blocco
+    const ripreso = codice === 0 && anim.ripreso != null ? anim.ripreso : null;
     const k = ripreso != null ? ripreso : Math.min(pos, G * O * C - 1);
     const blocco = [Math.floor(k / (O * C)), Math.floor(k / C) % O, anim.ordine[k % C]];
     const r = {n, pos, slot: G * O * C, blocco, ripreso, bloccato: codice > 0 && !scarto, motivoScarto: scarto ? (codice === 6 ? -1 : codice - 4) : null,
@@ -463,7 +464,7 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
     if (r.errore) { stato.textContent = r.errore; griglia.replaceChildren(); return; }
     n = r.n; barra.value = numero.value = n;
     if (r.scarto != null) { r.esito = 'scarto'; r.motivoScarto = r.scarto; }  // ramo scartato: la potatura scatta entrando in questo slot
-    if (r.ripreso != null && r.esito !== 'scarto') {  // tornata indietro: si evidenzia lo slot dove ha cambiato docente
+    if (r.ripreso != null && !r.esito && !r.bloccato) {  // tornata indietro: si evidenzia lo slot dove ha cambiato docente
       const k = r.ripreso, C = dati.classi.length, O = dati.ore.length;
       r.blocco = [Math.floor(k / (O * C)), Math.floor(k / C) % O, r.ordine[k % C]];
     }
