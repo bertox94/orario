@@ -15,8 +15,8 @@ extern long long int n_backtrack;    // quante volte non si e' potuto scegliere 
 // Con -b (BACKTRACK_COMPATTO) a ogni marcia indietro si scrive una riga compatta nel file degli orari (vedi printer.h).
 enum { BACKTRACK_NO, BACKTRACK_COMPATTO };
 extern int stampa_backtrack;
-// Con -b --passi N: a ogni nodo una riga "P" con l'orario parziale (e "S" se il nodo viene scartato dalla potatura).
-// Dopo passi_max nodi registrati non si scrive piu' niente, nemmeno le marce indietro (0 = nessuna riga P).
+// Con -b --passi N: a ogni nodo una riga "P" con l'orario parziale ("S" se il nodo viene scartato dalla potatura) e a
+// ogni ritorno a un nodo una riga "R". Dopo passi_max righe P e R non si scrive piu' niente, nemmeno le marce indietro.
 extern long long passi_max;
 extern FILE *file_orario;            // dove si scrivono gli orari trovati (e le marce indietro con stampa_backtrack)
 
