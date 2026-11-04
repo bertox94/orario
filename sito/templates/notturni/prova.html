@@ -37,6 +37,16 @@
   {% endif %}
 </p>
 
+{% if prova.stato == 'in corso' %}
+<h2>In corso</h2>
+<p class="tenue piccolo">I casi che stanno girando adesso, aggiornati ogni 2 secondi: la barra è il tempo usato della fase,
+  gli slot sono quello che la ricerca sta decidendo e il più avanzato raggiunto. La tabella sotto si aggiorna quando un caso finisce.</p>
+<div class="scorre"><table class="dati" id="in-corso">
+  <thead><tr><th>Caso</th><th class="num">Fase</th><th>Tempo</th><th class="num">Nodi</th><th class="num">Marce indietro</th><th class="num">Rami scartati</th><th class="num">Slot / più avanzato</th></tr></thead>
+  <tbody><tr><td colspan="7" class="tenue">In attesa dei primi dati…</td></tr></tbody>
+</table></div>
+{% endif %}
+
 <h2>Casi</h2>
 <p><label class="spunta"><input type="checkbox" id="solo-problemi"> Solo i casi non risolti</label></p>
 <div class="scorre">
@@ -67,6 +77,32 @@ document.getElementById('solo-problemi').addEventListener('change', e => {
   for (const tr of document.querySelectorAll('#casi tbody tr[data-risolto]'))
     tr.style.display = e.target.checked && tr.dataset.risolto === '1' ? 'none' : '';
 });
-{% if prova.stato in ('in coda', 'in corso') %}setTimeout(() => location.reload(), 15000);{% endif %}
+{% if prova.stato == 'in coda' %}setTimeout(() => location.reload(), 15000);{% endif %}
+{% if prova.stato == 'in corso' %}
+// progresso dei casi in corso ogni 2 secondi; quando un caso finisce (o la prova cambia stato) si ricarica la pagina
+const finiteAllInizio = {{ casi|selectattr('esito')|list|length }};
+async function aggiornaProgresso() {
+  let r;
+  try { r = await (await fetch("{{ url_for('notturni.stato', pid=prova.id) }}")).json(); }
+  catch (e) { setTimeout(aggiornaProgresso, 5000); return; }
+  if (r.stato !== 'in corso' || r.finite !== finiteAllInizio) { location.reload(); return; }
+  const corpo = document.querySelector('#in-corso tbody');
+  const durata = s => s >= 60 ? `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')} s` : `${s} s`;
+  corpo.replaceChildren(...(r.in_corso.length ? r.in_corso : []).map(c => {
+    const quota = c.tempo ? Math.min(100, 100 * c.secondi / c.tempo) : 0;
+    return el('tr', {}, [
+      el('td', {}, [el('a', {href: "{{ url_for('casi.caso', eid=0) }}".replace('/0', '/' + c.eid), testo: c.caso})]),
+      el('td', {class: 'num', testo: String(c.fase)}),
+      el('td', {}, [el('div', {class: 'barra', title: c.tempo ? `${durata(c.secondi)} su ${durata(c.tempo)}` : ''}, [el('div', {style: `width: ${quota.toFixed(1)}%`})]),
+        el('span', {class: 'piccolo tenue', testo: durata(c.secondi) + (c.tempo ? ` / ${durata(c.tempo)}` : '')})]),
+      el('td', {class: 'num', testo: numeroIt(c.nodi)}), el('td', {class: 'num', testo: numeroIt(c.marce)}),
+      el('td', {class: 'num', testo: numeroIt(c.scartati)}),
+      el('td', {class: 'num', testo: c.pos == null ? '-' : `${c.pos} / ${c.pos_max}`})]);
+  }));
+  if (!r.in_corso.length) corpo.replaceChildren(el('tr', {}, [el('td', {colspan: 7, class: 'tenue', testo: 'Nessun caso in esecuzione in questo momento (tra una fase e l\'altra).'})]));
+  setTimeout(aggiornaProgresso, 2000);
+}
+aggiornaProgresso();
+{% endif %}
 </script>
 {% endblock %}

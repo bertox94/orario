@@ -277,4 +277,5 @@ evidenziato nell'orario, non i docenti dello slot in esame, la cui coda non è m
    subito, a un'ora o ogni settimana (per le prove ricorrenti i dati del file restano nella pianificazione); si
    confrontano due prove tra loro. Ogni scuola nasce con una prova ricorrente predefinita, «Notturna»: ogni notte alle
    22, i semi 1–20 con 8 classi (normali e con ritardi) più i dati della scuola, fasi 60 / 600 / 600 s, fase 3 passo
-   passo. Si può sospendere, cambiare o cancellare: non viene ricreata.
+   passo. Si può sospendere, cambiare o cancellare: non viene ricreata. Mentre una prova gira, la sua pagina mostra i
+   casi in esecuzione (fase, tempo usato, nodi, marce indietro, rami scartati, slot) aggiornati ogni 2 secondi.

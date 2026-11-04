@@ -2,7 +2,7 @@
 import datetime
 import json
 
-from flask import Blueprint, current_app, flash, g, redirect, render_template, request, url_for
+from flask import Blueprint, abort, current_app, flash, g, jsonify, redirect, render_template, request, url_for
 
 from . import esecutore
 from .db import conn
@@ -148,6 +148,24 @@ def prova(pid):
     altre = conn().execute("select id, nome, creata from prove where tipo = 'notturna' and id <> %s and stato = 'finita' "
                            "and scuola_id = %s order by id desc limit 30", (pid, _sid())).fetchall()
     return render_template('notturni/prova.html', prova=p, casi=casi, esiti=esiti, totale=totale, altre=altre)
+
+
+@bp.route('/<int:pid>/stato')
+def stato(pid):
+    """Per la pagina della prova (interrogata ogni 2 secondi mentre gira): stato, quanti casi hanno finito e i casi
+    in corso con il progresso del solver."""
+    p = conn().execute('select stato, opzioni from prove where id = %s and scuola_id = %s', (pid, _sid())).fetchone()
+    if not p:
+        abort(404)
+    n = conn().execute('select count(*) filter (where esito is not null) as finite, count(distinct caso) as casi '
+                       'from esecuzioni where prova_id = %s', (pid,)).fetchone()
+    o = p['opzioni']
+    tempi = {1: o.get('fase1', 60), 2: o.get('fase2', 600), 3: o.get('fase3', 600)}
+    in_corso = esecutore.progresso_prova(pid)
+    for c in in_corso:
+        c['tempo'] = tempi.get(c['fase'])
+    return jsonify({'stato': p['stato'], 'finite': n['finite'], 'casi': n['casi'], 'in_corso': in_corso,
+                    'fase': max([c['fase'] for c in in_corso], default=None)})
 
 
 @bp.route('/<int:pid>/annulla', methods=['POST'])

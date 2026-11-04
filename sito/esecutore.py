@@ -23,7 +23,7 @@ import psycopg
 
 from . import archivio, db, modello, solver
 
-# esecuzioni (id) in corso -> (id della prova, solver.Esecuzione): per leggere il progresso e per fermarle
+# esecuzioni (id) in corso -> (id della prova, solver.Esecuzione, fase, nome del caso): per leggere il progresso e per fermarle
 ATTIVE = {}
 PASSI_NOTTURNI = 100000  # nodi registrati nella fase 3 dei test notturni, se la prova non dice altro
 _lock = threading.Lock()
@@ -82,7 +82,7 @@ def esegui_caso(config, exe, prova_id, caso, fase, opzioni):
         eid = _nuova_esecuzione(c, prova_id, caso, fase, opzioni)
         c.commit()
     try:
-        r = _esegui(config, exe, prova_id, eid, caso, opzioni)
+        r = _esegui(config, exe, prova_id, eid, caso, opzioni, fase)
     except Exception as ex:
         with db.connetti(config.database_url) as c:
             c.execute("update esecuzioni set esito = 'errore', finito = false, fine = now(), diagnosi = %s "
@@ -116,7 +116,7 @@ def _prepara_caso(config, caso, cartella):
     return {**caso, 'file': file}
 
 
-def _esegui(config, exe, prova_id, eid, caso, opzioni):
+def _esegui(config, exe, prova_id, eid, caso, opzioni, fase=1):
     """Lancia il solver (con --progresso) in una cartella in RAM, lo tiene in ATTIVE finche' gira e al termine mette i
     file nel database (dati, orari, uscita; la ricerca passo passo compressa arriva direttamente, a pezzi)."""
     cartella = _cartella_lavoro(config)
@@ -126,7 +126,7 @@ def _esegui(config, exe, prova_id, eid, caso, opzioni):
         e = solver.Esecuzione(exe, solver.argomenti(caso_file, opzioni, progresso=True), cartella,
                               timeout=opzioni.get('tempo'), su_gz=scrittore.scrivi if scrittore else None)
         with _lock:
-            ATTIVE[eid] = (prova_id, e)
+            ATTIVE[eid] = (prova_id, e, fase, nome_caso(caso))
         try:
             r = e.attendi()
         finally:
@@ -160,6 +160,20 @@ def ferma_esecuzione(esecuzione_id):
     if a:
         a[1].ferma()
     return a is not None
+
+
+def progresso_prova(prova_id):
+    """Per la pagina di una prova notturna: i casi che stanno girando, con fase, secondi e l'ultimo progresso del
+    solver (nodi, marce indietro, slot corrente e piu' avanzato)."""
+    with _lock:
+        attive = [(eid, e, fase, nome) for eid, (pid, e, fase, nome) in ATTIVE.items() if pid == prova_id]
+    casi = []
+    for eid, e, fase, nome in attive:
+        p = e.ultimo_progresso or {}
+        casi.append({'eid': eid, 'caso': nome, 'fase': fase, 'secondi': round(time.time() - e.inizio),
+                     'nodi': p.get('nodi'), 'marce': p.get('marce'), 'scartati': p.get('scartati'),
+                     'pos': p.get('pos'), 'pos_max': p.get('pos_max')})
+    return sorted(casi, key=lambda c: c['eid'])
 
 
 def _caso_con_dati(c, prova_id, dati, nome):
@@ -440,7 +454,7 @@ def _esegui_notturna(config, prova):
 def _ferma_prova(prova_id):
     """Ferma le esecuzioni in corso di una prova."""
     with _lock:
-        attive = [e for pid, e in ATTIVE.values() if pid == prova_id]
+        attive = [a[1] for a in ATTIVE.values() if a[0] == prova_id]
     for e in attive:
         e.ferma()
 
