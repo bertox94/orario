@@ -755,8 +755,24 @@ function vincoliDocente(dati, a, c, classe, ora) {
              : `Regola del sabato: non rispettata, nell'ora precedente ${(d.ora_precedente || []).map(nomeDoc).join(' e ') || 'un altro docente'} deve finire le sue ore in questa classe.`]);
   if (c.potatura_dopo != null) {
     const ipotetico = c.motivo >= 0;  // docente qui non utilizzabile: l'esito e' un'ipotesi
-    const perche = c.potatura_dopo === 0 ? 'alla classe non basterebbero più le lezioni per gli slot da riempire per forza.'
-      : 'le ore che mancano ai docenti non starebbero più nel tempo rimasto della settimana.';
+    // la spiegazione con i numeri del conto fallito, quando il solver li fornisce (potatura_dettaglio)
+    const det = c.potatura_dettaglio;
+    let perche;
+    if (c.potatura_dopo === 0) {
+      perche = 'alla classe non basterebbero più le lezioni per gli slot da riempire per forza.';
+      if (det && det.da_riempire != null) {
+        const ultima = det.fino_ora === dati.ore.length - 1;
+        perche = `la classe ${dati.classi[det.classe].nome} arriverebbe a ${det.ore_classe_fatte} ore su ${det.ore_classe} e dovrebbe ancora riempire per forza ${det.da_riempire} slot ` +
+          (ultima ? 'entro la fine della settimana' : `entro le ${dati.ore[det.fino_ora]} di ogni giorno`) +
+          `, ma le lezioni che le resterebbero ne possono coprire al massimo ${det.possibili}.`;
+      }
+    } else {
+      perche = 'le ore che mancano ai docenti non starebbero più nel tempo rimasto della settimana.';
+      if (det && det.ore_rimaste != null)
+        perche = `a ${dati.docenti[det.docente].nome} resterebbero ${det.ore_rimaste} ore da fare` +
+          (det.classe_docente >= 0 ? ` in ${dati.classi[det.classe_docente].nome}` : '') +
+          `, ma nel tempo rimasto ne potrebbe fare al massimo ${det.ore_possibili}.`;
+    }
     frasi.push([c.potatura_dopo < 0 ? 1 : 0,
       c.potatura_dopo < 0 ? (ipotetico ? 'Verifiche di potatura: se si potesse mettere, il passo dopo le supererebbe.'
           : 'Verifiche di potatura: mettendolo qui, il passo dopo le supererebbe e la ricerca andrebbe avanti.')
