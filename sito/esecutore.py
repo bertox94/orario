@@ -129,8 +129,7 @@ def _esegui(config, exe, prova_id, eid, caso, opzioni, fase=1):
         caso_file = _prepara_caso(config, caso, cartella)
         scrittore = archivio.Scrittore(config.database_url, eid, 'orario.txt.gz') if opzioni.get('passi') else None
         e = solver.Esecuzione(exe, solver.argomenti(caso_file, opzioni, progresso=True), cartella,
-                              timeout=opzioni.get('tempo'), su_gz=scrittore.scrivi if scrittore else None,
-                              ferma_dopo=opzioni['passi'] if opzioni.get('ferma_ai_passi') else None)
+                              timeout=opzioni.get('tempo'), su_gz=scrittore.scrivi if scrittore else None)
         with _lock:
             ATTIVE[eid] = (prova_id, e, fase, nome_caso(caso))
         try:
