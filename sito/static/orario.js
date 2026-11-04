@@ -116,16 +116,23 @@ function disegnaDocentiCaso(contenitore, dati) {
   if (!contenitore || contenitore.dataset.fatto || !dati || !dati.lezioni) return;
   contenitore.dataset.fatto = '1';
   const nome = i => (dati.docenti[i] || {nome: '?'}).nome;
-  // per docente: ore per classe e totale; per coppia (a<b): ore insieme
+  // per docente: ore per classe, ore da solo e con chi (in quella classe); per coppia (a<b): ore insieme in tutto
   const perDocente = dati.docenti.map(() => ({tot: 0, classi: {}}));
   const coppie = {};
+  const voce = (d, c) => (perDocente[d].classi[c] = perDocente[d].classi[c] || {ore: 0, solo: 0, con: {}});
   for (const l of dati.lezioni) {
+    const insieme = l.codocente != null && l.codocente >= 0;
     for (const d of [l.docente, l.codocente]) {
       if (d == null || d < 0) continue;
       perDocente[d].tot += l.ore;
-      perDocente[d].classi[l.classe] = (perDocente[d].classi[l.classe] || 0) + l.ore;
+      const v = voce(d, l.classe);
+      v.ore += l.ore;
+      if (insieme) {
+        const altro = d === l.docente ? l.codocente : l.docente;
+        v.con[altro] = (v.con[altro] || 0) + l.ore;
+      } else v.solo += l.ore;
     }
-    if (l.codocente != null && l.codocente >= 0) {
+    if (insieme) {
       const k = Math.min(l.docente, l.codocente) + '+' + Math.max(l.docente, l.codocente);
       coppie[k] = (coppie[k] || 0) + l.ore;
     }
@@ -154,19 +161,30 @@ function disegnaDocentiCaso(contenitore, dati) {
       el('th', {class: 'num', title: 'slot della settimana (giorni × ore)', testo: 'Slot'}),
       el('th', {class: 'num', title: 'slot che resteranno vuoti (solo dopo le ore obbligatorie)', testo: 'Buche'})])]), corpoClassi])]);
 
-  // tabella dei docenti
+  // tabella dei docenti: una riga per ogni classe in cui il docente insegna (il nome e le ore totali solo nella prima)
   const corpo = el('tbody');
   perDocente.forEach((s, d) => {
     if (!s.tot) return;
-    const classi = Object.entries(s.classi).map(([c, ore]) => `${dati.classi[c].nome} ×${ore}`).join(' · ');
-    const cod = Object.entries(coppie).filter(([k]) => k.split('+').map(Number).includes(d))
-      .map(([k, ore]) => `${nome(k.split('+').map(Number).find(x => x !== d))} ×${ore}`).join(' · ');
-    corpo.appendChild(el('tr', {}, [el('td', {testo: nome(d), style: 'white-space: nowrap'}), el('td', {class: 'num', testo: s.tot}),
-      el('td', {testo: classi}), el('td', {testo: cod || '—'})]));
+    const classi = Object.entries(s.classi).sort((x, y) => y[1].ore - x[1].ore);
+    classi.forEach(([c, v], i) => {
+      const con = Object.entries(v.con).map(([q, ore]) => `${nome(+q)} ×${ore}`).join(' · ');
+      const riga = el('tr', {class: i ? 'seguito' : ''}, []);
+      if (!i) {
+        riga.append(el('td', {testo: nome(d), style: 'white-space: nowrap', rowspan: classi.length}),
+          el('td', {class: 'num', testo: s.tot, rowspan: classi.length, title: 'ore totali, in tutte le classi'}));
+      }
+      riga.append(el('td', {testo: dati.classi[c].nome, style: 'white-space: nowrap'}),
+        el('td', {class: 'num', testo: v.ore}),
+        el('td', {class: 'num', testo: v.solo || '—'}),
+        el('td', {testo: con || '—'}));
+      corpo.appendChild(riga);
+    });
   });
-  const tabella = el('div', {class: 'scorre', style: 'flex: 2 1 420px'}, [el('table', {class: 'dati'}, [
-    el('thead', {}, [el('tr', {}, [el('th', {testo: 'Docente'}), el('th', {class: 'num', testo: 'Ore'}),
-      el('th', {testo: 'Classi (ore)'}), el('th', {testo: 'Codocenze (ore insieme)'})])]), corpo])]);
+  const tabella = el('div', {class: 'scorre', style: 'flex: 2 1 460px'}, [el('table', {class: 'dati'}, [
+    el('thead', {}, [el('tr', {}, [el('th', {testo: 'Docente'}), el('th', {class: 'num', title: 'in tutte le classi', testo: 'Ore'}),
+      el('th', {testo: 'Classe'}), el('th', {class: 'num', title: 'ore in questa classe (da solo e in codocenza)', testo: 'Ore'}),
+      el('th', {class: 'num', title: 'ore da solo in questa classe', testo: 'Da solo'}),
+      el('th', {title: 'con chi insegna in questa classe, e per quante ore', testo: 'In codocenza con'})])]), corpo])]);
   // grafo delle codocenze: solo i docenti che ne hanno
   const coinvolti = [...new Set(Object.keys(coppie).flatMap(k => k.split('+').map(Number)))].sort((a, b) => a - b);
   let grafo = null;
