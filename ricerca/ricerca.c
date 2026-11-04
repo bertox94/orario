@@ -226,6 +226,8 @@ void cerca_orario(const int pos) {
         passi_scritti++;
         passo_scritto = 1;
         stampa_passo_compatto(file_orario, orario, pos);
+        if (passi_scritti == passi_max) fflush(file_orario);  // l'ultimo passo registrato arriva subito a chi legge (il sito
+                                                               // conta i passi per fermare la ricerca)
     }
     if (pos == orario_len) {
         registra_orario_completo(pos);
