@@ -13,6 +13,11 @@ function el(tag, attributi, figli) {
 }
 
 // Intestazione comune: classe | Lun 08 | Lun 09 | ... (una colonna per giorno e ora).
+// Gli indici delle classi nell'ordine in cui disegnare le righe (quello dato, o quello dei dati).
+function righeClassi(dati, ordineRighe) {
+  return ordineRighe && ordineRighe.length === dati.classi.length ? ordineRighe : dati.classi.map((_, c) => c);
+}
+
 function intestazione(dati, titolo) {
   const r1 = el('tr', {}, [el('th', {class: 'classe', rowspan: 2, testo: titolo || 'Classe'})]);
   const r2 = el('tr');
@@ -27,14 +32,16 @@ function intestazione(dati, titolo) {
 // passaggi (facoltativo): [g][o][c] = quante volte la ricerca e' passata da quella posizione; colora lo sfondo
 // delle celle con la stessa scala di calore della mappa (logaritmica, piu' scuro = piu' volte).
 // `cambiata`: [g, o, c] della cella dove la ricerca e' tornata e ha scelto un altro docente (bordo tratteggiato).
-function disegnaOrario(contenitore, dati, orario, blocco, alPassaggio, passaggi, cambiata) {
+// `ordineRighe` (facoltativo): gli indici delle classi nell'ordine in cui vanno le righe. Nel passo passo e' l'ordine
+// in cui la ricerca le riempie, cosi' le celle si colorano dall'alto verso il basso anche con l'ordine mescolato.
+function disegnaOrario(contenitore, dati, orario, blocco, alPassaggio, passaggi, cambiata, ordineRighe) {
   let massimo = 0;  // il primo passaggio e' normale: si colora solo cio' che e' stato attraversato piu' di una volta
   if (passaggi) dati.giorni.forEach((_, g) => dati.ore.forEach((__, o) => dati.classi.forEach((___, c) => {
     massimo = Math.max(massimo, passaggi[g][o][c] - 1);
   })));
   const corpo = el('tbody');
-  dati.classi.forEach((cl, c) => {
-    const tr = el('tr', {}, [el('td', {class: 'classe', testo: cl.nome})]);
+  righeClassi(dati, ordineRighe).forEach(c => {
+    const tr = el('tr', {}, [el('td', {class: 'classe', testo: dati.classi[c].nome})]);
     dati.giorni.forEach((_, g) => dati.ore.forEach((__, o) => {
       const [p, q] = orario[g][o][c];
       const qui = blocco && blocco[0] === g && blocco[1] === o && blocco[2] === c;
@@ -234,7 +241,7 @@ function disegnaDocentiCaso(contenitore, dati) {
 }
 
 // Mappa dei blocchi (prova in corso): valore(g, o, c) per ogni slot; colore proporzionale (in scala logaritmica) al massimo.
-function disegnaMappa(contenitore, dati, valore, descrizione) {
+function disegnaMappa(contenitore, dati, valore, descrizione, ordineRighe) {
   let massimo = 0;
   dati.giorni.forEach((_, g) => dati.ore.forEach((__, o) => dati.classi.forEach((___, c) => {
     massimo = Math.max(massimo, valore(g, o, c));
@@ -244,7 +251,8 @@ function disegnaMappa(contenitore, dati, valore, descrizione) {
   const percento = v => totale ? (100 * v / totale).toLocaleString('it-IT', {maximumFractionDigits: 1}) + '%' : '-';
   const scala = v => v <= 0 ? 0 : Math.log1p(v) / Math.log1p(massimo);
   const corpo = el('tbody');
-  dati.classi.forEach((cl, c) => {
+  righeClassi(dati, ordineRighe).forEach(c => {
+    const cl = dati.classi[c];
     const tr = el('tr', {}, [el('td', {class: 'classe', testo: cl.nome})]);
     dati.giorni.forEach((g_nome, g) => dati.ore.forEach((o_nome, o) => {
       const v = valore(g, o, c);
@@ -495,7 +503,7 @@ function codaAlPassaggio(dati, urlAnalisi, locale) {
 // slider (aggiorna in tempo reale), i pulsanti, l'animazione a velocita' regolabile e i pulsanti dei blocchi (vicoli
 // ciechi e rami scartati). La sezione resta nascosta finche' non si sa che c'e' almeno un passo registrato.
 // `analisiLocale`: promessa di analisiNelBrowser, passata alla finestra della coda.
-function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi, analisiLocale) {
+function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi, analisiLocale, ordineIniziale) {
   const barra = el('input', {type: 'range', min: 0, max: 0, value: 0, style: 'width: 100%'});
   const numero = el('input', {type: 'number', min: 0, value: 0, class: 'stretto'});
   const stato = el('div', {class: 'tenue piccolo stato-passo'});
@@ -513,6 +521,7 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi, analisiLocale
     vai(Math.min(n, massimo() || 0));
   });
   let totale = null, n = 0, richiesta = 0, vicoli = [], vicoliTroncati = false, ultimo = null, precarica = 0;
+  let ordineClassi = ordineIniziale || null;  // l'ordine in cui la ricerca riempie le classi (righe della tabella)
   // limite facoltativo dei passi mostrati: lo slider, i pulsanti e l'animazione si fermano li'
   let limitePassi = null;
   const massimo = () => limitePassi && totale ? Math.min(limitePassi, totale) : totale;
@@ -615,7 +624,7 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi, analisiLocale
     const r = {n, pos, slot: G * O * C, blocco, ripreso, cambiata, bloccato: codice > 0 && !scarto, motivoScarto: scarto ? (codice === 6 ? -1 : codice - 4) : null,
       esito: {1: 'vuoto', 2: 'indietro', 4: 'scarto', 5: 'scarto', 6: 'scarto'}[codice] || null};
     scriviStato(r);
-    disegnaOrario(griglia, dati, orario, completo && !r.esito ? null : blocco, null, passaggi, cambiata);
+    disegnaOrario(griglia, dati, orario, completo && !r.esito ? null : blocco, null, passaggi, cambiata, anim.ordine);
     teniInVista();
   }
   function passo(t) {
@@ -651,7 +660,7 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi, analisiLocale
       stato.textContent = `Passo 0${di()}: orario vuoto, la ricerca non è ancora cominciata.`;
       ultimo = null;
       disegnaOrario(griglia, dati, dati.giorni.map(() => dati.ore.map(() => dati.classi.map(() => [-1, -1]))), null, null,
-        dati.giorni.map(() => dati.ore.map(() => dati.classi.map(() => 0))));
+        dati.giorni.map(() => dati.ore.map(() => dati.classi.map(() => 0))), null, ordineClassi);
       return;
     }
     const mia = ++richiesta;
@@ -660,6 +669,7 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi, analisiLocale
     if (mia !== richiesta) return;
     if (r.errore) { stato.textContent = r.errore; griglia.replaceChildren(); return; }
     n = r.n; barra.value = numero.value = n;
+    ordineClassi = r.ordine;
     if (r.scarto != null) { r.esito = 'scarto'; r.motivoScarto = r.scarto; }  // ramo scartato: la potatura scatta entrando in questo slot
     if (r.ripreso != null) {  // tornata indietro: si segna lo slot dove ha cambiato docente (il bordo resta dove la ricerca sta decidendo)
       const k = r.ripreso, C = dati.classi.length, O = dati.ore.length;
@@ -674,7 +684,7 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi, analisiLocale
         voci.length ? el('ul', {}, voci) : el('p', {class: 'tenue piccolo', testo: r.motivi ? 'Nessun docente aveva ancora ore da fare in questa classe.' : 'Motivi non registrati: attiva «Motivi degli scarti» nelle opzioni.'}));
     }
     ultimo = r;
-    disegnaOrario(griglia, dati, r.orario, r.pos >= r.slot && !r.esito && !r.bloccato ? null : r.blocco, passaggio, r.passaggi, r.cambiata);
+    disegnaOrario(griglia, dati, r.orario, r.pos >= r.slot && !r.esito && !r.bloccato ? null : r.blocco, passaggio, r.passaggi, r.cambiata, r.ordine);
     teniInVista();
     // quando ci si ferma su un passo, la finestra della cella evidenziata (e di quella cambiata) si prepara in
     // anticipo: all'apertura e' gia' pronta. Il ritardo evita di farlo mentre si scorre o durante l'animazione.

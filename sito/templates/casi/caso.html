@@ -145,8 +145,9 @@ if (risultato.orario) {
   disegnaOrarioDocenti(document.getElementById('orario-docenti'), risultato.dati, risultato.orario, codaOrario);
 }
 disegnaDocentiCaso(document.getElementById('docenti-caso'), risultato.dati);
-if (risultato.diagnosi && risultato.diagnosi.marce) disegnaMappa(document.getElementById('mappa'), risultato.dati, blocchiDaRisultato(risultato.diagnosi), 'blocchi');
-{% if 'orario.txt.gz' in file|map(attribute=0)|list %}sfogliaPassi(document.getElementById('sezione-passi'), document.getElementById('passi'), risultato.dati, {{ url_for('casi.passi', eid=e.id)|tojson }}, {{ (r.get('diagnosi') or {}).get('nomi_motivi', [])|tojson }}, analisiLocale);{% endif %}
+// le righe seguono l'ordine in cui la ricerca riempie le classi (con l'ordine mescolato non e' quello dei nomi)
+if (risultato.diagnosi && risultato.diagnosi.marce) disegnaMappa(document.getElementById('mappa'), risultato.dati, blocchiDaRisultato(risultato.diagnosi), 'blocchi', risultato.ordine);
+{% if 'orario.txt.gz' in file|map(attribute=0)|list %}sfogliaPassi(document.getElementById('sezione-passi'), document.getElementById('passi'), risultato.dati, {{ url_for('casi.passi', eid=e.id)|tojson }}, {{ (r.get('diagnosi') or {}).get('nomi_motivi', [])|tojson }}, analisiLocale, risultato.ordine);{% endif %}
 </script>
 {% endif %}
 {% endblock %}
