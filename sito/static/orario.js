@@ -660,7 +660,7 @@ function mostraAnalisi(pannello, dati, a, scelto, titolo, bloccato, classe, ora,
     el('ul', {class: 'vincoli'}, [el('li', {class: a.lezione_ammessa ? 'si' : 'no'}, [el('span', {class: 'segno', testo: a.lezione_ammessa ? '✔' : '✘'}),
       el('span', {testo: a.lezione_ammessa ? 'La classe può ancora fare lezione in quest\'ora.' : 'La classe non può più fare lezione in quest\'ora: lo slot può solo restare vuoto.'})])]),
     el('div', {class: 'barra-comandi'}, [interruttore]),
-    el('p', {class: 'tenue piccolo', testo: (scartato ? 'Coda che ci sarebbe stata in questo slot, mai provata. ' : '') + 'Coda dei docenti per priorità (ore ancora da sistemare nella settimana); a parità di priorità l\'ordine dipende dalla ricerca. «Ore in classe» = ancora da fare / totali.'}),
+    el('p', {class: 'tenue piccolo', testo: (scartato ? 'Coda che ci sarebbe stata in questo slot, mai provata. ' : '') + 'Coda dei docenti per priorità (ore ancora da sistemare nella settimana); a parità di priorità prima il docente con l\'indice più basso, come la ricerca. «Ore in classe» = ancora da fare / totali.'}),
     el('table', {class: 'dati'}, [el('thead', {}, [el('tr', {}, [el('th', {testo: 'Docente'}), el('th', {testo: 'Priorità'}), el('th', {class: 'num', testo: ''}),
       el('th', {class: 'num', testo: 'Ore in classe'}), el('th', {testo: 'Esito'})])]), corpo]),
     el('p', {class: 'tenue piccolo', testo: [con.length > MAX ? `altri ${con.length - MAX} docenti con ore da fare in coda` : '', senza ? `${senza} docenti senza ore da fare in questa classe` : ''].filter(Boolean).join(' · ')}));
