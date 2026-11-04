@@ -36,7 +36,8 @@ def caso(eid):
         dim['risultato.json'] = len(_risultato_json(e['risultato']))
     file = [(n, d, dim[n]) for n, d in FILE if n in dim]
     r = e['risultato'] or {}
-    return render_template('casi/caso.html', e=e, fasi=fasi, file=file, r=r)
+    return render_template('casi/caso.html', e=e, fasi=fasi, file=file, r=r,
+                           impronta_solver=solver.impronta_corrente())
 
 
 @bp.route('/<int:eid>/file/<nome>')

@@ -229,8 +229,37 @@ function dettaglioScartoDocenti(dati, det, s, slotNome) {
 // La coda dei docenti al passaggio del mouse su una cella di un orario: per lo slot (giorno, ora, classe), dato
 // l'orario parziale fino a quello slot, il solver (--analizza-slot, POST su urlAnalisi) dice la coda in ordine di
 // priorita' e perche' ognuno e' o non e' utilizzabile. Ritorna passaggio(fonte) -> (g, o, c, td): fonte e' l'orario
+// L'analisi di uno slot calcolata nel browser: il solver compilato in WebAssembly (analisi.wasm, vedi
+// sito/compila-wasm.sh), eseguito con memoria fresca a ogni chiamata come un processo (wasi-mini.js). Ritorna una
+// promessa di una funzione async (pos, slot) -> analisi, oppure di null se il modulo non c'e', non parte, o e' di una
+// versione diversa dal solver del sito: in quei casi l'analisi la fa il server, come prima.
+// `opzioni` sono quelle dell'esecuzione (regole e ordine delle classi), `impronta` quella dei sorgenti del solver,
+// `urlWasm` il percorso di analisi.wasm (la versione sta accanto, con suffisso .versione).
+async function analisiNelBrowser(dati, opzioni, impronta, urlWasm) {
+  try {
+    if (typeof WebAssembly === 'undefined' || typeof eseguiWasi === 'undefined' || !impronta) return null;
+    const vers = await (await fetch(urlWasm + '.versione')).text();
+    if (vers.trim() !== impronta) return null;  // modulo di un'altra versione del solver: meglio il server
+    const modulo = await WebAssembly.compile(await (await fetch(urlWasm)).arrayBuffer());
+    const datiTesto = JSON.stringify({dati});
+    const o = opzioni || {};
+    const argomenti = ['solver', '--input', 'risultato.json'];
+    for (const [k, f] of [['ore_obbligatorie', '--ore-obbligatorie'], ['ore_prof_classe', '--ore-prof-classe'], ['classi_giorno', '--classi-giorno']])
+      if (o[k] != null) argomenti.push(f, String(o[k]));
+    if (o.ordine_classi != null) argomenti.push(String(o.ordine_classi));
+    argomenti.push('--analizza-slot', 'slot.txt', '--motivi');
+    return async (pos, slot) => {
+      const r = await eseguiWasi(modulo, argomenti, {'risultato.json': datiTesto, 'slot.txt': pos + '\n' + slot.join(' ') + '\n'});
+      const riga = r.stdout.split('\n').find(l => l.startsWith('ANALISI '));
+      if (!riga) throw new Error('analisi senza risultato (codice ' + r.codice + ')');
+      return JSON.parse(riga.slice(8));
+    };
+  } catch (e) { return null; }
+}
+
 // mostrato {chiave, orario, ordine (ordine delle classi nella ricerca), limite (ultimo slot raggiunto), blocco}.
-function codaAlPassaggio(dati, urlAnalisi) {
+// `locale`: promessa della funzione di analisiNelBrowser (facoltativa): se c'e', la finestra non chiama il server.
+function codaAlPassaggio(dati, urlAnalisi, locale) {
   const contenuto = el('div');
   const chiudi = el('button', {type: 'button', class: 'chiudi-pannello', title: 'Chiudi', 'aria-label': 'Chiudi', testo: '✕'});
   const pannello = el('div', {class: 'pannello-slot'}, [chiudi, contenuto]);
@@ -259,7 +288,8 @@ function codaAlPassaggio(dati, urlAnalisi) {
   pannello.addEventListener('mouseleave', () => { if (!SENZA_MOUSE) nascondi(); });
   document.addEventListener('click', () => { if (cellaAperta) nascondi(); });  // tocco fuori: chiude
   const C = dati.classi.length, O = dati.ore.length;
-  // Scarica (se non in cache) l'analisi dello slot pos per lo stato f; usata dall'hover e dal precaricamento.
+  // Calcola (se non in cache) l'analisi dello slot pos per lo stato f: nel browser se il modulo WebAssembly e'
+  // disponibile, altrimenti dal server. Usata dall'hover e dal precaricamento.
   async function carica(f, pos) {
     const chiave = `${f.chiave}:${pos}`;
     if (cache[chiave]) return chiave;
@@ -270,9 +300,16 @@ function codaAlPassaggio(dati, urlAnalisi) {
       slot.push(p < 0 ? '-' : q >= 0 ? `${p}+${q}` : String(p));
     }
     try {
-      const risp = await fetch(urlAnalisi, {method: 'POST', body: JSON.stringify({pos, slot}),
-        headers: {'Content-Type': 'application/json', 'X-Gettone': window.GETTONE}});
-      const r = await risp.json();
+      let r = null;
+      const analisi = locale && await locale;
+      if (analisi) {
+        try { r = await analisi(pos, slot); } catch (e) { r = null; }  // qualcosa non va nel modulo: si chiede al server
+      }
+      if (!r) {
+        const risp = await fetch(urlAnalisi, {method: 'POST', body: JSON.stringify({pos, slot}),
+          headers: {'Content-Type': 'application/json', 'X-Gettone': window.GETTONE}});
+        r = await risp.json();
+      }
       if (r.potatura && pos > 0) {  // la causa e' la scelta dello slot prima
         const k = pos - 1, cc = f.ordine[k % C];
         r.potatura.slotNome = `${dati.giorni[Math.floor(k / (O * C))]} ${dati.ore[Math.floor(k / C) % O]} ${dati.classi[cc].nome}`;
@@ -281,7 +318,8 @@ function codaAlPassaggio(dati, urlAnalisi) {
     } catch (e) { cache[chiave] = {errore: 'Analisi non disponibile.'}; }
     return chiave;
   }
-  const al = fonte => (g, o, c, td, ev) => {
+  const al = fonte => {
+    const h = (g, o, c, td, ev) => {
     clearTimeout(timer);
     if (g == null) {  // il mouse e' uscito dalla cella: breve attesa, il tempo di arrivare sul pannello
       clearTimeout(timerChiusura);
@@ -311,11 +349,13 @@ function codaAlPassaggio(dati, urlAnalisi) {
       posiziona();
       pannello.scrollTop = 0;
     }, tocco ? 0 : 250);
-  };
-  // precarica in cache la finestra dello slot pos (per la cella evidenziata del passo corrente)
-  al.precarica = (fonte, pos) => {
-    const f = typeof fonte === 'function' ? fonte() : fonte;
-    if (f && pos != null && pos >= 0 && (f.limite == null || pos <= f.limite)) carica(f, pos);
+    };
+    // precarica in cache la finestra dello slot pos (la cella evidenziata del passo corrente)
+    h.precarica = pos => {
+      const f = typeof fonte === 'function' ? fonte() : fonte;
+      if (f && pos != null && pos >= 0 && (f.limite == null || pos <= f.limite)) carica(f, pos);
+    };
+    return h;
   };
   return al;
 }
@@ -323,7 +363,8 @@ function codaAlPassaggio(dati, urlAnalisi) {
 // La ricerca passo passo (registrata con --passi): l'orario parziale a ogni passo, dal passo 0 (orario vuoto), con lo
 // slider (aggiorna in tempo reale), i pulsanti, l'animazione a velocita' regolabile e i pulsanti dei blocchi (vicoli
 // ciechi e rami scartati). La sezione resta nascosta finche' non si sa che c'e' almeno un passo registrato.
-function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
+// `analisiLocale`: promessa di analisiNelBrowser, passata alla finestra della coda.
+function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi, analisiLocale) {
   const barra = el('input', {type: 'range', min: 0, max: 0, value: 0, style: 'width: 100%'});
   const numero = el('input', {type: 'number', min: 0, value: 0, class: 'stretto'});
   const stato = el('div', {class: 'tenue piccolo'});
@@ -331,13 +372,13 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
   const motivi = el('div', {});
   // spazio riservato (la riga si riempie dopo il caricamento: senza, la tabella si sposta e un tocco puo' finire su un'altra cella)
   const infoVicoli = el('div', {class: 'tenue piccolo', style: 'min-height: 2.6em; flex: 1 1 100%'});
-  let totale = null, n = 0, richiesta = 0, vicoli = [], vicoliTroncati = false, ultimo = null;
+  let totale = null, n = 0, richiesta = 0, vicoli = [], vicoliTroncati = false, ultimo = null, precarica = 0;
   // passando il mouse (o toccando) una cella: la coda dei docenti in quel punto e i vincoli, come nell'orario trovato
-  const passaggio = codaAlPassaggio(dati, url.replace(/passi$/, 'analisi'))(
-    () => ultimo && {chiave: 'passo' + n, orario: ultimo.orario, ordine: ultimo.ordine, limite: ultimo.pos,
+  const fonteFinestra = () => ultimo && {chiave: 'passo' + n, orario: ultimo.orario, ordine: ultimo.ordine, limite: ultimo.pos,
       testoLimite: ultimo.esito === 'scarto' ? ' · ramo scartato qui: una verifica di potatura fallisce prima di provare i docenti, la ricerca torna indietro'
       : ultimo.bloccato ? (ultimo.esito === 'vuoto' ? ' · qui nessun docente era utilizzabile: lo slot resta vuoto' : ' · qui nessun docente era utilizzabile (vicolo cieco)')
-      : ultimo.pos >= ultimo.slot ? ' · orario completo' : ' · qui la ricerca sta decidendo'});
+      : ultimo.pos >= ultimo.slot ? ' · orario completo' : ' · qui la ricerca sta decidendo'};
+  const passaggio = codaAlPassaggio(dati, url.replace(/passi$/, 'analisi'), analisiLocale)(fonteFinestra);
   const veri = () => vicoli.filter(v => v[1] === 'indietro');  // i vicoli ciechi: nessun docente messo
   const di = () => totale ? ` di ${numeroIt(totale)}` : '';
   function scriviStato(r) {
@@ -492,6 +533,16 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi) {
     ultimo = r;
     disegnaOrario(griglia, dati, r.orario, r.pos >= r.slot && !r.esito && !r.bloccato ? null : r.blocco, passaggio, r.passaggi, r.cambiata);
     teniInVista();
+    // quando ci si ferma su un passo, la finestra della cella evidenziata (e di quella cambiata) si prepara in
+    // anticipo: all'apertura e' gia' pronta. Il ritardo evita di farlo mentre si scorre o durante l'animazione.
+    clearTimeout(precarica);
+    precarica = setTimeout(() => {
+      const f = fonteFinestra();
+      if (!f || !ultimo) return;
+      const C = dati.classi.length, O = dati.ore.length;
+      if (ultimo.blocco) passaggio.precarica((ultimo.blocco[0] * O + ultimo.blocco[1]) * C + f.ordine.indexOf(ultimo.blocco[2]));
+      if (ultimo.ripreso != null) passaggio.precarica(ultimo.ripreso);
+    }, 500);
   }
   // la cella evidenziata deve restare visibile: se e' fuori dallo schermo la pagina (e la tabella) scorrono fino a lei
   function teniInVista() {

@@ -54,6 +54,16 @@ def impronta_sorgenti():
 
 
 _lock_compila = threading.Lock()
+_impronta = None
+
+
+def impronta_corrente():
+    """L'impronta dei sorgenti, calcolata una volta per processo (cambia solo con un aggiornamento e riavvio).
+    La pagina del caso la confronta con quella del modulo WebAssembly (analisi.wasm.versione)."""
+    global _impronta
+    if _impronta is None:
+        _impronta = impronta_sorgenti()
+    return _impronta
 
 
 def compila(dest=None, cartella_bin=None):

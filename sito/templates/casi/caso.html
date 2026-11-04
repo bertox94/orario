@@ -125,17 +125,21 @@
 
 {% block script %}
 {% if r.get('dati') %}
+<script src="{{ url_for('static', filename='wasi-mini.js') }}"></script>
 <script>
 const risultato = {{ {'dati': r.dati, 'orario': r.get('orario'), 'diagnosi': r.get('diagnosi'), 'dettagli': r.get('dettagli_slot'), 'ordine': r.get('ordine_classi')}|tojson }};
+// l'analisi degli slot nel browser (WebAssembly), con il server come ripiego
+const analisiLocale = analisiNelBrowser(risultato.dati, {{ (e.opzioni or {})|tojson }}, {{ impronta_solver|default(None)|tojson }},
+  {{ url_for('static', filename='analisi.wasm')|tojson }});
 if (risultato.orario) {
   // passando il mouse su una cella: la coda dei docenti in quel punto del percorso che ha portato all'orario
-  const codaOrario = risultato.ordine ? codaAlPassaggio(risultato.dati, {{ url_for('casi.analisi_slot', eid=e.id)|tojson }})(
+  const codaOrario = risultato.ordine ? codaAlPassaggio(risultato.dati, {{ url_for('casi.analisi_slot', eid=e.id)|tojson }}, analisiLocale)(
     {chiave: 'orario', orario: risultato.orario, ordine: risultato.ordine, limite: null}) : null;
   disegnaOrario(document.getElementById('orario'), risultato.dati, risultato.orario, null, codaOrario);
   disegnaOrarioDocenti(document.getElementById('orario-docenti'), risultato.dati, risultato.orario, codaOrario);
 }
 if (risultato.diagnosi && risultato.diagnosi.marce) disegnaMappa(document.getElementById('mappa'), risultato.dati, blocchiDaRisultato(risultato.diagnosi), 'blocchi');
-{% if 'orario.txt.gz' in file|map(attribute=0)|list %}sfogliaPassi(document.getElementById('sezione-passi'), document.getElementById('passi'), risultato.dati, {{ url_for('casi.passi', eid=e.id)|tojson }}, {{ (r.get('diagnosi') or {}).get('nomi_motivi', [])|tojson }});{% endif %}
+{% if 'orario.txt.gz' in file|map(attribute=0)|list %}sfogliaPassi(document.getElementById('sezione-passi'), document.getElementById('passi'), risultato.dati, {{ url_for('casi.passi', eid=e.id)|tojson }}, {{ (r.get('diagnosi') or {}).get('nomi_motivi', [])|tojson }}, analisiLocale);{% endif %}
 </script>
 {% endif %}
 {% endblock %}
