@@ -188,6 +188,13 @@ static inline int docente_idoneo(const teaching_slot *slot, const int pos, const
 // Controllo fatto a ogni inizio ora (vedi vincoli.c). Ritorna 0 se il ramo non puo' piu' avere soluzioni.
 int ore_rimaste_stanno_nel_tempo_rimasto(int giorno, int ora);
 
+// Docenti "al limite" all'inizio dell'ora (giorno, ora): le ore che restano loro sono esattamente quante le ore di
+// calendario ancora disponibili (dalla loro ora di ingresso). Un docente al limite deve insegnare in OGNI ora da qui
+// in poi: se un'ora gli sfugge, il conteggio sopra fallira' di sicuro. Riempie docente_al_limite[], valido per tutta
+// l'ora (per i docenti non ancora impegnati nell'ora i numeri non cambiano finche' l'ora non cambia).
+extern int docente_al_limite[INSEGNANTE_SZ];
+void segna_docenti_al_limite(int giorno, int ora);
+
 // I numeri dell'ultima verifica fallita (per la diagnosi: perche' un ramo e' stato scartato). Si scrivono solo quando una
 // verifica fallisce, quindi non costano nulla alla ricerca.
 #define MAX_DETTAGLIO_LEZIONI 40

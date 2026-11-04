@@ -21,6 +21,8 @@ long long int n_gen_max = SCHEDULES_PER_GB / 5;
 long long int n_backtrack = 0;
 int stampa_backtrack = 0;
 long long passi_max = 0;
+long long int deduzioni_obbligato = 0;  // quante volte un docente e' risultato obbligato (prototipo)
+static int ora_al_limite = -1;          // l'ora (pos / classi) per cui docente_al_limite[] e' valido
 int ferma_ai_passi = 0;
 static long long passi_scritti = 0;
 FILE *file_orario;
@@ -29,11 +31,29 @@ int primo_orario_2[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ]
 
 /* ---- coda dei docenti di uno slot ---- */
 
+#ifdef ORDINE_MARGINE
+// Esperimento: prima i docenti con il margine piu' stretto (ore di calendario disponibili meno ore rimaste), poi per
+// priorita' e indice. L'ora corrente serve al calcolo del margine: la mette cerca_orario prima dell'ordinamento.
+static int ord_giorno = 0, ord_ora = 0;
+#endif
+
 // Chiave di ordinamento di un docente nella coda: priorita' (piu' alta prima) e, a parita', indice piu' basso prima.
 // L'ordine e' totale e dipende solo dallo stato della ricerca, non dalla storia: cosi' --analizza-slot (che rifa' lo
 // stato da zero) mostra la coda nell'ordine in cui la ricerca la prova davvero.
 static inline long long chiave_coda(const QueueItem *x) {
+#ifdef ORDINE_MARGINE
+    const int p = x->teacher;
+    const int giorni_dopo = actual_giorni_settimana - ord_giorno - 1;
+    const int da = ord_ora > docente_info[p].ora_entrata ? ord_ora : docente_info[p].ora_entrata;
+    const int disponibili = (actual_ore_giornaliere - da)
+                            + (actual_ore_giornaliere - docente_info[p].ora_entrata) * giorni_dopo;
+    int margine = disponibili - (int) x->priority;
+    if (margine < 0) margine = 0;
+    if (margine > 4000) margine = 4000;
+    return ((long long) x->priority << 40) | ((long long) (4096 - margine) << 20) | (0xFFFFF - x->teacher);
+#else
     return ((long long) x->priority << 20) | (0xFFFFF - x->teacher);
+#endif
 }
 
 // Ordina la copia della coda di uno slot (da start, n docenti) per chiave decrescente: si prova prima chi ha piu' ore
@@ -197,13 +217,14 @@ static void registra_marcia_indietro(const teaching_slot *slot, const int pos, c
 }
 
 // Prova a mettere nello slot il docente it insieme a ciascun codocente utilizzabile che lo segue in coda.
-static void prova_con_codocenti(teaching_slot *slot, const int pos, const int ii, const int queue_size) {
+static void prova_con_codocenti(teaching_slot *slot, const int pos, const int ii, const int queue_size, const int obbligato) {
     QueueItem *it = queue_mul[ii];
     const int p1 = it->teacher;
     for (int jj = ii + 1; jj < queue_size; jj++) {
         QueueItem *jt = queue_mul[jj];
         const int p2 = jt->teacher;
-        if (prof_è_disponibile(slot->base3d_goi, p2)
+        if ((obbligato < 0 || p1 == obbligato || p2 == obbligato)
+            && prof_è_disponibile(slot->base3d_goi, p2)
             && docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(slot->classe, p1, p2)
             // poiche un prof se deve fare due ore no può farle spezzettate, e sabato è l'ultimo giorno,
             // non si puo mettere un altro prof: la seconda ora deve farla subito
@@ -215,16 +236,17 @@ static void prova_con_codocenti(teaching_slot *slot, const int pos, const int ii
 }
 
 // Prova a mettere nello slot il docente it da solo, se gli mancano ore da fare senza codocente.
-static void prova_da_solo(teaching_slot *slot, const int pos, QueueItem *it) {
+static void prova_da_solo(teaching_slot *slot, const int pos, QueueItem *it, const int obbligato) {
     const int p1 = it->teacher;
-    if (deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(slot->base2d_ci, p1)
+    if ((obbligato < 0 || p1 == obbligato)
+        && deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(slot->base2d_ci, p1)
         && sabato_esaurisci_priorita_subito(pos, slot->giorno, slot->ora, slot->base2d_ci, p1, -1)) {
         assegna_e_prosegui(slot, pos, it, NULL);
     }
 }
 
 // Prova ogni docente della coda come docente dello slot: prima con i codocenti, poi da solo.
-static void prova_tutti_i_docenti(teaching_slot *slot, const int pos, const int queue_size) {
+static void prova_tutti_i_docenti(teaching_slot *slot, const int pos, const int queue_size, const int obbligato) {
     for (int ii = slot->base4d_queue; ii < queue_size; ii++) {
         QueueItem *it = queue_mul[ii];
         const int p1 = it->teacher;
@@ -232,9 +254,9 @@ static void prova_tutti_i_docenti(teaching_slot *slot, const int pos, const int 
             // ha ancora ore da fare in questa classe
             && deve_ancora_svolgere_ore_in_questa_classe(slot->base2d_ci, p1)
             && docente_idoneo(slot, pos, p1)) {
-            prova_con_codocenti(slot, pos, ii, queue_size);
+            prova_con_codocenti(slot, pos, ii, queue_size, obbligato);
             //non abbiamo trovato combinazioni di codocenza, verifica se all'insegnante mancano ore di docenza da solo
-            prova_da_solo(slot, pos, it);
+            prova_da_solo(slot, pos, it, obbligato);
         }
     }
 }
@@ -253,11 +275,11 @@ static void prova_ora_buca(const teaching_slot *slot, const int pos) {
 }
 
 // Prova tutti i docenti per questo slot; se nessuno va bene e' una marcia indietro.
-static void prova_slot_con_docenti(teaching_slot *slot, const int pos, const int passo_scritto) {
+static void prova_slot_con_docenti(teaching_slot *slot, const int pos, const int passo_scritto, const int obbligato) {
     // se alla fine il contatore non e' cresciuto, questo nodo non ha assegnato nessun docente (marcia indietro)
     const long long int assegnazioni_prima = n_assegnazioni;
     const int queue_size = slot->base4d_queue + queue_sz;
-    prova_tutti_i_docenti(slot, pos, queue_size);
+    prova_tutti_i_docenti(slot, pos, queue_size, obbligato);
     if (n_assegnazioni == assegnazioni_prima) registra_marcia_indietro(slot, pos, queue_size, passo_scritto);
 }
 
@@ -304,11 +326,39 @@ void cerca_orario(const int pos) {
         if (passo_scritto) fprintf(file_orario, "S %d\n", SCARTATO_ORE_DEI_DOCENTI);
         return;
     }
+    // all'inizio di ogni ora si segnano i docenti "al limite" (vedi vincoli.h): per loro ogni ora e' obbligatoria
+    if (pos % actual_classi_sezione == 0) {
+        segna_docenti_al_limite(slot->giorno, slot->ora);
+        ora_al_limite = pos / actual_classi_sezione;
+    }
+
+    // un docente "al limite" la cui ultima classe possibile dell'ora e' questa e' OBBLIGATO qui: ogni scelta che non
+    // lo include gli fa perdere un'ora che non puo' perdere, e il ramo morirebbe comunque al controllo successivo.
+    // In quel caso si provano solo le combinazioni con lui, e niente ora buca.
+    int obbligato = -1;
+    if (ora_al_limite == pos / actual_classi_sezione) {
+        const int fine_ora = pos - pos % actual_classi_sezione + actual_classi_sezione;
+        for (int p = 0; p < actual_insegnanti && obbligato < 0; p++) {
+            if (!docente_al_limite[p] || prof_gia_impegnato_giorno_ora[slot->base3d_goi + p]
+                || !deve_ancora_svolgere_ore_in_questa_classe(slot->base2d_ci, p))
+                continue;
+            int altra_classe = 0;
+            for (int i = pos + 1; i < fine_ora && !altra_classe; i++)
+                altra_classe = deve_ancora_svolgere_ore_in_questa_classe(orario[i].base2d_ci, p);
+            if (!altra_classe) {
+                obbligato = p;
+                deduzioni_obbligato++;
+            }
+        }
+    }
 
     // prima si provano i docenti (se nello slot puo' esserci lezione), poi lo slot vuoto (se ammesso)
+#ifdef ORDINE_MARGINE
+    ord_giorno = slot->giorno; ord_ora = slot->ora;
+#endif
     sort_queue_mul(slot->base4d_queue, queue_sz);
-    if (activities_for_this_class_and_hour(slot)) prova_slot_con_docenti(slot, pos, passo_scritto);
-    prova_ora_buca(slot, pos);
+    if (activities_for_this_class_and_hour(slot)) prova_slot_con_docenti(slot, pos, passo_scritto, obbligato);
+    if (obbligato < 0) prova_ora_buca(slot, pos);
 }
 
 /* ---- analisi di uno slot ---- */
