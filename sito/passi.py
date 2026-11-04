@@ -119,14 +119,16 @@ def passo(url, eid, n, nomi_classi):
         o, k = divmod(resto, classi)
         a, _, b = s.partition('+')
         griglia[g][o][ordine[k]] = [int(a), int(b) if b else -1]
+    # lo slot che la ricerca sta per decidere (oltre l'ultimo = orario completo: si segna l'ultimo)
     g, resto = divmod(pos, ore * classi) if pos < giorni * ore * classi else (giorni - 1, ore * classi - 1)
     o, k = divmod(resto, classi)
+    blocco = [g, o, ordine[k]]
     passaggi = [[[0] * classi for _ in range(ore)] for _ in range(giorni)]
     for i, v in conta.items():
-        g, resto = divmod(i, ore * classi)
-        o, k = divmod(resto, classi)
-        passaggi[g][o][ordine[k]] = v
-    return {'n': visti, 'pos': pos, 'slot': giorni * ore * classi, 'blocco': [g, o, ordine[k]], 'orario': griglia,
+        gi, resto = divmod(i, ore * classi)
+        oi, ki = divmod(resto, classi)
+        passaggi[gi][oi][ordine[ki]] = v
+    return {'n': visti, 'pos': pos, 'slot': giorni * ore * classi, 'blocco': blocco, 'orario': griglia,
             'ordine': ordine, 'passaggi': passaggi, 'bloccato': bloccato, 'esito': esito, 'motivi': motivi, 'scarto': scarto}
 
 
