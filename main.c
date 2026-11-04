@@ -188,9 +188,13 @@ static FILE *apri_file_orario(const char *nome, int *compresso) {
     *compresso = n > 3 && !strcmp(nome + n - 3, ".gz");
     if (!*compresso) return fopen(nome, "w");
     if (strchr(nome, '\'')) return NULL; // il nome va tra apici nel comando: non deve contenerne
+#ifdef __wasi__
+    return NULL; // WebAssembly (analisi nel browser): niente processi, il .gz non serve
+#else
     char comando[4096];
     snprintf(comando, sizeof comando, "gzip -1 > '%s'", nome);
     return popen(comando, "w");
+#endif
 }
 
 // Uno slot per ogni (giorno, ora, classe), nell'ordine in cui la ricerca li riempie; con un seed le classi si mescolano.
@@ -257,7 +261,11 @@ int main(const int argc, char **argv) {
     cerca_orario(0);
     // anche la chiusura scrive (l'ultimo buffer; per il .gz la fine del file compresso) e puo' fallire
     if (ferror(file_orario)) errore_di_scrittura = 1;
+#ifdef __wasi__
+    if (fclose(file_orario) != 0) errore_di_scrittura = 1;
+#else
     if (compresso ? pclose(file_orario) != 0 : fclose(file_orario) != 0) errore_di_scrittura = 1;
+#endif
     file_orario = NULL;
 
     const double secondi = (clock() - start) / (double) CLOCKS_PER_SEC;
