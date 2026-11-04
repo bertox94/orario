@@ -210,6 +210,8 @@ static void prepara_orario(const Opzioni *o) {
 
 // Alla fine: marce indietro, diagnosi, orari trovati e velocita' (orari completi al secondo).
 static void stampa_risultati(const double secondi) {
+    extern long long int tagli_accoppiamento;
+    fprintf(stderr, "Tagli accoppiamento: %lld\n", tagli_accoppiamento);
     printf("Marce indietro: %lld\n", n_backtrack);
     stampa_diagnosi(n_backtrack);
     printf("Totale generati: %llu in %d m, %d s at %.0f Hz", n_gen, (int) secondi / 60, (int) secondi % 60,

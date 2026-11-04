@@ -170,6 +170,59 @@ int potatura_se_messo(const int pos, const int ii, const int jj) {
     return potatura_prima_di_assegnare(&orario[pos], pos, queue_mul[ii], jt);
 }
 
+/* ---- potatura sperimentale: l'ora corrente e' ancora completabile? ---- */
+
+// Condizione necessaria sull'ora corrente (accoppiamento bipartito, algoritmo di Kuhn): per le classi dell'ora non
+// ancora decise che NON possono restare vuote deve esistere un sistema di docenti a due a due diversi, ciascuno
+// libero nell'ora, gia' entrato e con ore da fare nella sua classe. Sovrastima (le codocenze contano come il solo
+// docente principale, gli altri vincoli si ignorano): se fallisce, nessuna assegnazione dell'ora puo' riuscire.
+long long int tagli_accoppiamento = 0;
+
+static int abbinato_a_classe[INSEGNANTE_SZ];  // docente -> indice locale della classe abbinata, -1 libero
+static int docente_visitato[INSEGNANTE_SZ];
+
+// Prova ad abbinare la classe locale j (slot sj): cerca un docente compatibile libero, o uno il cui abbinato si sposta.
+static int abbina(const int j, const teaching_slot **slotti, const int n, const int marchio) {
+    const teaching_slot *sj = slotti[j];
+    for (int p = 0; p < actual_insegnanti; p++) {
+        if (docente_visitato[p] == marchio) continue;
+        if (!deve_ancora_svolgere_ore_in_questa_classe(sj->base2d_ci, p)) continue;
+        if (prof_gia_impegnato_giorno_ora[sj->base3d_goi + p]) continue;
+        if (!verifica_ora_ingresso(p, sj->ora)) continue;
+        docente_visitato[p] = marchio;
+        if (abbinato_a_classe[p] < 0 || abbina(abbinato_a_classe[p], slotti, n, marchio)) {
+            abbinato_a_classe[p] = j;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+// 1 se l'ora dello slot pos e' ancora completabile (vedi sopra); le classi per cui l'ora buca e' ammessa non devono
+// essere coperte per forza.
+static int ora_completabile(const int pos) {
+    static int marchio = 0;
+    const int inizio = pos - pos % actual_classi_sezione;
+    const teaching_slot *da_coprire[CLASSE_SEZIONE_SZ];
+    int n = 0;
+    for (int i = pos; i < inizio + actual_classi_sezione; i++) {
+        const teaching_slot *s = &orario[i];
+        const int cla = s->classe;
+        if (s->ora >= PRIME_N_ORE_OBBLIGATORIE
+            && classe_info[cla].ore - classe_info[cla].svolte
+               <= (actual_giorni_settimana - s->giorno - 1) * actual_ore_giornaliere)
+            continue;  // la buca e' ammessa: la classe puo' restare senza docente
+        da_coprire[n++] = s;
+    }
+    if (n <= 1) return 1;  // 0 o 1 classe: ci pensa la ricerca normale
+    for (int p = 0; p < actual_insegnanti; p++) abbinato_a_classe[p] = -1;
+    for (int j = 0; j < n; j++) {
+        marchio++;
+        if (!abbina(j, da_coprire, n, marchio)) return 0;
+    }
+    return 1;
+}
+
 /* ---- un nodo della ricerca ---- */
 
 // Un orario completo: lo si conta e lo si scrive.
@@ -299,6 +352,13 @@ void cerca_orario(const int pos) {
     if (pos > 0 && pos % actual_classi_sezione == 0 && !ore_rimaste_stanno_nel_tempo_rimasto(slot->giorno, slot->ora)) {
         diagnosi_ramo_scartato(pos - 1, SCARTATO_ORE_DEI_DOCENTI);
         if (passo_scritto) fprintf(file_orario, "S %d\n", SCARTATO_ORE_DEI_DOCENTI);
+        return;
+    }
+
+    // potatura sperimentale: se l'ora corrente non e' piu' completabile, inutile provare. A ogni nodo; la variante
+    // economica (solo a inizio ora: pos % actual_classi_sezione == 0) taglia meno ma costa 1/classi
+    if (!ora_completabile(pos)) {
+        tagli_accoppiamento++;
         return;
     }
 
