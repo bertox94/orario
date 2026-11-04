@@ -127,7 +127,7 @@ table.mappa td { min-width: 34px; height: 26px; font-size: 11px; font-variant-nu
 .barra > div { height: 100%; background: var(--accento); }
 input.stretto { width: 5em; }
 td.blocco { outline: 2px solid #c0392b; outline-offset: -2px; color: #c0392b; font-weight: 700; }
-td.blocco { scroll-margin: 120px 40px; }
+td.blocco { scroll-margin: 90px 40px; }
 /* riga di stato del passo passo: altezza fissa di due righe, cosi' la tabella non si sposta quando il testo cambia */
 .stato-passo { min-height: 2.8em; display: flex; align-items: flex-start; }
 @media (max-width: 1100px) { .stato-passo { min-height: 4.2em; } }

@@ -687,7 +687,14 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi, analisiLocale
   // la cella evidenziata deve restare visibile: se e' fuori dallo schermo la pagina (e la tabella) scorrono fino a lei
   function teniInVista() {
     const td = griglia.querySelector('td.blocco');
-    if (td && td.scrollIntoView) td.scrollIntoView({block: 'nearest', inline: 'nearest'});
+    if (!td) return;
+    // la tabella si scorre in orizzontale per mostrare la colonna, senza muovere la pagina
+    const box = griglia.getBoundingClientRect(), cella = td.getBoundingClientRect();
+    if (cella.left < box.left + 60) griglia.scrollLeft -= box.left + 60 - cella.left;
+    else if (cella.right > box.right - 20) griglia.scrollLeft += cella.right - box.right + 20;
+    // la pagina scorre solo se la cella e' davvero uscita dalla finestra (altrimenti a ogni passo sobbalzerebbe)
+    const dopo = td.getBoundingClientRect();
+    if (dopo.top < 8 || dopo.bottom > window.innerHeight - 8) td.scrollIntoView({block: 'center', inline: 'nearest'});
   }
   // Mentre si trascina lo slider l'orario segue in tempo reale (evento input, non solo al rilascio). Una richiesta alla
   // volta: se nel frattempo la barra si e' mossa, dopo la risposta si carica subito l'ultima posizione raggiunta.
