@@ -155,7 +155,7 @@ function disegnaDocentiCaso(contenitore, dati) {
     el('td', {class: 'num', testo: oreTot}), el('td', {class: 'num', testo: lezTot}),
     el('td', {class: 'num', testo: slotSettimana * dati.classi.length}),
     el('td', {class: 'num', testo: slotSettimana * dati.classi.length - oreTot})]));
-  const tabellaClassi = el('div', {class: 'scorre', style: 'flex: 1 1 320px'}, [el('table', {class: 'dati'}, [
+  const tabellaClassi = el('div', {class: 'scorre alta', style: 'flex: 1 1 320px'}, [el('table', {class: 'dati'}, [
     el('thead', {}, [el('tr', {}, [el('th', {testo: 'Classe'}), el('th', {class: 'num', title: 'ore di lezione che la classe deve fare', testo: 'Ore'}),
       el('th', {class: 'num', title: 'somma delle ore delle sue lezioni', testo: 'Lezioni'}),
       el('th', {class: 'num', title: 'slot della settimana (giorni × ore)', testo: 'Slot'}),
@@ -163,8 +163,9 @@ function disegnaDocentiCaso(contenitore, dati) {
 
   // tabella dei docenti: una riga per ogni classe in cui il docente insegna (il nome e le ore totali solo nella prima)
   const corpo = el('tbody');
-  perDocente.forEach((s, d) => {
-    if (!s.tot) return;
+  // docenti in ordine alfabetico
+  perDocente.map((s, d) => [s, d]).filter(([s]) => s.tot)
+    .sort((x, y) => nome(x[1]).localeCompare(nome(y[1]), 'it')).forEach(([s, d]) => {
     const classi = Object.entries(s.classi).sort((x, y) => +x[0] - +y[0]);  // in ordine di classe, uguale per tutti
     classi.forEach(([c, v], i) => {
       const con = Object.entries(v.con).map(([q, ore]) => `${nome(+q)} ×${ore}`).join(' · ');
@@ -180,7 +181,7 @@ function disegnaDocentiCaso(contenitore, dati) {
       corpo.appendChild(riga);
     });
   });
-  const tabella = el('div', {class: 'scorre', style: 'flex: 2 1 460px'}, [el('table', {class: 'dati'}, [
+  const tabella = el('div', {class: 'scorre alta', style: 'flex: 2 1 460px'}, [el('table', {class: 'dati'}, [
     el('thead', {}, [el('tr', {}, [el('th', {testo: 'Docente'}), el('th', {class: 'num', title: 'in tutte le classi', testo: 'Ore'}),
       el('th', {testo: 'Classe'}), el('th', {class: 'num', title: 'ore in questa classe (da solo e in codocenza)', testo: 'Ore'}),
       el('th', {class: 'num', title: 'ore da solo in questa classe', testo: 'Da solo'}),

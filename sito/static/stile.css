@@ -140,6 +140,9 @@ td.cambiata { outline: 2px dashed #c0392b; outline-offset: -2px; }
 .pannello-slot tr.utilizzabile td { color: var(--ok); }
 /* tabella dei docenti per classe: righe dello stesso docente senza riga di separazione marcata */
 table.dati tr.seguito td { border-top-style: dotted; }
+/* riquadro del caso: tabelle alte dentro un riquadro a scorrimento, con l'intestazione che resta in vista */
+.scorre.alta { max-height: 60vh; overflow: auto; }
+.scorre.alta table.dati thead th { position: sticky; top: 0; background: var(--sfondo); z-index: 1; }
 /* docenti senza ore da fare nella classe: in coda ma mai guardati, solo nome e priorita' */
 .pannello-slot tr.senza-ore td { color: var(--tenue); }
 .pannello-slot .barra-priorita.senza-ore > div { background: var(--bordo); }
