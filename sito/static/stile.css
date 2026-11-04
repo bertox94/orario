@@ -128,11 +128,10 @@ table.mappa td { min-width: 34px; height: 26px; font-size: 11px; font-variant-nu
 input.stretto { width: 5em; }
 td.blocco { outline: 2px solid #c0392b; outline-offset: -2px; color: #c0392b; font-weight: 700; }
 td.blocco { scroll-margin: 90px 40px; }
-/* riga di stato del passo passo: altezza fissa di due righe, cosi' la tabella non si sposta quando il testo cambia */
-.stato-passo { min-height: 2.8em; display: flex; align-items: flex-start; }
-@media (max-width: 1100px) { .stato-passo { min-height: 4.2em; } }
-@media (max-width: 760px) { .stato-passo { min-height: 5.6em; } }
-@media (max-width: 500px) { .stato-passo { min-height: 7em; } }
+/* riga di stato del passo passo: sta sotto la tabella, cosi' cambiando lunghezza non la sposta */
+.stato-passo { line-height: 1.4; margin-top: 6px; }
+/* su schermi stretti l'etichetta della velocita' («2.500 passi al secondo») va a capo: lo spazio e' riservato */
+@media (max-width: 520px) { .riga-velocita { min-height: 7.1em; } }
 /* la ricerca e' tornata qui e ha scelto un altro docente (il bordo pieno resta dove sta decidendo) */
 td.cambiata { outline: 2px dashed #c0392b; outline-offset: -2px; }
 .pannello-slot { position: fixed; z-index: 20; max-width: 640px; background: var(--superficie); color: var(--testo);

@@ -714,13 +714,14 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi, analisiLocale
     bottone('+1', 1), bottone('+10', 10), bottone('+100', 100), bottone('+1000', 1000), bottone('⏭', 1e12),
     el('label', {class: 'piccolo tenue', style: 'display: flex; gap: 6px; align-items: center; margin-left: 8px'},
       [el('span', {testo: 'mostra fino al passo'}), inputLimite])]),
-    el('div', {style: 'display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:6px 0'}, [bottonePlay, el('label', {class: 'piccolo tenue', style: 'display:flex;gap:6px;align-items:center'}, [el('span', {testo: 'Velocità'}), sliderVelocita]), etichettaVelocita]),
+    el('div', {class: 'riga-velocita', style: 'display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:6px 0'},
+      [bottonePlay, el('label', {class: 'piccolo tenue', style: 'display:flex;gap:6px;align-items:center'}, [el('span', {testo: 'Velocità'}), sliderVelocita]), etichettaVelocita]),
     el('div', {style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px'}, [
       el('button', {class: 'secondario', type: 'button', testo: '◀ blocco precedente', onclick: () => {
         const prima = veri().filter(v => v[0] < Math.min(n, massimo() + 1)); if (prima.length) vai(prima[prima.length - 1][0]); }}),
       el('button', {class: 'secondario', type: 'button', testo: 'blocco successivo ▶', onclick: () => {
         const dopo = veri().find(v => v[0] > n && v[0] <= massimo()); if (dopo) vai(dopo[0]); }}), infoVicoli]),
-    barra, stato, griglia, motivi);  // i motivi sotto la tabella: sopra spingerebbero giu' tabella e comandi
+    barra, griglia, stato, motivi);  // stato e motivi sotto la tabella: sopra, cambiando lunghezza, la sposterebbero
   function aggiornaVicoli() {
     return fetch(url + '?vicoli=1').then(r => r.json()).then(v => {
       vicoli = v.vicoli || []; vicoliTroncati = !!v.troncato;
