@@ -265,7 +265,8 @@ static void prova_tutti_i_docenti(teaching_slot *slot, const int pos, const int 
 
 // Prova a lasciare lo slot vuoto (ora buca, solo oltre le ore obbligatorie): lo slot e' gia' -1/-1 (vedi post_chiamata_*).
 // Dopo la buca la classe non fa altre lezioni quel giorno: le ore che le mancano devono stare nei giorni dopo.
-static void prova_ora_buca(const teaching_slot *slot, const int pos) {
+// Ritorna 1 se l'ora buca era ammessa (e quindi la ricerca e' andata avanti da li').
+static int prova_ora_buca(const teaching_slot *slot, const int pos) {
     const int cla = slot->classe;
     if (slot->ora >= PRIME_N_ORE_OBBLIGATORIE
         && classe_info[cla].ore - classe_info[cla].svolte
@@ -273,16 +274,21 @@ static void prova_ora_buca(const teaching_slot *slot, const int pos) {
         n_ore_buche[slot->base2d_gc + cla]++;
         cerca_orario(pos + 1);
         n_ore_buche[slot->base2d_gc + cla]--;
+        return 1;
     }
+    return 0;
 }
 
 // Prova tutti i docenti per questo slot; se nessuno va bene e' una marcia indietro.
-static void prova_slot_con_docenti(teaching_slot *slot, const int pos, const int passo_scritto, const int obbligato) {
+// Ritorna 1 se nessun docente e' stato messo (marcia indietro).
+static int prova_slot_con_docenti(teaching_slot *slot, const int pos, const int passo_scritto, const int obbligato) {
     // se alla fine il contatore non e' cresciuto, questo nodo non ha assegnato nessun docente (marcia indietro)
     const long long int assegnazioni_prima = n_assegnazioni;
     const int queue_size = slot->base4d_queue + queue_sz;
     prova_tutti_i_docenti(slot, pos, queue_size, obbligato);
-    if (n_assegnazioni == assegnazioni_prima) registra_marcia_indietro(slot, pos, queue_size, passo_scritto, obbligato);
+    if (n_assegnazioni != assegnazioni_prima) return 0;
+    registra_marcia_indietro(slot, pos, queue_size, passo_scritto, obbligato);
+    return 1;
 }
 
 void cerca_orario(const int pos) {
@@ -340,8 +346,12 @@ void cerca_orario(const int pos) {
 
     // prima si provano i docenti (se nello slot puo' esserci lezione), poi lo slot vuoto (se ammesso)
     sort_queue_mul(slot->base4d_queue, queue_sz);
-    if (activities_for_this_class_and_hour(slot)) prova_slot_con_docenti(slot, pos, passo_scritto, obbligato);
-    if (obbligato < 0) prova_ora_buca(slot, pos);
+    const int senza_docenti = activities_for_this_class_and_hour(slot)
+                              && prova_slot_con_docenti(slot, pos, passo_scritto, obbligato);
+    const int buca = obbligato < 0 && prova_ora_buca(slot, pos);
+    // vicolo cieco per la mappa: nessun docente utilizzabile e nemmeno l'ora buca ammessa (con la buca la ricerca
+    // prosegue, quindi non e' un punto in cui si blocca). Il passo passo usa la stessa regola.
+    if (senza_docenti && !buca) blocchi_per_pos[pos]++;
 }
 
 /* ---- analisi di uno slot ---- */
