@@ -17,6 +17,7 @@ enum { BACKTRACK_NO, BACKTRACK_COMPATTO };
 extern int stampa_backtrack;
 // Con -b --passi N: a ogni nodo una riga "P" con l'orario parziale ("S" se il nodo viene scartato dalla potatura). Dopo passi_max righe P non si scrive piu' niente, nemmeno le marce indietro.
 extern long long passi_max;
+extern long long passi_scritti;    // quanti nodi (righe P) sono stati registrati davvero
 extern int ferma_ai_passi;           // con --ferma-ai-passi: al passo passi_max la ricerca si ferma (esito "fermato"),
                                      // sempre nello stesso punto: due esecuzioni uguali danno lo stesso risultato
 extern FILE *file_orario;            // dove si scrivono gli orari trovati (e le marce indietro con stampa_backtrack)

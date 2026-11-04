@@ -119,9 +119,10 @@ static void scrivi_esito(FILE *f, const char *impossibile, const double secondi)
     else fputs("null", f);
     fprintf(f, ",\n  \"esito\": {\"orari_trovati\": %lld, \"interrotto_per_tempo\": %s, \"errore_di_scrittura\": %s, "
                "\"interrotto_su_richiesta\": %s, \"secondi\": %.3f, "
-               "\"nodi\": %lld, \"marce_indietro\": %lld, \"posizione_massima\": %d, \"slot\": %d},\n",
+               "\"nodi\": %lld, \"marce_indietro\": %lld, \"posizione_massima\": %d, \"slot\": %d, "
+               "\"passi_registrati\": %lld},\n",
             n_gen, interrotto_per_tempo ? "true" : "false", errore_di_scrittura ? "true" : "false",
-            interrotto_su_richiesta ? "true" : "false", secondi, nodi, n_backtrack, pos_max, orario_len);
+            interrotto_su_richiesta ? "true" : "false", secondi, nodi, n_backtrack, pos_max, orario_len, passi_scritti);
 }
 
 // Il primo orario trovato, come [g][o][c] = [docente, codocente].

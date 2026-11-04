@@ -24,7 +24,7 @@ long long passi_max = 0;
 long long int deduzioni_obbligato = 0;  // quante volte un docente e' risultato obbligato (prototipo)
 static int ora_al_limite = -1;          // l'ora (pos / classi) per cui docente_al_limite[] e' valido
 int ferma_ai_passi = 0;
-static long long passi_scritti = 0;
+long long passi_scritti = 0;
 FILE *file_orario;
 int primo_orario_1[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ];
 int primo_orario_2[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ];
