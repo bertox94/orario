@@ -81,6 +81,12 @@
 <div id="mappa"></div>
 {% endif %}
 
+{% if r.get('dati') %}
+<h2>Docenti e codocenze</h2>
+<p class="tenue piccolo">I dati del caso: per ogni docente le classi in cui insegna e le codocenze, con il grafo delle coppie.</p>
+<div id="docenti-caso"></div>
+{% endif %}
+
 {% if 'orario.txt.gz' in file|map(attribute=0)|list %}
 <div id="sezione-passi" style="display: none">
 <h2>La ricerca passo passo</h2>
@@ -138,6 +144,7 @@ if (risultato.orario) {
   disegnaOrario(document.getElementById('orario'), risultato.dati, risultato.orario, null, codaOrario);
   disegnaOrarioDocenti(document.getElementById('orario-docenti'), risultato.dati, risultato.orario, codaOrario);
 }
+disegnaDocentiCaso(document.getElementById('docenti-caso'), risultato.dati);
 if (risultato.diagnosi && risultato.diagnosi.marce) disegnaMappa(document.getElementById('mappa'), risultato.dati, blocchiDaRisultato(risultato.diagnosi), 'blocchi');
 {% if 'orario.txt.gz' in file|map(attribute=0)|list %}sfogliaPassi(document.getElementById('sezione-passi'), document.getElementById('passi'), risultato.dati, {{ url_for('casi.passi', eid=e.id)|tojson }}, {{ (r.get('diagnosi') or {}).get('nomi_motivi', [])|tojson }}, analisiLocale);{% endif %}
 </script>

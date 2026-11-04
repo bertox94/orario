@@ -104,6 +104,87 @@ function disegnaOrarioDocenti(contenitore, dati, orario, alPassaggio) {
   contenitore.replaceChildren(el('table', {class: 'orario'}, [intestazione(dati, 'Docente'), corpo]));
 }
 
+// Statistiche dei dati del caso: per ogni docente le classi in cui insegna (con le ore) e le codocenze, piu' un
+// grafo delle codocenze (docenti su un cerchio, un arco per coppia, spessore = ore insieme). I dati non cambiano
+// durante la ricerca: si disegna una volta sola.
+function disegnaDocentiCaso(contenitore, dati) {
+  if (!contenitore || contenitore.dataset.fatto || !dati || !dati.lezioni) return;
+  contenitore.dataset.fatto = '1';
+  const nome = i => (dati.docenti[i] || {nome: '?'}).nome;
+  // per docente: ore per classe e totale; per coppia (a<b): ore insieme
+  const perDocente = dati.docenti.map(() => ({tot: 0, classi: {}}));
+  const coppie = {};
+  for (const l of dati.lezioni) {
+    for (const d of [l.docente, l.codocente]) {
+      if (d == null || d < 0) continue;
+      perDocente[d].tot += l.ore;
+      perDocente[d].classi[l.classe] = (perDocente[d].classi[l.classe] || 0) + l.ore;
+    }
+    if (l.codocente != null && l.codocente >= 0) {
+      const k = Math.min(l.docente, l.codocente) + '+' + Math.max(l.docente, l.codocente);
+      coppie[k] = (coppie[k] || 0) + l.ore;
+    }
+  }
+  // tabella
+  const corpo = el('tbody');
+  perDocente.forEach((s, d) => {
+    if (!s.tot) return;
+    const classi = Object.entries(s.classi).map(([c, ore]) => `${dati.classi[c].nome} ×${ore}`).join(' · ');
+    const cod = Object.entries(coppie).filter(([k]) => k.split('+').map(Number).includes(d))
+      .map(([k, ore]) => `${nome(k.split('+').map(Number).find(x => x !== d))} ×${ore}`).join(' · ');
+    corpo.appendChild(el('tr', {}, [el('td', {testo: nome(d), style: 'white-space: nowrap'}), el('td', {class: 'num', testo: s.tot}),
+      el('td', {testo: classi}), el('td', {testo: cod || '—'})]));
+  });
+  const tabella = el('div', {class: 'scorre', style: 'flex: 2 1 420px'}, [el('table', {class: 'dati'}, [
+    el('thead', {}, [el('tr', {}, [el('th', {testo: 'Docente'}), el('th', {class: 'num', testo: 'Ore'}),
+      el('th', {testo: 'Classi (ore)'}), el('th', {testo: 'Codocenze (ore insieme)'})])]), corpo])]);
+  // grafo delle codocenze: solo i docenti che ne hanno
+  const coinvolti = [...new Set(Object.keys(coppie).flatMap(k => k.split('+').map(Number)))].sort((a, b) => a - b);
+  let grafo = null;
+  if (coinvolti.length) {
+    const L = 420, R = L / 2 - 58, cx = L / 2, cy = L / 2;
+    const punto = i => {
+      const a = 2 * Math.PI * coinvolti.indexOf(i) / coinvolti.length - Math.PI / 2;
+      return [cx + R * Math.cos(a), cy + R * Math.sin(a), a];
+    };
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', `0 0 ${L} ${L}`);
+    svg.setAttribute('style', 'max-width: 440px; width: 100%; height: auto');
+    for (const [k, ore] of Object.entries(coppie)) {
+      const [a, b] = k.split('+').map(Number);
+      const [x1, y1] = punto(a), [x2, y2] = punto(b);
+      const linea = document.createElementNS(ns, 'line');
+      linea.setAttribute('x1', x1); linea.setAttribute('y1', y1); linea.setAttribute('x2', x2); linea.setAttribute('y2', y2);
+      linea.setAttribute('stroke', '#c0392b'); linea.setAttribute('stroke-opacity', '0.55');
+      linea.setAttribute('stroke-width', Math.min(1 + ore, 7));
+      const t = document.createElementNS(ns, 'title');
+      t.textContent = `${nome(a)} + ${nome(b)}: ${ore} ore insieme`;
+      linea.appendChild(t);
+      svg.appendChild(linea);
+    }
+    for (const d of coinvolti) {
+      const [x, y, a] = punto(d);
+      const c = document.createElementNS(ns, 'circle');
+      c.setAttribute('cx', x); c.setAttribute('cy', y); c.setAttribute('r', 4); c.setAttribute('fill', '#2c3e50');
+      svg.appendChild(c);
+      const testo = document.createElementNS(ns, 'text');
+      const fuori = 14;
+      testo.setAttribute('x', x + fuori * Math.cos(a)); testo.setAttribute('y', y + fuori * Math.sin(a) + 4);
+      testo.setAttribute('text-anchor', Math.cos(a) > 0.3 ? 'start' : Math.cos(a) < -0.3 ? 'end' : 'middle');
+      testo.setAttribute('font-size', '12'); testo.setAttribute('fill', '#444');
+      testo.textContent = nome(d);
+      svg.appendChild(testo);
+    }
+    const senza = perDocente.filter((s, d) => s.tot && !coinvolti.includes(d)).length;
+    grafo = el('div', {style: 'flex: 1 1 300px; min-width: 280px'}, [svg,
+      el('p', {class: 'tenue piccolo', testo: 'Grafo delle codocenze: un filo per coppia, più spesso = più ore insieme (passaci sopra per i numeri).'
+        + (senza ? ` ${senza} docenti senza codocenze non sono nel grafo.` : '')})]);
+  }
+  contenitore.replaceChildren(el('div', {style: 'display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start'},
+    grafo ? [tabella, grafo] : [tabella]));
+}
+
 // Mappa dei blocchi (prova in corso): valore(g, o, c) per ogni slot; colore proporzionale (in scala logaritmica) al massimo.
 function disegnaMappa(contenitore, dati, valore, descrizione) {
   let massimo = 0;
@@ -653,10 +734,16 @@ function vincoliDocente(dati, a, c, classe, ora) {
     v[6] === -1 ? 'Regola del sabato: non si applica, perché non è sabato.'
       : v[6] ? 'Regola del sabato: rispettata.'
              : `Regola del sabato: non rispettata, nell'ora precedente ${(d.ora_precedente || []).map(nomeDoc).join(' e ') || 'un altro docente'} deve finire le sue ore in questa classe.`]);
-  if (c.potatura_dopo != null) frasi.push([c.potatura_dopo < 0 ? 1 : 0,
-    c.potatura_dopo < 0 ? 'Verifiche di potatura: mettendolo qui, il passo dopo le supererebbe e la ricerca andrebbe avanti.'
-      : c.potatura_dopo === 0 ? 'Verifiche di potatura: mettendolo qui, il ramo verrebbe scartato subito, perché alla classe non basterebbero più le lezioni per gli slot da riempire per forza.'
-      : 'Verifiche di potatura: mettendolo qui, il ramo verrebbe scartato subito, perché le ore che mancano ai docenti non starebbero più nel tempo rimasto della settimana.']);
+  if (c.potatura_dopo != null) {
+    const ipotetico = c.motivo >= 0;  // docente qui non utilizzabile: l'esito e' un'ipotesi
+    const perche = c.potatura_dopo === 0 ? 'alla classe non basterebbero più le lezioni per gli slot da riempire per forza.'
+      : 'le ore che mancano ai docenti non starebbero più nel tempo rimasto della settimana.';
+    frasi.push([c.potatura_dopo < 0 ? 1 : 0,
+      c.potatura_dopo < 0 ? (ipotetico ? 'Verifiche di potatura: se si potesse mettere, il passo dopo le supererebbe.'
+          : 'Verifiche di potatura: mettendolo qui, il passo dopo le supererebbe e la ricerca andrebbe avanti.')
+        : (ipotetico ? 'Verifiche di potatura: anche potendolo mettere, il ramo verrebbe scartato subito, perché ' + perche
+          : 'Verifiche di potatura: mettendolo qui, il ramo verrebbe scartato subito, perché ' + perche)]);
+  }
   return frasi.map(([ok, testo]) => ({stato: ok === -1 ? 'na' : ok ? 'si' : 'no', testo}));
 }
 
@@ -719,7 +806,7 @@ function mostraAnalisi(pannello, dati, a, scelto, titolo, bloccato, classe, ora,
     const dettagli = righe.filter(r => r.ok === 0).flatMap(r => r.v.motivo === 0 ? dettaglioScartoLezioni(dati, det, r.base, pot.slotNome)
       : dettaglioScartoDocenti(dati, det, r.base, pot.slotNome));
     causa = el('div', {class: 'causa-scarto' + (scartato ? ' scartato' : '')}, [
-      el('p', {}, [el('strong', {testo: scartato ? '✂ Ramo scartato dalla potatura: ' : 'Verifiche di potatura (all\'ingresso in questo slot): '}),
+      el('p', {}, [el('strong', {testo: scartato ? '✂ Ramo scartato dalla potatura: ' : 'Verifiche di potatura (sulla scelta precedente, prima di provare i docenti di questo slot): '}),
         el('span', {testo: scartato ? 'la ricerca non ha provato nessun docente qui. Non dipende dai docenti di questo slot: la coda sotto è quella che ci sarebbe stata, ma la ricerca non l\'ha mai guardata, perché una verifica è fallita.'
           : 'tutte rispettate, quindi la ricerca prosegue a provare i docenti.'})]),
       el('ul', {class: 'vincoli'}, righe.map(r => el('li', {class: r.ok === -1 ? 'na' : r.ok ? 'si' : 'no'},

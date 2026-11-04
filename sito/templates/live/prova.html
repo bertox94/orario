@@ -26,6 +26,10 @@
   sbagliata poco prima).</p>
 <div id="mappa" class="scorre"><p class="tenue">In attesa dei primi dati…</p></div>
 
+<h2>Docenti e codocenze</h2>
+<p class="tenue piccolo">I dati del caso: per ogni docente le classi in cui insegna e le codocenze, con il grafo delle coppie.</p>
+<div id="docenti-caso"><p class="tenue">In attesa dei dati…</p></div>
+
 {% endblock %}
 
 {% block script %}
@@ -39,6 +43,7 @@ async function aggiorna() {
     r = await (await fetch(indirizzo + (dati ? '' : '?con_dati=1'))).json();
   } catch (e) { setTimeout(aggiorna, 2000); return; }
   if (r.dati) dati = r.dati;
+  if (dati) disegnaDocentiCaso(document.getElementById('docenti-caso'), dati);
   if (r.esito) { location.href = "{{ url_for('casi.caso', eid=0) }}".replace('/0', '/' + r.eid); return; }
   if (r.stato === 'errore' || r.stato === 'interrotta') {
     document.getElementById('messaggio').innerHTML = '';
