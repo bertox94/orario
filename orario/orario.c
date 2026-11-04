@@ -50,9 +50,14 @@ void inizializza_orario(void) {
 void randomizza_ordine_classi(const unsigned int seed) {
     int ordine[CLASSE_SEZIONE_SZ];
     for (int k = 0; k < actual_classi_sezione; k++) ordine[k] = k;
-    srand(seed);
+    // xorshift64* come il generatore dei dati: stessa sequenza su ogni piattaforma (rand() cambia tra le libc,
+    // e l'analisi nel browser deve rifare lo stesso ordine del server)
+    unsigned long long stato = seed * 2654435761ULL + 1;
     for (int k = actual_classi_sezione - 1; k > 0; k--) {
-        const int j = rand() % (k + 1);
+        stato ^= stato >> 12;
+        stato ^= stato << 25;
+        stato ^= stato >> 27;
+        const int j = (int) ((stato * 2685821657736338717ULL) % (unsigned long long) (k + 1));
         const int tmp = ordine[k];
         ordine[k] = ordine[j];
         ordine[j] = tmp;
