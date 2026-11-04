@@ -50,7 +50,8 @@ static const char *nome_motivo[N_MOTIVI] = {
     "ore non contigue",
     "gia' al massimo di classi diverse oggi",
     "solo ore in codocenza e nessun codocente utilizzabile",
-    "bloccato dalla regola del sabato"
+    "bloccato dalla regola del sabato",
+    "un altro docente doveva per forza insegnare qui"
 };
 
 // Tempo reale (non tempo di CPU) in secondi, da un punto di partenza qualunque: serve solo per differenze.
@@ -130,7 +131,8 @@ static int n_motivi_ultima_marcia = 0;
 // Ripete gli stessi controlli della ricerca, nello stesso ordine; e' chiamata solo a ogni marcia indietro e solo
 // con --motivi, quindi il costo non pesa sulla ricerca normale.
 static int motivo_di_scarto(const teaching_slot *slot, const int pos, const int p, const int base4d_queue,
-                            const int queue_size) {
+                            const int queue_size, const int obbligato) {
+    if (obbligato >= 0 && p != obbligato) return 7;  // non provato: un altro docente era obbligato qui
     if (!prof_è_disponibile(slot->base3d_goi, p)) return 0;
     if (!verifica_ora_ingresso(p, slot->ora)) return 1;
     if (!prof_fa_al_max_n_ore(slot, p)) return 2;
@@ -256,18 +258,18 @@ static void dettaglio_docente(const teaching_slot *slot, const int pos, const in
 // Per ogni docente della coda, nell'ordine di priorita': la priorita' (ore ancora da sistemare nella settimana), le ore
 // che gli restano in questa classe e se era utilizzabile nello slot o quale vincolo lo escludeva.
 void diagnosi_analizza_slot(const teaching_slot *slot, const int pos, const int base4d_queue, const int queue_size,
-                            FILE *f, const char *scarto) {
+                            FILE *f, const char *scarto, const int obbligato) {
     fprintf(f, "{\"slot\": %d, \"lezione_ammessa\": %s, \"coda\": [", pos,
             activities_for_this_class_and_hour(slot) ? "true" : "false");
     for (int ii = base4d_queue; ii < queue_size; ii++) {
         const int p = queue_mul[ii]->teacher;
         const int ore_rimaste = classe_docente[slot->base2d_ci + p].ore - classe_docente[slot->base2d_ci + p].svolte;
-        int motivo; // -1 = utilizzabile, 7 = nessuna ora da fare in questa classe
+        int motivo; // -1 = utilizzabile, 8 = nessuna ora da fare in questa classe
         int potatura = -2; // solo per gli utilizzabili: -1 il nodo successivo passerebbe le verifiche, 0/1 il motivo dello scarto
         if (!deve_ancora_svolgere_ore_in_questa_classe(slot->base2d_ci, p)) {
-            motivo = 7;
+            motivo = 8;
         } else {
-            motivo = motivo_di_scarto(slot, pos, p, base4d_queue, queue_size);
+            motivo = motivo_di_scarto(slot, pos, p, base4d_queue, queue_size, obbligato);
             // utilizzabile: gli stessi controlli di prova_tutti_i_docenti (prima in coppia, poi da solo). Per ogni
             // modo in cui si puo' mettere (da solo, con ciascun codocente) si calcola anche se il nodo successivo
             // passerebbe le verifiche di potatura (potatura_se_messo): basta un modo che le passa. Solo qui
@@ -368,7 +370,8 @@ stato_blocco_t diagnosi_ultimo_scarto(const int pos, const int motivo, dettaglio
 
 // Conta la marcia indietro nello slot e, con --motivi, perche' ogni docente con ore da fare nella classe e' stato
 // scartato (per lo slot e per il docente).
-void diagnosi_marcia_indietro(const teaching_slot *slot, const int pos, const int base4d_queue, const int queue_size) {
+void diagnosi_marcia_indietro(const teaching_slot *slot, const int pos, const int base4d_queue, const int queue_size,
+                              const int obbligato) {
     marce_per_pos[pos]++;
     blocchi_per_pos[pos]++;
     // lo stato in questo momento, per la diagnosi: ore della classe gia' in orario, docenti con ore ancora da fare
@@ -384,7 +387,7 @@ void diagnosi_marcia_indietro(const teaching_slot *slot, const int pos, const in
     for (int ii = base4d_queue; ii < queue_size; ii++) {
         const int p = queue_mul[ii]->teacher;
         if (!deve_ancora_svolgere_ore_in_questa_classe(slot->base2d_ci, p)) continue;
-        const int m = motivo_di_scarto(slot, pos, p, base4d_queue, queue_size);
+        const int m = motivo_di_scarto(slot, pos, p, base4d_queue, queue_size, obbligato);
         motivi_per_pos[pos][m]++;
         motivi_per_docente[p][m]++;
         if (u->n_docenti < MAX_DOCENTI_BLOCCO) {
