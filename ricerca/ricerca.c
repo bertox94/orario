@@ -162,7 +162,6 @@ static inline void assegna_e_prosegui(teaching_slot *slot, const int pos, QueueI
     const int scarto = potatura_prima_di_assegnare(slot, pos, it, jt);
     if (scarto >= 0) {
         diagnosi_ramo_scartato(pos, scarto);
-        blocchi_per_pos[pos]++;
         return;
     }
     prep_chiamata_ricorsiva(slot, it, jt);
@@ -257,7 +256,6 @@ static void prova_ora_buca(const teaching_slot *slot, const int pos) {
         // potatura: con la buca le lezioni della classe bastano ancora? (tiene conto degli ingressi e del massimo giornaliero)
         if (pos + 1 < orario_len && !lezioni_della_classe_bastano_dopo(slot)) {
             diagnosi_ramo_scartato(pos, SCARTATO_LEZIONI_DELLA_CLASSE);
-            blocchi_per_pos[pos]++;
         } else {
             cerca_orario(pos + 1);
         }

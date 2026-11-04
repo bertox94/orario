@@ -91,10 +91,9 @@ void diagnosi_marcia_indietro(const teaching_slot *slot, int pos, int base4d_que
 // I contatori per slot (pos = posizione nell'orario) e per docente, per chi li vuole esportare (risultati_json.c).
 // I motivi (per slot e per docente) si contano solo con --motivi: diagnosi_con_motivi() dice se sono validi.
 long long int diagnosi_marce_nello_slot(int pos);
-// I blocchi di uno slot, per la mappa: quante volte la ricerca ci ha trovato un problema, cioe' ci e' passata senza
-// riuscire a mettere un docente (marcia indietro, anche se poi lo slot e' rimasto vuoto) oppure ha scartato il ramo
-// per la scelta fatta li' (potatura). Non conta i ripassi di uno slot in cui un docente si e' trovato e a far tornare
-// indietro e' stato uno slot piu' avanti.
+// I vicoli ciechi di uno slot, per la mappa: quante volte la ricerca ci e' passata senza riuscire a mettere nessun
+// docente (tutti i vincoli passano ma nessuno e' utilizzabile). Non conta i rami scartati dalla potatura, che sono
+// solo scelte errate gia' rilevate dal codice, ne' i ripassi in cui un docente c'era.
 long long int diagnosi_blocchi_nello_slot(int pos);
 long long int diagnosi_scartati_nello_slot(int pos, int motivo_scarto);
 long long int diagnosi_motivo_nello_slot(int pos, int motivo);
