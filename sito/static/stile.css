@@ -134,6 +134,9 @@ td.cambiata { outline: 2px dashed #c0392b; outline-offset: -2px; }
   border: 1px solid var(--bordo); border-radius: 6px; padding: 10px 12px; box-shadow: 0 4px 16px rgba(0,0,0,.25); font-size: 13px; }
 .pannello-slot tr.scelto td { font-weight: 700; }
 .pannello-slot tr.utilizzabile td { color: var(--ok); }
+/* docenti senza ore da fare nella classe: in coda ma mai guardati, solo nome e priorita' */
+.pannello-slot tr.senza-ore td { color: var(--tenue); }
+.pannello-slot .barra-priorita.senza-ore > div { background: var(--bordo); }
 
 /* Tabelle larghe: barra di scorrimento e, sotto, un cursore che resta in fondo allo schermo finche' la tabella e'
    visibile (static/orario.js, aggiornaCursori). Compaiono solo con il mouse sopra la tabella (o sul cursore, o con il

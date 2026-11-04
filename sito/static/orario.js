@@ -827,8 +827,10 @@ function mostraAnalisi(pannello, dati, a, scelto, titolo, bloccato, classe, ora,
       : p < 0 ? ' · slot lasciato vuoto' : ` · scelto: ${nome(p)}${q >= 0 ? ' + ' + nome(q) : ''}`})]);
   // in ordine di priorita' (la coda del solver; a parita' l'ordine e' quello della coda)
   const con = a.coda.filter(c => c.ore_classe > 0).map((c, i) => [c, i]).sort((x, y) => y[0].priorita - x[0].priorita || x[1] - y[1]).map(x => x[0]);
-  const senza = a.coda.length - a.coda.filter(c => c.ore_classe > 0).length;
-  const massima = Math.max(1, ...con.map(c => c.priorita));
+  // i docenti senza ore da fare in questa classe: in coda ci sono, ma la ricerca non li guarda. Si mostrano in fondo,
+  // in grigio e con la sola priorita' (niente esito ne' frasi per vincolo: non c'e' niente da spiegare).
+  const senzaOre = a.coda.filter(c => !(c.ore_classe > 0));
+  const massima = Math.max(1, ...a.coda.map(c => c.priorita));
   const corpo = el('tbody');
   const MAX = 14;
   con.slice(0, MAX).forEach(c => {
@@ -852,6 +854,14 @@ function mostraAnalisi(pannello, dati, a, scelto, titolo, bloccato, classe, ora,
     corpo.appendChild(riga);
     corpo.appendChild(el('tr', {class: 'riga-vincoli'}, [el('td', {colspan: 5}, [el('ul', {class: 'vincoli'},
       frasi.map(f => el('li', {class: f.stato}, [el('span', {class: 'segno', testo: f.stato === 'si' ? '✔' : f.stato === 'no' ? '✘' : '–'}), el('span', {testo: f.testo})])))])]));
+  });
+  senzaOre.forEach(c => {
+    const barra = el('div', {class: 'barra-priorita senza-ore', title: `priorità ${c.priorita}`},
+      [el('div', {style: `width: ${(100 * c.priorita / massima).toFixed(1)}%`})]);
+    corpo.appendChild(el('tr', {class: 'senza-ore'}, [
+      el('td', {testo: nome(c.docente), style: 'white-space: nowrap'}), el('td', {}, [barra]),
+      el('td', {class: 'num', testo: c.priorita}), el('td', {class: 'num', testo: '—'}),
+      el('td', {testo: 'nessuna ora da fare in questa classe'})]));
   });
   // interruttore delle frasi per vincolo (resta com'e' alla prossima apertura)
   if (finestra) finestra.classList.toggle('senza-vincoli', !mostraVincoli);
@@ -892,7 +902,7 @@ function mostraAnalisi(pannello, dati, a, scelto, titolo, bloccato, classe, ora,
     el('p', {class: 'tenue piccolo', testo: (scartato ? 'Coda che ci sarebbe stata in questo slot, mai provata. ' : '') + 'Coda dei docenti per priorità (ore ancora da sistemare nella settimana); a parità di priorità prima il docente con l\'indice più basso, come la ricerca. «Ore in classe» = ancora da fare / totali.'}),
     el('table', {class: 'dati'}, [el('thead', {}, [el('tr', {}, [el('th', {testo: 'Docente'}), el('th', {testo: 'Priorità'}), el('th', {class: 'num', testo: ''}),
       el('th', {class: 'num', testo: 'Ore in classe'}), el('th', {testo: 'Esito'})])]), corpo]),
-    el('p', {class: 'tenue piccolo', testo: [con.length > MAX ? `altri ${con.length - MAX} docenti con ore da fare in coda` : '', senza ? `${senza} docenti senza ore da fare in questa classe` : ''].filter(Boolean).join(' · ')}));
+    el('p', {class: 'tenue piccolo', testo: con.length > MAX ? `altri ${con.length - MAX} docenti con ore da fare in coda` : ''}));
 }
 
 // Cursore sotto ogni tabella larga (contenitori .scorre): sempre visibile, fa scorrere la tabella in orizzontale e
