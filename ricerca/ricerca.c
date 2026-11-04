@@ -295,8 +295,11 @@ void cerca_orario(const int pos) {
         if (passo_scritto) fprintf(file_orario, "S %d\n", SCARTATO_LEZIONI_DELLA_CLASSE);  // il passo appena scritto e' un ramo scartato
         return;
     }
-    // a ogni inizio ora: le ore che mancano ai docenti stanno ancora nel tempo rimasto?
-    if (pos > 0 && pos % actual_classi_sezione == 0 && !ore_rimaste_stanno_nel_tempo_rimasto(slot->giorno, slot->ora)) {
+    // a ogni inizio ora — e subito dopo un'ora buca: la buca toglie un'ora ai docenti della classe (dopo la buca la
+    // classe oggi non fa piu' lezione) e puo' condannarne uno anche se alla classe le ore bastano ancora. Senza questo
+    // controllo l'errore emergerebbe solo all'inizio dell'ora successiva, dopo aver riempito il resto dell'ora.
+    if (pos > 0 && (pos % actual_classi_sezione == 0 || orario[pos - 1].insegnante1 < 0)
+        && !ore_rimaste_stanno_nel_tempo_rimasto(slot->giorno, slot->ora)) {
         diagnosi_ramo_scartato(pos - 1, SCARTATO_ORE_DEI_DOCENTI);
         if (passo_scritto) fprintf(file_orario, "S %d\n", SCARTATO_ORE_DEI_DOCENTI);
         return;
@@ -363,7 +366,8 @@ int analizza_slot(const char *file, FILE *out) {
             fprintf(m, "{\"motivo\": %d, \"controllata\": true, \"ok\": %s", SCARTATO_LEZIONI_DELLA_CLASSE, ok0 ? "true" : "false");
             if (!ok0) diagnosi_scrivi_dettaglio_scarto(m, SCARTATO_LEZIONI_DELLA_CLASSE, &dettaglio_scarto);
             fputs("}, ", m);
-            const int inizio_ora = pos % actual_classi_sezione == 0;
+            const int inizio_ora = pos % actual_classi_sezione == 0
+                                   || (pos > 0 && orario[pos - 1].insegnante1 < 0);  // il controllo scatta anche dopo un'ora buca
             const int ok1 = !inizio_ora || ore_rimaste_stanno_nel_tempo_rimasto(slot->giorno, slot->ora);
             fprintf(m, "{\"motivo\": %d, \"controllata\": %s, \"ok\": %s", SCARTATO_ORE_DEI_DOCENTI, inizio_ora ? "true" : "false",
                     ok1 ? "true" : "false");
