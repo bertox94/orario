@@ -244,12 +244,22 @@ slot. Per ogni docente c'è l'esito di tutti i vincoli, uno per riga: libero, gi
 massimo di classi al giorno, codocente, regola del sabato (✔ rispettato, ✘ non rispettato, – non si applica). Il
 pulsante in cima nasconde o mostra queste frasi. La finestra si scorre con la rotella o con il dito; con il mouse resta
 aperta se ci porti sopra il puntatore, e si chiude con ✕ o toccando fuori. Un passo in cui non c'era nessun docente
-utilizzabile è segnalato, con i motivi. I «blocchi» sono solo le vere marce indietro: i vicoli ciechi e i rami scartati
-dalla potatura; l'ora buca, in cui la ricerca prosegue con lo slot vuoto, si vede nella riga di stato ma non è un blocco.
-I pulsanti sotto la barra saltano da un blocco all'altro e durante l'animazione la pagina scorre per tenere in vista la
-cella che si sta decidendo. Nel passo di un ramo scartato la finestra mostra le verifiche di potatura, una riga ciascuna
-(lezioni della classe, ore dei docenti), con il dettaglio di quella fallita: la causa è la scelta fatta nello slot prima,
-evidenziato nell'orario, non i docenti dello slot in esame, la cui coda non è mai stata provata.
+utilizzabile è segnalato, con i motivi. I «blocchi» sono i vicoli ciechi: tutti i controlli passano
+ma nessun docente è utilizzabile e lo slot non può restare vuoto; i rami scartati dalla potatura non si contano (sono
+scelte errate già rilevate dal codice, e dalla potatura anticipata non sono nemmeno più passi registrati). L'ora buca,
+in cui la ricerca prosegue con lo slot vuoto, si vede nella riga di stato ma non è un blocco. I pulsanti sotto la barra
+saltano da un vicolo cieco all'altro e durante l'animazione la pagina scorre per tenere in vista la cella che si sta
+decidendo. Nella finestra, per ogni docente utilizzabile, c'è anche l'esito della potatura: se mettendolo il ramo
+verrebbe scartato subito, e perché.
+
+### L'analisi nel browser (WebAssembly)
+
+La finestra della coda rifà lo stato della ricerca fino allo slot in esame. Se nel sito c'è `static/analisi.wasm`
+(il solver compilato in WebAssembly) e la sua impronta (`analisi.wasm.versione`) corrisponde ai sorgenti del solver in
+uso, il calcolo avviene dentro il browser, senza richieste al server; altrimenti, o se qualcosa non va, lo fa il server
+con `--analizza-slot`, come sempre. Il modulo si rigenera con `sito/compila-wasm.sh` (serve
+[wasi-sdk](https://github.com/WebAssembly/wasi-sdk), variabile `WASI_SDK`) e va ricompilato e committato quando i
+sorgenti del solver cambiano; finché non lo si fa, il sito usa semplicemente il server.
 
 ## Come si usa il test manuale (Test in tempo reale)
 
