@@ -150,11 +150,11 @@ function compatto(v) {
   return String(v);
 }
 
-// I blocchi di uno slot per la mappa: quante volte la ricerca e' arrivata a quello slot mentre era la posizione massima
-// raggiunta, senza superarla (diagnosi.blocchi del JSON del solver). Le prove fatte prima di questo conteggio hanno
-// solo marce indietro e rami scartati: si sommano quelli.
+// I blocchi di uno slot per la mappa: i problemi trovati li': le volte che la ricerca ci e' passata senza riuscire a
+// mettere un docente (marce indietro, anche con lo slot poi rimasto vuoto) piu' i rami scartati dalla potatura. Si
+// sommano i due conteggi del JSON (diagnosi.blocchi, scritto dalle versioni del solver che contavano gli arrivi alla
+// frontiera, non vale).
 function blocchiDaRisultato(diagnosi) {
-  if (diagnosi.blocchi) return (g, o, c) => diagnosi.blocchi[g][o][c];
   const scartati = Object.values(diagnosi.scartati || {});
   return (g, o, c) => diagnosi.marce[g][o][c] + scartati.reduce((s, t) => s + t[g][o][c], 0);
 }
