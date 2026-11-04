@@ -67,7 +67,7 @@
   <div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
     <label>Tempo massimo (s, 0 = senza limite) <input type="number" name="tempo" min="0" value="{{ o.get('tempo', 60) }}"></label>
     <label>Orari da trovare <input type="number" name="orari" min="1" value="{{ o.get('orari', 1) }}"></label>
-    <label class="spunta"><input type="checkbox" name="passi" value="1" {{ 'checked' if o.get('passi') }}> Registra la ricerca passo passo</label>
+    <label class="spunta"><input type="checkbox" name="passi" value="1" {{ 'checked' if o.get('passi') or not rilancio }}> Registra la ricerca passo passo</label>
     <label>fino a <input type="number" name="max_passi" min="1" max="10000000" value="{{ o.get('passi', 100000) }}" class="stretto"> passi</label>
   </div>
   <p class="tenue piccolo">La registrazione passo passo mostra nella pagina del risultato l'orario a ogni nodo della ricerca, con
