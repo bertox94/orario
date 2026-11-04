@@ -119,6 +119,23 @@ static inline void assegna_e_prosegui(teaching_slot *slot, const int pos, QueueI
     post_chiamata_ricorsiva(slot, it, jt);
 }
 
+// Vedi ricerca.h: le stesse verifiche che cerca_orario fa all'ingresso del nodo successivo, senza muovere la ricerca.
+int potatura_se_messo(const int pos, const int ii, const int jj) {
+    teaching_slot *slot = &orario[pos];
+    QueueItem *it = queue_mul[ii], *jt = jj >= 0 ? queue_mul[jj] : NULL;
+    prep_chiamata_ricorsiva(slot, it, jt);
+    int motivo = -1;
+    if (pos + 1 < orario_len) {  // il nodo dopo l'ultimo slot e' l'orario completo: nessuna verifica
+        if (!lezioni_della_classe_bastano_dopo(slot))
+            motivo = SCARTATO_LEZIONI_DELLA_CLASSE;
+        else if ((pos + 1) % actual_classi_sezione == 0
+                 && !ore_rimaste_stanno_nel_tempo_rimasto(orario[pos + 1].giorno, orario[pos + 1].ora))
+            motivo = SCARTATO_ORE_DEI_DOCENTI;
+    }
+    post_chiamata_ricorsiva(slot, it, jt);
+    return motivo;
+}
+
 /* ---- un nodo della ricerca ---- */
 
 // Un orario completo: lo si conta e lo si scrive.

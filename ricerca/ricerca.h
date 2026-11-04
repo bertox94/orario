@@ -27,6 +27,11 @@ extern int primo_orario_2[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZI
 // Cerca gli orari a partire dallo slot pos (la prima chiamata e' con pos = 0).
 void cerca_orario(int pos);
 
+// Per l'analisi di uno slot: se nello slot pos si mettesse la lezione di queue_mul[ii] (da solo con jj < 0, in coppia
+// con queue_mul[jj]), il nodo successivo passerebbe le verifiche di potatura? Ritorna -1 se si', altrimenti il motivo
+// dello scarto (come diagnosi_ramo_scartato). Assegna e annulla: lo stato resta com'era.
+int potatura_se_messo(int pos, int ii, int jj);
+
 // Per il sito: la coda dei docenti dello slot pos, dati i primi pos slot letti da file, e perche' ognuno e' o non e'
 // utilizzabile. Scrive una riga JSON su out. Ritorna 0 se il file non va bene.
 int analizza_slot(const char *file, FILE *out);

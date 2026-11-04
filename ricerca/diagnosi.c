@@ -263,27 +263,36 @@ void diagnosi_analizza_slot(const teaching_slot *slot, const int pos, const int 
         const int p = queue_mul[ii]->teacher;
         const int ore_rimaste = classe_docente[slot->base2d_ci + p].ore - classe_docente[slot->base2d_ci + p].svolte;
         int motivo; // -1 = utilizzabile, 7 = nessuna ora da fare in questa classe
+        int potatura = -2; // solo per gli utilizzabili: -1 il nodo successivo passerebbe le verifiche, 0/1 il motivo dello scarto
         if (!deve_ancora_svolgere_ore_in_questa_classe(slot->base2d_ci, p)) {
             motivo = 7;
         } else {
             motivo = motivo_di_scarto(slot, pos, p, base4d_queue, queue_size);
-            // utilizzabile: gli stessi controlli di prova_tutti_i_docenti (prima in coppia, poi da solo)
+            // utilizzabile: gli stessi controlli di prova_tutti_i_docenti (prima in coppia, poi da solo). Per ogni
+            // modo in cui si puo' mettere (da solo, con ciascun codocente) si calcola anche se il nodo successivo
+            // passerebbe le verifiche di potatura (potatura_se_messo): basta un modo che le passa. Solo qui
+            // nell'analisi, mai nella ricerca: sono una ventina di simulazioni per finestra.
             if (prof_è_disponibile(slot->base3d_goi, p) && docente_idoneo(slot, pos, p)) {
-                int usabile = deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(slot->base2d_ci, p)
-                              && sabato_esaurisci_priorita_subito(pos, slot->giorno, slot->ora, slot->base2d_ci, p, -1);
-                for (int jj = base4d_queue; jj < queue_size && !usabile; jj++) {
+                if (deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(slot->base2d_ci, p)
+                    && sabato_esaurisci_priorita_subito(pos, slot->giorno, slot->ora, slot->base2d_ci, p, -1))
+                    potatura = potatura_se_messo(pos, ii, -1);
+                for (int jj = base4d_queue; jj < queue_size && potatura != -1; jj++) {
                     const int q = queue_mul[jj]->teacher;
-                    usabile = q != p && prof_è_disponibile(slot->base3d_goi, q)
-                              && docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(slot->classe, p, q)
-                              && sabato_esaurisci_priorita_subito(pos, slot->giorno, slot->ora, slot->base2d_ci, p, q)
-                              && docente_idoneo(slot, pos, q);
+                    if (q != p && prof_è_disponibile(slot->base3d_goi, q)
+                        && docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(slot->classe, p, q)
+                        && sabato_esaurisci_priorita_subito(pos, slot->giorno, slot->ora, slot->base2d_ci, p, q)
+                        && docente_idoneo(slot, pos, q)) {
+                        const int m = potatura_se_messo(pos, ii, jj);
+                        potatura = potatura == -2 || m == -1 ? m : potatura;
+                    }
                 }
-                if (usabile) motivo = -1;
+                if (potatura != -2) motivo = -1;  // utilizzabile (anche se poi il ramo verrebbe scartato)
             }
         }
         fprintf(f, "%s{\"docente\": %d, \"priorita\": %g, \"ore_classe\": %d, \"ore_totali_classe\": %d, \"motivo\": %d",
                 ii > base4d_queue ? ", " : "", p, queue_mul[ii]->priority, ore_rimaste,
                 classe_docente[slot->base2d_ci + p].ore, motivo);
+        if (potatura != -2) fprintf(f, ", \"potatura_dopo\": %d", potatura);
         if (ore_rimaste > 0) {
             fprintf(f, ", \"vincoli\": ");
             vincoli_docente(slot, pos, p, base4d_queue, queue_size, f);
