@@ -229,8 +229,8 @@ Nel test in tempo reale, spuntando «Registra la ricerca passo passo» il solver
 della computazione, fino al numero di passi scelto nel campo accanto (predefinito 100.000; oltre, la ricerca continua
 senza registrare). Lo stesso fa la fase 3 dei test notturni per i casi non finiti. Nella pagina del caso compare la sezione
 «La ricerca passo passo»: uno slider dal passo 0 (orario vuoto) all'ultimo passo registrato, con i pulsanti ±1, ±100 e
-±1000. Lo slot ✕ è quello che la ricerca sta per decidere. La stessa sezione compare già nella pagina della prova mentre la
-ricerca gira, con i passi registrati fino a quel momento (lo slider si allunga da solo).
+±1000. Lo slot ✕ è quello che la ricerca sta per decidere. Sopra c'è la mappa «Dove si è bloccata la ricerca», la stessa
+della prova in corso, con i blocchi per slot alla fine della ricerca.
 
 Il pulsante «▶ Avvia l'animazione» fa scorrere i passi in modo fluido, dal passo in cui sei (o dall'inizio, se sei in
 fondo); il cursore «Velocità» la regola da 1 a 2.500 passi al secondo, anche mentre gira. «⏸ Pausa» (o qualunque comando

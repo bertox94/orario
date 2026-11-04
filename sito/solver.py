@@ -130,9 +130,8 @@ class Esecuzione:
     def __init__(self, exe, args, cartella, timeout=None, su_progresso=None, su_gz=None):
         """su_gz: funzione che riceve a pezzi la registrazione della ricerca (orario.txt.gz) compressa, invece di
         lasciarla scrivere sul disco: il solver scrive il testo in una pipe con nome, qui lo si comprime (gzip, livello 1)
-        e i byte vanno direttamente a chi li conserva (il database). Si comprime qui e non nel solver perche' gzip
-        trattiene l'uscita finche' non ha finito, mentre cosi' ogni pezzo e' leggibile subito (la ricerca passo passo
-        si puo' sfogliare mentre gira). Il file resta piccolo da solo: il solver smette di registrare dopo --passi nodi."""
+        e i byte vanno direttamente a chi li conserva (il database), senza un processo gzip in piu'. Il file resta
+        piccolo da solo: il solver smette di registrare dopo --passi nodi."""
         os.makedirs(cartella, exist_ok=True)
         self.su_gz = su_gz
         self.errore_gz = None

@@ -19,13 +19,10 @@ class FileTroppoGrande(Exception):
 
 
 def righe(url, eid):
-    """Le righe di testo del file, decompresse a pezzi. Per un'esecuzione in corso legge quello che il solver ha scritto
-    finora (senza l'ultima riga, che puo' essere a meta')."""
-    from . import esecutore  # importato qui: esecutore importa solver e modello
-    in_corso = esecutore.pezzi_in_corso(eid)
+    """Le righe di testo del file, decompresse a pezzi."""
     d = zlib.decompressobj(16 + zlib.MAX_WBITS)
     resto, letti = b'', 0
-    for pezzo in (in_corso if in_corso is not None else archivio.pezzi(url, eid, 'orario.txt.gz')):
+    for pezzo in archivio.pezzi(url, eid, 'orario.txt.gz'):
         while pezzo:
             dati = d.decompress(pezzo, 1 << 20)
             pezzo = d.unconsumed_tail
@@ -36,7 +33,7 @@ def righe(url, eid):
             *complete, resto = resto.split(b'\n')
             for r in complete:
                 yield r.decode('ascii', 'replace')
-    if resto and in_corso is None:
+    if resto:
         yield resto.decode('ascii', 'replace')
 
 
