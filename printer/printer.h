@@ -26,14 +26,14 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
 // prima di `da` come nella riga B precedente. Ogni slot e' "i" (docente di indice i), "i+j" (coppia) o "-" (vuoto).
 // Le posizioni sono quelle della ricerca: pos = (giorno * ore + ora) * classi + k, con la classe k-esima dell'ordine
 // scritto nell'intestazione.
-// Con --passi N, una riga "P pos da s_da ... s_(pos-1)" (stesso formato delle righe B, stessa catena di differenze) a
-// ogni nodo della ricerca: l'orario parziale con i primi pos slot decisi. Dopo N nodi registrati la ricerca continua
-// senza scrivere piu' niente (nemmeno le righe B e M). Se il nodo di un passo e' un ramo scartato dalla potatura, subito dopo la riga P
-// c'e' una riga "S m" (m = motivo dello scarto, come l'indice in diagnosi_ramo_scartato: 0 lezioni della classe, 1 ore dei
-// docenti); se invece non ha nessun docente utilizzabile, dopo la P c'e' la riga B della marcia indietro.
-// Sempre con --passi, una riga "R pos" ogni volta che la ricerca torna al nodo pos dopo aver annullato la scelta del
-// suo slot (e' la marcia indietro vista dal nodo che la subisce): l'orario parziale e' quello dei primi pos slot. Il
-// limite N conta solo le righe P (nodi); le R si fermano insieme a loro.
+// Con --passi N (la ricerca passo passo), in piu':
+//   P pos da s_da ... s_(pos-1)   a ogni nodo della ricerca (stesso formato e stessa catena di differenze delle righe B):
+//                                 l'orario parziale con i primi pos slot decisi; il nodo sta decidendo lo slot pos
+//   S m                           subito dopo la P di un nodo scartato dalla potatura (m: 0 lezioni della classe, 1 ore
+//                                 dei docenti, come diagnosi_ramo_scartato); se invece il nodo non ha nessun docente
+//                                 utilizzabile, dopo la P c'e' la sua riga B
+//   R pos                         ogni volta che la ricerca torna al nodo pos dopo aver annullato la scelta del suo slot
+// Dopo N righe P la ricerca continua senza scrivere piu' niente (nemmeno B, M, R), cosi' il file resta piccolo.
 // Con --motivi, subito dopo ogni riga B c'e' una riga "M d:m d:m ...": per ogni docente d che nella classe aveva ancora
 // ore da fare, il motivo m (come in "nomi_motivi" del JSON) per cui non si e' potuto mettere nello slot.
 void stampa_intestazione_marce_compatte(FILE *f);
