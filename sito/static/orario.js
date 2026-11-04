@@ -708,6 +708,12 @@ function sfogliaPassi(sezione, contenitore, dati, url, nomiMotivi, analisiLocale
     }).catch(() => {});
   }
   fetch(url + '?totale=1').then(r => r.json()).then(t => {
+    if (t.errore) {  // file troppo grande da sfogliare: si dice, invece di non mostrare niente
+      if (sezione) sezione.style.display = '';
+      stato.textContent = t.errore;
+      contenitore.replaceChildren(stato);
+      return;
+    }
     totale = t.totale || 0;
     if (!totale) return;  // nessuna riga P nel file: la sezione resta nascosta
     if (sezione) sezione.style.display = '';
