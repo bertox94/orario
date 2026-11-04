@@ -132,12 +132,16 @@ function disegnaMappa(contenitore, dati, valore, descrizione) {
   const legenda = el('div', {class: 'legenda'}, [
     el('span', {testo: '0'}), el('span', {class: 'scala'}),
     el('span', {testo: massimo.toLocaleString('it-IT') + ' ' + descrizione + ' (scala logaritmica)'})]);
-  // la mappa in tempo reale si ridisegna ogni secondo: si conserva lo scorrimento orizzontale
-  const prima = contenitore.querySelector('.scorre');
-  const sinistra = prima ? prima.scrollLeft : 0;
-  const box = el('div', {class: 'scorre'}, [el('table', {class: 'orario mappa'}, [intestazione(dati), corpo])]);
-  contenitore.replaceChildren(legenda, box);
-  box.scrollLeft = sinistra;
+  // la mappa in tempo reale si ridisegna ogni secondo: il contenitore scorrevole (con il suo cursore) resta quello
+  // di prima e si sostituisce solo il contenuto, cosi' lo scorrimento orizzontale non si perde
+  const tabella = el('table', {class: 'orario mappa'}, [intestazione(dati), corpo]);
+  const prima = contenitore.querySelector('.scorre'), legendaPrima = contenitore.querySelector('.legenda');
+  if (prima && legendaPrima) {
+    legendaPrima.replaceWith(legenda);
+    prima.replaceChildren(tabella);
+  } else {
+    contenitore.replaceChildren(legenda, el('div', {class: 'scorre'}, [tabella]));
+  }
 }
 
 function compatto(v) {
@@ -682,8 +686,10 @@ function aggiornaCursori() {
       cursore.addEventListener('input', () => { box.scrollLeft = +cursore.value; });
       box.addEventListener('scroll', () => { cursore.value = box.scrollLeft; });
       const insieme = el('div', {class: 'con-cursore'});
+      const sinistra = box.scrollLeft;  // spostare un elemento nel DOM azzera il suo scorrimento
       box.parentNode.insertBefore(insieme, box);
       insieme.append(box, cursore);
+      box.scrollLeft = sinistra;
       box._cursore = cursore;
     }
     cursore.max = Math.max(0, eccesso);
