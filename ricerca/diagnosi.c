@@ -375,7 +375,6 @@ stato_blocco_t diagnosi_ultimo_scarto(const int pos, const int motivo, dettaglio
 void diagnosi_marcia_indietro(const teaching_slot *slot, const int pos, const int base4d_queue, const int queue_size,
                               const int obbligato) {
     marce_per_pos[pos]++;
-    blocchi_per_pos[pos]++;
     // lo stato in questo momento, per la diagnosi: ore della classe gia' in orario, docenti con ore ancora da fare
     int con_ore = 0;
     for (int ii = base4d_queue; ii < queue_size; ii++)
