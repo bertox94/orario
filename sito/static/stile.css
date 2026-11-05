@@ -94,10 +94,10 @@ form.in-linea { display: inline; margin: 0; }
 .avviso.attenzione { background: var(--attenzione-tenue); color: var(--attenzione); }
 
 .esito { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 13px; white-space: nowrap; }
-.esito-trovato, .esito-finita, .esito-verifica-superata { background: var(--ok-tenue); color: var(--ok); }
-.esito-impossibile, .esito-errore, .esito-errore-nei-dati, .esito-nessuna-soluzione { background: var(--male-tenue); color: var(--male); }
-.esito-non-finito, .esito-interrotto, .esito-fermato, .esito-interrotta, .esito-annullata, .esito-annullamento { background: var(--attenzione-tenue); color: var(--attenzione); }
-.esito-in-corso, .esito-in-coda { background: var(--accento-tenue); color: var(--accento); }
+.esito-trovato, .esito-finita { background: var(--ok-tenue); color: var(--ok); }
+.esito-errore, .esito-errore-nei-dati, .esito-nessuna-soluzione { background: var(--male-tenue); color: var(--male); }
+.esito-non-finito, .esito-fermato, .esito-interrotto, .esito-interrotta, .esito-annullamento { background: var(--attenzione-tenue); color: var(--attenzione); }
+.esito-in-corso { background: var(--accento-tenue); color: var(--accento); }
 
 pre.testo { background: var(--superficie); border: 1px solid var(--bordo); border-radius: 8px; padding: 12px; overflow-x: auto; font-size: 13px; }
 
@@ -125,7 +125,6 @@ table.orario td.risolta { outline: 2px solid var(--ok); outline-offset: -2px; co
 table.dati tr.risoluzione td { color: var(--ok); }
 .barra { height: 8px; background: var(--bordo); border-radius: 4px; overflow: hidden; }
 .barra > div { height: 100%; background: var(--accento); }
-input.stretto { width: 5em; }
 .scorre.alta { max-height: 60vh; overflow: auto; }
 .scorre.alta table.dati thead th { position: sticky; top: 0; background: var(--sfondo); z-index: 1; }
 
