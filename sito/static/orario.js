@@ -209,6 +209,22 @@ function haEsauritoOre(x) {
 
 // filtro: 'tutti', 'con-ore' (nasconde chi ha esaurito le ore in questa classe), 'esauriti' (nasconde chi ne ha ancora)
 // La griglia "l'orario fino a qui" va in sopra (in cima alla pagina), il resto in contenitore (sotto l'elenco).
+// Mette nel contenitore la didascalia e la griglia dell'orario senza spostare niente: lo scorrimento orizzontale della
+// griglia resta quello di prima e la pagina resta dov'e'. Solo la prima volta la griglia scorre fino alla cella sel.
+function mettiGriglia(contenitore, didascalia, griglia, sel) {
+  const vecchia = contenitore.querySelector('.scorre');
+  const sinistra = vecchia ? vecchia.scrollLeft : null, alto = window.scrollY;
+  contenitore.replaceChildren(didascalia, griglia);
+  aggiornaCursori();  // subito, non dopo: il cursore della tabella non fa saltare l'altezza
+  const box = griglia.querySelector('.scorre');
+  if (box && sinistra !== null) box.scrollLeft = sinistra;
+  else if (box) {
+    const td = griglia.querySelector(sel);
+    if (td) box.scrollLeft = Math.max(0, td.offsetLeft - box.clientWidth / 2);
+  }
+  if (window.scrollY !== alto) window.scrollTo(window.scrollX, alto);
+}
+
 // prima: il backtrack precedente sul cursore (se c'e'): in verde le celle cambiate da allora, e bordata la prima
 // (la cella fin dove la ricerca e' tornata indietro per cambiare una scelta).
 function disegnaBacktrack(contenitore, d, b, filtro, sopra, prima) {
@@ -235,14 +251,9 @@ function disegnaBacktrack(contenitore, d, b, filtro, sopra, prima) {
     : ` In verde ${cambiate.size === 1 ? 'la cella cambiata' : `le ${numeroIt(cambiate.size)} celle cambiate`} dal ` +
       `backtrack precedente (n. ${numeroIt(prima.n)}); bordata la prima, ${testoPos(d, tornata)}: la ricerca è tornata ` +
       `fin lì e ha cambiato scelta.`;
-  sopra.replaceChildren(el('p', {class: 'tenue piccolo'},
+  mettiGriglia(sopra, el('p', {class: 'tenue piccolo didascalia'},
     `Al backtrack n. ${numeroIt(b.n)}: ${d.giorni[s.giorno]} ${d.ore[s.ora]} ${nomeClasse(d, s.classe)} (in rosso).` +
-    testoCambi), griglia);
-  // la griglia scorre in orizzontale fino allo slot del backtrack (che puo' stare a fine settimana)
-  requestAnimationFrame(() => {
-    const box = griglia.querySelector('.scorre'), td = griglia.querySelector('td.blocco');
-    if (box && td) box.scrollLeft = Math.max(0, td.offsetLeft - box.clientWidth / 2);
-  });
+    testoCambi), griglia, 'td.blocco');
   const mostrati = b.docenti.filter(x => filtro === 'con-ore' ? !haEsauritoOre(x)
                                        : filtro === 'esauriti' ? haEsauritoOre(x) : true);
   const nascosti = b.docenti.length - mostrati.length;
@@ -472,14 +483,11 @@ function paginaTest(cfg) {
         'e cambiate'} dall'ultimo backtrack del gruppo (n. ${numeroIt(g.ultimo)})`})]));
     const griglia = el('div');
     disegnaOrario(griglia, d, dopo, {fino, cambiate, risolta: g.inizio});
-    raggiunto.replaceChildren(el('p', {class: 'tenue piccolo'},
+    mettiGriglia(raggiunto, el('p', {class: 'tenue piccolo didascalia'},
       `Come si risolve il gruppo ${numeroIt(g.k + 1)}: la ricerca supera ${cella} ` +
       (buca ? "con un'ora buca. " : `mettendo ${messo}. `) +
-      `In verde le celle cambiate rispetto all'ultimo backtrack del gruppo (n. ${numeroIt(g.ultimo)}).`), griglia);
-    requestAnimationFrame(() => {
-      const box = griglia.querySelector('.scorre'), td = griglia.querySelector('td.risolta');
-      if (box && td) box.scrollLeft = Math.max(0, td.offsetLeft - box.clientWidth / 2);
-    });
+      `In verde le celle cambiate rispetto all'ultimo backtrack del gruppo (n. ${numeroIt(g.ultimo)}).`), griglia,
+      'td.risolta');
     aperto = null;
     dettaglio.replaceChildren(el('p', {class: 'tenue piccolo'}, g.risoltoDa !== null
       ? `L'orario viene dal backtrack n. ${numeroIt(g.risoltoDa)}, il primo dopo che la ricerca ha superato la cella, ` +
@@ -645,9 +653,13 @@ function paginaTest(cfg) {
     clearTimeout(giro);
     giro = null;
     play.textContent = '▶ Play';
+    dettaglio.style.minHeight = '';
   }
   function avanti() {
     if (+cursore.value >= +cursore.max) { fermaPlay(); return; }
+    // durante il play la parte sotto l'orario non si accorcia (i controlli dei docenti ci sono solo ai backtrack):
+    // cosi' la pagina non salta
+    dettaglio.style.minHeight = Math.max(parseFloat(dettaglio.style.minHeight) || 0, dettaglio.offsetHeight) + 'px';
     passo(1);
     giro = setTimeout(avanti, +velocita.value);
   }
@@ -837,14 +849,10 @@ function paginaTest(cfg) {
     disegnaOrario(griglia, d, orario, {fino: pos, tornata: pos > 0 ? pos - 1 : undefined,
                                        risolta: i === P.ris ? g.inizio : undefined});
     const messa = pos > 0 ? (P.p1[i] < 0 && P.p2[i] < 0 ? "un'ora buca" : coppia(d, [P.p1[i], P.p2[i]])) : '';
-    raggiunto.replaceChildren(el('p', {class: 'tenue piccolo'}, pos > 0
+    mettiGriglia(raggiunto, el('p', {class: 'tenue piccolo didascalia'}, pos > 0
       ? `Al nodo ${numeroIt(nodo)} la ricerca ${indietro ? 'è tornata indietro e ' : ''}mette ${messa} in ` +
         `${testoSlot(pos - 1)} (bordata)` + (pos < lunghezzaOrario() ? `; poi prova ${testoSlot(pos)}.` : ': orario completo.')
-      : `Al nodo ${numeroIt(nodo)} la ricerca riparte dalla prima cella.`), griglia);
-    requestAnimationFrame(() => {
-      const box = griglia.querySelector('.scorre'), td = griglia.querySelector('td.tornata');
-      if (box && td) box.scrollLeft = Math.max(0, td.offsetLeft - box.clientWidth / 2);
-    });
+      : `Al nodo ${numeroIt(nodo)} la ricerca riparte dalla prima cella.`), griglia, 'td.tornata');
     dettaglio.replaceChildren(el('p', {class: 'tenue piccolo'}, 'I controlli dei docenti ci sono solo ai nodi in cui ' +
       'la ricerca si blocca (i backtrack, le tacche sotto il cursore).'));
   }

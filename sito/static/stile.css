@@ -218,3 +218,8 @@ table.docenti-orizzontale td.non-valutato { color: var(--tenue); opacity: .6; }
 /* scorrendo il cursore: la prima cella cambiata dal backtrack precedente (fin dove la ricerca e' tornata) */
 table.orario td.tornata { outline: 2px solid var(--ok); outline-offset: -2px; font-weight: 700; }
 .cris { background: var(--ok); }
+/* la riga sopra l'orario raggiunto: sempre alta due righe, cosi' la griglia non si sposta in su e in giu' */
+p.didascalia { min-height: 2.9em; margin-bottom: 4px; }
+/* la riga sopra il cursore resta alta una riga (i motivi lunghi finiscono con …): scorrendo non sposta la pagina */
+#riga-attuale td { white-space: nowrap; text-overflow: ellipsis; }
+#riga-attuale td .motivo { display: inline; }
