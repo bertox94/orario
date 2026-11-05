@@ -212,8 +212,20 @@ function haEsauritoOre(x) {
 // Mette nel contenitore la didascalia e la griglia dell'orario senza spostare niente: lo scorrimento orizzontale della
 // griglia resta quello di prima e la pagina resta dov'e'. Solo la prima volta la griglia scorre fino alla cella sel.
 function mettiGriglia(contenitore, didascalia, griglia, sel) {
+  // se c'e' gia' una griglia della stessa forma si cambiano solo le righe: il riquadro che scorre resta lo stesso,
+  // cosi' si puo' scorrere (anche col dito) mentre il play va avanti, senza che lo scorrimento si interrompa
+  const vecchiaTab = contenitore.querySelector('table.orario'), nuovaTab = griglia.querySelector('table.orario');
+  const vecchiaP = contenitore.querySelector('p.didascalia');
+  if (vecchiaTab && nuovaTab && vecchiaP && vecchiaTab.style.width === nuovaTab.style.width &&
+      vecchiaTab.tBodies[0].rows.length === nuovaTab.tBodies[0].rows.length) {
+    vecchiaTab.replaceChild(nuovaTab.tBodies[0], vecchiaTab.tBodies[0]);
+    didascalia.title = didascalia.textContent;
+    vecchiaP.replaceWith(didascalia);
+    return;
+  }
   const vecchia = contenitore.querySelector('.scorre');
   const sinistra = vecchia ? vecchia.scrollLeft : null, alto = window.scrollY;
+  didascalia.title = didascalia.textContent;  // se non sta in due righe, intera passandoci sopra
   contenitore.replaceChildren(didascalia, griglia);
   aggiornaCursori();  // subito, non dopo: il cursore della tabella non fa saltare l'altezza
   const box = griglia.querySelector('.scorre');
@@ -287,7 +299,10 @@ function disegnaBacktrack(contenitore, d, b, filtro, sopra, prima) {
   }
   if (b.altri_docenti) parti.push(el('p', {class: 'tenue piccolo'},
     `Più ${b.altri_docenti} docenti senza ore in questa classe: la ricerca li scarta al primo o al secondo controllo.`));
+  const alto = window.scrollY;
   contenitore.replaceChildren(...parti);
+  aggiornaCursori();  // subito: il cursore della tabella dei docenti non fa cambiare l'altezza dopo
+  if (window.scrollY !== alto) window.scrollTo(window.scrollX, alto);
 }
 
 // ---- la pagina di un test ----
@@ -659,7 +674,8 @@ function paginaTest(cfg) {
     if (+cursore.value >= +cursore.max) { fermaPlay(); return; }
     // durante il play la parte sotto l'orario non si accorcia (i controlli dei docenti ci sono solo ai backtrack):
     // cosi' la pagina non salta
-    dettaglio.style.minHeight = Math.max(parseFloat(dettaglio.style.minHeight) || 0, dettaglio.offsetHeight) + 'px';
+    dettaglio.style.minHeight = Math.max(parseFloat(dettaglio.style.minHeight) || 0,
+                                         dettaglio.getBoundingClientRect().height) + 'px';
     passo(1);
     giro = setTimeout(avanti, +velocita.value);
   }

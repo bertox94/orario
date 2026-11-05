@@ -219,7 +219,15 @@ table.docenti-orizzontale td.non-valutato { color: var(--tenue); opacity: .6; }
 table.orario td.tornata { outline: 2px solid var(--ok); outline-offset: -2px; font-weight: 700; }
 .cris { background: var(--ok); }
 /* la riga sopra l'orario raggiunto: sempre alta due righe, cosi' la griglia non si sposta in su e in giu' */
-p.didascalia { min-height: 2.9em; margin-bottom: 4px; }
+p.didascalia { height: 3em; margin-bottom: 4px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical; }
 /* la riga sopra il cursore resta alta una riga (i motivi lunghi finiscono con …): scorrendo non sposta la pagina */
 #riga-attuale td { white-space: nowrap; text-overflow: ellipsis; }
 #riga-attuale td .motivo { display: inline; }
+/* «backtrack … nel gruppo …» sotto il cursore: una riga sola, cosi' cambiando testo la pagina non si sposta */
+#posizione { flex: 1 1 0; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* il play: larghezza fissa (▶ Play / ⏸ Pausa), cosi' la riga non va a capo cambiando testo */
+#cursore-play { min-width: 7.5em; }
+#dettaglio-backtrack { box-sizing: border-box; }
+/* i margini del contenuto restano dentro (paragrafo o titolo che sia): l'altezza della pagina non cambia */
+#dettaglio-backtrack, #orario-raggiunto { display: flow-root; }
