@@ -73,8 +73,8 @@
       <td class="num">{{ p.secondi|durata }}</td>
       <td class="piccolo">{{ p.diagnosi or p.messaggio or '' }}</td>
       <td>
-        <form method="post" action="{{ url_for('live.elimina', pid=p.id) }}" class="in-linea"
-              onsubmit="return confirm('Eliminare questo test?')">
+        <form method="post" action="{{ url_for('live.elimina', pid=p.id) }}" class="in-linea elimina-test"
+              data-caso="{{ url_for('casi.caso', eid=p.eid) if p.eid else '' }}">
           <input type="hidden" name="_gettone" value="{{ gettone }}">
           <button class="link" title="Elimina">✕</button>
         </form>
@@ -95,6 +95,23 @@ document.querySelectorAll('form.togli-verificare').forEach(f => f.addEventListen
   const r = await fetch(f.action, {method: 'POST', headers: {'X-Gettone': window.GETTONE}});
   if (r.ok) f.closest('tr').remove();
   if (!document.querySelector('#da-verificare tbody tr')) document.getElementById('svuota-verificare').hidden = true;
+}));
+// la ✕ dei test recenti elimina il test senza ricaricare la pagina (toglie anche la sua riga dai test da verificare)
+document.querySelectorAll('form.elimina-test').forEach(f => f.addEventListener('submit', async ev => {
+  ev.preventDefault();
+  if (!confirm('Eliminare questo test?')) return;
+  const r = await fetch(f.action, {method: 'POST', headers: {'X-Gettone': window.GETTONE}});
+  const x = r.ok ? await r.json() : {ok: false, errore: 'Il test non è stato eliminato (errore ' + r.status + ').'};
+  if (!x.ok) { alert(x.errore); return; }
+  const corpo = f.closest('tbody');
+  f.closest('tr').remove();
+  if (!corpo.querySelector('tr')) corpo.append(Object.assign(document.createElement('tr'),
+    {innerHTML: '<td colspan="8" class="tenue">Nessun test.</td>'}));
+  if (f.dataset.caso) document.querySelectorAll('#da-verificare tbody tr').forEach(tr => {
+    if (tr.querySelector(`a[href="${f.dataset.caso}"]`)) tr.remove();
+  });
+  const svuota = document.getElementById('svuota-verificare');
+  if (svuota && !document.querySelector('#da-verificare tbody tr')) svuota.hidden = true;
 }));
 </script>
 {% endblock %}

@@ -112,7 +112,10 @@ def verificato_tutti():
 
 @bp.route('/<int:pid>/elimina', methods=['POST'])
 def elimina(pid):
-    if esecutore.elimina_prova(_config(), pid):
+    ok = esecutore.elimina_prova(_config(), pid)
+    if request.headers.get('X-Gettone'):  # dalla pagina, senza ricaricarla
+        return jsonify({'ok': ok, 'errore': None if ok else 'Un test in corso non si può eliminare: prima fermalo.'})
+    if ok:
         flash('Test eliminato.', 'ok')
     else:
         flash('Un test in corso non si puo\' eliminare: prima fermalo.', 'errore')
