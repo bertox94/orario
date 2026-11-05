@@ -176,9 +176,8 @@ function disegnaBacktrack(contenitore, d, b, filtro, sopra, cambiaFiltro) {
   const s = slotDi(d, b.pos);
   const parti = [];
   parti.push(el('h3', {}, `Backtrack n. ${numeroIt(b.n)}: ${d.giorni[s.giorno]} ${d.ore[s.ora]} ${nomeClasse(d, s.classe)}`));
-  parti.push(el('div', {class: 'avviso piccolo ' + (b.buca_dopo ? 'buca' : 'errore')}, [
-    el('span', {class: 'tipo-bt ' + (b.buca_dopo ? 'buca' : 'vicolo'), testo: b.buca_dopo ? 'ora buca possibile' : 'vicolo cieco'}),
-    ` Al nodo ${numeroIt(b.nodo)} della ricerca la classe ${nomeClasse(d, s.classe)} non ha potuto avere nessun docente in quest'ora. `,
+  parti.push(el('p', {class: 'tenue piccolo'}, [
+    `Al nodo ${numeroIt(b.nodo)} della ricerca la classe ${nomeClasse(d, s.classe)} non ha potuto avere nessun docente in quest'ora. `,
     b.buca_dopo ? "Siamo oltre le ore obbligatorie: dopo la ricerca prova l'ora buca, quindi non è un vicolo cieco."
                 : 'Siamo nelle ore obbligatorie: la ricerca torna indietro e cambia una scelta precedente.']));
   if (b.incoerente) parti.push(el('div', {class: 'avviso errore'},
@@ -264,7 +263,6 @@ function paginaTest(cfg) {
     applicaBuca();
   });
   applicaBuca();
-  const conti = {vicolo: 0, buca: 0};
 
   async function caricaDati() {
     if (d) return d;
@@ -278,14 +276,12 @@ function paginaTest(cfg) {
     const s = slotDi(d, b.pos);
     const motivi = Object.entries(b.riassunto).sort((a, b) => b[1] - a[1])
       .map(([k, v]) => el('span', {class: 'motivo', title: k}, `${v} × ${motivoBreve(k)}`));
-    conti[b.buca_dopo ? 'buca' : 'vicolo']++;
-    const tr = el('tr', {class: 'backtrack ' + (b.buca_dopo ? 'con-buca' : 'vicolo'), 'data-n': b.n,
+    const tr = el('tr', {class: 'backtrack' + (b.buca_dopo ? ' con-buca' : ''), 'data-n': b.n,
       onclick: () => apri(b.n)}, [
       el('td', {class: 'num', testo: numeroIt(b.n)}),
       el('td', {class: 'num', testo: numeroIt(b.nodo)}),
       el('td', {testo: `${d.giorni[s.giorno]} ${d.ore[s.ora]} ${nomeClasse(d, s.classe)}`}),
-      el('td', {}, el('span', {class: 'tipo-bt ' + (b.buca_dopo ? 'buca' : 'vicolo'),
-        testo: b.buca_dopo ? 'ora buca possibile' : 'vicolo cieco'})),
+      el('td', {testo: b.buca_dopo ? 'segue ora buca' : 'torna indietro'}),
       el('td', {}, motivi),
     ]);
     righe.set(b.n, tr);
@@ -303,8 +299,6 @@ function paginaTest(cfg) {
     for (const b of nuovi) corpo.append(rigaBacktrack(b));
     ultimo = nuovi[nuovi.length - 1].n;
     $('n-registrati').textContent = numeroIt(righe.size);
-    $('conteggio-tipi').textContent = `: ${numeroIt(conti.vicolo)} vicol${conti.vicolo === 1 ? 'o' : 'i'} ciec` +
-      `${conti.vicolo === 1 ? 'o' : 'hi'}, ${numeroIt(conti.buca)} con ora buca`;
     if (scelto === null) apri((nuovi.find(b => !(nascondiBuca.checked && b.buca_dopo)) || nuovi[0]).n);
   }
 
