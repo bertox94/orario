@@ -364,7 +364,6 @@ void print_orario(const int pos) {
     if (n_gen_max <= n_gen) return;
     // traccia: solo conteggio dei nodi e, ogni tanto, il progresso (non cambia la ricerca)
     if (!(++traccia_nodi & 0xFFFF)) traccia_progresso(pos);
-    if (traccia_con_nodi) traccia_nodo(pos);
 
     //print(orario, pos, n_gen, f);
     if (pos == orario_len) {
@@ -471,18 +470,17 @@ void print_orario(const int pos) {
     }
 }
 
-// Uso: ./untitled [--input FILE] [--traccia FILE] [-n N] [--txt FILE] [--max-backtrack N] [--max-nodi N] [--progresso]
+// Uso: ./untitled [--input FILE] [--traccia FILE] [-n N] [--txt FILE] [--max-backtrack N] [--progresso]
 //   senza opzioni: come sempre, i dati di inizializza_dati() e gli orari in orario.txt
 //   --input FILE:       i dati da un file JSON (vedi ingresso_uscita/dati_json.h) invece che da inizializza_dati()
 //   --traccia FILE:     la traccia della ricerca per il sito, un JSON per riga (vedi ingresso_uscita/traccia.h)
 //   -n N:               quanti orari cercare al massimo (n_gen_max; senza: SCHEDULES_PER_GB / 5)
 //   --txt FILE:         dove scrivere orario.txt (per esempio /dev/null)
 //   --max-backtrack N:  quanti backtrack registrare per esteso nella traccia (gli altri si contano), default 1000
-//   --max-nodi N:       registra nella traccia anche i nodi della ricerca, al massimo N (default 0: nessuno)
 //   --progresso:        ogni mezzo secondo una riga JSON di progresso su stderr
 int main(int argc, char **argv) {
     const char *file_input = NULL, *file_traccia = NULL, *file_txt = "orario.txt";
-    long long int max_backtrack = 1000, max_nodi = 0;
+    long long int max_backtrack = 1000;
     int progresso = 0;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--input") && i + 1 < argc) file_input = argv[++i];
@@ -490,14 +488,13 @@ int main(int argc, char **argv) {
         else if (!strcmp(argv[i], "-n") && i + 1 < argc) n_gen_max = atoll(argv[++i]);
         else if (!strcmp(argv[i], "--txt") && i + 1 < argc) file_txt = argv[++i];
         else if (!strcmp(argv[i], "--max-backtrack") && i + 1 < argc) max_backtrack = atoll(argv[++i]);
-        else if (!strcmp(argv[i], "--max-nodi") && i + 1 < argc) max_nodi = atoll(argv[++i]);
         else if (!strcmp(argv[i], "--progresso")) progresso = 1;
         else {
             fprintf(stderr, "Opzione sconosciuta: %s\n", argv[i]);
             return 2;
         }
     }
-    if (!traccia_apri(file_traccia, max_backtrack, max_nodi, progresso)) {
+    if (!traccia_apri(file_traccia, max_backtrack, progresso)) {
         fprintf(stderr, "Non riesco a scrivere la traccia in %s\n", file_traccia);
         return 2;
     }
