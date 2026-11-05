@@ -428,6 +428,8 @@ void print_orario(const int pos) {
                         && sabato_esaurisci_priorita_subito_cod(pos, giorno, ora, base2d_ci, p1, p2)
                         //ogni docente fa al max MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO materie (classi) diverse ogni giorno
                         && ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(pos, giorno, cla, p2)
+                        // anche il codocente deve essere gia' entrato a quest'ora
+                        && verifica_ora_ingresso(p2, ora)
                         && 1
                     ) {
                         prep_chiamata_ricorsiva_insieme(base2d_ci, base3d_goi, cla, it, jt, giorno);
