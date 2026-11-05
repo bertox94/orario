@@ -250,7 +250,9 @@ function centraCella(box, td) {
 // filtro: 'tutti', 'con-ore' (nasconde chi ha esaurito le ore in questa classe), 'esauriti' (nasconde chi ne ha ancora).
 // prima: il backtrack precedente sul cursore (se c'e'): in verde le celle cambiate da allora, e bordata la prima
 // (la cella fin dove la ricerca e' tornata indietro per cambiare una scelta).
-function disegnaBacktrack(contenitore, d, b, filtro, sopra, prima) {
+// passo (passo passo): cosa ha messo la ricerca nella cella prima, nello stesso nodo del backtrack, {testo}: la cella
+// e' bordata e la didascalia lo dice.
+function disegnaBacktrack(contenitore, d, b, filtro, sopra, prima, passo) {
   const s = slotDi(d, b.pos);
   const parti = [];
   parti.push(el('h3', {}, `Backtrack n. ${numeroIt(b.n)}: ${testoPos(d, b.pos)}`));
@@ -268,15 +270,15 @@ function disegnaBacktrack(contenitore, d, b, filtro, sopra, prima) {
   if (prima) for (let p = 0; p < b.pos; p++)
     if (p >= prima.orario.length || p >= prima.pos || JSON.stringify(b.orario[p]) !== JSON.stringify(prima.orario[p]))
       cambiate.add(p);
-  const tornata = cambiate.size ? Math.min(...cambiate) : undefined;
+  const tornata = passo ? b.pos - 1 : cambiate.size ? Math.min(...cambiate) : undefined;
   disegnaOrario(griglia, d, b.orario, {fino: b.pos, blocco: b.pos, cambiate, tornata});
   const testoCambi = !prima ? '' : !cambiate.size ? ` Nessuna cella cambiata dal backtrack precedente (n. ${numeroIt(prima.n)}).`
     : ` In verde ${cambiate.size === 1 ? 'la cella cambiata' : `le ${numeroIt(cambiate.size)} celle cambiate`} dal ` +
       `backtrack precedente (n. ${numeroIt(prima.n)}); bordata la prima, ${testoPos(d, tornata)}: la ricerca è tornata ` +
       `fin lì e ha cambiato scelta.`;
-  mettiGriglia(sopra, el('p', {class: 'tenue piccolo didascalia'},
-    `Al backtrack n. ${numeroIt(b.n)}: ${testoPos(d, b.pos)} (in rosso).` +
-    testoCambi), griglia, 'td.blocco');
+  mettiGriglia(sopra, el('p', {class: 'tenue piccolo didascalia'}, passo
+    ? `${passo.testo}; poi ${testoPos(d, b.pos)} resta senza docente: backtrack n. ${numeroIt(b.n)} (in rosso).`
+    : `Al backtrack n. ${numeroIt(b.n)}: ${testoPos(d, b.pos)} (in rosso).` + testoCambi), griglia, 'td.blocco');
   const mostrati = b.docenti.filter(x => filtro === 'con-ore' ? !haEsauritoOre(x)
                                        : filtro === 'esauriti' ? haEsauritoOre(x) : true);
   const nascosti = b.docenti.length - mostrati.length;
@@ -326,10 +328,11 @@ function paginaTest(cfg) {
   const sceltaFiltro = $('filtro-docenti');
   let aperto = null;        // il backtrack disegnato, per ridisegnarlo quando cambia il filtro
   let apertoPrima = null;   // il backtrack precedente sul cursore (per le celle cambiate)
+  let apertoPasso = null;   // nel passo passo: cosa ha messo la ricerca nello stesso nodo del backtrack
   try { const f = localStorage.getItem('orario.filtroDocenti'); if (f) sceltaFiltro.value = f; } catch (e) {}
   sceltaFiltro.addEventListener('change', () => {
     try { localStorage.setItem('orario.filtroDocenti', sceltaFiltro.value); } catch (e) {}
-    if (aperto) disegnaBacktrack(dettaglio, d, aperto, sceltaFiltro.value, raggiunto, apertoPrima);
+    if (aperto) disegnaBacktrack(dettaglio, d, aperto, sceltaFiltro.value, raggiunto, apertoPrima, apertoPasso);
   });
 
   async function caricaDati() {
@@ -775,6 +778,8 @@ function paginaTest(cfg) {
   // al passo i: cosa mette la ricerca in pos - 1, e se ci e' arrivata tornando indietro
   const messaAl = i => P.pos[i] <= 0 ? '' : P.p1[i] < 0 && P.p2[i] < 0 ? "un'ora buca" : coppia(d, [P.p1[i], P.p2[i]]);
   const indietroAl = i => i > 0 && P.pos[i - 1] >= P.pos[i];
+  const testoPasso = i => `Al nodo ${numeroIt(P.da + i)} la ricerca ${indietroAl(i) ? 'è tornata indietro e ' : ''}` +
+    `mette ${messaAl(i)} in ${testoSlot(P.pos[i] - 1)} (bordata)`;
 
   // l'orario al passo i (le celle da pos[i] in poi non sono decise)
   function orarioAlPasso(i) {
@@ -835,7 +840,8 @@ function paginaTest(cfg) {
       if (iPasso !== i || !modo.passi) return;
       aperto = b;
       apertoPrima = null;
-      disegnaBacktrack(dettaglio, d, b, sceltaFiltro.value, raggiunto, null);
+      apertoPasso = pos > 0 ? {testo: testoPasso(i)} : null;
+      disegnaBacktrack(dettaglio, d, b, sceltaFiltro.value, raggiunto, null, apertoPasso);
       return;
     }
     aperto = null;
@@ -844,8 +850,7 @@ function paginaTest(cfg) {
     disegnaOrario(griglia, d, orario, {fino: pos, tornata: pos > 0 ? pos - 1 : undefined,
                                        risolta: i === P.ris ? g.inizio : undefined});
     mettiGriglia(raggiunto, el('p', {class: 'tenue piccolo didascalia'}, pos > 0
-      ? `Al nodo ${numeroIt(nodo)} la ricerca ${indietroAl(i) ? 'è tornata indietro e ' : ''}mette ${messaAl(i)} in ` +
-        `${testoSlot(pos - 1)} (bordata)` + (pos < lunghezzaOrario() ? `; poi prova ${testoSlot(pos)}.` : ': orario completo.')
+      ? testoPasso(i) + (pos < lunghezzaOrario() ? `; poi prova ${testoSlot(pos)}.` : ': orario completo.')
       : `Al nodo ${numeroIt(nodo)} la ricerca riparte dalla prima cella.`), griglia, 'td.tornata');
     dettaglio.replaceChildren(el('p', {class: 'tenue piccolo'}, 'I controlli dei docenti ci sono solo ai nodi in cui ' +
       'la ricerca si blocca (i backtrack, le tacche sotto il cursore).'));
@@ -927,7 +932,7 @@ function paginaTest(cfg) {
     const i = lista.indexOf(n);
     const [b, prima] = await Promise.all([caricaRecord(n), i > 0 ? caricaRecord(lista[i - 1]) : null]);
     if (scelto === n && !inRisoluzione) {
-      aperto = b; apertoPrima = prima;
+      aperto = b; apertoPrima = prima; apertoPasso = null;
       disegnaBacktrack(dettaglio, d, b, sceltaFiltro.value, raggiunto, prima);
     }
   }
