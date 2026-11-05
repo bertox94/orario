@@ -8,7 +8,7 @@ codice del sito e messaggi di commit sono in italiano.
 - **Il solver** (C, radice del repository): ricerca con backtracking dell'orario. `main.c` contiene la ricerca
   (`print_orario`) e i controlli; i dati di prova sono in `data_initialization/database_initializers.c`
   (`inizializza_dati()`). `ingresso_uscita/` è solo ingresso e uscita per il sito: `--input` (dati da JSON),
-  `--traccia` (un JSON per riga: dati, backtrack con i controlli, orari trovati, fine), `-n`, `--txt`,
+  `--traccia` (un JSON per riga: dati, backtrack con i controlli, nodi, orari trovati, fine), `-n`, `--txt`, `--max-nodi`,
   `--max-backtrack`, `--progresso`. Senza opzioni il solver fa esattamente quello che faceva prima.
 - **Il sito** (Flask + Postgres, cartella `sito/`, branch `sito/seconda-versione`): dati della scuola e test in tempo
   reale. A ogni backtrack la pagina del test mostra l'orario fino a quel punto e, per ogni docente, i controlli della
@@ -41,7 +41,7 @@ gcc -O2 -std=gnu11 -w main.c data_initialization/database_initializers.c printer
 cd /tmp && rm -f orario.txt && /tmp/solver > /dev/null && grep -v '^Current time:' orario.txt | md5sum
 ```
 
-Riferimento (dati di `inizializza_dati()`, 11.000 orari): `1f200e3068a438d982c5b40507cdeac2`. Una modifica che
+Riferimento (dati di `inizializza_dati()`, 11.000 orari): `777dc4909e4e48ed721bf0a52d664e91`. Una modifica che
 non deve cambiare la ricerca deve dare lo stesso valore. Se Alb chiede di cambiare la ricerca (per esempio un
 controllo nuovo), il valore cambia: si annota il nuovo riferimento qui.
 
