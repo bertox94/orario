@@ -1,8 +1,10 @@
 // Le pagine del sito: la griglia dell'orario e la pagina di un test con i suoi backtrack.
 //
 // I dati di un test (il record "dati" della traccia del solver): giorni, ore, classi [{nome, ore}],
-// docenti [{nome, ore, ingresso}], cattedre, parametri. Un orario e' un elenco per posizione nella ricerca,
-// pos = (giorno * ore + ora) * classi + classe, ogni elemento [docente, codocente] (-1 = nessuno).
+// docenti [{nome, ore, ingresso}], cattedre, parametri e, se il solver riempie le celle in un altro ordine, ordine.
+// Un orario e' un elenco per posizione nella ricerca (pos), ogni elemento [docente, codocente] (-1 = nessuno). La cella
+// di una posizione e' (giorno * ore + ora) * classi + classe: senza "ordine" e' pos stessa, con "ordine" e' ordine[pos]
+// (vale per qualunque solver: cambia solo da dove viene la cella).
 
 function el(tag, attributi, figli) {
   const e = document.createElement(tag);
@@ -23,9 +25,17 @@ const nomeClasse = (d, c) => c >= 0 && d.classi[c] ? d.classi[c].nome : '?';
 const nomeOra = (d, o) => d.ore[o] !== undefined ? d.ore[o] : '?';
 const coppia = (d, a) => !a || a[0] < 0 ? 'nessuno' : nomeDoc(d, a[0]) + (a[1] >= 0 ? ' + ' + nomeDoc(d, a[1]) : '');
 
+// la cella di una posizione nella ricerca, e la posizione di una cella (con l'ordine del solver, se c'e')
+const cellaDi = (d, pos) => d.ordine ? d.ordine[pos] : pos;
+function posizioneDi(d, cella) {
+  if (!d.ordine) return cella;
+  if (!d.posizioni) { d.posizioni = []; d.ordine.forEach((c, i) => { d.posizioni[c] = i; }); }
+  return d.posizioni[cella];
+}
+
 function slotDi(d, pos) {
-  const C = d.classi.length, O = d.ore.length;
-  return {giorno: Math.floor(pos / C / O), ora: Math.floor(pos / C) % O, classe: pos % C};
+  const C = d.classi.length, O = d.ore.length, cella = cellaDi(d, pos);
+  return {giorno: Math.floor(cella / C / O), ora: Math.floor(cella / C) % O, classe: cella % C};
 }
 // "Ven 12 C06"
 function testoPos(d, pos) { const s = slotDi(d, pos); return `${d.giorni[s.giorno]} ${d.ore[s.ora]} ${nomeClasse(d, s.classe)}`; }
@@ -50,7 +60,7 @@ function disegnaOrario(contenitore, d, orario, opz) {
     const tr = el('tr', {class: bloccoSlot && bloccoSlot.classe === c ? 'classe-blocco' : null},
       [el('td', {class: 'classe', testo: d.classi[c].nome})]);
     for (let g = 0; g < G; g++) for (let o = 0; o < O; o++) {
-      const pos = (g * O + o) * C + c;
+      const pos = posizioneDi(d, (g * O + o) * C + c);
       const classi = [o === 0 ? 'inizio-giorno' : ''];
       let figli = [];
       if (opz.cambiate && opz.cambiate.has(pos)) classi.push('cambiata');
@@ -101,6 +111,8 @@ function descrizioneControllo(nome, d) {
     sabato_esaurisci_priorita_subito_cod: "regola del sabato: chi c'era nell'ora prima e ha ancora ore deve restare (in coppia)",
     sabato_esaurisci_priorita_subito: "regola del sabato: chi c'era nell'ora prima e ha ancora ore deve restare",
     deve_svolgere_ancora_ora_in_questa_classe_senza_codocente: 'ha ancora ore da solo in questa classe',
+    lascia_un_docente_alle_celle_di_oggi: 'lascia almeno un docente possibile a ogni cella obbligatoria di oggi',
+    lascia_spazio_alle_ore_di_oggi_della_classe: 'lascia spazio alle ore di oggi degli altri docenti della classe',
   })[nome] || nome;
 }
 
@@ -118,6 +130,8 @@ function motivoBreve(nome) {
     verifica_ora_ingresso: 'non ancora entrato',
     deve_svolgere_ancora_ora_in_questa_classe_senza_codocente: 'ore da solo finite',
     sabato_esaurisci_priorita_subito: 'regola del sabato',
+    lascia_un_docente_alle_celle_di_oggi: 'lascerebbe una cella senza docenti',
+    lascia_spazio_alle_ore_di_oggi_della_classe: 'toglierebbe spazio a un altro docente',
   })[n] || n;
   return solo ? 'coppie e da solo: ' + t : t;
 }
@@ -154,6 +168,13 @@ function descriviIngressi(nome, i, d) {
         i.ore_rimaste.filter(x => x !== null).join(' e ');
     case 'deve_svolgere_ancora_ora_in_questa_classe_senza_codocente':
       return `ore da solo fatte: ${i.ore_da_solo_svolte} su ${i.ore_da_solo}`;
+    case 'lascia_un_docente_alle_celle_di_oggi':
+      if (i.non_calcolato) return 'non calcolato: la ricerca si ferma prima';
+      return i.cella_bloccata < 0 ? 'nessuna cella di oggi resta senza docenti'
+        : `resterebbe senza docenti: ${d.giorni[i.giorno]} ${nomeOra(d, i.ora)} ${nomeClasse(d, i.classe)}`;
+    case 'lascia_spazio_alle_ore_di_oggi_della_classe':
+      if (i.non_calcolato) return 'non calcolato: la ricerca si ferma prima';
+      return i.docente_senza_spazio < 0 ? 'c\'è spazio per tutti' : `non ci sarebbe spazio per ${nomeDoc(d, i.docente_senza_spazio)}`;
   }
   return Object.entries(i).map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join(', ');
 }

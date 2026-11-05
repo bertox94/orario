@@ -108,6 +108,8 @@ def registra_filtri(app):
                  '%s orar%s' % (o.get('orari', 1), 'io' if o.get('orari', 1) == 1 else 'i')]
         if o.get('max_backtrack') is not None:
             parti.append('%s backtrack registrati al massimo' % numero(o['max_backtrack']))
+        if o.get('solutore'):
+            parti.append('solver %s' % o['solutore'])
         return ' · '.join(parti)
 
     @app.template_filter('numero')

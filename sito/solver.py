@@ -9,6 +9,7 @@ non ha la riga "fine" nella traccia.
 
 Le opzioni di un test:
     {'tempo': 60, 'orari': 1, 'max_backtrack': 1000}
+    solutore        quale solver usare: 'main' (la radice del repository, default) o una cartella di solutori/
     tempo           secondi massimi (assente = senza limite: si ferma col pulsante o quando ha finito)
     orari           quanti orari completi trovare prima di fermarsi (-n)
     max_backtrack   quanti backtrack registrare per esteso (gli altri si contano soltanto)
@@ -25,25 +26,60 @@ import time
 RADICE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+# ---- i solver ----
+# 'main' e' il solver nella radice del repository; ogni cartella di solutori/ con un CMakeLists.txt e' un altro solver,
+# completo e indipendente (i suoi sorgenti, la stessa riga di comando e la stessa traccia). Il sito li tratta tutti
+# allo stesso modo: cambia solo la cartella da cui si compila.
+
+DESCRIZIONI = {
+    'main': 'main: la ricerca di oggi',
+    'per-classe': 'per classe: dentro ogni giorno una classe alla volta',
+    'in-avanti': 'con controllo in avanti: scarta subito le scelte che lasciano una cella di oggi senza docenti',
+    'due-livelli': 'a due livelli: prima le ore di ogni giorno per docente e classe, poi l\'orario del giorno',
+}
+
+
+def solutori():
+    """I solver disponibili: nome -> cartella dei sorgenti ('main' prima, poi quelli di solutori/ in ordine)."""
+    s = {'main': RADICE}
+    base = os.path.join(RADICE, 'solutori')
+    if os.path.isdir(base):
+        for nome in sorted(os.listdir(base)):
+            if os.path.exists(os.path.join(base, nome, 'CMakeLists.txt')):
+                s[nome] = os.path.join(base, nome)
+    return s
+
+
+def cartella(nome):
+    """La cartella dei sorgenti di un solver (ValueError se non c'e')."""
+    s = solutori()
+    if (nome or 'main') not in s:
+        raise ValueError('Solver sconosciuto: %s' % nome)
+    return s[nome or 'main']
+
+
 # ---- compilazione ----
 
-def sorgenti():
-    """I file .c del solver, presi da CMakeLists.txt (una sola fonte per CMake e per il sito)."""
-    testo = open(os.path.join(RADICE, 'CMakeLists.txt')).read()
+def sorgenti(nome='main'):
+    """I file .c di un solver, presi dal suo CMakeLists.txt (una sola fonte per CMake e per il sito)."""
+    testo = open(os.path.join(cartella(nome), 'CMakeLists.txt')).read()
     blocco = re.search(r'add_executable\(\s*\S+(.*?)\)', testo, re.S).group(1)
     return [f for f in blocco.split() if f.endswith('.c')]
 
 
-def impronta_sorgenti():
-    """Impronta di tutti i sorgenti (.c e .h): cambia appena cambia una riga, anche senza commit."""
+def impronta_sorgenti(nome='main'):
+    """Impronta di tutti i sorgenti (.c e .h) di un solver: cambia appena cambia una riga, anche senza commit."""
+    radice = cartella(nome)
     h = hashlib.sha1()
-    for cartella, _, files in sorted(os.walk(RADICE)):
-        if any(p in cartella for p in ('/.git', '/sito', '/tests', '/dati_sito', '/cmake-build')):
+    for dir_, _, files in sorted(os.walk(radice)):
+        # dentro la cartella del solver; per main restano fuori il sito, i test e gli altri solver
+        parti = os.path.relpath(dir_, radice).split(os.sep)
+        if any(x in ('.git', 'sito', 'tests', 'dati_sito', 'solutori') or x.startswith('cmake-build') for x in parti):
             continue
         for f in sorted(files):
             if f.endswith(('.c', '.h')) or f == 'CMakeLists.txt':
-                p = os.path.join(cartella, f)
-                h.update(os.path.relpath(p, RADICE).encode())
+                p = os.path.join(dir_, f)
+                h.update(os.path.relpath(p, radice).encode())
                 h.update(open(p, 'rb').read())
     return h.hexdigest()[:12]
 
@@ -51,16 +87,19 @@ def impronta_sorgenti():
 _lock_compila = threading.Lock()
 
 
-def compila(cartella_bin):
-    """Compila il solver (solver-<impronta> in cartella_bin, solo se i sorgenti sono cambiati) e ne ritorna il percorso."""
+def compila(cartella_bin, nome='main'):
+    """Compila un solver (solver[-nome]-<impronta> in cartella_bin, solo se i sorgenti sono cambiati) e ne ritorna il
+    percorso."""
     with _lock_compila:
         os.makedirs(cartella_bin, exist_ok=True)
-        dest = os.path.join(cartella_bin, 'solver-' + impronta_sorgenti())
+        prefisso = 'solver-' if (nome or 'main') == 'main' else 'solver-%s-' % nome
+        dest = os.path.join(cartella_bin, prefisso + impronta_sorgenti(nome))
         if os.path.exists(dest):
             return dest
         cc = os.environ.get('CC', 'gcc')
         provvisorio = dest + '.tmp'
-        cmd = [cc, '-O2', '-std=gnu11', '-w'] + [os.path.join(RADICE, f) for f in sorgenti()] + ['-o', provvisorio, '-lm']
+        cmd = [cc, '-O2', '-std=gnu11', '-w'] + [os.path.join(cartella(nome), f) for f in sorgenti(nome)] + \
+            ['-o', provvisorio, '-lm']
         subprocess.run(cmd, check=True)
         os.replace(provvisorio, dest)
         return dest
@@ -84,11 +123,11 @@ DATI, TRACCIA, USCITA = 'dati.json', 'traccia.jsonl', 'uscita.txt'
 MAX_NODI = 1000000
 
 
-def supporta_nodi():
+def supporta_nodi(nome='main'):
     """Il solver sa registrare i nodi (--max-nodi)? Si guarda nei sorgenti, che sono quelli che il sito compila."""
     try:
-        return '--max-nodi' in open(os.path.join(RADICE, 'main.c')).read()
-    except OSError:
+        return '--max-nodi' in open(os.path.join(cartella(nome), 'main.c')).read()
+    except (OSError, ValueError):
         return False
 
 
@@ -96,7 +135,7 @@ def argomenti(opzioni):
     """La riga di comando (senza l'eseguibile). I file stanno nella cartella dell'esecuzione."""
     return ['--input', DATI, '--traccia', TRACCIA, '-n', str(opzioni.get('orari', 1)),
             '--max-backtrack', str(opzioni.get('max_backtrack', 1000)), '--txt', os.devnull, '--progresso'] + \
-        (['--max-nodi', str(opzioni.get('max_nodi', MAX_NODI))] if supporta_nodi() else [])
+        (['--max-nodi', str(opzioni.get('max_nodi', MAX_NODI))] if supporta_nodi(opzioni.get('solutore')) else [])
 
 
 class Esecuzione:

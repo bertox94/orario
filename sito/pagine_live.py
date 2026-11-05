@@ -2,7 +2,7 @@
 e mostra i suoi backtrack, con i controlli di ogni docente."""
 from flask import Blueprint, current_app, flash, g, jsonify, redirect, render_template, request, url_for
 
-from . import esecutore, modello
+from . import esecutore, modello, solver
 from .db import conn
 
 bp = Blueprint('live', __name__, url_prefix='/live')
@@ -43,6 +43,7 @@ def indice():
     n_classi = conn().execute('select count(*) as n from classi where scuola_id = %s', (g.scuola['id'],)).fetchone()['n']
     da_verificare = conn().execute(_DA_VERIFICARE + ' limit 40', (g.scuola['id'],)).fetchall()
     return render_template('live/indice.html', prove=prove, n_classi=n_classi, da_verificare=da_verificare,
+                           solutori=[(n, solver.DESCRIZIONI.get(n, n)) for n in solver.solutori()],
                            preseleziona_scuola=bool(request.args.get('scuola')))
 
 
@@ -79,6 +80,9 @@ def avvia():
                 'ritardi': bool(f.get('ritardi'))}
     opzioni = {'tempo': _intero('tempo', 60, 0, 24 * 3600), 'orari': _intero('orari', 1, 1, 1000),
                'max_backtrack': _intero('max_backtrack', 1000, 0, 100000)}
+    solutore = f.get('solutore') or 'main'
+    if solutore != 'main' and solutore in solver.solutori():
+        opzioni['solutore'] = solutore  # 'main' non si scrive: i test di prima sono tutti di main
     if opzioni['tempo'] == 0:
         opzioni.pop('tempo')  # senza limite: si ferma col pulsante
     try:

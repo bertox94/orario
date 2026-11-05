@@ -220,7 +220,7 @@ def avvia_live(config, scuola_id, caso, opzioni):
         cartella = _cartella_lavoro(config)
         registro = _Registro(config.database_url, eid)
         try:
-            exe = solver.compila(config.cartella_bin)
+            exe = solver.compila(config.cartella_bin, opzioni.get('solutore', 'main'))
             e = solver.Esecuzione(exe, dati, opzioni, cartella, su_record=registro.ricevi)
             with _lock:
                 ATTIVE[eid] = (pid, e, nome)
