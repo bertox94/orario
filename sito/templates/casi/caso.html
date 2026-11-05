@@ -47,13 +47,16 @@
 <h2>Backtrack</h2>
 <p class="tenue piccolo">Un backtrack è uno slot in cui la ricerca non è riuscita a mettere nessun docente.
   Registrati: <strong id="n-registrati">{{ n_registrati|numero }}</strong>{% if fine %} su {{ fine.backtrack|numero }}
-  in tutto{% endif %} (al massimo {{ (e.opzioni or {}).get('max_backtrack', 1000)|numero }}). Scegline uno per vedere
-  l'orario fino a quel punto e i controlli di ogni docente; ← e → passano al precedente e al successivo.</p>
+  in tutto{% endif %} (al massimo {{ (e.opzioni or {}).get('max_backtrack', 1000)|numero }}), in
+  <strong id="n-gruppi">0</strong> gruppi. Un gruppo parte dalla cella in cui la ricerca si blocca e comprende i
+  backtrack successivi (anche in celle precedenti, mentre la ricerca torna indietro per sbloccarla) fino a quando la
+  ricerca supera quella cella. Scegli un gruppo: il cursore qui sotto va dal suo primo backtrack all'ultimo; ← e →
+  passano al backtrack precedente e al successivo.</p>
 <div class="scorre alta" id="elenco-backtrack" style="max-height: 40vh">
-  <table class="dati backtrack-fissa">
-    <colgroup><col style="width: 5em"><col style="width: 6em"><col style="width: 9em"><col style="width: 9em"><col></colgroup>
-    <thead><tr><th class="num">N.</th><th class="num">Nodo</th><th>Slot</th><th>Poi</th><th>Dove si fermano i docenti</th></tr></thead>
-    <tbody><tr class="vuoto"><td colspan="5" class="tenue">{{ 'Ancora nessun backtrack.' if in_corso else 'Nessun backtrack registrato.' }}</td></tr></tbody>
+  <table class="dati">
+    <thead><tr><th class="num">Gruppo</th><th>Cella di partenza</th><th class="num">Backtrack</th><th class="num">Quanti</th>
+      <th class="num">Nodi</th><th>Celle toccate</th><th>Come finisce</th></tr></thead>
+    <tbody><tr class="vuoto"><td colspan="7" class="tenue">{{ 'Ancora nessun backtrack.' if in_corso else 'Nessun backtrack registrato.' }}</td></tr></tbody>
   </table>
 </div>
 <div class="scheda cursore-backtrack">
@@ -72,9 +75,9 @@
   <div class="barra-comandi">
     <label class="spunta">Da <input type="number" id="cursore-da" min="1" value="1"></label>
     <label class="spunta">a <input type="number" id="cursore-a" min="1" value="1"></label>
-    <button type="button" class="secondario" id="cursore-tutti">Tutti</button>
-    <span class="tenue piccolo">Il cursore va dal backtrack «Da» al backtrack «a»; lasciando vuoto «a» arriva
-      all'ultimo registrato.</span>
+    <button type="button" class="secondario" id="cursore-tutti">Tutto il gruppo</button>
+    <span class="tenue piccolo">Il cursore va dal backtrack «Da» al backtrack «a»: scegliendo un gruppo, dal suo primo
+      backtrack all'ultimo.</span>
   </div>
 </div>
 <div class="barra-comandi">
@@ -100,6 +103,9 @@ paginaTest({
   dati: {{ (r.get('dati') or none)|tojson }},
   orario: {{ (r.get('orari') or [none])[0]|tojson }},
   inCorso: {{ in_corso|tojson }},
+  esito: {{ (e.esito if not in_corso else none)|tojson }},
+  maxBacktrack: {{ (e.opzioni or {}).get('max_backtrack', 1000)|tojson }},
+  totaleBacktrack: {{ (fine.backtrack if fine else (r.get('backtrack') or 0))|tojson }},
   urlStato: {{ url_for('casi.stato', eid=e.id)|tojson }},
   urlDati: {{ url_for('casi.dati', eid=e.id)|tojson }},
   urlElenco: {{ url_for('casi.elenco_backtrack', eid=e.id)|tojson }},

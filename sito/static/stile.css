@@ -127,6 +127,10 @@ input.stretto { width: 5em; }
 /* elenco dei backtrack */
 table.dati tr.backtrack { cursor: pointer; }
 table.dati tr.backtrack.scelto td { background: var(--accento-tenue); font-weight: 600; }
+.esito-gruppo { display: inline-block; padding: 0 6px; border-radius: 8px; font-size: 12px; white-space: nowrap; }
+.esito-gruppo.ok { background: var(--ok-tenue); color: var(--ok); }
+.esito-gruppo.attenzione { background: var(--attenzione-tenue); color: var(--attenzione); }
+.esito-gruppo.errore { background: var(--male-tenue); color: var(--male); }
 /* il cursore dei backtrack, sotto l'elenco: la riga del backtrack attuale, il cursore, gli estremi */
 .cursore-backtrack { margin-top: 10px; }
 .cursore-backtrack table.dati { margin-bottom: 6px; }

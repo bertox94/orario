@@ -244,7 +244,6 @@ function paginaTest(cfg) {
   let d = cfg.dati;
   let ultimo = 0;           // ultimo backtrack nell'elenco
   let scelto = null;        // backtrack aperto
-  const righe = new Map();  // n -> riga dell'elenco
   const elenco = $('elenco-backtrack');
   const dettaglio = $('dettaglio-backtrack');
   const raggiunto = $('orario-raggiunto');
@@ -264,39 +263,98 @@ function paginaTest(cfg) {
     return d;
   }
 
-  // le celle di un backtrack nell'elenco (e nella riga sopra il cursore)
+  const testoSlot = pos => { const s = slotDi(d, pos); return `${d.giorni[s.giorno]} ${d.ore[s.ora]} ${nomeClasse(d, s.classe)}`; };
+
+  // le celle di un backtrack (nella riga sopra il cursore)
   function celleBacktrack(b) {
-    const s = slotDi(d, b.pos);
     const motivi = Object.entries(b.riassunto).sort((a, b) => b[1] - a[1])
       .map(([k, v]) => el('span', {class: 'motivo', title: k}, `${v} × ${motivoBreve(k)}`));
     return [
       el('td', {class: 'num', testo: numeroIt(b.n)}),
       el('td', {class: 'num', testo: numeroIt(b.nodo)}),
-      el('td', {testo: `${d.giorni[s.giorno]} ${d.ore[s.ora]} ${nomeClasse(d, s.classe)}`}),
+      el('td', {testo: testoSlot(b.pos)}),
       el('td', {testo: b.buca_dopo ? 'segue ora buca' : 'torna indietro'}),
       el('td', {}, motivi),
     ];
   }
 
-  function rigaBacktrack(b) {
-    const tr = el('tr', {class: 'backtrack', 'data-n': b.n, onclick: () => apri(b.n)}, celleBacktrack(b));
-    righe.set(b.n, tr);
-    riassunti.set(b.n, b);
+  // ---- i gruppi di backtrack ----
+  // Un gruppo comincia da un backtrack (la cella di partenza) e prende i successivi finche' la ricerca non fa un
+  // backtrack piu' avanti della cella di partenza: per arrivarci l'ha superata, quindi quel blocco e' risolto.
+  // I backtrack in celle precedenti sono la ricerca che torna indietro per sbloccare la cella di partenza.
+  const riassunti = new Map();  // n -> il backtrack in breve
+  const numeri = [];            // i numeri dei backtrack registrati, in ordine
+  const gruppi = [];            // {k, inizio, primo, ultimo, nodoPrimo, nodoUltimo, quanti, celle: Set, tr}
+  const gruppoDi = new Map();   // n -> gruppo
+  let gruppoScelto = null;
+
+  function comeFinisce(g) {
+    if (g.k < gruppi.length - 1) return ['risolto', 'ok'];
+    if (cfg.inCorso) return ['in corso', ''];
+    if (cfg.esito === 'trovato') return ['risolto: orario trovato', 'ok'];
+    if (cfg.totaleBacktrack > numeri.length && numeri.length >= cfg.maxBacktrack)
+      return [`limite dei backtrack registrati (${numeroIt(cfg.maxBacktrack)})`, 'attenzione'];
+    return [cfg.esito || 'non risolto', 'errore'];
+  }
+
+  function rigaGruppo(g) {
+    const celle = [...g.celle].sort((a, b) => b - a).map(testoSlot).join(', ');
+    const [fine, tipo] = comeFinisce(g);
+    const tr = el('tr', {class: 'backtrack' + (g === gruppoScelto ? ' scelto' : ''), onclick: () => scegliGruppo(g)}, [
+      el('td', {class: 'num', testo: numeroIt(g.k + 1)}),
+      el('td', {testo: testoSlot(g.inizio)}),
+      el('td', {class: 'num', testo: g.primo === g.ultimo ? numeroIt(g.primo) : `${numeroIt(g.primo)}–${numeroIt(g.ultimo)}`}),
+      el('td', {class: 'num', testo: numeroIt(g.quanti)}),
+      el('td', {class: 'num', testo: g.nodoPrimo === g.nodoUltimo ? numeroIt(g.nodoPrimo) :
+        `${numeroIt(g.nodoPrimo)}–${numeroIt(g.nodoUltimo)}`}),
+      el('td', {testo: celle}),
+      el('td', {}, el('span', {class: 'esito-gruppo ' + tipo, testo: fine})),
+    ]);
+    if (g.tr) g.tr.replaceWith(tr);
+    g.tr = tr;
     return tr;
   }
 
-  // ---- il cursore dei backtrack: va da «Da» ad «a» (vuoto = fino all'ultimo registrato) ----
-  const riassunti = new Map();  // n -> il backtrack in breve (come nell'elenco)
+  function aggiungiAiGruppi(b) {
+    riassunti.set(b.n, b);
+    numeri.push(b.n);
+    let g = gruppi[gruppi.length - 1];
+    if (!g || b.pos > g.inizio) {
+      g = {k: gruppi.length, inizio: b.pos, primo: b.n, nodoPrimo: b.nodo, quanti: 0, celle: new Set(), tr: null};
+      gruppi.push(g);
+    }
+    g.ultimo = b.n;
+    g.nodoUltimo = b.nodo;
+    g.quanti++;
+    g.celle.add(b.pos);
+    gruppoDi.set(b.n, g);
+    return g;
+  }
+
+  function scegliGruppo(g, n) {
+    const prima = gruppoScelto;
+    gruppoScelto = g;
+    if (prima && prima.tr) prima.tr.classList.remove('scelto');
+    g.tr.classList.add('scelto');
+    // scorre solo l'elenco, non la pagina
+    const rr = g.tr.getBoundingClientRect(), re = elenco.getBoundingClientRect();
+    const testa = elenco.querySelector('thead').offsetHeight;
+    if (rr.top < re.top + testa) elenco.scrollTop -= re.top + testa - rr.top;
+    else if (rr.bottom > re.top + elenco.clientHeight) elenco.scrollTop += rr.bottom - re.top - elenco.clientHeight;
+    cursoreDa.value = g.primo;
+    cursoreA.value = g.ultimo;
+    aggiornaCursore();
+    apri(n === undefined ? g.primo : n);
+  }
+
+  // ---- il cursore: va da «Da» ad «a» (scegliendo un gruppo: dal suo primo backtrack al suo ultimo) ----
   const cursore = $('cursore-backtrack'), cursoreDa = $('cursore-da'), cursoreA = $('cursore-a');
-  cursoreA.value = '';
   function estremi() {
-    const numeri = [...righe.keys()];
     const primo = numeri.length ? numeri[0] : 1, ultimoN = numeri.length ? numeri[numeri.length - 1] : 1;
     let da = parseInt(cursoreDa.value, 10), a = parseInt(cursoreA.value, 10);
     if (!(da >= primo)) da = primo;
     if (!(a >= 1) || a > ultimoN) a = ultimoN;
     if (da > a) da = a;
-    cursoreA.placeholder = numeroIt(ultimoN);
     return [da, a];
   }
   function aggiornaCursore() {
@@ -309,12 +367,13 @@ function paginaTest(cfg) {
     const b = riassunti.get(n);
     if (b) $('riga-attuale').replaceChildren(el('tr', {class: 'backtrack scelto'}, celleBacktrack(b)));
   }
-  // il backtrack registrato piu' vicino al valore del cursore
+  // il backtrack registrato piu' vicino al valore v (ricerca binaria in numeri)
   function vicino(v) {
-    if (righe.has(v)) return v;
-    let meglio = null;
-    for (const n of righe.keys()) if (meglio === null || Math.abs(n - v) < Math.abs(meglio - v)) meglio = n;
-    return meglio;
+    if (!numeri.length) return null;
+    let lo = 0, hi = numeri.length - 1;
+    while (lo < hi) { const m = (lo + hi) >> 1; if (numeri[m] < v) lo = m + 1; else hi = m; }
+    if (lo > 0 && Math.abs(numeri[lo - 1] - v) <= Math.abs(numeri[lo] - v)) lo--;
+    return numeri[lo];
   }
   let attesaCursore = null;
   cursore.addEventListener('input', () => {
@@ -330,17 +389,14 @@ function paginaTest(cfg) {
     if (scelto !== null && (scelto < da || scelto > a)) apri(vicino(scelto < da ? da : a));
   });
   // −10, −1, +1, +10: si sposta di tanti backtrack, senza uscire dagli estremi del cursore
-  document.querySelectorAll('.riga-cursore [data-passo]').forEach(b => b.addEventListener('click', () => {
+  function passo(k) {
     if (scelto === null) return;
-    const v = Math.min(+cursore.max, Math.max(+cursore.min, scelto + +b.dataset.passo));
-    const n = vicino(v);
+    const n = vicino(Math.min(+cursore.max, Math.max(+cursore.min, scelto + k)));
     if (n !== null && n !== scelto) apri(n);
-  }));
-  $('cursore-tutti').addEventListener('click', () => {
-    cursoreDa.value = 1;
-    cursoreA.value = '';
-    aggiornaCursore();
-  });
+  }
+  document.querySelectorAll('.riga-cursore [data-passo]').forEach(b =>
+    b.addEventListener('click', () => passo(+b.dataset.passo)));
+  $('cursore-tutti').addEventListener('click', () => { if (gruppoScelto) scegliGruppo(gruppoScelto, scelto); });
 
   async function aggiungiBacktrack() {
     if (!(await caricaDati())) return;
@@ -352,30 +408,32 @@ function paginaTest(cfg) {
       const corpo = elenco.querySelector('tbody');
       const vuoto = corpo.querySelector('.vuoto');
       if (vuoto) vuoto.remove();
-      const pezzo = document.createDocumentFragment();
-      for (const b of nuovi) pezzo.append(rigaBacktrack(b));
-      corpo.append(pezzo);
+      const toccati = new Set();
+      const ultimoPrima = gruppi[gruppi.length - 1];
+      for (const b of nuovi) toccati.add(aggiungiAiGruppi(b));
+      if (ultimoPrima) toccati.add(ultimoPrima);  // non e' piu' l'ultimo: ora e' risolto
+      for (const g of toccati) { const tr = rigaGruppo(g); if (!tr.parentNode) corpo.append(tr); }
       ultimo = nuovi[nuovi.length - 1].n;
-      $('n-registrati').textContent = numeroIt(righe.size);
+      $('n-registrati').textContent = numeroIt(numeri.length);
+      $('n-gruppi').textContent = numeroIt(gruppi.length);
+      // il gruppo scelto puo' essere cresciuto: il cursore arriva fino al suo ultimo backtrack
+      if (gruppoScelto && toccati.has(gruppoScelto) && +cursoreA.value < gruppoScelto.ultimo &&
+          +cursoreA.value === +cursore.max) { cursoreA.value = gruppoScelto.ultimo; }
       aggiornaCursore();
-      if (scelto === null) apri(nuovi[0].n);
+      if (scelto === null) scegliGruppo(gruppi[0]);
       if (nuovi.length < 5000) break;
     }
   }
 
   async function apri(n) {
-    if (!righe.has(n)) return;
-    if (scelto !== null && righe.has(scelto)) righe.get(scelto).classList.remove('scelto');
+    if (!riassunti.has(n)) return;
     scelto = n;
-    righe.get(n).classList.add('scelto');
-    // scorre solo l'elenco, non la pagina (mentre si usa il cursore la pagina resta ferma)
-    const rr = righe.get(n).getBoundingClientRect(), re = elenco.getBoundingClientRect();
-    const testa = elenco.querySelector('thead').offsetHeight;
-    if (rr.top < re.top + testa) elenco.scrollTop -= re.top + testa - rr.top;
-    else if (rr.bottom > re.top + elenco.clientHeight) elenco.scrollTop += rr.bottom - re.top - elenco.clientHeight;
-    $('posizione').textContent = `${numeroIt(n)} di ${numeroIt(righe.size)} registrati`;
+    // scelto in un altro gruppo (con le frecce): si passa a quel gruppo
+    const g = gruppoDi.get(n);
+    if (g !== gruppoScelto) { scegliGruppo(g, n); return; }
+    $('posizione').textContent = `backtrack ${numeroIt(n)} · ${numeroIt(n - g.primo + 1)}° di ${numeroIt(g.quanti)} ` +
+      `nel gruppo ${numeroIt(g.k + 1)}`;
     mostraRigaAttuale(n);
-    // scelto fuori dagli estremi (dall'elenco o con le frecce): gli estremi si allargano fino a lui
     if (n < +cursore.min) cursoreDa.value = n;
     if (n > +cursore.max) cursoreA.value = n;
     aggiornaCursore();
@@ -385,11 +443,11 @@ function paginaTest(cfg) {
     if (scelto === n) { aperto = b; disegnaBacktrack(dettaglio, d, b, sceltaFiltro.value, raggiunto); }
   }
 
-  function sposta(passo) {
-    const numeri = [...righe.keys()];
+  // ← e →: il backtrack precedente e il successivo (anche fuori dal gruppo)
+  function sposta(k) {
     const i = numeri.indexOf(scelto);
     if (i < 0) return;
-    const j = Math.min(numeri.length - 1, Math.max(0, i + passo));
+    const j = Math.min(numeri.length - 1, Math.max(0, i + k));
     if (j !== i) apri(numeri[j]);
   }
   $('precedente').addEventListener('click', () => sposta(-1));
