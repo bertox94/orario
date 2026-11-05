@@ -46,8 +46,6 @@ extern int ore_classe_svolte[CLASSE_SEZIONE_SZ];
 extern int ore_docenti[INSEGNANTE_SZ];
 // tiene traccia del numero di ore svolte da un docente fino a _pos_
 extern int ore_docenti_svolte[INSEGNANTE_SZ];
-// i docenti teorici
-extern int classi_docenti_teorici[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 // ore per classe docente e codocente, prof a minore indice prima
 extern int ore_classi_codocenza[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ];
 extern int ore_classi_codocenza_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ];

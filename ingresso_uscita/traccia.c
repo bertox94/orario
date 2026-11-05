@@ -23,7 +23,6 @@ int prof_fa_ore_contigue(int giorno, int ora, int cla, int prof);
 int prof_è_disponibile(int base3d_goi, int p1);
 int deve_ancora_svolgere_ore_in_questa_classe(int base2d_ci, int p1);
 int docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(int cla, int p1, int p2);
-int è_un_docente_che_insegna_da_solo_in_questa_classe(int base2d_ci, int prof);
 int deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(int base2d_ci, int prof);
 int ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(int pos, int giorno, int cla, int prof);
 int verifica_ora_ingresso(int prof, int ora);
@@ -265,14 +264,6 @@ static int c_sabato(const int pos, const int giorno, const int ora, const int ba
     return u;
 }
 
-static int c_da_solo(const int base2d_ci, const int p, int *fermato_a, const int k) {
-    inizia_controllo("è_un_docente_che_insegna_da_solo_in_questa_classe");
-    fprintf(t, "\"segnato_come_docente_della_classe\":%d", classi_docenti_teorici[base2d_ci + p]);
-    const int u = è_un_docente_che_insegna_da_solo_in_questa_classe(base2d_ci, p);
-    fine_controllo(u, fermato_a, k);
-    return u;
-}
-
 static int c_senza_cod(const int base2d_ci, const int p, int *fermato_a, const int k) {
     inizia_controllo("deve_svolgere_ancora_ora_in_questa_classe_senza_codocente");
     fprintf(t, "\"ore_da_solo_svolte\":%d,\"ore_da_solo\":%d", ore_classi_docenti_alone_svolte[base2d_ci + p],
@@ -354,9 +345,8 @@ void traccia_backtrack(const int pos, const int giorno, const int ora, const int
             int f3 = -1;
             n_controllo = 0;
             fprintf(t, "],\"da_solo\":{\"controlli\":[");
-            c_da_solo(base2d_ci, p1, &f3, 0);
-            c_senza_cod(base2d_ci, p1, &f3, 1);
-            c_sabato(pos, giorno, ora, base2d_ci, p1, &f3, 2);
+            c_senza_cod(base2d_ci, p1, &f3, 0);
+            c_sabato(pos, giorno, ora, base2d_ci, p1, &f3, 1);
             fprintf(t, "],\"fermato_a\":%d}", f3);
             incoerente |= f3 < 0;
         }
