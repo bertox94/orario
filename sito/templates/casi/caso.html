@@ -55,12 +55,30 @@
     <tbody><tr class="vuoto"><td colspan="5" class="tenue">{{ 'Ancora nessun backtrack.' if in_corso else 'Nessun backtrack registrato.' }}</td></tr></tbody>
   </table>
 </div>
+<div class="scheda cursore-backtrack">
+  <table class="dati">
+    <thead><tr><th class="num">N.</th><th class="num">Nodo</th><th>Slot</th><th>Poi</th><th>Dove si fermano i docenti</th></tr></thead>
+    <tbody id="riga-attuale"><tr><td colspan="5" class="tenue">Nessun backtrack scelto.</td></tr></tbody>
+  </table>
+  <input type="range" id="cursore-backtrack" min="1" max="1" value="1" step="1" aria-label="Scorri i backtrack">
+  <div class="barra-comandi">
+    <label class="spunta">Da <input type="number" id="cursore-da" min="1" value="1"></label>
+    <label class="spunta">a <input type="number" id="cursore-a" min="1" value="1"></label>
+    <button type="button" class="secondario" id="cursore-tutti">Tutti</button>
+    <span class="tenue piccolo">Il cursore va dal backtrack «Da» al backtrack «a»; lasciando vuoto «a» arriva
+      all'ultimo registrato.</span>
+  </div>
+</div>
 <div class="barra-comandi">
   <button type="button" class="secondario" id="precedente">← Precedente</button>
   <button type="button" class="secondario" id="successivo">Successivo →</button>
   <span class="tenue piccolo" id="posizione"></span>
-  <label class="spunta" style="margin-left: auto"><input type="checkbox" id="nascondi-buca">
-    Nascondi i backtrack con ora buca</label>
+  <label class="spunta" style="margin-left: auto">Docenti da mostrare
+    <select id="filtro-docenti">
+      <option value="tutti">tutti</option>
+      <option value="con-ore">solo chi ha ancora ore in questa classe</option>
+      <option value="esauriti">solo chi ha esaurito le ore in questa classe</option>
+    </select></label>
 </div>
 <h2>L'orario raggiunto</h2>
 <div id="orario-raggiunto"><p class="tenue piccolo">Scegli un backtrack nell'elenco qui sopra per vedere l'orario

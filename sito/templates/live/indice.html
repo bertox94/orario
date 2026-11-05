@@ -27,11 +27,12 @@
   <div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
     <label>Tempo massimo (s, 0 = senza limite) <input type="number" name="tempo" min="0" value="60"></label>
     <label>Orari da trovare <input type="number" name="orari" min="1" max="1000" value="1"></label>
-    <label>Backtrack da registrare <input type="number" name="max_backtrack" min="0" max="10000" value="1000"></label>
+    <label>Backtrack da registrare <input type="number" name="max_backtrack" min="0" max="100000" value="1000"></label>
   </div>
   <p class="tenue piccolo">A ogni backtrack (uno slot in cui la ricerca non riesce a mettere nessun docente) il test
     registra l'orario fino a quel punto e, per ogni docente, i controlli della ricerca con i valori che leggono e il loro
-    esito. Oltre il numero indicato i backtrack si contano soltanto. I controlli sono quelli del solver attuale.</p>
+    esito. Oltre il numero indicato i backtrack si contano soltanto (al massimo 100.000; ognuno occupa circa 2,5 kB nel
+    database, quindi 100.000 backtrack sono circa 250 MB). I controlli sono quelli del solver attuale.</p>
   <p><button>Avvia</button></p>
 </form>
 

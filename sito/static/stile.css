@@ -125,9 +125,11 @@ input.stretto { width: 5em; }
 /* elenco dei backtrack */
 table.dati tr.backtrack { cursor: pointer; }
 table.dati tr.backtrack.scelto td { background: var(--accento-tenue); font-weight: 600; }
-/* «Nascondi i backtrack con ora buca» */
-#elenco-backtrack.senza-buca tr.con-buca { display: none; }
-.filtro-docenti { margin: 4px 0 8px; }
+/* il cursore dei backtrack, sotto l'elenco: la riga del backtrack attuale, il cursore, gli estremi */
+.cursore-backtrack { margin-top: 10px; }
+.cursore-backtrack table.dati { margin-bottom: 6px; }
+#cursore-backtrack { width: 100%; display: block; margin: 6px 0; }
+.cursore-backtrack input[type=number] { width: 9em; }
 .motivo { display: inline-block; padding: 0 6px; margin: 1px 2px 1px 0; border-radius: 8px; background: var(--male-tenue);
   color: var(--male); font-size: 12px; white-space: nowrap; }
 .barra-comandi { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 0; }

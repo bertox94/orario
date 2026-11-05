@@ -78,7 +78,7 @@ def avvia():
         caso = {'tipo': 'casuale', 'seme': _intero('seme', 1, 0), 'classi': _intero('classi', 8, 1, 120),
                 'ritardi': bool(f.get('ritardi'))}
     opzioni = {'tempo': _intero('tempo', 60, 0, 24 * 3600), 'orari': _intero('orari', 1, 1, 1000),
-               'max_backtrack': _intero('max_backtrack', 1000, 0, 10000)}
+               'max_backtrack': _intero('max_backtrack', 1000, 0, 100000)}
     if opzioni['tempo'] == 0:
         opzioni.pop('tempo')  # senza limite: si ferma col pulsante
     try:
