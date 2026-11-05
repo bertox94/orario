@@ -217,3 +217,4 @@ table.docenti-orizzontale td.fermo { background: var(--male-tenue); font-weight:
 table.docenti-orizzontale td.non-valutato { color: var(--tenue); opacity: .6; }
 /* scorrendo il cursore: la prima cella cambiata dal backtrack precedente (fin dove la ricerca e' tornata) */
 table.orario td.tornata { outline: 2px solid var(--ok); outline-offset: -2px; font-weight: 700; }
+.cris { background: var(--ok); }

@@ -12,6 +12,7 @@ Le opzioni di un test:
     tempo           secondi massimi (assente = senza limite: si ferma col pulsante o quando ha finito)
     orari           quanti orari completi trovare prima di fermarsi (-n)
     max_backtrack   quanti backtrack registrare per esteso (gli altri si contano soltanto)
+    max_nodi        quanti nodi della ricerca registrare (per scorrerla passo passo), default MAX_NODI
 """
 import hashlib
 import json
@@ -80,12 +81,22 @@ def commit_attuale():
 # ---- un'esecuzione ----
 
 DATI, TRACCIA, USCITA = 'dati.json', 'traccia.jsonl', 'uscita.txt'
+MAX_NODI = 1000000
+
+
+def supporta_nodi():
+    """Il solver sa registrare i nodi (--max-nodi)? Si guarda nei sorgenti, che sono quelli che il sito compila."""
+    try:
+        return '--max-nodi' in open(os.path.join(RADICE, 'main.c')).read()
+    except OSError:
+        return False
 
 
 def argomenti(opzioni):
     """La riga di comando (senza l'eseguibile). I file stanno nella cartella dell'esecuzione."""
     return ['--input', DATI, '--traccia', TRACCIA, '-n', str(opzioni.get('orari', 1)),
-            '--max-backtrack', str(opzioni.get('max_backtrack', 1000)), '--txt', os.devnull, '--progresso']
+            '--max-backtrack', str(opzioni.get('max_backtrack', 1000)), '--txt', os.devnull, '--progresso'] + \
+        (['--max-nodi', str(opzioni.get('max_nodi', MAX_NODI))] if supporta_nodi() else [])
 
 
 class Esecuzione:

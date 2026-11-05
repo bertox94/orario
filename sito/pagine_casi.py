@@ -62,6 +62,19 @@ def un_backtrack(eid, n):
     return jsonify(r['record'])
 
 
+@bp.route('/<int:eid>/nodi')
+def nodi(eid):
+    """I nodi della ricerca da ?da=N ad ?a=M (al massimo 2 milioni): i pezzi registrati che li coprono, e l'ultimo nodo
+    registrato. Per scorrere la ricerca passo passo."""
+    da = request.args.get('da', 1, type=int)
+    a = min(request.args.get('a', da, type=int), da + 2000000)
+    pezzi = conn().execute('select da, passi from nodi where esecuzione_id = %s and da <= %s and da + quanti > %s '
+                           'order by da', (eid, a, da)).fetchall()
+    ultimo = conn().execute('select max(da + quanti) - 1 as u from nodi where esecuzione_id = %s',
+                            (eid,)).fetchone()['u']
+    return jsonify({'pezzi': [[p['da'], p['passi']] for p in pezzi], 'ultimo': ultimo})
+
+
 @bp.route('/<int:eid>/ferma', methods=['POST'])
 def ferma(eid):
     esecutore.ferma_esecuzione(eid)

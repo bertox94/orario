@@ -393,6 +393,14 @@ function paginaTest(cfg) {
         toccati.add(g);
       },
     },
+    passi: {
+      spiega: "Passo passo: i gruppi sono quelli consecutivi; scegliendone uno, il cursore scorre ogni nodo della " +
+        "ricerca, dal primo backtrack del gruppo fino a quando la ricerca supera la cella di partenza (o fin dove ci " +
+        "sono nodi registrati).",
+      passi: true,
+      stato: () => ({}),
+      assegna(st, b, toccati) { MODI.consecutivi.assegna(st, b, toccati); },
+    },
     consecutivi: {
       spiega: "Gruppi consecutivi: un gruppo parte dalla cella in cui la ricerca si blocca e comprende i backtrack " +
         "successivi (anche in celle precedenti, mentre la ricerca torna indietro per sbloccarla) finché la ricerca " +
@@ -415,8 +423,13 @@ function paginaTest(cfg) {
   let modo = MODI[sceltaModo.value] || MODI.annidati;
   let statoModo = modo.stato();
   const assegna = (b, toccati) => modo.assegna(statoModo, b, toccati);
+  const SPIEGA_CURSORE = $('spiega-cursore').textContent;
   function mostraModo() {
     $('spiega-gruppi').textContent = modo.spiega;
+    $('spiega-cursore').textContent = modo.passi ? "Passo passo: il cursore va dal nodo «Da» al nodo «a» della " +
+      "ricerca; a ogni passo, nell'orario raggiunto, è bordata la cella appena messa. Le tacche sotto il cursore sono " +
+      "i backtrack (grigie nella cella di partenza, colorate nelle altre) e, in verde, il nodo in cui la ricerca " +
+      "supera la cella di partenza." : SPIEGA_CURSORE;
     $('tabella-gruppi').classList.toggle('con-celle', !!modo.conCelle);
   }
   mostraModo();
@@ -531,6 +544,7 @@ function paginaTest(cfg) {
     const testa = elenco.querySelector('thead').offsetHeight;
     if (rr.top < re.top + testa) elenco.scrollTop -= re.top + testa - rr.top;
     else if (rr.bottom > re.top + elenco.clientHeight) elenco.scrollTop += rr.bottom - re.top - elenco.clientHeight;
+    if (modo.passi) { apriGruppoPassi(g, n); return; }
     cursoreDa.value = g.primo;
     cursoreA.value = g.ultimo;
     apri(n === undefined ? g.primo : n);
@@ -541,6 +555,7 @@ function paginaTest(cfg) {
   let lista = [];      // i backtrack del gruppo tra «Da» e «a»
   let conRis = false;  // c'e' la posizione della risoluzione in fondo
   function aggiornaCursore() {
+    if (modo.passi) return aggiornaCursorePassi();
     const g = gruppoScelto;
     if (!g) return;
     let da = parseInt(cursoreDa.value, 10), a = parseInt(cursoreA.value, 10);
@@ -560,6 +575,7 @@ function paginaTest(cfg) {
   const tacche = $('tacche-cursore');
   let ultimeTacche = '';
   function disegnaTacche() {
+    if (modo.passi) return;
     const g = gruppoScelto, max = +cursore.max;
     const chiave = g && modo.conCelle ? `${g.k}:${g.membri.length}:${lista[0]}:${lista.length}:${max}` : '';
     if (chiave === ultimeTacche) return;
@@ -586,6 +602,7 @@ function paginaTest(cfg) {
   }
   // vai alla posizione i del cursore (0 = primo backtrack della lista; lista.length = la risoluzione)
   function vaiA(i, subito) {
+    if (modo.passi) return subito ? mostraPasso(i) : rigaPasso(i);
     if (conRis && i === lista.length) return subito ? mostraRisoluzione(gruppoScelto) : null;
     const n = lista[i];
     if (n === undefined) return;
@@ -600,11 +617,22 @@ function paginaTest(cfg) {
     attesaCursore = setTimeout(() => vaiA(i, true), 150);
   });
   for (const x of [cursoreDa, cursoreA]) x.addEventListener('change', () => {
+    if (modo.passi) {
+      aggiornaCursorePassi();
+      if (P && !P.vuoto && (iPasso < P.lo || iPasso > P.hi)) mostraPasso(iPasso < P.lo ? P.lo : P.hi);
+      return;
+    }
     aggiornaCursore();
     if (!inRisoluzione && !lista.includes(scelto)) apri(lista[0]);
   });
   // −10, −1, +1, +10: si sposta di tante posizioni del cursore
   function passo(k) {
+    if (modo.passi) {
+      if (!P || P.vuoto) return;
+      const i = Math.min(P.hi, Math.max(P.lo, iPasso + k));
+      if (i !== iPasso) mostraPasso(i);
+      return;
+    }
     if (scelto === null) return;
     const da = inRisoluzione ? lista.length : lista.indexOf(scelto);
     const i = Math.min(+cursore.max, Math.max(0, da + k));
@@ -614,10 +642,189 @@ function paginaTest(cfg) {
     b.addEventListener('click', () => passo(+b.dataset.passo)));
   $('cursore-tutti').addEventListener('click', () => {
     if (!gruppoScelto) return;
+    if (modo.passi) {
+      if (!P || P.vuoto) return;
+      cursoreDa.value = P.da;
+      cursoreA.value = P.da + P.L - 1;
+      aggiornaCursorePassi();
+      return;
+    }
     cursoreDa.value = gruppoScelto.primo;
     cursoreA.value = gruppoScelto.ultimo;
     aggiornaCursore();
   });
+
+  // ---- passo passo: il cursore scorre i nodi della ricerca ----
+  // Ogni nodo e' [pos, p1, p2]: la ricerca arriva alla posizione pos dopo aver messo la coppia p1, p2 in pos - 1 (le
+  // celle da pos in poi non sono decise). Partendo dall'orario del primo backtrack del gruppo e applicando i nodi uno
+  // dopo l'altro si ricostruisce l'orario a ogni passo; ogni OGNI nodi se ne tiene una copia, per saltare in fretta.
+  // P: {g, da (il primo nodo), L (quanti nodi), pos, p1, p2, ris (indice del nodo che supera la cella, o -1),
+  //     punti (le copie), bt (nodo -> backtrack), lo, hi (il tratto del cursore, indici)}
+  const OGNI = 1000;
+  let P = null, iPasso = 0, caricaId = 0;
+  const lunghezzaOrario = () => d.classi.length * d.ore.length * d.giorni.length;
+
+  async function apriGruppoPassi(g, nBt) {
+    const id = ++caricaId;
+    $('posizione').textContent = 'caricamento dei passi…';
+    const base = await caricaRecord(g.primo);
+    const da = g.nodoPrimo;
+    const fineRis = g.risoltoDa !== null ? riassunti.get(g.risoltoDa).nodo : null;
+    const r = await (await fetch(`${cfg.urlNodi}?da=${da}&a=${fineRis !== null ? fineRis : da + 2000000}`)).json();
+    if (id !== caricaId) return;
+    let a = fineRis !== null ? fineRis : Math.min(r.ultimo === null ? da - 1 : r.ultimo, da + 2000000);
+    let L = Math.max(0, a - da + 1);
+    const pos = new Int32Array(L).fill(-1), p1 = new Int32Array(L), p2 = new Int32Array(L);
+    for (const [pda, passi] of r.pezzi) for (let j = 0; j < passi.length; j++) {
+      const i = pda + j - da;
+      if (i >= 0 && i < L) { pos[i] = passi[j][0]; p1[i] = passi[j][1]; p2[i] = passi[j][2]; }
+    }
+    let k = 0;
+    while (k < L && pos[k] >= 0) k++;
+    L = k;  // fin dove i nodi sono registrati senza buchi
+    // la risoluzione: dopo l'ultimo backtrack del gruppo, il primo nodo oltre la cella di partenza
+    let ris = -1;
+    for (let i = g.nodoUltimo - da + 1; i < L; i++) if (pos[i] > g.inizio) { ris = i; break; }
+    if (ris >= 0) L = ris + 1;
+    gruppoScelto = g;
+    if (!L) {
+      P = {g, vuoto: true};
+      aggiornaCursorePassi();
+      $('posizione').textContent = '';
+      $('riga-attuale').replaceChildren(el('tr', {}, el('td', {colspan: 5, class: 'tenue',
+        testo: 'Nessun nodo registrato per questo gruppo.'})));
+      raggiunto.replaceChildren(el('p', {class: 'tenue piccolo'}, 'Il passo passo non è disponibile per questo ' +
+        'gruppo: il test non ha i nodi della ricerca (lanciato prima della traccia dei nodi, o oltre il limite dei ' +
+        'nodi registrati). Si può rilanciare il test, oppure scegliere un altro raggruppamento.'));
+      dettaglio.replaceChildren();
+      return;
+    }
+    // le copie dell'orario ogni OGNI nodi
+    const N = lunghezzaOrario();
+    const st = new Int32Array(2 * N).fill(-1);
+    (base.orario || []).forEach((c, q) => { if (c) { st[2 * q] = c[0]; st[2 * q + 1] = c[1]; } });
+    const punti = [];
+    for (let i = 0; i < L; i++) {
+      if (pos[i] > 0) { st[2 * (pos[i] - 1)] = p1[i]; st[2 * (pos[i] - 1) + 1] = p2[i]; }
+      if (i % OGNI === 0) punti.push(st.slice());
+    }
+    const bt = new Map();
+    for (const n of g.membri) { const x = riassunti.get(n); if (x.nodo >= da && x.nodo < da + L) bt.set(x.nodo, n); }
+    P = {g, da, L, pos, p1, p2, ris, punti, bt, lo: 0, hi: L - 1};
+    cursoreDa.value = da;
+    cursoreA.value = da + L - 1;
+    iPasso = nBt !== undefined && riassunti.has(nBt) ? Math.min(L - 1, Math.max(0, riassunti.get(nBt).nodo - da)) : 0;
+    aggiornaCursorePassi();
+    mostraPasso(iPasso);
+  }
+
+  // l'orario al passo i (le celle da pos[i] in poi non sono decise)
+  function orarioAlPasso(i) {
+    const st = P.punti[Math.floor(i / OGNI)].slice();
+    for (let j = Math.floor(i / OGNI) * OGNI + 1; j <= i; j++)
+      if (P.pos[j] > 0) { st[2 * (P.pos[j] - 1)] = P.p1[j]; st[2 * (P.pos[j] - 1) + 1] = P.p2[j]; }
+    const fino = P.pos[i];
+    return Array.from({length: fino}, (_, q) => [st[2 * q], st[2 * q + 1]]);
+  }
+
+  function aggiornaCursorePassi() {
+    if (!P || P.vuoto) { cursore.min = 0; cursore.max = 0; cursore.value = 0; tacche.replaceChildren(); return; }
+    let da = parseInt(cursoreDa.value, 10), a = parseInt(cursoreA.value, 10);
+    if (!(da >= P.da)) da = P.da;
+    if (!(a <= P.da + P.L - 1)) a = P.da + P.L - 1;
+    if (a < da) a = da;
+    P.lo = da - P.da;
+    P.hi = a - P.da;
+    cursore.min = P.lo;
+    cursore.max = P.hi;
+    cursore.value = iPasso;
+    tacchePassi();
+  }
+
+  // le tacche: i backtrack del gruppo (grigi nella cella di partenza, colorati nelle altre) e la risoluzione (verde)
+  function tacchePassi() {
+    const chiave = `passi:${P.g.k}:${P.lo}:${P.hi}`;
+    if (chiave === ultimeTacche) return;
+    ultimeTacche = chiave;
+    const parti = [], visti = new Set(), largo = Math.max(1, P.hi - P.lo);
+    const aggiungi = (i, classe, titolo) => {
+      if (i < P.lo || i > P.hi) return;
+      const f = (i - P.lo) / largo, k = Math.round(f * 1000) + classe;
+      if (visti.has(k)) return;
+      visti.add(k);
+      parti.push(el('span', {class: 'tacca ' + classe, style: `left: calc(8px + (100% - 16px) * ${f})`, title: titolo}));
+    };
+    for (const [nodo, n] of P.bt) {
+      const x = riassunti.get(n);
+      aggiungi(nodo - P.da, x.pos === P.g.inizio ? 'c0' : 'c1', `backtrack ${numeroIt(n)}: ${testoSlot(x.pos)}`);
+    }
+    if (P.ris >= 0) aggiungi(P.ris, 'cris', 'la ricerca supera la cella');
+    tacche.replaceChildren(...parti);
+  }
+
+  function vaiANodo(nodo) {
+    if (!P || P.vuoto) return;
+    const i = nodo - P.da;
+    if (i < 0 || i >= P.L) return;
+    if (i < P.lo || i > P.hi) { cursoreDa.value = P.da; cursoreA.value = P.da + P.L - 1; aggiornaCursorePassi(); }
+    mostraPasso(i);
+  }
+
+  // la riga sopra il cursore per il passo i
+  function rigaPasso(i) {
+    if (!P || P.vuoto) return;
+    const nodo = P.da + i, pos = P.pos[i], nBt = P.bt.get(nodo);
+    if (nBt !== undefined) return mostraRigaAttuale(nBt);
+    const indietro = i > 0 && P.pos[i - 1] >= pos;
+    const messa = pos > 0 ? (P.p1[i] < 0 && P.p2[i] < 0 ? "un'ora buca" : coppia(d, [P.p1[i], P.p2[i]])) : '';
+    $('riga-attuale').replaceChildren(el('tr', {class: 'backtrack scelto' + (i === P.ris ? ' risoluzione' : '')}, [
+      el('td', {class: 'num', testo: i === P.ris ? '✓' : '–'}),
+      el('td', {class: 'num', testo: numeroIt(nodo)}),
+      el('td', {testo: pos > 0 ? testoSlot(pos - 1) : '–'}),
+      el('td', {testo: indietro ? 'torna indietro' : 'avanti'}),
+      el('td', {testo: (pos > 0 ? `mette ${messa}` : 'inizio') +
+        (pos < lunghezzaOrario() ? ` · poi prova ${testoSlot(pos)}` : ' · orario completo') +
+        (i === P.ris ? ' · la ricerca supera la cella di partenza: risolto' : '')}),
+    ]));
+  }
+
+  async function mostraPasso(i) {
+    if (!P || P.vuoto) return;
+    iPasso = i;
+    inRisoluzione = false;
+    cursore.value = i;
+    const nodo = P.da + i, pos = P.pos[i], nBt = P.bt.get(nodo), g = P.g;
+    rigaPasso(i);
+    $('posizione').textContent = `passo ${numeroIt(i + 1)} di ${numeroIt(P.L)} nel gruppo ${numeroIt(g.k + 1)} · ` +
+      `nodo ${numeroIt(nodo)}` + (nBt !== undefined ? ` · backtrack ${numeroIt(nBt)}` : '') +
+      (i === P.ris ? ' · risolto' : i === P.L - 1 ? ` · ultimo nodo registrato (${comeFinisce(g)[0]})` : '');
+    if (nBt !== undefined) {
+      scelto = nBt;
+      const b = await caricaRecord(nBt);
+      if (iPasso !== i || !modo.passi) return;
+      aperto = b;
+      apertoPrima = null;
+      disegnaBacktrack(dettaglio, d, b, sceltaFiltro.value, raggiunto, null);
+      return;
+    }
+    aperto = null;
+    const orario = orarioAlPasso(i);
+    const indietro = i > 0 && P.pos[i - 1] >= pos;
+    const griglia = el('div');
+    disegnaOrario(griglia, d, orario, {fino: pos, tornata: pos > 0 ? pos - 1 : undefined,
+                                       risolta: i === P.ris ? g.inizio : undefined});
+    const messa = pos > 0 ? (P.p1[i] < 0 && P.p2[i] < 0 ? "un'ora buca" : coppia(d, [P.p1[i], P.p2[i]])) : '';
+    raggiunto.replaceChildren(el('p', {class: 'tenue piccolo'}, pos > 0
+      ? `Al nodo ${numeroIt(nodo)} la ricerca ${indietro ? 'è tornata indietro e ' : ''}mette ${messa} in ` +
+        `${testoSlot(pos - 1)} (bordata)` + (pos < lunghezzaOrario() ? `; poi prova ${testoSlot(pos)}.` : ': orario completo.')
+      : `Al nodo ${numeroIt(nodo)} la ricerca riparte dalla prima cella.`), griglia);
+    requestAnimationFrame(() => {
+      const box = griglia.querySelector('.scorre'), td = griglia.querySelector('td.tornata');
+      if (box && td) box.scrollLeft = Math.max(0, td.offsetLeft - box.clientWidth / 2);
+    });
+    dettaglio.replaceChildren(el('p', {class: 'tenue piccolo'}, 'I controlli dei docenti ci sono solo ai nodi in cui ' +
+      'la ricerca si blocca (i backtrack, le tacche sotto il cursore).'));
+  }
 
   // mette i backtrack nei gruppi e aggiorna l'elenco
   function inserisci(nuovi, daCapo) {
@@ -655,6 +862,8 @@ function paginaTest(cfg) {
     gruppi.length = 0;
     gruppoDi.clear();
     statoModo = modo.stato();
+    P = null;
+    caricaId++;
     gruppoScelto = null;
     scelto = null;
     inRisoluzione = false;
@@ -679,6 +888,10 @@ function paginaTest(cfg) {
   async function apri(n) {
     if (!riassunti.has(n)) return;
     const g = gruppoDi.get(n);
+    if (modo.passi) {
+      if (g !== gruppoScelto) { scegliGruppo(g, n); return; }
+      return vaiANodo(riassunti.get(n).nodo);
+    }
     if (g !== gruppoScelto) { scegliGruppo(g, n); return; }  // un backtrack di un altro gruppo: si passa a quel gruppo
     inRisoluzione = false;
     scelto = n;
@@ -698,6 +911,7 @@ function paginaTest(cfg) {
 
   // ← e →: il backtrack precedente e il successivo in ordine di tempo (passando da un gruppo all'altro)
   function sposta(k) {
+    if (modo.passi) return passo(k);
     const i = numeri.indexOf(scelto);
     if (i < 0) return;
     if (inRisoluzione && k < 0) { apri(scelto); return; }

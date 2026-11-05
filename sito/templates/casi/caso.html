@@ -57,6 +57,7 @@
       <option value="annidati">gruppi annidati</option>
       <option value="cella">un gruppo per cella</option>
       <option value="consecutivi">gruppi consecutivi, con le celle toccate</option>
+      <option value="passi">passo passo: il cursore scorre i nodi della ricerca</option>
     </select></label>
 </div>
 <div class="scorre alta" id="elenco-backtrack" style="max-height: 40vh">
@@ -73,6 +74,7 @@
     <tbody id="riga-attuale"><tr><td colspan="5" class="tenue">Nessun backtrack scelto.</td></tr></tbody>
   </table>
   <div class="riga-cursore">
+    <button type="button" class="secondario" data-passo="-100" title="100 posizioni indietro">−100</button>
     <button type="button" class="secondario" data-passo="-10" title="10 backtrack indietro">−10</button>
     <button type="button" class="secondario" data-passo="-1" title="Il backtrack precedente">−1</button>
     <div class="cursore-con-tacche">
@@ -81,12 +83,13 @@
     </div>
     <button type="button" class="secondario" data-passo="1" title="Il backtrack successivo">+1</button>
     <button type="button" class="secondario" data-passo="10" title="10 backtrack avanti">+10</button>
+    <button type="button" class="secondario" data-passo="100" title="100 posizioni avanti">+100</button>
   </div>
   <div class="barra-comandi">
     <label class="spunta">Da <input type="number" id="cursore-da" min="1" value="1"></label>
     <label class="spunta">a <input type="number" id="cursore-a" min="1" value="1"></label>
     <button type="button" class="secondario" id="cursore-tutti">Tutto il gruppo</button>
-    <span class="tenue piccolo">Il cursore va dal backtrack «Da» al backtrack «a»: scegliendo un gruppo, dal suo primo
+    <span class="tenue piccolo" id="spiega-cursore">Il cursore va dal backtrack «Da» al backtrack «a»: scegliendo un gruppo, dal suo primo
       backtrack all'ultimo (solo i suoi). Se il gruppo è risolto, l'ultima posizione mostra come si risolve. Con i
       gruppi consecutivi, le tacche sotto il cursore sono i backtrack in celle diverse da quella di partenza, del colore
       della cella.</span>
@@ -122,6 +125,7 @@ paginaTest({
   urlDati: {{ url_for('casi.dati', eid=e.id)|tojson }},
   urlElenco: {{ url_for('casi.elenco_backtrack', eid=e.id)|tojson }},
   urlBacktrack: {{ url_for('casi.un_backtrack', eid=e.id, n=0)|tojson }},
+  urlNodi: {{ url_for('casi.nodi', eid=e.id)|tojson }},
   urlFerma: {{ url_for('casi.ferma', eid=e.id)|tojson }},
 });
 </script>

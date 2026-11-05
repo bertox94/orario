@@ -126,6 +126,7 @@ class _Registro:
     def __init__(self, url, eid):
         self.url, self.eid = url, eid
         self.attesa = []
+        self.attesa_nodi = []
         self.ultimo = time.time()
         self.lock = threading.Lock()
         self.dati = None
@@ -145,16 +146,25 @@ class _Registro:
                 self.backtrack = x['n']
             if len(self.attesa) >= 50 or time.time() - self.ultimo > 0.5:
                 self.scarica()
+        elif tipo == 'nodi':
+            with self.lock:
+                self.attesa_nodi.append(x)
+            if len(self.attesa_nodi) >= 50 or time.time() - self.ultimo > 0.5:
+                self.scarica()
         elif tipo == 'orario':
             self.orari.append(x['orario'])
 
     def scarica(self):
         with self.lock:
             righe, self.attesa = self.attesa, []
+            nodi, self.attesa_nodi = self.attesa_nodi, []
             self.ultimo = time.time()
-        if not righe:
+        if not righe and not nodi:
             return
         with db.connetti(self.url) as c:
+            for x in nodi:
+                c.execute('insert into nodi (esecuzione_id, da, quanti, passi) values (%s, %s, %s, %s) '
+                          'on conflict do nothing', (self.eid, x['da'], len(x['passi']), _json(x['passi'])))
             for x in righe:
                 c.execute('insert into backtrack (esecuzione_id, n, nodo, pos, giorno, ora, classe, buca_dopo, '
                           'riassunto, record) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) on conflict do nothing',
