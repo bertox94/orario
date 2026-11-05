@@ -171,12 +171,14 @@ function haEsauritoOre(x) {
 
 // filtro: 'tutti', 'con-ore' (nasconde chi ha esaurito le ore in questa classe), 'esauriti' (nasconde chi ne ha ancora)
 // La griglia "l'orario fino a qui" va in sopra (in cima alla pagina), il resto in contenitore (sotto l'elenco).
-function disegnaBacktrack(contenitore, d, b, filtro, sopra) {
+// cambiaFiltro(valore): chiamata quando si cambia il menu «Docenti da mostrare», che sta sopra i docenti.
+function disegnaBacktrack(contenitore, d, b, filtro, sopra, cambiaFiltro) {
   const s = slotDi(d, b.pos);
   const parti = [];
   parti.push(el('h3', {}, `Backtrack n. ${numeroIt(b.n)}: ${d.giorni[s.giorno]} ${d.ore[s.ora]} ${nomeClasse(d, s.classe)}`));
-  parti.push(el('p', {class: 'tenue piccolo'}, [
-    `Al nodo ${numeroIt(b.nodo)} della ricerca la classe ${nomeClasse(d, s.classe)} non ha potuto avere nessun docente in quest'ora. `,
+  parti.push(el('div', {class: 'avviso piccolo ' + (b.buca_dopo ? 'buca' : 'errore')}, [
+    el('span', {class: 'tipo-bt ' + (b.buca_dopo ? 'buca' : 'vicolo'), testo: b.buca_dopo ? 'ora buca possibile' : 'vicolo cieco'}),
+    ` Al nodo ${numeroIt(b.nodo)} della ricerca la classe ${nomeClasse(d, s.classe)} non ha potuto avere nessun docente in quest'ora. `,
     b.buca_dopo ? "Siamo oltre le ore obbligatorie: dopo la ricerca prova l'ora buca, quindi non è un vicolo cieco."
                 : 'Siamo nelle ore obbligatorie: la ricerca torna indietro e cambia una scelta precedente.']));
   if (b.incoerente) parti.push(el('div', {class: 'avviso errore'},
@@ -201,9 +203,13 @@ function disegnaBacktrack(contenitore, d, b, filtro, sopra) {
     parti.push(el('h4', {testo: 'I docenti della classe, nell\'ordine in cui la ricerca li prova'}));
     parti.push(el('p', {class: 'tenue piccolo'}, 'L\'ordine è quello della coda: prima chi ha più ore da fare (la ' +
       'priorità). ✓ = vero, ✗ = falso; la ricerca si ferma al primo ✗, i controlli in grigio non li valuta.'));
+    const menu = el('select', {onchange: ev => cambiaFiltro(ev.target.value)}, [
+      ['tutti', 'tutti'], ['con-ore', 'solo chi ha ancora ore in questa classe'],
+      ['esauriti', 'solo chi ha esaurito le ore in questa classe']].map(([v, t]) =>
+        el('option', {value: v, selected: v === filtro, testo: t})));
+    parti.push(el('label', {class: 'spunta filtro-docenti'}, ['Docenti da mostrare', menu]));
     if (nascosti) parti.push(el('p', {class: 'tenue piccolo'}, `${nascosti} docent${nascosti === 1 ? 'e nascosto' :
-      'i nascosti'} (${filtro === 'con-ore' ? 'hanno già fatto tutte le ore' : 'hanno ancora ore'} in questa classe): ` +
-      'si cambia con «Docenti da mostrare» qui sopra.'));
+      'i nascosti'} (${filtro === 'con-ore' ? 'hanno già fatto tutte le ore' : 'hanno ancora ore'} in questa classe).`));
   }
   for (const x of mostrati) {
     const blocco = el('div', {class: 'docente'});
@@ -241,13 +247,24 @@ function paginaTest(cfg) {
   const elenco = $('elenco-backtrack');
   const dettaglio = $('dettaglio-backtrack');
   const raggiunto = $('orario-raggiunto');
-  const sceltaFiltro = $('filtro-docenti');
+  let filtro = 'tutti';      // «Docenti da mostrare»
   let aperto = null;        // il backtrack disegnato, per ridisegnarlo quando cambia il filtro
-  try { const f = localStorage.getItem('orario.filtroDocenti'); if (f) sceltaFiltro.value = f; } catch (e) {}
-  sceltaFiltro.addEventListener('change', () => {
-    try { localStorage.setItem('orario.filtroDocenti', sceltaFiltro.value); } catch (e) {}
-    if (aperto) disegnaBacktrack(dettaglio, d, aperto, sceltaFiltro.value, raggiunto);
+  try { filtro = localStorage.getItem('orario.filtroDocenti') || 'tutti'; } catch (e) {}
+  const disegna = b => disegnaBacktrack(dettaglio, d, b, filtro, raggiunto, v => {
+    filtro = v;
+    try { localStorage.setItem('orario.filtroDocenti', v); } catch (e) {}
+    if (aperto) disegna(aperto);
   });
+  // «Nascondi i backtrack con ora buca»: nasconde le righe nell'elenco; ← e → le saltano
+  const nascondiBuca = $('nascondi-buca');
+  try { nascondiBuca.checked = localStorage.getItem('orario.nascondiBuca') === '1'; } catch (e) {}
+  const applicaBuca = () => elenco.classList.toggle('senza-buca', nascondiBuca.checked);
+  nascondiBuca.addEventListener('change', () => {
+    try { localStorage.setItem('orario.nascondiBuca', nascondiBuca.checked ? '1' : '0'); } catch (e) {}
+    applicaBuca();
+  });
+  applicaBuca();
+  const conti = {vicolo: 0, buca: 0};
 
   async function caricaDati() {
     if (d) return d;
@@ -261,11 +278,14 @@ function paginaTest(cfg) {
     const s = slotDi(d, b.pos);
     const motivi = Object.entries(b.riassunto).sort((a, b) => b[1] - a[1])
       .map(([k, v]) => el('span', {class: 'motivo', title: k}, `${v} × ${motivoBreve(k)}`));
-    const tr = el('tr', {class: 'backtrack', 'data-n': b.n, onclick: () => apri(b.n)}, [
+    conti[b.buca_dopo ? 'buca' : 'vicolo']++;
+    const tr = el('tr', {class: 'backtrack ' + (b.buca_dopo ? 'con-buca' : 'vicolo'), 'data-n': b.n,
+      onclick: () => apri(b.n)}, [
       el('td', {class: 'num', testo: numeroIt(b.n)}),
       el('td', {class: 'num', testo: numeroIt(b.nodo)}),
       el('td', {testo: `${d.giorni[s.giorno]} ${d.ore[s.ora]} ${nomeClasse(d, s.classe)}`}),
-      el('td', {testo: b.buca_dopo ? 'segue ora buca' : 'torna indietro'}),
+      el('td', {}, el('span', {class: 'tipo-bt ' + (b.buca_dopo ? 'buca' : 'vicolo'),
+        testo: b.buca_dopo ? 'ora buca possibile' : 'vicolo cieco'})),
       el('td', {}, motivi),
     ]);
     righe.set(b.n, tr);
@@ -283,7 +303,9 @@ function paginaTest(cfg) {
     for (const b of nuovi) corpo.append(rigaBacktrack(b));
     ultimo = nuovi[nuovi.length - 1].n;
     $('n-registrati').textContent = numeroIt(righe.size);
-    if (scelto === null) apri(nuovi[0].n);
+    $('conteggio-tipi').textContent = `: ${numeroIt(conti.vicolo)} vicol${conti.vicolo === 1 ? 'o' : 'i'} ciec` +
+      `${conti.vicolo === 1 ? 'o' : 'hi'}, ${numeroIt(conti.buca)} con ora buca`;
+    if (scelto === null) apri((nuovi.find(b => !(nascondiBuca.checked && b.buca_dopo)) || nuovi[0]).n);
   }
 
   async function apri(n) {
@@ -295,11 +317,13 @@ function paginaTest(cfg) {
     $('posizione').textContent = `${numeroIt(n)} di ${numeroIt(righe.size)} registrati`;
     const r = await fetch(cfg.urlBacktrack.replace(/\/0$/, '/' + n));
     const b = await r.json();
-    if (scelto === n) { aperto = b; disegnaBacktrack(dettaglio, d, b, sceltaFiltro.value, raggiunto); }
+    if (scelto === n) { aperto = b; disegna(b); }
   }
 
   function sposta(passo) {
-    const numeri = [...righe.keys()];
+    // con «Nascondi i backtrack con ora buca» si salta da un vicolo cieco all'altro (resta quello aperto)
+    const numeri = [...righe.keys()].filter(n => n === scelto || !nascondiBuca.checked ||
+      !righe.get(n).classList.contains('con-buca'));
     const i = numeri.indexOf(scelto);
     if (i < 0) return;
     const j = Math.min(numeri.length - 1, Math.max(0, i + passo));

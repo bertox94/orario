@@ -47,8 +47,10 @@
 <h2>Backtrack</h2>
 <p class="tenue piccolo">Un backtrack è uno slot in cui la ricerca non è riuscita a mettere nessun docente.
   Registrati: <strong id="n-registrati">{{ n_registrati|numero }}</strong>{% if fine %} su {{ fine.backtrack|numero }}
-  in tutto{% endif %} (al massimo {{ (e.opzioni or {}).get('max_backtrack', 1000)|numero }}). Scegline uno per vedere
-  l'orario fino a quel punto e i controlli di ogni docente; ← e → passano al precedente e al successivo.</p>
+  in tutto{% endif %}<span id="conteggio-tipi"></span> (al massimo {{ (e.opzioni or {}).get('max_backtrack', 1000)|numero }}). Scegline uno per vedere
+  l'orario fino a quel punto e i controlli di ogni docente; ← e → passano al precedente e al successivo.
+  <span class="tipo-bt vicolo">vicolo cieco</span>: siamo nelle ore obbligatorie e la ricerca deve tornare indietro;
+  <span class="tipo-bt buca">ora buca possibile</span>: la ricerca prova l'ora buca e va avanti, quindi pesa meno.</p>
 <div class="scorre alta" id="elenco-backtrack" style="max-height: 40vh">
   <table class="dati">
     <thead><tr><th class="num">N.</th><th class="num">Nodo</th><th>Slot</th><th>Poi</th><th>Dove si fermano i docenti</th></tr></thead>
@@ -59,12 +61,8 @@
   <button type="button" class="secondario" id="precedente">← Precedente</button>
   <button type="button" class="secondario" id="successivo">Successivo →</button>
   <span class="tenue piccolo" id="posizione"></span>
-  <label class="spunta" style="margin-left: auto">Docenti da mostrare
-    <select id="filtro-docenti">
-      <option value="tutti">tutti</option>
-      <option value="con-ore">solo chi ha ancora ore in questa classe</option>
-      <option value="esauriti">solo chi ha esaurito le ore in questa classe</option>
-    </select></label>
+  <label class="spunta" style="margin-left: auto"><input type="checkbox" id="nascondi-buca">
+    Nascondi i backtrack con ora buca</label>
 </div>
 <h2>L'orario raggiunto</h2>
 <div id="orario-raggiunto"><p class="tenue piccolo">Scegli un backtrack nell'elenco qui sopra per vedere l'orario
