@@ -376,6 +376,7 @@ void traccia_backtrack(const int pos, const int giorno, const int ora, const int
                 c_contigue(giorno, ora, cla, p2, &f2, 3);
                 c_sabato_cod(pos, giorno, ora, base2d_ci, p1, p2, &f2, 4);
                 c_max_classi(pos, giorno, cla, p2, &f2, 5);
+                c_ingresso(ora, p2, &f2, 6);
                 fprintf(t, "],\"fermato_a\":%d}", f2);
                 incoerente |= f2 < 0;
             }
