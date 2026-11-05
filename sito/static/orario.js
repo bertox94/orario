@@ -170,7 +170,8 @@ function haEsauritoOre(x) {
 }
 
 // filtro: 'tutti', 'con-ore' (nasconde chi ha esaurito le ore in questa classe), 'esauriti' (nasconde chi ne ha ancora)
-function disegnaBacktrack(contenitore, d, b, filtro) {
+// La griglia "l'orario fino a qui" va in sopra (in cima alla pagina), il resto in contenitore (sotto l'elenco).
+function disegnaBacktrack(contenitore, d, b, filtro, sopra) {
   const s = slotDi(d, b.pos);
   const parti = [];
   parti.push(el('h3', {}, `Backtrack n. ${numeroIt(b.n)}: ${d.giorni[s.giorno]} ${d.ore[s.ora]} ${nomeClasse(d, s.classe)}`));
@@ -183,10 +184,11 @@ function disegnaBacktrack(contenitore, d, b, filtro) {
     'La traccia non rispecchia la ricerca: va segnalato.'));
   parti.push(el('h4', {testo: 'Lo slot'}));
   parti.push(tabellaControlli([b.slot], b.slot.uscita ? -1 : 0, d));
-  parti.push(el('h4', {testo: "L'orario fino a qui"}));
   const griglia = el('div');
   disegnaOrario(griglia, d, b.orario, {fino: b.pos, blocco: b.pos});
-  parti.push(griglia);
+  sopra.replaceChildren(el('p', {class: 'tenue piccolo'},
+    `Al backtrack n. ${numeroIt(b.n)}: ${d.giorni[s.giorno]} ${d.ore[s.ora]} ${nomeClasse(d, s.classe)} (in rosso).`),
+    griglia);
   // la griglia scorre in orizzontale fino allo slot del backtrack (che puo' stare a fine settimana)
   requestAnimationFrame(() => {
     const box = griglia.querySelector('.scorre'), td = griglia.querySelector('td.blocco');
@@ -238,12 +240,13 @@ function paginaTest(cfg) {
   const righe = new Map();  // n -> riga dell'elenco
   const elenco = $('elenco-backtrack');
   const dettaglio = $('dettaglio-backtrack');
+  const raggiunto = $('orario-raggiunto');
   const sceltaFiltro = $('filtro-docenti');
   let aperto = null;        // il backtrack disegnato, per ridisegnarlo quando cambia il filtro
   try { const f = localStorage.getItem('orario.filtroDocenti'); if (f) sceltaFiltro.value = f; } catch (e) {}
   sceltaFiltro.addEventListener('change', () => {
     try { localStorage.setItem('orario.filtroDocenti', sceltaFiltro.value); } catch (e) {}
-    if (aperto) disegnaBacktrack(dettaglio, d, aperto, sceltaFiltro.value);
+    if (aperto) disegnaBacktrack(dettaglio, d, aperto, sceltaFiltro.value, raggiunto);
   });
 
   async function caricaDati() {
@@ -292,7 +295,7 @@ function paginaTest(cfg) {
     $('posizione').textContent = `${numeroIt(n)} di ${numeroIt(righe.size)} registrati`;
     const r = await fetch(cfg.urlBacktrack.replace(/\/0$/, '/' + n));
     const b = await r.json();
-    if (scelto === n) { aperto = b; disegnaBacktrack(dettaglio, d, b, sceltaFiltro.value); }
+    if (scelto === n) { aperto = b; disegnaBacktrack(dettaglio, d, b, sceltaFiltro.value, raggiunto); }
   }
 
   function sposta(passo) {
