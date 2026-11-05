@@ -360,6 +360,14 @@ int verifica_ora_ingresso(const int prof, const int ora) {
     return ora >= ora_di_entrata_prof[prof];
 }
 
+// L'ora buca e' possibile solo dopo le ore obbligatorie e se le ore che restano alla classe stanno ancora nei giorni
+// dopo (un'ora buca chiude la giornata). Se no la classe deve fare lezione: senza docenti la ricerca torna indietro.
+// (Come in main.)
+int ora_buca_possibile(const int giorno, const int ora, const int cla) {
+    return ora >= PRIME_N_ORE_OBBLIGATORIE
+           && ore_classi[cla] - ore_classe_svolte[cla] <= actual_ore_giornaliere * (actual_giorni_settimana - 1 - giorno);
+}
+
 // ---- controllo in avanti (solo in questo solver) ----
 // Dopo aver messo una coppia o un docente nella cella pos, ogni cella obbligatoria che resta oggi deve avere ancora
 // almeno un docente possibile. Sono condizioni necessarie (se mancano tutte, in quella cella non puo' andare nessuno,
@@ -527,7 +535,7 @@ void print_orario(const int pos) {
                     giorni_settimana[giorno], ore_giornaliere[ora], classe_sezione[cla]);
             print(orario, pos, n_gen, f);
             traccia_backtrack(pos, giorno, ora, cla, base2d_ci, base3d_goi, base4d_queue,
-                              ora >= PRIME_N_ORE_OBBLIGATORIE);
+                              ora_buca_possibile(giorno, ora, cla));
         }
     } else if (ora < PRIME_N_ORE_OBBLIGATORIE) {
         // lo slot non puo' avere lezione e l'ora buca non e' ammessa: la ricerca torna indietro (solo traccia)
@@ -535,7 +543,7 @@ void print_orario(const int pos) {
     }
 
 
-    if (ora >= PRIME_N_ORE_OBBLIGATORIE) {
+    if (ora_buca_possibile(giorno, ora, cla)) {
         orario[pos] = (teaching_slot){-1, -1};
         n_ore_buche[base2d_gc + cla]++;
         print_orario(pos + 1);
