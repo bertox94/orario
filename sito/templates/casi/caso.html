@@ -44,6 +44,11 @@
 <div id="orario-trovato"></div>
 {% endif %}
 
+<h2>Classi, docenti e codocenze</h2>
+<p class="tenue piccolo">I dati del test: le ore di ogni classe (e quante ne restano buche) e, per ogni docente, le
+  classi in cui insegna e le codocenze, con il grafo delle coppie.</p>
+<div id="dati-caso"><p class="tenue piccolo">Caricamento…</p></div>
+
 <h2>Backtrack</h2>
 <p class="tenue piccolo">Un backtrack è uno slot in cui la ricerca non è riuscita a mettere nessun docente.
   Registrati: <strong id="n-registrati">{{ n_registrati|numero }}</strong>{% if fine %} su {{ fine.backtrack|numero }}

@@ -237,3 +237,10 @@ table.orario td.ritorno { outline: 2px solid var(--ok); outline-offset: -2px; }
 #intestazione-backtrack { display: flow-root; min-height: 5.6em; }
 #intestazione-backtrack h3 { margin: 10px 0 2px; }
 #intestazione-backtrack p { margin: 0 0 6px; }
+/* i dati del test: classi, docenti e il grafo delle codocenze */
+.dati-caso { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+svg.grafo-codocenze { max-width: 440px; width: 100%; height: auto; }
+svg.grafo-codocenze .filo { stroke: var(--male); stroke-opacity: .55; }
+svg.grafo-codocenze .nodo { fill: var(--testo); }
+svg.grafo-codocenze text { fill: var(--tenue); }
+table.dati tr.seguito td { border-top: none; }

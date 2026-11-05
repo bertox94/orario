@@ -318,6 +318,108 @@ function disegnaBacktrack(contenitore, d, b, filtro, sopra, prima, passo) {
   sostituisci(contenitore, ...parti);
 }
 
+// ---- i dati del test: classi, docenti e codocenze ----
+// Per ogni classe le ore da fare e quante ne restano buche; per ogni docente le classi in cui insegna (con le ore, da
+// solo e in codocenza con chi) e un grafo delle codocenze: docenti su un cerchio, un filo per coppia, spessore = ore
+// insieme. Viene dalle cattedre del record "dati" della traccia ({docente, classe, ore, da_solo, codocenze: [{con,
+// ore}]}, ogni codocenza scritta da tutte e due le parti). I dati non cambiano: si disegna una volta sola.
+function disegnaDatiCaso(contenitore, d) {
+  if (!contenitore || contenitore.dataset.fatto || !d || !d.cattedre) return;
+  contenitore.dataset.fatto = '1';
+  const nome = i => nomeDoc(d, i);
+  const perDocente = d.docenti.map(() => ({tot: 0, classi: []}));
+  const coppie = new Map();  // "a+b" (a < b) -> ore insieme, in tutte le classi
+  const lezioni = d.classi.map(() => 0);  // ore di lezione di ogni classe (una codocenza e' un'ora sola)
+  for (const x of d.cattedre) {
+    perDocente[x.docente].tot += x.ore;
+    perDocente[x.docente].classi.push(x);
+    lezioni[x.classe] += x.da_solo;
+    for (const k of x.codocenze) {
+      lezioni[x.classe] += k.ore / 2;  // la stessa codocenza c'e' anche nella cattedra dell'altro
+      if (x.docente < k.con) coppie.set(x.docente + '+' + k.con, (coppie.get(x.docente + '+' + k.con) || 0) + k.ore);
+    }
+  }
+
+  // le classi: ore da fare, slot della settimana e ore buche (slot che resteranno vuoti)
+  const slot = d.giorni.length * d.ore.length;
+  let oreTot = 0, lezTot = 0;
+  const riga = (celle, stile) => el('tr', {style: stile}, celle.map(([v, num, titolo]) =>
+    el('td', {class: num ? 'num' : null, title: titolo, testo: v})));
+  const righeClassi = d.classi.map((cl, c) => {
+    oreTot += cl.ore; lezTot += lezioni[c];
+    return riga([[cl.nome], [cl.ore, 1], [lezioni[c], 1], [slot, 1], [slot - cl.ore, 1]]);
+  });
+  righeClassi.push(riga([['Totale'], [oreTot, 1], [lezTot, 1], [slot * d.classi.length, 1],
+    [slot * d.classi.length - oreTot, 1]], 'font-weight: 600'));
+  const th = (testo, titolo, num) => el('th', {class: num ? 'num' : null, title: titolo, testo});
+  const tabellaClassi = el('div', {class: 'scorre alta', style: 'flex: 1 1 320px'}, el('table', {class: 'dati'}, [
+    el('thead', {}, el('tr', {}, [th('Classe'), th('Ore', 'ore di lezione che la classe deve fare', 1),
+      th('Lezioni', 'somma delle ore delle sue lezioni (una codocenza conta un\'ora)', 1),
+      th('Slot', 'slot della settimana (giorni × ore)', 1),
+      th('Buche', 'slot che resteranno vuoti (solo dopo le ore obbligatorie)', 1)])),
+    el('tbody', {}, righeClassi)]));
+
+  // i docenti, in ordine alfabetico: una riga per ogni classe in cui insegnano (nome e ore totali nella prima)
+  const righeDocenti = [];
+  perDocente.map((s, i) => [s, i]).filter(([s]) => s.tot)
+    .sort((x, y) => nome(x[1]).localeCompare(nome(y[1]), 'it')).forEach(([s, i]) => {
+      s.classi.sort((x, y) => x.classe - y.classe).forEach((x, k) => {
+        const tr = el('tr', {class: k ? 'seguito' : null});
+        if (!k) tr.append(el('td', {style: 'white-space: nowrap', rowspan: s.classi.length, testo: nome(i)}),
+          el('td', {class: 'num', rowspan: s.classi.length, title: 'ore totali, in tutte le classi', testo: s.tot}));
+        tr.append(el('td', {testo: nomeClasse(d, x.classe)}), el('td', {class: 'num', testo: x.ore}),
+          el('td', {class: 'num', testo: x.da_solo || '—'}),
+          el('td', {testo: x.codocenze.map(k => `${nome(k.con)} ×${k.ore}`).join(' · ') || '—'}));
+        righeDocenti.push(tr);
+      });
+    });
+  const tabellaDocenti = el('div', {class: 'scorre alta', style: 'flex: 2 1 460px'}, el('table', {class: 'dati'}, [
+    el('thead', {}, el('tr', {}, [th('Docente'), th('Ore', 'in tutte le classi', 1), th('Classe'),
+      th('Ore', 'ore in questa classe (da solo e in codocenza)', 1), th('Da solo', 'ore da solo in questa classe', 1),
+      th('In codocenza con', 'con chi insegna in questa classe, e per quante ore')])),
+    el('tbody', {}, righeDocenti)]));
+
+  // il grafo delle codocenze: solo i docenti che ne hanno
+  const coinvolti = [...new Set([...coppie.keys()].flatMap(k => k.split('+').map(Number)))].sort((a, b) => a - b);
+  let grafo = null;
+  if (coinvolti.length) {
+    const L = 420, R = L / 2 - 58, cx = L / 2, cy = L / 2, ns = 'http://www.w3.org/2000/svg';
+    const punto = i => {
+      const a = 2 * Math.PI * coinvolti.indexOf(i) / coinvolti.length - Math.PI / 2;
+      return [cx + R * Math.cos(a), cy + R * Math.sin(a), a];
+    };
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', `0 0 ${L} ${L}`);
+    svg.setAttribute('class', 'grafo-codocenze');
+    const figlio = (tag, attributi, testo) => {
+      const e = document.createElementNS(ns, tag);
+      for (const [k, v] of Object.entries(attributi)) e.setAttribute(k, v);
+      if (testo !== undefined) e.textContent = testo;
+      svg.appendChild(e);
+      return e;
+    };
+    for (const [k, ore] of coppie) {
+      const [a, b] = k.split('+').map(Number), [x1, y1] = punto(a), [x2, y2] = punto(b);
+      const linea = figlio('line', {x1, y1, x2, y2, class: 'filo', 'stroke-width': Math.min(1 + ore, 7)});
+      const titolo = document.createElementNS(ns, 'title');
+      titolo.textContent = `${nome(a)} + ${nome(b)}: ${ore} ore insieme`;
+      linea.appendChild(titolo);
+    }
+    for (const i of coinvolti) {
+      const [x, y, a] = punto(i);
+      figlio('circle', {cx: x, cy: y, r: 4, class: 'nodo'});
+      figlio('text', {x: x + 14 * Math.cos(a), y: y + 14 * Math.sin(a) + 4, 'font-size': 12,
+        'text-anchor': Math.cos(a) > 0.3 ? 'start' : Math.cos(a) < -0.3 ? 'end' : 'middle'}, nome(i));
+    }
+    const senza = perDocente.filter((s, i) => s.tot && !coinvolti.includes(i)).length;
+    grafo = el('div', {style: 'flex: 1 1 300px; min-width: 280px'}, [svg, el('p', {class: 'tenue piccolo',
+      testo: 'Grafo delle codocenze: un filo per coppia, più spesso = più ore insieme (passaci sopra per i numeri).' +
+        (senza === 1 ? ' Un docente senza codocenze non è nel grafo.' :
+         senza ? ` ${senza} docenti senza codocenze non sono nel grafo.` : '')})]);
+  }
+  contenitore.replaceChildren(el('div', {class: 'dati-caso'}, [tabellaClassi, tabellaDocenti, ...(grafo ? [grafo] : [])]));
+}
+
 // ---- la pagina di un test ----
 
 function paginaTest(cfg) {
@@ -1013,6 +1115,7 @@ function paginaTest(cfg) {
 
   async function aggiungiBacktrack() {
     if (!(await caricaDati())) return;
+    disegnaDatiCaso($('dati-caso'), d);  // mentre il test gira, i dati arrivano dopo
     // il sito ne manda al massimo 5000 per volta: si chiede il resto finche' ce n'e'
     for (;;) {
       const r = await fetch(cfg.urlElenco + '?da=' + ultimo);
@@ -1062,6 +1165,7 @@ function paginaTest(cfg) {
   });
 
   if (cfg.orario && d) disegnaOrario($('orario-trovato'), d, cfg.orario);
+  disegnaDatiCaso($('dati-caso'), d);
 
   async function segui() {
     try {
