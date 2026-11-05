@@ -1,0 +1,174 @@
+:root {
+  --sfondo: #f6f7f9;
+  --superficie: #ffffff;
+  --testo: #1d2330;
+  --tenue: #5d6677;
+  --bordo: #dfe3ea;
+  --accento: #2f5fd0;
+  --accento-tenue: #e7eefc;
+  --ok: #1d7a46;
+  --ok-tenue: #e3f4ea;
+  --male: #b3261e;
+  --male-tenue: #fbe7e5;
+  --attenzione: #946200;
+  --attenzione-tenue: #fdf3dc;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --sfondo: #14171d;
+    --superficie: #1c2028;
+    --testo: #e6e9ef;
+    --tenue: #9aa3b4;
+    --bordo: #2e3440;
+    --accento: #7aa2ff;
+    --accento-tenue: #24304d;
+    --ok: #6fd39b;
+    --ok-tenue: #1d3328;
+    --male: #ff8a80;
+    --male-tenue: #3b2220;
+    --attenzione: #f0c25c;
+    --attenzione-tenue: #3a3220;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--sfondo); color: var(--testo);
+  font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+a { color: var(--accento); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.testata {
+  display: flex; align-items: center; gap: 24px; padding: 10px 20px;
+  background: var(--superficie); border-bottom: 1px solid var(--bordo); flex-wrap: wrap;
+}
+.marchio { font-weight: 700; font-size: 18px; color: var(--testo); }
+.testata nav { display: flex; gap: 4px; flex-wrap: wrap; flex: 1; }
+.testata nav a { padding: 6px 12px; border-radius: 6px; color: var(--tenue); }
+.testata nav a.attiva { background: var(--accento-tenue); color: var(--accento); font-weight: 600; }
+.esci { margin: 0; }
+main { max-width: 1400px; margin: 0 auto; padding: 20px 16px 60px; }
+h1 { font-size: 22px; margin: 0 0 16px; }
+h2 { font-size: 17px; margin: 28px 0 10px; }
+h3 { font-size: 15px; margin: 18px 0 8px; }
+.tenue { color: var(--tenue); }
+.piccolo { font-size: 13px; }
+
+.scheda { background: var(--superficie); border: 1px solid var(--bordo); border-radius: 10px; padding: 16px; margin: 0 0 16px; }
+.griglia-schede { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.numero { font-size: 26px; font-weight: 700; }
+.etichetta { color: var(--tenue); font-size: 13px; }
+.due-colonne { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .due-colonne { grid-template-columns: 1fr; } }
+
+table.dati { width: 100%; border-collapse: collapse; background: var(--superficie); }
+table.dati th, table.dati td { padding: 6px 10px; border-bottom: 1px solid var(--bordo); text-align: left; vertical-align: top; }
+table.dati th { font-size: 13px; color: var(--tenue); font-weight: 600; }
+table.dati td.num, table.dati th.num { text-align: right; font-variant-numeric: tabular-nums; }
+table.dati tr:hover td { background: var(--accento-tenue); }
+.scorre { overflow-x: auto; }
+
+form.riga { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+label { display: flex; flex-direction: column; gap: 3px; font-size: 13px; color: var(--tenue); }
+label.spunta { flex-direction: row; align-items: center; gap: 6px; color: var(--testo); }
+input, select, textarea {
+  font: inherit; color: var(--testo); background: var(--superficie);
+  border: 1px solid var(--bordo); border-radius: 6px; padding: 6px 8px;
+}
+input[type=number] { width: 90px; }
+textarea { width: 100%; min-height: 80px; }
+button, .bottone {
+  font: inherit; cursor: pointer; border: 1px solid var(--accento); background: var(--accento); color: #fff;
+  border-radius: 6px; padding: 6px 14px; display: inline-block;
+}
+button.secondario, .bottone.secondario { background: transparent; color: var(--accento); }
+button.pericolo { background: var(--male); border-color: var(--male); }
+button.link { background: none; border: none; color: var(--tenue); padding: 4px; }
+button:disabled { opacity: .5; cursor: default; }
+form.in-linea { display: inline; margin: 0; }
+
+.avviso { padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; background: var(--accento-tenue); }
+.avviso.errore { background: var(--male-tenue); color: var(--male); }
+.avviso.ok { background: var(--ok-tenue); color: var(--ok); }
+.avviso.attenzione { background: var(--attenzione-tenue); color: var(--attenzione); }
+
+.esito { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 13px; white-space: nowrap; }
+.esito-trovato, .esito-finita, .esito-verifica-superata { background: var(--ok-tenue); color: var(--ok); }
+.esito-impossibile, .esito-errore, .esito-errore-nei-dati, .esito-nessuna-soluzione { background: var(--male-tenue); color: var(--male); }
+.esito-non-finito, .esito-interrotto, .esito-fermato, .esito-interrotta, .esito-annullata, .esito-annullamento { background: var(--attenzione-tenue); color: var(--attenzione); }
+.esito-in-corso, .esito-in-coda { background: var(--accento-tenue); color: var(--accento); }
+
+pre.testo { background: var(--superficie); border: 1px solid var(--bordo); border-radius: 8px; padding: 12px; overflow-x: auto; font-size: 13px; }
+
+/* griglia dell'orario (static/orario.js): righe = classi, colonne = giorni e ore */
+table.orario { border-collapse: collapse; font-size: 12px; background: var(--superficie); }
+table.orario th, table.orario td { border: 1px solid var(--bordo); padding: 3px 5px; text-align: center; }
+table.orario th { font-weight: 600; color: var(--tenue); background: var(--sfondo); position: sticky; top: 0; }
+table.orario th.classe, table.orario td.classe { position: sticky; left: 0; background: var(--sfondo); text-align: left; }
+table.orario td { min-width: 62px; height: 36px; line-height: 1.2; }
+table.orario td.inizio-giorno, table.orario th.inizio-giorno { border-left: 2px solid var(--tenue); }
+table.orario td .cod { color: var(--tenue); font-size: 11px; display: block; }
+table.orario td, table.orario td .cod { white-space: nowrap; }
+table.orario td.buca { color: var(--tenue); }
+table.orario td.dopo { background: var(--sfondo); }
+/* lo slot del backtrack: la ricerca non ha potuto mettere nessun docente */
+table.orario td.blocco { outline: 2px solid var(--male); outline-offset: -2px; color: var(--male); font-weight: 700;
+  background: var(--male-tenue); scroll-margin: 90px 40px; }
+table.orario tr.classe-blocco td.classe { color: var(--male); font-weight: 700; }
+.barra { height: 8px; background: var(--bordo); border-radius: 4px; overflow: hidden; }
+.barra > div { height: 100%; background: var(--accento); }
+input.stretto { width: 5em; }
+.scorre.alta { max-height: 60vh; overflow: auto; }
+.scorre.alta table.dati thead th { position: sticky; top: 0; background: var(--sfondo); z-index: 1; }
+
+/* elenco dei backtrack */
+table.dati tr.backtrack { cursor: pointer; }
+table.dati tr.backtrack.scelto td { background: var(--accento-tenue); font-weight: 600; }
+.motivo { display: inline-block; padding: 0 6px; margin: 1px 2px 1px 0; border-radius: 8px; background: var(--male-tenue);
+  color: var(--male); font-size: 12px; white-space: nowrap; }
+.barra-comandi { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
+
+/* un backtrack: i controlli di ogni docente */
+.docente { border: 1px solid var(--bordo); border-radius: 8px; padding: 8px 12px; margin: 0 0 10px; background: var(--superficie); }
+.docente h4 { margin: 0 0 4px; font-size: 14px; }
+.docente h5 { margin: 8px 0 2px; font-size: 13px; color: var(--tenue); font-weight: 600; }
+table.controlli { border-collapse: collapse; font-size: 13px; width: 100%; }
+table.controlli td { padding: 2px 8px 2px 0; vertical-align: top; border-bottom: 1px dotted var(--bordo); }
+table.controlli td.segno { width: 1.6em; font-weight: 700; }
+table.controlli tr.si td.segno { color: var(--ok); }
+table.controlli tr.no td { color: var(--male); }
+table.controlli tr.no td.nome { font-weight: 700; }
+/* dopo il primo controllo falso la ricerca non valuta gli altri (&&): si mostrano in grigio */
+table.controlli tr.non-valutato td { color: var(--tenue); opacity: .7; }
+table.controlli code { font-size: 11px; color: var(--tenue); }
+.ingressi { font-variant-numeric: tabular-nums; }
+
+/* Tabelle larghe: barra di scorrimento e, sotto, un cursore che resta in fondo allo schermo finche' la tabella e'
+   visibile (static/orario.js, aggiornaCursori). Compaiono solo con il mouse sopra la tabella (o sul cursore, o con il
+   cursore selezionato da tastiera); lo spazio resta riservato, cosi' la pagina non si sposta quando compaiono.
+   Senza mouse (telefono, tablet) il cursore non c'e': si scorre la tabella con il dito. */
+.scorre { scrollbar-width: auto; scrollbar-color: transparent transparent; }
+.scorre::-webkit-scrollbar { height: 12px; }
+.scorre::-webkit-scrollbar-track, .scorre::-webkit-scrollbar-thumb { background: transparent; border-radius: 6px; }
+.scorre:hover, .con-cursore:hover .scorre { scrollbar-color: var(--tenue) var(--bordo); }
+.scorre:hover::-webkit-scrollbar-track, .con-cursore:hover .scorre::-webkit-scrollbar-track { background: var(--bordo); }
+.scorre:hover::-webkit-scrollbar-thumb, .con-cursore:hover .scorre::-webkit-scrollbar-thumb { background: var(--tenue); }
+.con-cursore { margin-bottom: 12px; }
+.cursore-tabella {
+  display: block; width: 100%; margin: 6px 0 0; padding: 6px 0;
+  position: sticky; bottom: 0; z-index: 2;
+  background: var(--sfondo); border: none; accent-color: var(--accento); cursor: ew-resize;
+  opacity: 0; transition: opacity .15s;
+}
+.con-cursore:hover .cursore-tabella, .cursore-tabella:focus-visible { opacity: 1; }
+.cursore-tabella[hidden] { display: none; }  /* tabella che non deborda */
+@media (hover: none) {
+  .cursore-tabella { display: none; }
+}
+/* Celle fisse mentre la tabella scorre: l'angolo "Classe" sopra a tutto, poi le intestazioni, poi la colonna delle classi
+   (altrimenti scorrendo le intestazioni delle ore passano sopra l'angolo). */
+table.orario th { z-index: 1; }
+table.orario td.classe { z-index: 2; }
+table.orario th.classe { z-index: 3; }
+

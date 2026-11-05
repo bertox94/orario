@@ -1,0 +1,96 @@
+"""La pagina di un test: mentre gira (progresso, backtrack man mano che arrivano) e dopo (esito, orario trovato,
+backtrack). Ogni backtrack si apre con l'orario fino a quel punto e i controlli di main per ogni docente."""
+import json
+
+from flask import Blueprint, Response, abort, jsonify, render_template, request, stream_with_context
+
+from . import esecutore
+from .db import conn
+
+bp = Blueprint('casi', __name__, url_prefix='/casi')
+
+
+def _esecuzione(eid):
+    e = conn().execute('select e.*, p.nome as prova_nome, p.commit, p.stato as stato_prova, p.messaggio, '
+                       'p.opzioni as opzioni_prova from esecuzioni e join prove p on p.id = e.prova_id '
+                       'where e.id = %s', (eid,)).fetchone()
+    if not e:
+        abort(404)
+    return e
+
+
+@bp.route('/<int:eid>')
+def caso(eid):
+    e = _esecuzione(eid)
+    n = conn().execute('select count(*) as n from backtrack where esecuzione_id = %s', (eid,)).fetchone()['n']
+    return render_template('casi/caso.html', e=e, r=e['risultato'] or {}, n_registrati=n,
+                           in_corso=esecutore.in_corso(eid))
+
+
+@bp.route('/<int:eid>/stato')
+def stato(eid):
+    """Interrogato ogni secondo dalla pagina mentre il test gira."""
+    e = conn().execute('select esito, risultato is not null and risultato ? %s as con_dati from esecuzioni '
+                       'where id = %s', ('dati', eid)).fetchone()
+    n = conn().execute('select count(*) as n from backtrack where esecuzione_id = %s', (eid,)).fetchone()['n']
+    return jsonify({'esito': e['esito'], 'in_corso': esecutore.in_corso(eid), 'progresso': esecutore.progresso(eid),
+                    'registrati': n, 'con_dati': e['con_dati']})
+
+
+@bp.route('/<int:eid>/dati')
+def dati(eid):
+    """I nomi di giorni, ore, classi e docenti e le cattedre (il record "dati" della traccia)."""
+    e = conn().execute('select risultato from esecuzioni where id = %s', (eid,)).fetchone()
+    d = (e['risultato'] or {}).get('dati') if e else None
+    return jsonify(d or {})
+
+
+@bp.route('/<int:eid>/backtrack')
+def elenco_backtrack(eid):
+    """I backtrack registrati, in breve (?da=N per avere solo quelli dopo il numero N)."""
+    da = request.args.get('da', 0, type=int)
+    righe = conn().execute('select n, nodo, pos, giorno, ora, classe, buca_dopo, riassunto from backtrack '
+                           'where esecuzione_id = %s and n > %s order by n limit 5000', (eid, da)).fetchall()
+    return jsonify([dict(r) for r in righe])
+
+
+@bp.route('/<int:eid>/backtrack/<int:n>')
+def un_backtrack(eid, n):
+    r = conn().execute('select record from backtrack where esecuzione_id = %s and n = %s', (eid, n)).fetchone()
+    if not r:
+        abort(404)
+    return jsonify(r['record'])
+
+
+@bp.route('/<int:eid>/ferma', methods=['POST'])
+def ferma(eid):
+    esecutore.ferma_esecuzione(eid)
+    return jsonify({'ok': True})
+
+
+@bp.route('/<int:eid>/dati.json')
+def scarica_dati(eid):
+    """I dati del test nel formato di --input: si possono ricaricare in un test o importare nei dati della scuola."""
+    p = conn().execute('select p.dati_scuola from prove p join esecuzioni e on e.prova_id = p.id where e.id = %s',
+                       (eid,)).fetchone()
+    if not p or not p['dati_scuola']:
+        abort(404)
+    return Response(json.dumps(p['dati_scuola'], ensure_ascii=False, indent=1), mimetype='application/json',
+                    headers={'Content-Disposition': 'attachment; filename="test-%d-dati.json"' % eid})
+
+
+@bp.route('/<int:eid>/backtrack.json')
+def scarica_backtrack(eid):
+    """Tutti i backtrack registrati, come nella traccia del solver (un JSON per riga)."""
+    def righe():
+        ultimo = 0
+        while True:  # a blocchi: non si tiene tutto in memoria
+            blocco = conn().execute('select n, record from backtrack where esecuzione_id = %s and n > %s order by n '
+                                    'limit 200', (eid, ultimo)).fetchall()
+            if not blocco:
+                return
+            for r in blocco:
+                yield json.dumps(r['record'], ensure_ascii=False) + '\n'
+            ultimo = blocco[-1]['n']
+    return Response(stream_with_context(righe()), mimetype='application/x-ndjson',
+                    headers={'Content-Disposition': 'attachment; filename="test-%d-backtrack.jsonl"' % eid})

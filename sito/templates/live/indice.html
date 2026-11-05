@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block titolo %}Test in tempo reale{% endblock %}
+{% block contenuto %}
+<h1>Test in tempo reale</h1>
+<form method="post" action="{{ url_for('live.avvia') }}" class="scheda" id="caso" enctype="multipart/form-data">
+  <input type="hidden" name="_gettone" value="{{ gettone }}">
+  <h2 style="margin-top: 0">Dati</h2>
+  <div class="riga" style="display: flex; flex-wrap: wrap; gap: 16px; align-items: end;">
+    <label class="spunta"><input type="radio" name="sorgente" value="scuola"
+      {{ 'checked' if preseleziona_scuola }} {{ 'disabled' if not n_classi }}>
+      Dati della scuola {% if not n_classi %}<span class="tenue">(non ancora inseriti)</span>{% endif %}</label>
+    <label class="spunta"><input type="radio" name="sorgente" value="casuale" {{ 'checked' if not preseleziona_scuola }}>
+      Dati casuali</label>
+    <label class="spunta"><input type="radio" name="sorgente" value="file"> Da un file JSON
+      <input type="file" name="file" accept=".json,application/json" style="font: inherit"></label>
+  </div>
+  <div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; align-items: end;">
+    <label>Seme dei dati casuali <input type="number" name="seme" min="0" value="1"></label>
+    <label>Classi <input type="number" name="classi" min="1" max="120" value="8"></label>
+    <label class="spunta"><input type="checkbox" name="ritardi" value="1"> Docenti in ritardo</label>
+  </div>
+  <p class="tenue piccolo">Il seme decide <em>quale scuola inventare</em>: classi, docenti, lezioni e codocenze (stesso seme
+    = stessi dati). Il file JSON è un file esportato dai dati della scuola o i dati di un test: il test li usa senza
+    toccare quelli della scuola.</p>
+
+  <h2>Ricerca</h2>
+  <div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
+    <label>Tempo massimo (s, 0 = senza limite) <input type="number" name="tempo" min="0" value="60"></label>
+    <label>Orari da trovare <input type="number" name="orari" min="1" max="1000" value="1"></label>
+    <label>Backtrack da registrare <input type="number" name="max_backtrack" min="0" max="10000" value="1000"></label>
+  </div>
+  <p class="tenue piccolo">A ogni backtrack (uno slot in cui la ricerca non riesce a mettere nessun docente) il test
+    registra l'orario fino a quel punto e, per ogni docente, i controlli della ricerca con i valori che leggono e il loro
+    esito. Oltre il numero indicato i backtrack si contano soltanto. I controlli sono quelli del solver attuale.</p>
+  <p><button>Avvia</button></p>
+</form>
+
+{% if da_verificare %}
+<h2>Test da verificare</h2>
+<p class="tenue piccolo">I test che non sono arrivati a una conclusione (fermati, finiti per il tempo, in errore). La ✕
+  toglie il test da questo elenco (il test resta tra quelli recenti).</p>
+<form method="post" action="{{ url_for('live.verificato_tutti') }}" style="margin: 0 0 8px" id="svuota-verificare">
+  <input type="hidden" name="_gettone" value="{{ gettone }}">
+  <button class="secondario" type="submit">Svuota l'elenco</button>
+</form>
+<div class="scorre" id="da-verificare"><table class="dati">
+  <thead><tr><th>Test</th><th>Quando</th><th>Esito</th><th class="num">Backtrack</th><th>Riassunto</th><th></th></tr></thead>
+  <tbody>{% for n in da_verificare %}
+    <tr><td><a href="{{ url_for('casi.caso', eid=n.id) }}">{{ n.caso }}</a></td>
+      <td class="piccolo" style="white-space: nowrap">{{ n.quando|data if n.quando }}</td>
+      <td><span class="esito {{ n.esito|classe_esito }}">{{ n.esito }}</span></td>
+      <td class="num">{{ n.marce|numero }}</td><td class="piccolo">{{ n.diagnosi or '' }}</td>
+      <td><form method="post" action="{{ url_for('live.verificato', eid=n.id) }}" class="in-linea togli-verificare">
+          <input type="hidden" name="_gettone" value="{{ gettone }}">
+          <button class="secondario" type="submit" title="Togli dall'elenco (il test resta)">✕</button>
+        </form></td></tr>
+  {% endfor %}</tbody></table></div>
+{% endif %}
+
+<h2>Test recenti</h2>
+<div class="scorre">
+<table class="dati">
+  <thead><tr><th>#</th><th>Dati</th><th>Quando</th><th>Esito</th><th class="num">Backtrack</th><th class="num">Durata</th><th>Riassunto</th><th></th></tr></thead>
+  <tbody>
+  {% for p in prove %}
+    <tr>
+      <td>{{ p.id }}</td>
+      <td>{% if p.eid %}<a href="{{ url_for('casi.caso', eid=p.eid) }}">{{ p.nome or '-' }}</a>{% else %}{{ p.nome or '-' }}{% endif %}</td>
+      <td>{{ p.creata|data }}</td>
+      <td><span class="esito {{ (p.esito or p.stato)|classe_esito }}">{{ p.esito or p.stato }}</span></td>
+      <td class="num">{{ p.marce|numero }}</td>
+      <td class="num">{{ p.secondi|durata }}</td>
+      <td class="piccolo">{{ p.diagnosi or p.messaggio or '' }}</td>
+      <td>
+        <form method="post" action="{{ url_for('live.elimina', pid=p.id) }}" class="in-linea"
+              onsubmit="return confirm('Eliminare questo test?')">
+          <input type="hidden" name="_gettone" value="{{ gettone }}">
+          <button class="link" title="Elimina">✕</button>
+        </form>
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="8" class="tenue">Nessun test.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}
+{% block script %}
+<script>
+// la ✕ dei test da verificare toglie la riga senza ricaricare la pagina
+document.querySelectorAll('form.togli-verificare').forEach(f => f.addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const r = await fetch(f.action, {method: 'POST', headers: {'X-Gettone': window.GETTONE}});
+  if (r.ok) f.closest('tr').remove();
+  if (!document.querySelector('#da-verificare tbody tr')) document.getElementById('svuota-verificare').hidden = true;
+}));
+</script>
+{% endblock %}

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titolo %}Orario{% endblock %} · Orario</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='stile.css') }}">
+  <script>window.GETTONE = "{{ gettone }}";</script>
+</head>
+<body>
+<header class="testata">
+  <a class="marchio" href="{{ url_for('home') }}">Orario</a>
+  {% if utente %}
+  {% if scuola %}
+  <nav>
+    <a href="{{ url_for('dati.indice') }}" class="{{ 'attiva' if request.blueprint == 'dati' }}">Dati della scuola</a>
+    <a href="{{ url_for('live.indice') }}" class="{{ 'attiva' if request.blueprint in ('live', 'casi') }}">Test in tempo reale</a>
+  </nav>
+  {% endif %}
+  <span class="chi">
+    {% if scuola %}<strong>{{ scuola.nome }}</strong> · <a href="{{ url_for('accesso.scuole', cambia=1) }}">cambia scuola</a> ·{% endif %}
+    {% if utente.amministratore %}<a href="{{ url_for('accesso.amministrazione') }}">amministrazione</a> ·{% endif %}
+    {{ utente.nome }}
+  </span>
+  <form method="post" action="{{ url_for('logout') }}" class="esci">
+    <input type="hidden" name="_gettone" value="{{ gettone }}">
+    <button class="link">Esci</button>
+  </form>
+  {% endif %}
+</header>
+<main>
+  {% with messaggi = get_flashed_messages(with_categories=true) %}
+    {% for categoria, m in messaggi %}<div class="avviso {{ categoria }}">{{ m }}</div>{% endfor %}
+  {% endwith %}
+  {% block contenuto %}{% endblock %}
+</main>
+<script src="{{ url_for('static', filename='orario.js') }}"></script>
+{% block script %}{% endblock %}
+</body>
+</html>
