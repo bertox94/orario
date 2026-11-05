@@ -162,7 +162,15 @@ function esitoTesto(fermato, controlli, d) {
   return fermato >= 0 ? `si ferma a «${descrizioneControllo(controlli[fermato].nome, d)}»` : 'passa tutti i controlli';
 }
 
-function disegnaBacktrack(contenitore, d, b) {
+// Ha esaurito le ore in questa classe? Lo dice il controllo deve_ancora_svolgere_ore_in_questa_classe, che la traccia
+// calcola per ogni docente (anche quando la ricerca si ferma prima).
+function haEsauritoOre(x) {
+  const c = x.controlli.find(c => c.nome === 'deve_ancora_svolgere_ore_in_questa_classe');
+  return c ? !c.uscita : false;
+}
+
+// filtro: 'tutti', 'con-ore' (nasconde chi ha esaurito le ore in questa classe), 'esauriti' (nasconde chi ne ha ancora)
+function disegnaBacktrack(contenitore, d, b, filtro) {
   const s = slotDi(d, b.pos);
   const parti = [];
   parti.push(el('h3', {}, `Backtrack n. ${numeroIt(b.n)}: ${d.giorni[s.giorno]} ${d.ore[s.ora]} ${nomeClasse(d, s.classe)}`));
@@ -184,12 +192,18 @@ function disegnaBacktrack(contenitore, d, b) {
     const box = griglia.querySelector('.scorre'), td = griglia.querySelector('td.blocco');
     if (box && td) box.scrollLeft = Math.max(0, td.offsetLeft - box.clientWidth / 2);
   });
+  const mostrati = b.docenti.filter(x => filtro === 'con-ore' ? !haEsauritoOre(x)
+                                       : filtro === 'esauriti' ? haEsauritoOre(x) : true);
+  const nascosti = b.docenti.length - mostrati.length;
   if (b.docenti.length) {
     parti.push(el('h4', {testo: 'I docenti della classe, nell\'ordine in cui la ricerca li prova'}));
     parti.push(el('p', {class: 'tenue piccolo'}, 'L\'ordine è quello della coda: prima chi ha più ore da fare (la ' +
       'priorità). ✓ = vero, ✗ = falso; la ricerca si ferma al primo ✗, i controlli in grigio non li valuta.'));
+    if (nascosti) parti.push(el('p', {class: 'tenue piccolo'}, `${nascosti} docent${nascosti === 1 ? 'e nascosto' :
+      'i nascosti'} (${filtro === 'con-ore' ? 'hanno già fatto tutte le ore' : 'hanno ancora ore'} in questa classe): ` +
+      'si cambia con «Docenti da mostrare» qui sopra.'));
   }
-  for (const x of b.docenti) {
+  for (const x of mostrati) {
     const blocco = el('div', {class: 'docente'});
     blocco.append(el('h4', {}, `${nomeDoc(d, x.docente)} · priorità ${x.priorita} · ${esitoTesto(x.fermato_a, x.controlli, d)}`));
     blocco.append(tabellaControlli(x.controlli, x.fermato_a, d));
@@ -224,6 +238,13 @@ function paginaTest(cfg) {
   const righe = new Map();  // n -> riga dell'elenco
   const elenco = $('elenco-backtrack');
   const dettaglio = $('dettaglio-backtrack');
+  const sceltaFiltro = $('filtro-docenti');
+  let aperto = null;        // il backtrack disegnato, per ridisegnarlo quando cambia il filtro
+  try { const f = localStorage.getItem('orario.filtroDocenti'); if (f) sceltaFiltro.value = f; } catch (e) {}
+  sceltaFiltro.addEventListener('change', () => {
+    try { localStorage.setItem('orario.filtroDocenti', sceltaFiltro.value); } catch (e) {}
+    if (aperto) disegnaBacktrack(dettaglio, d, aperto, sceltaFiltro.value);
+  });
 
   async function caricaDati() {
     if (d) return d;
@@ -271,7 +292,7 @@ function paginaTest(cfg) {
     $('posizione').textContent = `${numeroIt(n)} di ${numeroIt(righe.size)} registrati`;
     const r = await fetch(cfg.urlBacktrack.replace(/\/0$/, '/' + n));
     const b = await r.json();
-    if (scelto === n) disegnaBacktrack(dettaglio, d, b);
+    if (scelto === n) { aperto = b; disegnaBacktrack(dettaglio, d, b, sceltaFiltro.value); }
   }
 
   function sposta(passo) {

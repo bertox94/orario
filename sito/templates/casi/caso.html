@@ -59,6 +59,12 @@
   <button type="button" class="secondario" id="precedente">← Precedente</button>
   <button type="button" class="secondario" id="successivo">Successivo →</button>
   <span class="tenue piccolo" id="posizione"></span>
+  <label class="spunta" style="margin-left: auto">Docenti da mostrare
+    <select id="filtro-docenti">
+      <option value="tutti">tutti</option>
+      <option value="con-ore">solo chi ha ancora ore in questa classe</option>
+      <option value="esauriti">solo chi ha esaurito le ore in questa classe</option>
+    </select></label>
 </div>
 <div id="dettaglio-backtrack"></div>
 {% endblock %}
