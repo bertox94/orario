@@ -50,13 +50,15 @@
   in tutto{% endif %} (al massimo {{ (e.opzioni or {}).get('max_backtrack', 1000)|numero }}). Scegline uno per vedere
   l'orario fino a quel punto e i controlli di ogni docente; ← e → passano al precedente e al successivo.</p>
 <div class="scorre alta" id="elenco-backtrack" style="max-height: 40vh">
-  <table class="dati">
+  <table class="dati backtrack-fissa">
+    <colgroup><col style="width: 5em"><col style="width: 6em"><col style="width: 9em"><col style="width: 9em"><col></colgroup>
     <thead><tr><th class="num">N.</th><th class="num">Nodo</th><th>Slot</th><th>Poi</th><th>Dove si fermano i docenti</th></tr></thead>
     <tbody><tr class="vuoto"><td colspan="5" class="tenue">{{ 'Ancora nessun backtrack.' if in_corso else 'Nessun backtrack registrato.' }}</td></tr></tbody>
   </table>
 </div>
 <div class="scheda cursore-backtrack">
-  <table class="dati">
+  <table class="dati backtrack-fissa">
+    <colgroup><col style="width: 5em"><col style="width: 6em"><col style="width: 9em"><col style="width: 9em"><col></colgroup>
     <thead><tr><th class="num">N.</th><th class="num">Nodo</th><th>Slot</th><th>Poi</th><th>Dove si fermano i docenti</th></tr></thead>
     <tbody id="riga-attuale"><tr><td colspan="5" class="tenue">Nessun backtrack scelto.</td></tr></tbody>
   </table>

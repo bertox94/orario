@@ -60,13 +60,20 @@ function disegnaOrario(contenitore, d, orario, opz) {
         if (p1 < 0 && p2 < 0) { classi.push('buca'); figli = ['–']; }
         else figli = [nomeDoc(d, p1), p2 >= 0 ? el('span', {class: 'cod', testo: nomeDoc(d, p2)}) : null];
       }
+      const chi = figli.length && pos !== opz.blocco && pos < fino ? ': ' + coppia(d, orario[pos]) : '';
       tr.append(el('td', {class: classi.join(' ').trim() || null,
-        title: `${d.giorni[g]} ${d.ore[o]} ${d.classi[c].nome}`}, figli));
+        title: `${d.giorni[g]} ${d.ore[o]} ${d.classi[c].nome}${chi}`}, figli));
     }
     corpo.append(tr);
   }
+  // larghezze fisse (colonna delle classi + una colonna per ora): passando da un backtrack all'altro la griglia
+  // non cambia forma; i nomi troppo lunghi si accorciano con … (il nome intero nel title della cella)
+  const LARGH_CLASSE = 64, LARGH_ORA = 86;
+  const colonne = el('colgroup', {}, [el('col', {style: `width: ${LARGH_CLASSE}px`})]
+    .concat(Array.from({length: G * O}, () => el('col', {style: `width: ${LARGH_ORA}px`}))));
   contenitore.replaceChildren(el('div', {class: 'scorre'},
-    el('table', {class: 'orario'}, [el('thead', {}, [testa1, testa2]), corpo])));
+    el('table', {class: 'orario', style: `width: ${LARGH_CLASSE + G * O * LARGH_ORA}px`},
+      [colonne, el('thead', {}, [testa1, testa2]), corpo])));
 }
 
 // ---- i controlli di main, in parole ----

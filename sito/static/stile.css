@@ -106,7 +106,9 @@ table.orario { border-collapse: collapse; font-size: 12px; background: var(--sup
 table.orario th, table.orario td { border: 1px solid var(--bordo); padding: 3px 5px; text-align: center; }
 table.orario th { font-weight: 600; color: var(--tenue); background: var(--sfondo); position: sticky; top: 0; }
 table.orario th.classe, table.orario td.classe { position: sticky; left: 0; background: var(--sfondo); text-align: left; }
-table.orario td { min-width: 62px; height: 36px; line-height: 1.2; }
+table.orario { table-layout: fixed; }
+table.orario td { height: 36px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; }
+table.orario td .cod { overflow: hidden; text-overflow: ellipsis; }
 table.orario td.inizio-giorno, table.orario th.inizio-giorno { border-left: 2px solid var(--tenue); }
 table.orario td .cod { color: var(--tenue); font-size: 11px; display: block; }
 table.orario td, table.orario td .cod { white-space: nowrap; }
@@ -128,6 +130,9 @@ table.dati tr.backtrack.scelto td { background: var(--accento-tenue); font-weigh
 /* il cursore dei backtrack, sotto l'elenco: la riga del backtrack attuale, il cursore, gli estremi */
 .cursore-backtrack { margin-top: 10px; }
 .cursore-backtrack table.dati { margin-bottom: 6px; }
+/* elenco e riga sopra il cursore: colonne di larghezza fissa, uguali nelle due tabelle */
+table.backtrack-fissa { table-layout: fixed; }
+table.backtrack-fissa td { overflow: hidden; }
 #cursore-backtrack { flex: 1; min-width: 0; margin: 0; }
 .riga-cursore { display: flex; align-items: center; gap: 6px; margin: 6px 0; }
 .riga-cursore button { padding: 4px 10px; font-variant-numeric: tabular-nums; }
