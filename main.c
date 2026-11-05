@@ -1,11 +1,15 @@
 #include <stdlib.h>
 #include <tgmath.h>
 #include <sys/time.h>
+#include <time.h>
+#include <string.h>
 
 #include "utils.h"
 #include "priority_queue/prio_queue.h"
 #include "data_initialization/database_initializers.h"
 #include "printer/printer.h"
+#include "ingresso_uscita/dati_json.h"
+#include "ingresso_uscita/traccia.h"
 
 #define SCHEDULES_PER_GB 55000
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -362,6 +366,8 @@ int verifica_ora_ingresso(const int prof, const int ora) {
 
 void print_orario(const int pos) {
     if (n_gen_max <= n_gen) return;
+    // traccia: solo conteggio dei nodi e, ogni tanto, il progresso (non cambia la ricerca)
+    if (!(++traccia_nodi & 0xFFFF)) traccia_progresso(pos);
 
     //print(orario, pos, n_gen, f);
     if (pos == orario_len) {
@@ -369,6 +375,7 @@ void print_orario(const int pos) {
         n_gen++;
         //printf("%lld \n", n_gen);
         print(orario, pos, n_gen, f);
+        traccia_orario_trovato();
         //  }
         return;
     }
@@ -451,7 +458,12 @@ void print_orario(const int pos) {
             fprintf(f, "Backtrack, non si è potuto scegiere alcun insegnante nel giorno: %s, ora: %s, classe: %s\n",
                     giorni_settimana[giorno], ore_giornaliere[ora], classe_sezione[cla]);
             print(orario, pos, n_gen, f);
+            traccia_backtrack(pos, giorno, ora, cla, base2d_ci, base3d_goi, base4d_queue,
+                              ora >= PRIME_N_ORE_OBBLIGATORIE);
         }
+    } else if (ora < PRIME_N_ORE_OBBLIGATORIE) {
+        // lo slot non puo' avere lezione e l'ora buca non e' ammessa: la ricerca torna indietro (solo traccia)
+        traccia_slot_chiuso(pos, giorno, ora, cla);
     }
 
 
@@ -463,13 +475,50 @@ void print_orario(const int pos) {
     }
 }
 
-int main(void) {
+// Uso: ./untitled [--input FILE] [--traccia FILE] [-n N] [--txt FILE] [--max-backtrack N] [--progresso]
+//   senza opzioni: come sempre, i dati di inizializza_dati() e gli orari in orario.txt
+//   --input FILE:       i dati da un file JSON (vedi ingresso_uscita/dati_json.h) invece che da inizializza_dati()
+//   --traccia FILE:     la traccia della ricerca per il sito, un JSON per riga (vedi ingresso_uscita/traccia.h)
+//   -n N:               quanti orari cercare al massimo (n_gen_max; senza: SCHEDULES_PER_GB / 5)
+//   --txt FILE:         dove scrivere orario.txt (per esempio /dev/null)
+//   --max-backtrack N:  quanti backtrack registrare per esteso nella traccia (gli altri si contano), default 1000
+//   --progresso:        ogni mezzo secondo una riga JSON di progresso su stderr
+int main(int argc, char **argv) {
+    const char *file_input = NULL, *file_traccia = NULL, *file_txt = "orario.txt";
+    long long int max_backtrack = 1000;
+    int progresso = 0;
+    for (int i = 1; i < argc; i++) {
+        if (!strcmp(argv[i], "--input") && i + 1 < argc) file_input = argv[++i];
+        else if (!strcmp(argv[i], "--traccia") && i + 1 < argc) file_traccia = argv[++i];
+        else if (!strcmp(argv[i], "-n") && i + 1 < argc) n_gen_max = atoll(argv[++i]);
+        else if (!strcmp(argv[i], "--txt") && i + 1 < argc) file_txt = argv[++i];
+        else if (!strcmp(argv[i], "--max-backtrack") && i + 1 < argc) max_backtrack = atoll(argv[++i]);
+        else if (!strcmp(argv[i], "--progresso")) progresso = 1;
+        else {
+            fprintf(stderr, "Opzione sconosciuta: %s\n", argv[i]);
+            return 2;
+        }
+    }
+    if (!traccia_apri(file_traccia, max_backtrack, progresso)) {
+        fprintf(stderr, "Non riesco a scrivere la traccia in %s\n", file_traccia);
+        return 2;
+    }
+
     time_t currentTime;
     time(&currentTime); // Get the current time
     const clock_t start = clock();
 
     printf("Program started at: %s\n", ctime(&currentTime));
-    inizializza_dati();
+    if (file_input) {
+        char errore[512];
+        if (!inizializza_dati_da_json(file_input, errore, sizeof errore)) {
+            traccia_errore(errore);
+            traccia_chiudi();
+            return 2;
+        }
+    } else {
+        inizializza_dati();
+    }
     stampa_dati();
     //imposta la lunghezza dell'orario
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
@@ -501,7 +550,8 @@ int main(void) {
       }*/
 
 
-    f = fopen("orario.txt", "w");
+    traccia_dati();
+    f = fopen(file_txt, "w");
     //f = stdout;
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
     print_orario(0);
@@ -510,6 +560,8 @@ int main(void) {
     printf("Totale generati: %llu in %d m, %d s at %.0f Hz", n_gen, (int) elapsed / 60, (int) elapsed % 60,
            (double) n_gen / elapsed);
     fflush(stdout);
+    traccia_fine(elapsed);
+    traccia_chiudi();
     fclose(f);
 
     return 0;
