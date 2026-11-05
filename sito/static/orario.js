@@ -133,7 +133,7 @@ function descriviIngressi(nome, i, d) {
       return `occupato in quest'ora: ${siNo(i.impegnato_in_quest_ora)}` +
         (i.in_classe >= 0 ? ` (in ${nomeClasse(d, i.in_classe)})` : '');
     case 'deve_ancora_svolgere_ore_in_questa_classe':
-      return `ore fatte in questa classe: ${i.ore_svolte} su ${i.ore_da_fare}`;
+      return `ore fatte in questa classe: ${i.ore_svolte} su ${i.ore_da_fare}, ne restano ${i.ore_da_fare - i.ore_svolte}`;
     case 'prof_fa_al_max_n_ore':
       return `ore oggi in questa classe: ${i.ore_oggi_in_classe}, massimo ${i.massimo}`;
     case 'prof_fa_ore_contigue':
@@ -183,17 +183,22 @@ function tabellaDocenti(docenti, d) {
     el('th', {class: 'doc' + (x.fermato_a < 0 ? ' passa' : '')}, [nomeDoc(d, x.docente), el('br'),
       el('span', {class: 'tenue piccolo', testo: `priorità ${x.priorita}`})]))]);
   const righe = nomi.map(nome => el('tr', {}, [
-    el('td', {class: 'nome', title: nome}, descrizioneControllo(nome, d)),
+    el('td', {class: 'nome', title: nome}, descrizioneControllo(nome, d) +
+      (nome === 'deve_ancora_svolgere_ore_in_questa_classe' ? ' (ore che restano su quelle da fare)' : '')),
     ...docenti.map(x => {
       const k = x.controlli.findIndex(c => c.nome === nome);
       if (k < 0) return el('td', {class: 'tenue', testo: '–'});
       const c = x.controlli[k];
       const valutato = x.fermato_a < 0 || k <= x.fermato_a;
       const ingressi = descriviIngressi(c.nome, c.ingressi, d);
+      // le ore che restano in questa classe: in ogni casella "restano X su Y"
+      const ore = nome === 'deve_ancora_svolgere_ore_in_questa_classe' && c.ingressi.ore_da_fare !== undefined
+        ? el('span', {class: 'piccolo', testo: `${c.ingressi.ore_da_fare - c.ingressi.ore_svolte} su ${c.ingressi.ore_da_fare}`})
+        : null;
       return el('td', {class: (!valutato ? 'non-valutato' : c.uscita ? 'si' : 'no') + (k === x.fermato_a ? ' fermo' : ''),
           title: ingressi + (valutato ? '' : ' (la ricerca non lo valuta: si è già fermata)')},
-        k === x.fermato_a ? [el('strong', {testo: '✗ '}), el('span', {class: 'piccolo', testo: ingressi})]
-                          : (c.uscita ? '✓' : '✗'));
+        k === x.fermato_a ? [el('strong', {testo: '✗ '}), ore || el('span', {class: 'piccolo', testo: ingressi})]
+                          : ore ? [c.uscita ? '✓ ' : '✗ ', ore] : (c.uscita ? '✓' : '✗'));
     })]));
   return el('div', {class: 'scorre'}, el('table', {class: 'docenti-orizzontale'},
     [el('thead', {}, testa), el('tbody', {}, righe)]));
@@ -258,16 +263,17 @@ function centraCella(box, td) {
 function disegnaBacktrack(contenitore, d, b, filtro, sopra, prima, passo) {
   const s = slotDi(d, b.pos);
   const parti = [];
-  parti.push(el('h3', {}, `Backtrack n. ${numeroIt(b.n)}: ${testoPos(d, b.pos)}`));
-  parti.push(el('p', {class: 'tenue piccolo'}, [
-    `Al nodo ${numeroIt(b.nodo)} della ricerca la classe ${nomeClasse(d, s.classe)} non ha potuto avere nessun docente in quest'ora. `,
-    b.buca_dopo ? "Siamo oltre le ore obbligatorie: dopo la ricerca prova l'ora buca, quindi non è un vicolo cieco."
-                : 'Siamo nelle ore obbligatorie: la ricerca torna indietro e cambia una scelta precedente.']));
+  // il titolo e la frase vanno sopra il cursore, tra l'elenco dei gruppi e il cursore
+  sostituisci(document.getElementById('intestazione-backtrack'),
+    el('h3', {}, `Backtrack n. ${numeroIt(b.n)}: ${testoPos(d, b.pos)}`),
+    el('p', {class: 'tenue piccolo'}, [
+      `Al nodo ${numeroIt(b.nodo)} della ricerca la classe ${nomeClasse(d, s.classe)} non ha potuto avere nessun ` +
+      `docente in quest'ora. `,
+      b.buca_dopo ? "Siamo oltre le ore obbligatorie: dopo la ricerca prova l'ora buca, quindi non è un vicolo cieco."
+                  : 'Siamo nelle ore obbligatorie: la ricerca torna indietro e cambia una scelta precedente.']));
   if (b.incoerente) parti.push(el('div', {class: 'avviso errore'},
     'Attenzione: secondo la traccia una combinazione passerebbe tutti i controlli, ma la ricerca non l\'ha messa. ' +
     'La traccia non rispecchia la ricerca: va segnalato.'));
-  parti.push(el('h4', {testo: 'Lo slot'}));
-  parti.push(tabellaControlli([b.slot], b.slot.uscita ? -1 : 0, d));
   const griglia = el('div');
   const cambiate = new Set();
   if (prima) for (let p = 0; p < b.pos; p++)
@@ -315,6 +321,9 @@ function disegnaBacktrack(contenitore, d, b, filtro, sopra, prima, passo) {
   }
   if (b.altri_docenti) parti.push(el('p', {class: 'tenue piccolo'},
     `Più ${b.altri_docenti} docenti senza ore in questa classe: la ricerca li scarta al primo o al secondo controllo.`));
+  // la classe (lo slot), dopo i docenti
+  parti.push(el('h4', {testo: 'Lo slot'}));
+  parti.push(tabellaControlli([b.slot], b.slot.uscita ? -1 : 0, d));
   sostituisci(contenitore, ...parti);
 }
 
@@ -328,6 +337,7 @@ function paginaTest(cfg) {
   const elenco = $('elenco-backtrack');
   const dettaglio = $('dettaglio-backtrack');
   const raggiunto = $('orario-raggiunto');
+  const intestazione = $('intestazione-backtrack');  // titolo e frase del backtrack (vuota se non e' un backtrack)
   const sceltaFiltro = $('filtro-docenti');
   let aperto = null;        // il backtrack disegnato, per ridisegnarlo quando cambia il filtro
   let apertoPrima = null;   // il backtrack precedente sul cursore (per le celle cambiate)
@@ -525,6 +535,7 @@ function paginaTest(cfg) {
       `In verde le celle cambiate rispetto all'ultimo backtrack del gruppo (n. ${numeroIt(g.ultimo)}).`), griglia,
       'td.risolta');
     aperto = null;
+    intestazione.replaceChildren();
     dettaglio.replaceChildren(el('p', {class: 'tenue piccolo'}, g.risoltoDa !== null
       ? `L'orario viene dal backtrack n. ${numeroIt(g.risoltoDa)}, il primo dopo che la ricerca ha superato la cella, ` +
         `fino alla cella del gruppo: i controlli dei docenti ci sono solo per i backtrack.`
@@ -802,6 +813,7 @@ function paginaTest(cfg) {
         'gruppo: il test non ha i nodi della ricerca (lanciato prima della traccia dei nodi, o oltre il limite dei ' +
         'nodi registrati). Si può rilanciare il test, oppure scegliere un altro raggruppamento.'));
       dettaglio.replaceChildren();
+      intestazione.replaceChildren();
       return;
     }
     // le copie dell'orario ogni OGNI record (dall'orario del primo backtrack: valgono le celle prima di celleDa)
@@ -940,6 +952,7 @@ function paginaTest(cfg) {
       return;
     }
     aperto = null;
+    intestazione.replaceChildren();
     const orario = orarioAlPasso(i);
     const griglia = el('div');
     const cella = pos > 0 ? pos - 1 : undefined;

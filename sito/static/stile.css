@@ -233,3 +233,7 @@ p.didascalia { height: 3em; margin-bottom: 4px; overflow: hidden; display: -webk
 /* passo passo per cella: la cella di questo passo (azzurra) e dove è finito l'ultimo backtracking (bordata in verde) */
 table.orario td.attuale { background: var(--accento-tenue); color: var(--accento); font-weight: 700; }
 table.orario td.ritorno { outline: 2px solid var(--ok); outline-offset: -2px; }
+/* titolo e frase del backtrack sopra il cursore: altezza fissa, cosi' la pagina non si sposta */
+#intestazione-backtrack { display: flow-root; min-height: 5.6em; }
+#intestazione-backtrack h3 { margin: 10px 0 2px; }
+#intestazione-backtrack p { margin: 0 0 6px; }
