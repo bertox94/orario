@@ -142,7 +142,15 @@ table.dati tr.backtrack.scelto td { background: var(--accento-tenue); font-weigh
 /* elenco e riga sopra il cursore: colonne di larghezza fissa, uguali nelle due tabelle */
 table.backtrack-fissa { table-layout: fixed; }
 table.backtrack-fissa td { overflow: hidden; }
-#cursore-backtrack { flex: 1; min-width: 0; margin: 0; }
+#cursore-backtrack { width: 100%; margin: 0; display: block; }
+.cursore-con-tacche { flex: 1; min-width: 0; position: relative; padding-bottom: 9px; }
+#tacche-cursore { position: absolute; left: 0; right: 0; bottom: 0; height: 8px; }
+.tacca { position: absolute; top: 0; width: 2px; height: 8px; margin-left: -1px; border-radius: 1px; }
+/* i colori delle celle di un gruppo: 0 = cella di partenza, 1-4 = le altre */
+.c0 { background: var(--tenue); }
+.c1 { background: #d97706; } .c2 { background: #7c3aed; } .c3 { background: #0891b2; } .c4 { background: #db2777; }
+.pallino { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
+table.dati tr.sottoriga td { font-size: 12px; color: var(--tenue); padding-top: 2px; padding-bottom: 2px; cursor: pointer; }
 .riga-cursore { display: flex; align-items: center; gap: 6px; margin: 6px 0; }
 .riga-cursore button { padding: 4px 10px; font-variant-numeric: tabular-nums; }
 .cursore-backtrack input[type=number] { width: 9em; }
@@ -193,3 +201,5 @@ table.orario th { z-index: 1; }
 table.orario td.classe { z-index: 2; }
 table.orario th.classe { z-index: 3; }
 
+/* la colonna «Celle toccate» c'e' solo con i gruppi consecutivi */
+#tabella-gruppi:not(.con-celle) .col-celle { display: none; }
