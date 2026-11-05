@@ -290,16 +290,7 @@ function disegnaBacktrack(contenitore, d, b, filtro, sopra, prima, passo) {
     : `Al backtrack n. ${numeroIt(b.n)}: ${testoPos(d, b.pos)} (in rosso).` + testoCambi), griglia, 'td.blocco');
   const mostrati = b.docenti.filter(x => filtro === 'con-ore' ? !haEsauritoOre(x)
                                        : filtro === 'esauriti' ? haEsauritoOre(x) : true);
-  const nascosti = b.docenti.length - mostrati.length;
-  if (b.docenti.length) {
-    parti.push(el('h4', {testo: 'I docenti della classe, nell\'ordine in cui la ricerca li prova'}));
-    parti.push(el('p', {class: 'tenue piccolo'}, 'L\'ordine è quello della coda: prima chi ha più ore da fare (la ' +
-      'priorità), da sinistra a destra. ✓ = vero, ✗ = falso; la ricerca si ferma al primo ✗ (con gli ingressi), i ' +
-      'controlli in grigio non li valuta. Passando sopra una casella si vedono i suoi ingressi.'));
-    if (nascosti) parti.push(el('p', {class: 'tenue piccolo'}, `${nascosti} docent${nascosti === 1 ? 'e nascosto' :
-      'i nascosti'} (${filtro === 'con-ore' ? 'hanno già fatto tutte le ore' : 'hanno ancora ore'} in questa classe): ` +
-      'si cambia con «Docenti da mostrare» qui sopra.'));
-  }
+  if (b.docenti.length) parti.push(el('h4', {testo: 'I docenti della classe, nell\'ordine in cui la ricerca li prova'}));
   if (mostrati.length) parti.push(tabellaDocenti(mostrati, d));
   // chi passa tutti i controlli: la ricerca prova le coppie e il docente da solo
   for (const x of mostrati.filter(x => x.fermato_a < 0)) {
