@@ -128,7 +128,9 @@ table.dati tr.backtrack.scelto td { background: var(--accento-tenue); font-weigh
 /* il cursore dei backtrack, sotto l'elenco: la riga del backtrack attuale, il cursore, gli estremi */
 .cursore-backtrack { margin-top: 10px; }
 .cursore-backtrack table.dati { margin-bottom: 6px; }
-#cursore-backtrack { width: 100%; display: block; margin: 6px 0; }
+#cursore-backtrack { flex: 1; min-width: 0; margin: 0; }
+.riga-cursore { display: flex; align-items: center; gap: 6px; margin: 6px 0; }
+.riga-cursore button { padding: 4px 10px; font-variant-numeric: tabular-nums; }
 .cursore-backtrack input[type=number] { width: 9em; }
 .motivo { display: inline-block; padding: 0 6px; margin: 1px 2px 1px 0; border-radius: 8px; background: var(--male-tenue);
   color: var(--male); font-size: 12px; white-space: nowrap; }

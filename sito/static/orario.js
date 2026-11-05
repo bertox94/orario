@@ -322,6 +322,13 @@ function paginaTest(cfg) {
     const [da, a] = estremi();
     if (scelto !== null && (scelto < da || scelto > a)) apri(vicino(scelto < da ? da : a));
   });
+  // −10, −1, +1, +10: si sposta di tanti backtrack, senza uscire dagli estremi del cursore
+  document.querySelectorAll('.riga-cursore [data-passo]').forEach(b => b.addEventListener('click', () => {
+    if (scelto === null) return;
+    const v = Math.min(+cursore.max, Math.max(+cursore.min, scelto + +b.dataset.passo));
+    const n = vicino(v);
+    if (n !== null && n !== scelto) apri(n);
+  }));
   $('cursore-tutti').addEventListener('click', () => {
     cursoreDa.value = 1;
     cursoreA.value = '';
