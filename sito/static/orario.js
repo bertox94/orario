@@ -178,8 +178,7 @@ function disegnaBacktrack(contenitore, d, b, filtro, sopra, cambiaFiltro) {
   parti.push(el('h3', {}, `Backtrack n. ${numeroIt(b.n)}: ${d.giorni[s.giorno]} ${d.ore[s.ora]} ${nomeClasse(d, s.classe)}`));
   parti.push(el('p', {class: 'tenue piccolo'}, [
     `Al nodo ${numeroIt(b.nodo)} della ricerca la classe ${nomeClasse(d, s.classe)} non ha potuto avere nessun docente in quest'ora. `,
-    b.buca_dopo ? "Siamo oltre le ore obbligatorie: dopo la ricerca prova l'ora buca, quindi non è un vicolo cieco."
-                : 'Siamo nelle ore obbligatorie: la ricerca torna indietro e cambia una scelta precedente.']));
+    b.buca_dopo ? null : 'Siamo nelle ore obbligatorie: la ricerca torna indietro e cambia una scelta precedente.']));
   if (b.incoerente) parti.push(el('div', {class: 'avviso errore'},
     'Attenzione: secondo la traccia una combinazione passerebbe tutti i controlli, ma la ricerca non l\'ha messa. ' +
     'La traccia non rispecchia la ricerca: va segnalato.'));
