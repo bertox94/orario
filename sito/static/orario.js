@@ -638,6 +638,29 @@ function paginaTest(cfg) {
     const i = Math.min(+cursore.max, Math.max(0, da + k));
     if (i !== da) vaiA(i, true);
   }
+  // ▶ Play: il cursore avanza da solo di una posizione alla volta, fino in fondo (o fino a ⏸)
+  const play = $('cursore-play'), velocita = $('cursore-velocita');
+  let giro = null;
+  function fermaPlay() {
+    clearTimeout(giro);
+    giro = null;
+    play.textContent = '▶ Play';
+  }
+  function avanti() {
+    if (+cursore.value >= +cursore.max) { fermaPlay(); return; }
+    passo(1);
+    giro = setTimeout(avanti, +velocita.value);
+  }
+  play.addEventListener('click', () => {
+    if (giro) { fermaPlay(); return; }
+    if (scelto === null && !(modo.passi && P && !P.vuoto)) return;
+    play.textContent = '⏸ Pausa';
+    if (+cursore.value >= +cursore.max) vaiA(+cursore.min, true);  // dal fondo: riparte dall'inizio
+    giro = setTimeout(avanti, +velocita.value);
+  });
+  // un clic nell'elenco, sul cursore o sui pulsanti ferma il play
+  elenco.addEventListener('click', fermaPlay);
+  cursore.addEventListener('pointerdown', fermaPlay);
   document.querySelectorAll('.riga-cursore [data-passo]').forEach(b =>
     b.addEventListener('click', () => passo(+b.dataset.passo)));
   $('cursore-tutti').addEventListener('click', () => {
@@ -854,6 +877,7 @@ function paginaTest(cfg) {
 
   // un altro modo di raggruppare: si rifanno i gruppi con i backtrack gia' arrivati, restando sullo stesso backtrack
   sceltaModo.addEventListener('change', () => {
+    fermaPlay();
     modo = MODI[sceltaModo.value] || MODI.annidati;
     try { localStorage.setItem('modo-gruppi', sceltaModo.value); } catch (e) { /* niente */ }
     mostraModo();

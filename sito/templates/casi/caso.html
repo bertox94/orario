@@ -76,12 +76,10 @@
   <div class="riga-cursore">
     <button type="button" class="secondario" data-passo="-100" title="100 posizioni indietro">−100</button>
     <button type="button" class="secondario" data-passo="-10" title="10 backtrack indietro">−10</button>
-    <button type="button" class="secondario" data-passo="-1" title="Il backtrack precedente">−1</button>
     <div class="cursore-con-tacche">
       <input type="range" id="cursore-backtrack" min="1" max="1" value="1" step="1" aria-label="Scorri i backtrack">
       <div id="tacche-cursore" aria-hidden="true"></div>
     </div>
-    <button type="button" class="secondario" data-passo="1" title="Il backtrack successivo">+1</button>
     <button type="button" class="secondario" data-passo="10" title="10 backtrack avanti">+10</button>
     <button type="button" class="secondario" data-passo="100" title="100 posizioni avanti">+100</button>
   </div>
@@ -89,6 +87,13 @@
     <label class="spunta">Da <input type="number" id="cursore-da" min="1" value="1"></label>
     <label class="spunta">a <input type="number" id="cursore-a" min="1" value="1"></label>
     <button type="button" class="secondario" id="cursore-tutti">Tutto il gruppo</button>
+    <button type="button" id="cursore-play" title="Fa avanzare il cursore da solo, una posizione alla volta">▶ Play</button>
+    <select id="cursore-velocita" aria-label="Velocità">
+      <option value="1000">lento</option>
+      <option value="300" selected>normale</option>
+      <option value="80">veloce</option>
+      <option value="15">velocissimo</option>
+    </select>
     <span class="tenue piccolo" id="spiega-cursore">Il cursore va dal backtrack «Da» al backtrack «a»: scegliendo un gruppo, dal suo primo
       backtrack all'ultimo (solo i suoi). Se il gruppo è risolto, l'ultima posizione mostra come si risolve. Con i
       gruppi consecutivi, le tacche sotto il cursore sono i backtrack in celle diverse da quella di partenza, del colore
