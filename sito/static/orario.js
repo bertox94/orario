@@ -32,7 +32,8 @@ function testoPos(d, pos) { const s = slotDi(d, pos); return `${d.giorni[s.giorn
 
 // ---- la griglia dell'orario ----
 
-// opz.fino: le posizioni da fino in poi non sono ancora decise; opz.blocco: lo slot del backtrack
+// opz.fino: le posizioni da fino in poi non sono ancora decise; opz.blocco: lo slot del backtrack; opz.cambiate (Set),
+// opz.risolta, opz.tornata, opz.ritorno, opz.attuale: celle da evidenziare (vedi stile.css)
 function disegnaOrario(contenitore, d, orario, opz) {
   opz = opz || {};
   const C = d.classi.length, O = d.ore.length, G = d.giorni.length;
@@ -55,6 +56,8 @@ function disegnaOrario(contenitore, d, orario, opz) {
       if (opz.cambiate && opz.cambiate.has(pos)) classi.push('cambiata');
       if (pos === opz.risolta) classi.push('risolta');
       if (pos === opz.tornata) classi.push('tornata');
+      if (pos === opz.ritorno) classi.push('ritorno');
+      if (pos === opz.attuale) classi.push('attuale');
       if (pos === opz.blocco) {
         classi.push('blocco');
         figli = ['nessuno'];
@@ -250,8 +253,8 @@ function centraCella(box, td) {
 // filtro: 'tutti', 'con-ore' (nasconde chi ha esaurito le ore in questa classe), 'esauriti' (nasconde chi ne ha ancora).
 // prima: il backtrack precedente sul cursore (se c'e'): in verde le celle cambiate da allora, e bordata la prima
 // (la cella fin dove la ricerca e' tornata indietro per cambiare una scelta).
-// passo (passo passo): {didascalia, bordata}: la didascalia al posto di quella solita e, se c'e', la cella bordata
-// (quella messa nello stesso record del backtrack).
+// passo (passo passo): {didascalia, bordata, ritorno}: la didascalia al posto di quella solita e, se ci sono, la cella
+// bordata (quella messa nello stesso record del backtrack) e quella in cui e' finito l'ultimo backtracking.
 function disegnaBacktrack(contenitore, d, b, filtro, sopra, prima, passo) {
   const s = slotDi(d, b.pos);
   const parti = [];
@@ -271,7 +274,8 @@ function disegnaBacktrack(contenitore, d, b, filtro, sopra, prima, passo) {
     if (p >= prima.orario.length || p >= prima.pos || JSON.stringify(b.orario[p]) !== JSON.stringify(prima.orario[p]))
       cambiate.add(p);
   const tornata = passo ? passo.bordata : cambiate.size ? Math.min(...cambiate) : undefined;
-  disegnaOrario(griglia, d, b.orario, {fino: b.pos, blocco: b.pos, cambiate, tornata});
+  disegnaOrario(griglia, d, b.orario, {fino: b.pos, blocco: b.pos, cambiate, tornata,
+                                        ritorno: passo ? passo.ritorno : undefined});
   const testoCambi = !prima ? '' : !cambiate.size ? ` Nessuna cella cambiata dal backtrack precedente (n. ${numeroIt(prima.n)}).`
     : ` In verde ${cambiate.size === 1 ? 'la cella cambiata' : `le ${numeroIt(cambiate.size)} celle cambiate`} dal ` +
       `backtrack precedente (n. ${numeroIt(prima.n)}); bordata la prima, ${testoPos(d, tornata)}: la ricerca è tornata ` +
@@ -465,6 +469,14 @@ function paginaTest(cfg) {
   const SPIEGA_CURSORE = $('spiega-cursore').textContent;
   function mostraModo() {
     $('spiega-gruppi').textContent = modo.spiega;
+    if (modo.perCella) {
+      $('spiega-cursore').textContent = "Passo passo per cella: il cursore va dal nodo «Da» al nodo «a». Nell'orario " +
+        "raggiunto, in azzurro la cella di questo passo (in rosso se nessun docente ci sta: il backtrack); bordata in " +
+        "verde la cella in cui è finito l'ultimo backtracking, cioè dove la ricerca è tornata a cambiare scelta. Le " +
+        "tacche sotto il cursore sono i backtrack e, in verde, il passo in cui la ricerca supera la cella di partenza.";
+      $('tabella-gruppi').classList.toggle('con-celle', false);
+      return;
+    }
     $('spiega-cursore').textContent = modo.passi ? "Passo passo: il cursore va dal nodo «Da» al nodo «a» della " +
       "ricerca; a ogni passo, nell'orario raggiunto, è bordata la cella appena messa. Le tacche sotto il cursore sono " +
       "i backtrack (grigie nella cella di partenza, colorate nelle altre) e, in verde, il nodo in cui la ricerca " +
@@ -730,6 +742,7 @@ function paginaTest(cfg) {
   // P: {g, da (il nodo del record 0), L (quanti record), pos, p1, p2, ris (record che supera la cella, o -1), punti,
   //     bt (nodo -> backtrack), S (quanti passi), er (passo -> record), et (passo -> 0 messa, 1 backtrack),
   //     dec (passo -> record del nodo che decide, -1 se e' prima), tent (passo -> numero del tentativo),
+  //     rit (passo -> cella in cui e' finito l'ultimo backtracking, -1 se non ce n'e' ancora uno),
   //     primo (record -> il suo primo passo), lo, hi (il tratto del cursore, in passi)}
   const OGNI = 1000;
   let P = null, iPasso = 0, caricaId = 0;
@@ -818,9 +831,16 @@ function paginaTest(cfg) {
       if (bt.has(da + i)) { er.push(i); et.push(1); dec.push(i); tent.push(0); }
     }
     const S = er.length, primo = new Int32Array(L + 1).fill(S);
+    // per cella: a ogni passo, la cella in cui e' finito l'ultimo backtracking (la prima messa dopo un backtrack)
+    const rit = new Int32Array(S).fill(-1);
+    for (let k = 0, ultimo = -1, dopoBt = false; k < S; k++) {
+      if (et[k] === 1) dopoBt = true;
+      else if (dopoBt) { ultimo = pos[er[k]] - 1; dopoBt = false; }
+      rit[k] = ultimo;
+    }
     for (let k = S - 1; k >= 0; k--) primo[er[k]] = k;
     for (let i = L - 1; i >= 0; i--) if (primo[i] > primo[i + 1]) primo[i] = primo[i + 1];
-    P = {g, da, L, pos, p1, p2, ris, punti, bt, S, er, et, dec, tent, primo, lo: 0, hi: S - 1};
+    P = {g, da, L, pos, p1, p2, ris, punti, bt, S, er, et, dec, tent, rit, primo, lo: 0, hi: S - 1};
     cursoreDa.value = da;
     cursoreA.value = da + L - 1;
     iPasso = nBt !== undefined && riassunti.has(nBt) ? passoDelNodo(riassunti.get(nBt).nodo) : 0;
@@ -912,7 +932,8 @@ function paginaTest(cfg) {
       apertoPrima = null;
       apertoPasso = modo.perCella
         ? {didascalia: `Il nodo ${numeroIt(nodo)} decide ${testoSlot(pos)}: nessun docente passa i controlli, ` +
-            `backtrack n. ${numeroIt(nBt)} (in rosso). La ricerca torna indietro.`}
+            `backtrack n. ${numeroIt(nBt)} (in rosso). La ricerca torna indietro.`,
+           ritorno: P.rit[k] >= 0 ? P.rit[k] : undefined}
         : pos > 0 ? {didascalia: `${testoPasso(i)}; poi ${testoSlot(pos)} resta senza docente: backtrack n. ` +
             `${numeroIt(nBt)} (in rosso).`, bordata: pos - 1} : null;
       disegnaBacktrack(dettaglio, d, b, sceltaFiltro.value, raggiunto, null, apertoPasso);
@@ -921,15 +942,19 @@ function paginaTest(cfg) {
     aperto = null;
     const orario = orarioAlPasso(i);
     const griglia = el('div');
-    disegnaOrario(griglia, d, orario, {fino: pos, tornata: pos > 0 ? pos - 1 : undefined,
-                                       risolta: i === P.ris ? g.inizio : undefined});
+    const cella = pos > 0 ? pos - 1 : undefined;
+    disegnaOrario(griglia, d, orario, modo.perCella
+      ? {fino: pos, attuale: cella, ritorno: P.rit[k] >= 0 ? P.rit[k] : undefined,
+         risolta: i === P.ris ? g.inizio : undefined}
+      : {fino: pos, tornata: cella, risolta: i === P.ris ? g.inizio : undefined});
     const poi = pos < lunghezzaOrario() ? testoSlot(pos) : null;
     const testo = modo.perCella
       ? `${nodoCheDecide(k).replace(/^./, c => c.toUpperCase())} decide ${testoSlot(pos - 1)} (${tentativo(k)}): ` +
-        `mette ${messaAl(i)} (bordata)` + (poi ? `; poi il nodo ${numeroIt(nodo)} decide ${poi}.` : ': orario completo.')
+        `mette ${messaAl(i)} (in azzurro)` + (poi ? `; poi il nodo ${numeroIt(nodo)} decide ${poi}.` : ': orario completo.')
       : pos > 0 ? testoPasso(i) + (poi ? `; poi prova ${poi}.` : ': orario completo.')
       : `Al nodo ${numeroIt(nodo)} la ricerca riparte dalla prima cella.`;
-    mettiGriglia(raggiunto, el('p', {class: 'tenue piccolo didascalia'}, testo), griglia, 'td.tornata');
+    mettiGriglia(raggiunto, el('p', {class: 'tenue piccolo didascalia'}, testo), griglia,
+                 modo.perCella ? 'td.attuale' : 'td.tornata');
     dettaglio.replaceChildren(el('p', {class: 'tenue piccolo'}, 'I controlli dei docenti ci sono solo ai nodi in cui ' +
       'la ricerca si blocca (i backtrack, le tacche sotto il cursore).'));
   }

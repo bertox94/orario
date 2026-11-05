@@ -230,3 +230,6 @@ p.didascalia { height: 3em; margin-bottom: 4px; overflow: hidden; display: -webk
 #dettaglio-backtrack { box-sizing: border-box; }
 /* i margini del contenuto restano dentro (paragrafo o titolo che sia): l'altezza della pagina non cambia */
 #dettaglio-backtrack, #orario-raggiunto { display: flow-root; }
+/* passo passo per cella: la cella di questo passo (azzurra) e dove è finito l'ultimo backtracking (bordata in verde) */
+table.orario td.attuale { background: var(--accento-tenue); color: var(--accento); font-weight: 700; }
+table.orario td.ritorno { outline: 2px solid var(--ok); outline-offset: -2px; }
