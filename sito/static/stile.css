@@ -118,6 +118,11 @@ table.orario td.dopo { background: var(--sfondo); }
 table.orario td.blocco { outline: 2px solid var(--male); outline-offset: -2px; color: var(--male); font-weight: 700;
   background: var(--male-tenue); scroll-margin: 90px 40px; }
 table.orario tr.classe-blocco td.classe { color: var(--male); font-weight: 700; }
+/* come si risolve un gruppo di backtrack: le celle cambiate e la cella di partenza, ora piena */
+table.orario td.cambiata { background: var(--ok-tenue); }
+table.orario td.risolta { outline: 2px solid var(--ok); outline-offset: -2px; color: var(--ok); font-weight: 700;
+  background: var(--ok-tenue); }
+table.dati tr.risoluzione td { color: var(--ok); }
 .barra { height: 8px; background: var(--bordo); border-radius: 4px; overflow: hidden; }
 .barra > div { height: 100%; background: var(--accento); }
 input.stretto { width: 5em; }

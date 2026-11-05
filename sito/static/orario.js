@@ -50,6 +50,8 @@ function disegnaOrario(contenitore, d, orario, opz) {
       const pos = (g * O + o) * C + c;
       const classi = [o === 0 ? 'inizio-giorno' : ''];
       let figli = [];
+      if (opz.cambiate && opz.cambiate.has(pos)) classi.push('cambiata');
+      if (pos === opz.risolta) classi.push('risolta');
       if (pos === opz.blocco) {
         classi.push('blocco');
         figli = ['nessuno'];
@@ -287,6 +289,61 @@ function paginaTest(cfg) {
   const gruppi = [];            // {k, inizio, primo, ultimo, nodoPrimo, nodoUltimo, quanti, celle: Set, tr}
   const gruppoDi = new Map();   // n -> gruppo
   let gruppoScelto = null;
+  let inRisoluzione = false;    // il cursore e' sull'ultima posizione: come si risolve il gruppo
+
+  // un gruppo e' risolto se dopo c'e' un altro gruppo o se il test ha trovato l'orario
+  const risolto = g => g.k < gruppi.length - 1 || (!cfg.inCorso && cfg.esito === 'trovato' && !!cfg.orario);
+  const posRisoluzione = g => g.ultimo + 1;  // la posizione del cursore dopo l'ultimo backtrack del gruppo
+
+  const record = new Map();  // n -> backtrack completo (per la risoluzione)
+  async function caricaRecord(n) {
+    if (!record.has(n)) record.set(n, await (await fetch(cfg.urlBacktrack.replace(/\/0$/, '/' + n))).json());
+    return record.get(n);
+  }
+
+  // L'ultima posizione del cursore: l'orario subito dopo che la ricerca ha superato la cella di partenza. Viene dal
+  // primo backtrack del gruppo successivo (o dall'orario trovato), fino alla cella di partenza; in verde le celle
+  // cambiate rispetto all'ultimo backtrack del gruppo.
+  async function mostraRisoluzione(g) {
+    inRisoluzione = true;
+    scelto = g.ultimo;
+    aggiornaCursore();
+    const prossimo = g.k < gruppi.length - 1 ? gruppi[g.k + 1] : null;
+    const cella = testoSlot(g.inizio);
+    $('posizione').textContent = `come si risolve il gruppo ${numeroIt(g.k + 1)}`;
+    $('riga-attuale').replaceChildren(el('tr', {class: 'backtrack scelto risoluzione'}, [
+      el('td', {class: 'num', testo: '✓'}), el('td', {class: 'num', testo: '–'}), el('td', {testo: cella}),
+      el('td', {testo: 'risolta'}), el('td', {class: 'tenue', testo: 'caricamento…'})]));
+    const ultimoBt = await caricaRecord(g.ultimo);
+    const dopo = prossimo ? (await caricaRecord(prossimo.primo)).orario : cfg.orario;
+    if (!inRisoluzione || gruppoScelto !== g) return;
+    const fino = g.inizio + 1;
+    const cambiate = new Set();
+    for (let p = 0; p < fino; p++)
+      if (p >= ultimoBt.orario.length || JSON.stringify(dopo[p]) !== JSON.stringify(ultimoBt.orario[p])) cambiate.add(p);
+    const buca = !dopo[g.inizio] || (dopo[g.inizio][0] < 0 && dopo[g.inizio][1] < 0);
+    const messo = buca ? "un'ora buca" : coppia(d, dopo[g.inizio]);
+    $('riga-attuale').replaceChildren(el('tr', {class: 'backtrack scelto risoluzione'}, [
+      el('td', {class: 'num', testo: '✓'}), el('td', {class: 'num', testo: '–'}), el('td', {testo: cella}),
+      el('td', {testo: 'risolta'}),
+      el('td', {testo: `${cella}: ${messo} · ${numeroIt(cambiate.size)} cell${cambiate.size === 1 ? 'a cambiata' :
+        'e cambiate'} dall'ultimo backtrack (n. ${numeroIt(g.ultimo)})`})]));
+    const griglia = el('div');
+    disegnaOrario(griglia, d, dopo, {fino, cambiate, risolta: g.inizio});
+    raggiunto.replaceChildren(el('p', {class: 'tenue piccolo'},
+      `Come si risolve il gruppo ${numeroIt(g.k + 1)}: la ricerca supera ${cella} ` +
+      (buca ? "con un'ora buca. " : `mettendo ${messo}. `) +
+      `In verde le celle cambiate rispetto all'ultimo backtrack del gruppo (n. ${numeroIt(g.ultimo)}).`), griglia);
+    requestAnimationFrame(() => {
+      const box = griglia.querySelector('.scorre'), td = griglia.querySelector('td.risolta');
+      if (box && td) box.scrollLeft = Math.max(0, td.offsetLeft - box.clientWidth / 2);
+    });
+    aperto = null;
+    dettaglio.replaceChildren(el('p', {class: 'tenue piccolo'}, prossimo
+      ? `L'orario viene dal primo backtrack del gruppo ${numeroIt(prossimo.k + 1)} (n. ${numeroIt(prossimo.primo)}), ` +
+        `fino alla cella di partenza: i controlli dei docenti ci sono solo per i backtrack.`
+      : "L'orario è quello trovato, fino alla cella di partenza: i controlli dei docenti ci sono solo per i backtrack."));
+  }
 
   function comeFinisce(g) {
     if (g.k < gruppi.length - 1) return ['risolto', 'ok'];
@@ -359,10 +416,15 @@ function paginaTest(cfg) {
   }
   function aggiornaCursore() {
     const [da, a] = estremi();
+    const g = gruppoScelto;
     cursore.min = da;
-    cursore.max = a;
-    if (scelto !== null) cursore.value = scelto;
+    // se il cursore arriva all'ultimo backtrack di un gruppo risolto, c'e' una posizione in piu': la risoluzione
+    cursore.max = g && a === g.ultimo && risolto(g) ? posRisoluzione(g) : a;
+    if (inRisoluzione && g) cursore.value = posRisoluzione(g);
+    else if (scelto !== null) cursore.value = scelto;
   }
+  const eRisoluzione = v => gruppoScelto && risolto(gruppoScelto) && +cursore.max === posRisoluzione(gruppoScelto) &&
+    v === posRisoluzione(gruppoScelto);
   function mostraRigaAttuale(n) {
     const b = riassunti.get(n);
     if (b) $('riga-attuale').replaceChildren(el('tr', {class: 'backtrack scelto'}, celleBacktrack(b)));
@@ -377,6 +439,11 @@ function paginaTest(cfg) {
   }
   let attesaCursore = null;
   cursore.addEventListener('input', () => {
+    if (eRisoluzione(+cursore.value)) {
+      clearTimeout(attesaCursore);
+      attesaCursore = setTimeout(() => mostraRisoluzione(gruppoScelto), 150);
+      return;
+    }
     const n = vicino(+cursore.value);
     if (n === null) return;
     mostraRigaAttuale(n);  // la riga cambia subito; il dettaglio quando il cursore si ferma un attimo
@@ -391,8 +458,11 @@ function paginaTest(cfg) {
   // −10, −1, +1, +10: si sposta di tanti backtrack, senza uscire dagli estremi del cursore
   function passo(k) {
     if (scelto === null) return;
-    const n = vicino(Math.min(+cursore.max, Math.max(+cursore.min, scelto + k)));
-    if (n !== null && n !== scelto) apri(n);
+    const da = inRisoluzione ? posRisoluzione(gruppoScelto) : scelto;
+    const v = Math.min(+cursore.max, Math.max(+cursore.min, da + k));
+    if (eRisoluzione(v)) { if (!inRisoluzione) mostraRisoluzione(gruppoScelto); return; }
+    const n = vicino(v);
+    if (n !== null && (n !== scelto || inRisoluzione)) apri(n);
   }
   document.querySelectorAll('.riga-cursore [data-passo]').forEach(b =>
     b.addEventListener('click', () => passo(+b.dataset.passo)));
@@ -427,24 +497,27 @@ function paginaTest(cfg) {
 
   async function apri(n) {
     if (!riassunti.has(n)) return;
+    inRisoluzione = false;
     scelto = n;
     // scelto in un altro gruppo (con le frecce): si passa a quel gruppo
     const g = gruppoDi.get(n);
     if (g !== gruppoScelto) { scegliGruppo(g, n); return; }
     $('posizione').textContent = `backtrack ${numeroIt(n)} · ${numeroIt(n - g.primo + 1)}° di ${numeroIt(g.quanti)} ` +
-      `nel gruppo ${numeroIt(g.k + 1)}`;
+      `nel gruppo ${numeroIt(g.k + 1)}` +
+      (n === g.ultimo && !risolto(g) ? ` · ultimo passaggio, non risolto (${comeFinisce(g)[0]})` : '');
     mostraRigaAttuale(n);
     if (n < +cursore.min) cursoreDa.value = n;
     if (n > +cursore.max) cursoreA.value = n;
     aggiornaCursore();
     cursore.value = n;
-    const r = await fetch(cfg.urlBacktrack.replace(/\/0$/, '/' + n));
-    const b = await r.json();
-    if (scelto === n) { aperto = b; disegnaBacktrack(dettaglio, d, b, sceltaFiltro.value, raggiunto); }
+    const b = await caricaRecord(n);
+    if (scelto === n && !inRisoluzione) { aperto = b; disegnaBacktrack(dettaglio, d, b, sceltaFiltro.value, raggiunto); }
   }
 
   // ← e →: il backtrack precedente e il successivo (anche fuori dal gruppo)
   function sposta(k) {
+    if (inRisoluzione && k > 0) { const i = numeri.indexOf(scelto); if (i + 1 < numeri.length) apri(numeri[i + 1]); return; }
+    if (inRisoluzione) { apri(scelto); return; }
     const i = numeri.indexOf(scelto);
     if (i < 0) return;
     const j = Math.min(numeri.length - 1, Math.max(0, i + k));
