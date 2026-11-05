@@ -181,9 +181,14 @@ function descriviIngressi(nome, i, d) {
 
 // La tabella dei controlli di un docente (o di una coppia, o del ramo da solo), nell'ordine in cui la ricerca li
 // valuta: la ricerca si ferma al primo falso (fermato_a); i successivi li calcola solo la traccia, in grigio.
+// «Tutti i motivi» (la casella sopra la tabella dei docenti): i controlli dopo il primo falso si mostrano con il loro
+// ✓ o ✗ invece che in grigio. La traccia li calcola comunque; restano in grigio solo quelli che non calcola.
+let tuttiIMotivi = false;
+const mostrato = (c, k, fermato) => fermato < 0 || k <= fermato || (tuttiIMotivi && !(c.ingressi || {}).non_calcolato);
+
 function tabellaControlli(controlli, fermato, d) {
   return el('table', {class: 'controlli'}, el('tbody', {}, controlli.map((c, k) => {
-    const valutato = fermato < 0 || k <= fermato;
+    const valutato = mostrato(c, k, fermato);
     const cl = !valutato ? 'non-valutato' : c.uscita ? 'si' : 'no';
     return el('tr', {class: cl, title: valutato ? null :
         'La ricerca si ferma al primo controllo falso e questo non lo valuta: è calcolato solo per mostrarlo.'}, [
@@ -210,15 +215,18 @@ function tabellaDocenti(docenti, d) {
       const k = x.controlli.findIndex(c => c.nome === nome);
       if (k < 0) return el('td', {class: 'tenue', testo: '–'});
       const c = x.controlli[k];
-      const valutato = x.fermato_a < 0 || k <= x.fermato_a;
+      const valutato = mostrato(c, k, x.fermato_a);
+      // con «tutti i motivi», anche gli altri controlli falsi (dopo quello dove la ricerca si ferma) con gli ingressi
+      const altroFalso = tuttiIMotivi && valutato && !c.uscita && k !== x.fermato_a;
       const ingressi = descriviIngressi(c.nome, c.ingressi, d);
       // le ore che restano in questa classe: in ogni casella "restano X su Y"
       const ore = nome === 'deve_ancora_svolgere_ore_in_questa_classe' && c.ingressi.ore_da_fare !== undefined
         ? el('span', {class: 'piccolo', testo: `${c.ingressi.ore_da_fare - c.ingressi.ore_svolte} su ${c.ingressi.ore_da_fare}`})
         : null;
-      return el('td', {class: (!valutato ? 'non-valutato' : c.uscita ? 'si' : 'no') + (k === x.fermato_a ? ' fermo' : ''),
-          title: ingressi + (valutato ? '' : ' (la ricerca non lo valuta: si è già fermata)')},
-        k === x.fermato_a ? [el('strong', {testo: '✗ '}), ore || el('span', {class: 'piccolo', testo: ingressi})]
+      return el('td', {class: (!valutato ? 'non-valutato' : c.uscita ? 'si' : 'no') + (k === x.fermato_a ? ' fermo' : '') +
+          (altroFalso ? ' altro-falso' : ''),
+          title: ingressi + (k <= x.fermato_a || x.fermato_a < 0 ? '' : ' (la ricerca non lo valuta: si è già fermata)')},
+        k === x.fermato_a || altroFalso ? [el('strong', {testo: '✗ '}), ore || el('span', {class: 'piccolo', testo: ingressi})]
                           : ore ? [c.uscita ? '✓ ' : '✗ ', ore] : (c.uscita ? '✓' : '✗'));
     })]));
   return el('div', {class: 'scorre'}, el('table', {class: 'docenti-orizzontale'},
@@ -462,6 +470,13 @@ function paginaTest(cfg) {
   try { const f = localStorage.getItem('orario.filtroDocenti'); if (f) sceltaFiltro.value = f; } catch (e) {}
   sceltaFiltro.addEventListener('change', () => {
     try { localStorage.setItem('orario.filtroDocenti', sceltaFiltro.value); } catch (e) {}
+    if (aperto) disegnaBacktrack(dettaglio, d, aperto, sceltaFiltro.value, raggiunto, apertoPrima, apertoPasso);
+  });
+  const sceltaTutti = $('tutti-i-motivi');
+  try { tuttiIMotivi = sceltaTutti.checked = localStorage.getItem('orario.tuttiIMotivi') === '1'; } catch (e) {}
+  sceltaTutti.addEventListener('change', () => {
+    tuttiIMotivi = sceltaTutti.checked;
+    try { localStorage.setItem('orario.tuttiIMotivi', tuttiIMotivi ? '1' : '0'); } catch (e) {}
     if (aperto) disegnaBacktrack(dettaglio, d, aperto, sceltaFiltro.value, raggiunto, apertoPrima, apertoPasso);
   });
 

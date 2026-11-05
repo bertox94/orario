@@ -111,7 +111,9 @@
   <button type="button" class="secondario" id="precedente">← Precedente</button>
   <button type="button" class="secondario" id="successivo">Successivo →</button>
   <span class="tenue piccolo" id="posizione"></span>
-  <label class="spunta" style="margin-left: auto">Docenti da mostrare
+  <label class="spunta" style="margin-left: auto" title="Mostra anche i controlli dopo il primo che ferma la ricerca, con il loro esito invece che in grigio">
+    <input type="checkbox" id="tutti-i-motivi"> Tutti i motivi</label>
+  <label class="spunta">Docenti da mostrare
     <select id="filtro-docenti">
       <option value="tutti">tutti</option>
       <option value="con-ore">solo chi ha ancora ore in questa classe</option>

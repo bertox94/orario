@@ -244,3 +244,6 @@ svg.grafo-codocenze .filo { stroke: var(--male); stroke-opacity: .55; }
 svg.grafo-codocenze .nodo { fill: var(--testo); }
 svg.grafo-codocenze text { fill: var(--tenue); }
 table.dati tr.seguito td { border-top: none; }
+/* «tutti i motivi»: gli altri controlli falsi, dopo quello dove la ricerca si ferma (in rosso pieno) */
+table.docenti-orizzontale td.altro-falso { background: var(--attenzione-tenue); color: var(--attenzione); font-weight: 400;
+  max-width: 11em; min-width: 8em; }
