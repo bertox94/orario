@@ -52,6 +52,7 @@ function disegnaOrario(contenitore, d, orario, opz) {
       let figli = [];
       if (opz.cambiate && opz.cambiate.has(pos)) classi.push('cambiata');
       if (pos === opz.risolta) classi.push('risolta');
+      if (pos === opz.tornata) classi.push('tornata');
       if (pos === opz.blocco) {
         classi.push('blocco');
         figli = ['nessuno'];
@@ -152,6 +153,8 @@ function descriviIngressi(nome, i, d) {
   return Object.entries(i).map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join(', ');
 }
 
+function testoPos(d, pos) { const s = slotDi(d, pos); return `${d.giorni[s.giorno]} ${d.ore[s.ora]} ${nomeClasse(d, s.classe)}`; }
+
 // La tabella dei controlli di un docente (o di una coppia, o del ramo da solo), nell'ordine in cui la ricerca li
 // valuta: la ricerca si ferma al primo falso (fermato_a); i successivi li calcola solo la traccia, in grigio.
 function tabellaControlli(controlli, fermato, d) {
@@ -167,6 +170,32 @@ function tabellaControlli(controlli, fermato, d) {
   })));
 }
 
+// I docenti in orizzontale: una colonna per docente (nell'ordine della coda), una riga per controllo. In ogni casella
+// ✓ o ✗; dove la ricerca si ferma, anche gli ingressi del controllo. Gli ingressi di tutte le caselle sono nel title.
+function tabellaDocenti(docenti, d) {
+  // i controlli nell'ordine della ricerca (uguali per tutti i docenti; per sicurezza si uniscono i nomi)
+  const nomi = [];
+  for (const x of docenti) for (const c of x.controlli) if (!nomi.includes(c.nome)) nomi.push(c.nome);
+  const testa = el('tr', {}, [el('th', {class: 'nome', testo: 'Controllo'}), ...docenti.map(x =>
+    el('th', {class: 'doc' + (x.fermato_a < 0 ? ' passa' : '')}, [nomeDoc(d, x.docente), el('br'),
+      el('span', {class: 'tenue piccolo', testo: `priorità ${x.priorita}`})]))]);
+  const righe = nomi.map(nome => el('tr', {}, [
+    el('td', {class: 'nome', title: nome}, descrizioneControllo(nome, d)),
+    ...docenti.map(x => {
+      const k = x.controlli.findIndex(c => c.nome === nome);
+      if (k < 0) return el('td', {class: 'tenue', testo: '–'});
+      const c = x.controlli[k];
+      const valutato = x.fermato_a < 0 || k <= x.fermato_a;
+      const ingressi = descriviIngressi(c.nome, c.ingressi, d);
+      return el('td', {class: (!valutato ? 'non-valutato' : c.uscita ? 'si' : 'no') + (k === x.fermato_a ? ' fermo' : ''),
+          title: ingressi + (valutato ? '' : ' (la ricerca non lo valuta: si è già fermata)')},
+        k === x.fermato_a ? [el('strong', {testo: '✗ '}), el('span', {class: 'piccolo', testo: ingressi})]
+                          : (c.uscita ? '✓' : '✗'));
+    })]));
+  return el('div', {class: 'scorre'}, el('table', {class: 'docenti-orizzontale'},
+    [el('thead', {}, testa), el('tbody', {}, righe)]));
+}
+
 function esitoTesto(fermato, controlli, d) {
   return fermato >= 0 ? `si ferma a «${descrizioneControllo(controlli[fermato].nome, d)}»` : 'passa tutti i controlli';
 }
@@ -180,7 +209,9 @@ function haEsauritoOre(x) {
 
 // filtro: 'tutti', 'con-ore' (nasconde chi ha esaurito le ore in questa classe), 'esauriti' (nasconde chi ne ha ancora)
 // La griglia "l'orario fino a qui" va in sopra (in cima alla pagina), il resto in contenitore (sotto l'elenco).
-function disegnaBacktrack(contenitore, d, b, filtro, sopra) {
+// prima: il backtrack precedente sul cursore (se c'e'): in verde le celle cambiate da allora, e bordata la prima
+// (la cella fin dove la ricerca e' tornata indietro per cambiare una scelta).
+function disegnaBacktrack(contenitore, d, b, filtro, sopra, prima) {
   const s = slotDi(d, b.pos);
   const parti = [];
   parti.push(el('h3', {}, `Backtrack n. ${numeroIt(b.n)}: ${d.giorni[s.giorno]} ${d.ore[s.ora]} ${nomeClasse(d, s.classe)}`));
@@ -194,10 +225,19 @@ function disegnaBacktrack(contenitore, d, b, filtro, sopra) {
   parti.push(el('h4', {testo: 'Lo slot'}));
   parti.push(tabellaControlli([b.slot], b.slot.uscita ? -1 : 0, d));
   const griglia = el('div');
-  disegnaOrario(griglia, d, b.orario, {fino: b.pos, blocco: b.pos});
+  const cambiate = new Set();
+  if (prima) for (let p = 0; p < b.pos; p++)
+    if (p >= prima.orario.length || p >= prima.pos || JSON.stringify(b.orario[p]) !== JSON.stringify(prima.orario[p]))
+      cambiate.add(p);
+  const tornata = cambiate.size ? Math.min(...cambiate) : undefined;
+  disegnaOrario(griglia, d, b.orario, {fino: b.pos, blocco: b.pos, cambiate, tornata});
+  const testoCambi = !prima ? '' : !cambiate.size ? ` Nessuna cella cambiata dal backtrack precedente (n. ${numeroIt(prima.n)}).`
+    : ` In verde ${cambiate.size === 1 ? 'la cella cambiata' : `le ${numeroIt(cambiate.size)} celle cambiate`} dal ` +
+      `backtrack precedente (n. ${numeroIt(prima.n)}); bordata la prima, ${testoPos(d, tornata)}: la ricerca è tornata ` +
+      `fin lì e ha cambiato scelta.`;
   sopra.replaceChildren(el('p', {class: 'tenue piccolo'},
-    `Al backtrack n. ${numeroIt(b.n)}: ${d.giorni[s.giorno]} ${d.ore[s.ora]} ${nomeClasse(d, s.classe)} (in rosso).`),
-    griglia);
+    `Al backtrack n. ${numeroIt(b.n)}: ${d.giorni[s.giorno]} ${d.ore[s.ora]} ${nomeClasse(d, s.classe)} (in rosso).` +
+    testoCambi), griglia);
   // la griglia scorre in orizzontale fino allo slot del backtrack (che puo' stare a fine settimana)
   requestAnimationFrame(() => {
     const box = griglia.querySelector('.scorre'), td = griglia.querySelector('td.blocco');
@@ -209,29 +249,29 @@ function disegnaBacktrack(contenitore, d, b, filtro, sopra) {
   if (b.docenti.length) {
     parti.push(el('h4', {testo: 'I docenti della classe, nell\'ordine in cui la ricerca li prova'}));
     parti.push(el('p', {class: 'tenue piccolo'}, 'L\'ordine è quello della coda: prima chi ha più ore da fare (la ' +
-      'priorità). ✓ = vero, ✗ = falso; la ricerca si ferma al primo ✗, i controlli in grigio non li valuta.'));
+      'priorità), da sinistra a destra. ✓ = vero, ✗ = falso; la ricerca si ferma al primo ✗ (con gli ingressi), i ' +
+      'controlli in grigio non li valuta. Passando sopra una casella si vedono i suoi ingressi.'));
     if (nascosti) parti.push(el('p', {class: 'tenue piccolo'}, `${nascosti} docent${nascosti === 1 ? 'e nascosto' :
       'i nascosti'} (${filtro === 'con-ore' ? 'hanno già fatto tutte le ore' : 'hanno ancora ore'} in questa classe): ` +
       'si cambia con «Docenti da mostrare» qui sopra.'));
   }
-  for (const x of mostrati) {
+  if (mostrati.length) parti.push(tabellaDocenti(mostrati, d));
+  // chi passa tutti i controlli: la ricerca prova le coppie e il docente da solo
+  for (const x of mostrati.filter(x => x.fermato_a < 0)) {
     const blocco = el('div', {class: 'docente'});
-    blocco.append(el('h4', {}, `${nomeDoc(d, x.docente)} · priorità ${x.priorita} · ${esitoTesto(x.fermato_a, x.controlli, d)}`));
-    blocco.append(tabellaControlli(x.controlli, x.fermato_a, d));
-    if (x.fermato_a < 0) {
-      if (x.coppie.length) {
-        blocco.append(el('h5', {testo: 'In coppia (con i docenti dopo di lui nella coda che hanno ore insieme a lui qui)'}));
-        for (const c of x.coppie) {
-          blocco.append(el('p', {class: 'piccolo', style: 'margin: 6px 0 2px'},
-            `con ${nomeDoc(d, c.codocente)}: ${esitoTesto(c.fermato_a, c.controlli, d)}`));
-          blocco.append(tabellaControlli(c.controlli, c.fermato_a, d));
-        }
-      } else {
-        blocco.append(el('h5', {testo: 'In coppia: nessun docente dopo di lui nella coda ha ore insieme a lui in questa classe'}));
+    blocco.append(el('h4', {}, `${nomeDoc(d, x.docente)} · priorità ${x.priorita} · passa tutti i controlli`));
+    if (x.coppie.length) {
+      blocco.append(el('h5', {testo: 'In coppia (con i docenti dopo di lui nella coda che hanno ore insieme a lui qui)'}));
+      for (const c of x.coppie) {
+        blocco.append(el('p', {class: 'piccolo', style: 'margin: 6px 0 2px'},
+          `con ${nomeDoc(d, c.codocente)}: ${esitoTesto(c.fermato_a, c.controlli, d)}`));
+        blocco.append(tabellaControlli(c.controlli, c.fermato_a, d));
       }
-      blocco.append(el('h5', {}, `Da solo: ${esitoTesto(x.da_solo.fermato_a, x.da_solo.controlli, d)}`));
-      blocco.append(tabellaControlli(x.da_solo.controlli, x.da_solo.fermato_a, d));
+    } else {
+      blocco.append(el('h5', {testo: 'In coppia: nessun docente dopo di lui nella coda ha ore insieme a lui in questa classe'}));
     }
+    blocco.append(el('h5', {}, `Da solo: ${esitoTesto(x.da_solo.fermato_a, x.da_solo.controlli, d)}`));
+    blocco.append(tabellaControlli(x.da_solo.controlli, x.da_solo.fermato_a, d));
     parti.push(blocco);
   }
   if (b.altri_docenti) parti.push(el('p', {class: 'tenue piccolo'},
@@ -251,10 +291,11 @@ function paginaTest(cfg) {
   const raggiunto = $('orario-raggiunto');
   const sceltaFiltro = $('filtro-docenti');
   let aperto = null;        // il backtrack disegnato, per ridisegnarlo quando cambia il filtro
+  let apertoPrima = null;   // il backtrack precedente sul cursore (per le celle cambiate)
   try { const f = localStorage.getItem('orario.filtroDocenti'); if (f) sceltaFiltro.value = f; } catch (e) {}
   sceltaFiltro.addEventListener('change', () => {
     try { localStorage.setItem('orario.filtroDocenti', sceltaFiltro.value); } catch (e) {}
-    if (aperto) disegnaBacktrack(dettaglio, d, aperto, sceltaFiltro.value, raggiunto);
+    if (aperto) disegnaBacktrack(dettaglio, d, aperto, sceltaFiltro.value, raggiunto, apertoPrima);
   });
 
   async function caricaDati() {
@@ -647,8 +688,12 @@ function paginaTest(cfg) {
       `${numeroIt(g.membri.length)} nel gruppo ${numeroIt(g.k + 1)}` +
       (n === g.ultimo && !risolto(g) ? ` · ultimo passaggio, non risolto (${comeFinisce(g)[0]})` : '');
     mostraRigaAttuale(n);
-    const b = await caricaRecord(n);
-    if (scelto === n && !inRisoluzione) { aperto = b; disegnaBacktrack(dettaglio, d, b, sceltaFiltro.value, raggiunto); }
+    const i = lista.indexOf(n);
+    const [b, prima] = await Promise.all([caricaRecord(n), i > 0 ? caricaRecord(lista[i - 1]) : null]);
+    if (scelto === n && !inRisoluzione) {
+      aperto = b; apertoPrima = prima;
+      disegnaBacktrack(dettaglio, d, b, sceltaFiltro.value, raggiunto, prima);
+    }
   }
 
   // ← e →: il backtrack precedente e il successivo in ordine di tempo (passando da un gruppo all'altro)

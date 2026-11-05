@@ -203,3 +203,17 @@ table.orario th.classe { z-index: 3; }
 
 /* la colonna «Celle toccate» c'e' solo con i gruppi consecutivi */
 #tabella-gruppi:not(.con-celle) .col-celle { display: none; }
+/* i docenti in orizzontale: una colonna per docente, una riga per controllo */
+table.docenti-orizzontale { border-collapse: collapse; font-size: 13px; margin: 0 0 12px; }
+table.docenti-orizzontale th, table.docenti-orizzontale td { padding: 3px 8px; border-bottom: 1px dotted var(--bordo);
+  text-align: center; vertical-align: top; }
+table.docenti-orizzontale th.doc { min-width: 5.5em; max-width: 9em; font-weight: 600; white-space: nowrap; }
+table.docenti-orizzontale th.doc.passa { color: var(--ok); }
+table.docenti-orizzontale .nome { text-align: left; position: sticky; left: 0; background: var(--sfondo); z-index: 1;
+  min-width: 14em; max-width: 22em; }
+table.docenti-orizzontale td.si { color: var(--ok); font-weight: 700; }
+table.docenti-orizzontale td.no { color: var(--male); font-weight: 700; }
+table.docenti-orizzontale td.fermo { background: var(--male-tenue); font-weight: 400; max-width: 11em; min-width: 8em; }
+table.docenti-orizzontale td.non-valutato { color: var(--tenue); opacity: .6; }
+/* scorrendo il cursore: la prima cella cambiata dal backtrack precedente (fin dove la ricerca e' tornata) */
+table.orario td.tornata { outline: 2px solid var(--ok); outline-offset: -2px; font-weight: 700; }
