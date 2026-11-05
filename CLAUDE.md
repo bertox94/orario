@@ -8,7 +8,7 @@ codice del sito e messaggi di commit sono in italiano.
 - **Il solver** (C, radice del repository): ricerca con backtracking dell'orario. `main.c` contiene la ricerca
   (`print_orario`) e i controlli; i dati di prova sono in `data_initialization/database_initializers.c`
   (`inizializza_dati()`). `ingresso_uscita/` è solo ingresso e uscita per il sito: `--input` (dati da JSON),
-  `--traccia` (un JSON per riga: dati, backtrack con i controlli, nodi, orari trovati, fine), `-n`, `--txt`, `--max-nodi`,
+  `--traccia` (un JSON per riga: dati, backtrack con i controlli, orari trovati, fine), `-n`, `--txt`,
   `--max-backtrack`, `--progresso`. Senza opzioni il solver fa esattamente quello che faceva prima.
 - **Il sito** (Flask + Postgres, cartella `sito/`, branch `sito/seconda-versione`): dati della scuola e test in tempo
   reale. A ogni backtrack la pagina del test mostra l'orario fino a quel punto e, per ogni docente, i controlli della

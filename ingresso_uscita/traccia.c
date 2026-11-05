@@ -31,7 +31,6 @@ int verifica_ora_ingresso(int prof, int ora);
 
 long long int traccia_nodi = 0;
 long long int traccia_backtrack_n = 0;
-int traccia_con_nodi = 0;
 
 static FILE *t = NULL;
 static long long int max_registrati = 1000;
@@ -41,51 +40,16 @@ static clock_t inizio, ultimo_progresso;
 
 #define MAX_ORARI_SCRITTI 10
 
-// ---- i nodi (con --max-nodi): si scrivono a pezzi, al massimo NODI_PER_RIGA per riga ----
-
-#define NODI_PER_RIGA 1000
-static long long int max_nodi_registrati = 0, nodi_registrati = 0;
-static long long int nodi_da = 0; // il primo nodo del pezzo in corso
-static int nodi_pezzo[NODI_PER_RIGA][3];
-static int nodi_n = 0;
-
-static void scrivi_nodi(void) {
-    if (!t || !nodi_n) return;
-    fprintf(t, "{\"tipo\":\"nodi\",\"da\":%lld,\"passi\":[", nodi_da);
-    for (int i = 0; i < nodi_n; i++)
-        fprintf(t, "%s[%d,%d,%d]", i ? "," : "", nodi_pezzo[i][0], nodi_pezzo[i][1], nodi_pezzo[i][2]);
-    fprintf(t, "]}\n");
-    nodi_n = 0;
-}
-
-void traccia_nodo(const int pos) {
-    if (nodi_registrati >= max_nodi_registrati || traccia_backtrack_n > max_registrati) {
-        scrivi_nodi();
-        traccia_con_nodi = 0; // basta: la ricerca non chiama piu'
-        return;
-    }
-    if (!nodi_n) nodi_da = traccia_nodi;
-    nodi_pezzo[nodi_n][0] = pos;
-    nodi_pezzo[nodi_n][1] = pos > 0 ? orario[pos - 1].insegnante1 : -1;
-    nodi_pezzo[nodi_n][2] = pos > 0 ? orario[pos - 1].insegnante2 : -1;
-    nodi_registrati++;
-    if (++nodi_n == NODI_PER_RIGA) scrivi_nodi();
-}
-
-int traccia_apri(const char *percorso, const long long int max_backtrack, const long long int max_nodi,
-                 const int progresso) {
+int traccia_apri(const char *percorso, const long long int max_backtrack, const int progresso) {
     inizio = ultimo_progresso = clock();
     con_progresso = progresso;
     max_registrati = max_backtrack;
     if (!percorso) return 1;
     t = fopen(percorso, "w");
-    max_nodi_registrati = max_nodi;
-    traccia_con_nodi = t != NULL && max_nodi > 0;
     return t != NULL;
 }
 
 void traccia_chiudi(void) {
-    scrivi_nodi();
     if (t) fclose(t);
     t = NULL;
 }
@@ -324,7 +288,6 @@ static int registra(void) {
 }
 
 static void testa_backtrack(const int pos, const int giorno, const int ora, const int cla, const int buca_dopo) {
-    scrivi_nodi();
     fprintf(t, "{\"tipo\":\"backtrack\",\"n\":%lld,\"nodo\":%lld,\"pos\":%d,\"giorno\":%d,\"ora\":%d,\"classe\":%d,"
             "\"buca_dopo\":%d,", traccia_backtrack_n, traccia_nodi, pos, giorno, ora, cla, buca_dopo);
 }
@@ -410,7 +373,6 @@ void traccia_slot_chiuso(const int pos, const int giorno, const int ora, const i
 void traccia_orario_trovato(void) {
     if (!t || orari_scritti >= MAX_ORARI_SCRITTI) return;
     orari_scritti++;
-    scrivi_nodi();
     fprintf(t, "{\"tipo\":\"orario\",\"n\":%lld,\"nodo\":%lld,", n_gen, traccia_nodi);
     orario_fino_a(orario_len);
     fprintf(t, "}\n");
@@ -430,7 +392,6 @@ void traccia_progresso(const int pos) {
 
 void traccia_fine(const double secondi) {
     if (!t) return;
-    scrivi_nodi();
     fprintf(t, "{\"tipo\":\"fine\",\"esito\":\"%s\",\"orari\":%lld,\"orari_massimi\":%lld,\"nodi\":%lld,"
             "\"backtrack\":%lld,\"backtrack_registrati\":%lld,\"secondi\":%.3f}\n",
             n_gen > 0 ? "trovato" : "nessuna soluzione", n_gen, n_gen_max, traccia_nodi, traccia_backtrack_n,
