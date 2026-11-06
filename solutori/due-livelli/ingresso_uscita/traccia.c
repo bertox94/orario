@@ -186,6 +186,8 @@ static void coppia_o_null(const int a, const int b) {
 
 // L'inizio di un controllo nell'elenco: {"nome":...,"ingressi":{  (si chiude con fine_controllo)
 static int n_controllo;
+// i controlli base del docente in esame si sono fermati a questo indice (-1: li passa tutti)
+static int base_fermato = -1;
 
 static void inizia_controllo(const char *nome) {
     fprintf(t, "%s{\"nome\":\"%s\",\"ingressi\":{", n_controllo++ ? "," : "", nome);
@@ -337,7 +339,7 @@ static int c_senza_cod(const int base2d_ci, const int p, int *fermato_a, const i
 static int c_spazio(const int pos, const int giorno, const int ora, const int cla, const int base2d_ci,
                     const int base3d_goi, QueueItem *it, QueueItem *jt, int *fermato_a, const int k) {
     inizia_controllo("lascia_spazio_alle_ore_di_oggi_della_classe");
-    if (*fermato_a >= 0) {
+    if (*fermato_a >= 0 || base_fermato >= 0) {
         fprintf(t, "\"non_calcolato\":1");
         fine_controllo(1, fermato_a, k);
         return 1;
@@ -409,8 +411,11 @@ void traccia_backtrack(const int s, const int giorno, const int ora, const int c
         c_max_classi(pos, giorno, cla, p1, &fermato, 4);
         c_ingresso(ora, p1, &fermato, 5);
         fprintf(t, "],\"fermato_a\":%d", fermato);
-        if (fermato < 0) {
-            // passato: la ricerca ha provato le coppie con i docenti dopo di lui nella coda, poi da solo
+        base_fermato = fermato;
+        {
+            // le coppie con i docenti dopo di lui nella coda, poi da solo. La ricerca le prova solo se il docente passa
+            // i controlli sopra (fermato < 0); la traccia le calcola per tutti, cosi' la pagina puo' mostrarle anche
+            // per gli altri. I controlli che mettono per prova la coppia nella cella si fanno solo per chi li passa.
             fprintf(t, ",\"coppie\":[");
             int pc = 1;
             for (int jj = ii + 1; jj < fine_coda; jj++) {
@@ -429,7 +434,7 @@ void traccia_backtrack(const int s, const int giorno, const int ora, const int c
                 c_ingresso(ora, p2, &f2, 6);  // (solo nei solver nuovi) anche il codocente deve essere gia' entrato
                 c_spazio(pos, giorno, ora, cla, base2d_ci, base3d_goi, queue_mul[ii], queue_mul[jj], &f2, 7);
                 fprintf(t, "],\"fermato_a\":%d}", f2);
-                incoerente |= f2 < 0;
+                incoerente |= fermato < 0 && f2 < 0;
             }
             int f3 = -1;
             n_controllo = 0;
@@ -438,7 +443,7 @@ void traccia_backtrack(const int s, const int giorno, const int ora, const int c
             c_sabato(pos, giorno, ora, base2d_ci, p1, &f3, 1);
             c_spazio(pos, giorno, ora, cla, base2d_ci, base3d_goi, queue_mul[ii], NULL, &f3, 2);
             fprintf(t, "],\"fermato_a\":%d}", f3);
-            incoerente |= f3 < 0;
+            incoerente |= fermato < 0 && f3 < 0;
         }
         fputc('}', t);
     }
