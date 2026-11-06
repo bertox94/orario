@@ -34,7 +34,8 @@ RADICE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DESCRIZIONI = {
     'main': 'main: la ricerca di oggi',
     'per-classe': 'per classe: dentro ogni giorno una classe alla volta',
-    'in-avanti': 'con controllo in avanti: scarta subito le scelte che lasciano una cella di oggi senza docenti',
+    'in-avanti': 'con controllo in avanti: scarta subito le scelte che rendono il resto impossibile',
+    'in-avanti-dopo': 'con controllo in avanti nella cella dopo: come in-avanti, ma il controllo si fa entrando nella cella dopo',
     'due-livelli': 'a due livelli: prima le ore di ogni giorno per docente e classe, poi l\'orario del giorno',
 }
 

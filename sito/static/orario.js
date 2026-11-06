@@ -112,6 +112,7 @@ function descrizioneControllo(nome, d) {
     sabato_esaurisci_priorita_subito: "regola del sabato: chi c'era nell'ora prima e ha ancora ore deve restare",
     deve_svolgere_ancora_ora_in_questa_classe_senza_codocente: 'ha ancora ore da solo in questa classe',
     lascia_un_docente_alle_celle_di_oggi: 'lascia un docente a ogni cella obbligatoria di oggi e abbastanza lezioni alle classi',
+    situazione_risolvibile: 'la scelta nella cella prima lascia un docente a ogni cella di oggi e abbastanza lezioni alle classi',
     lascia_spazio_alle_ore_di_oggi_della_classe: 'lascia spazio alle ore di oggi degli altri docenti della classe',
   })[nome] || nome;
 }
@@ -131,6 +132,7 @@ function motivoBreve(nome) {
     deve_svolgere_ancora_ora_in_questa_classe_senza_codocente: 'ore da solo finite',
     sabato_esaurisci_priorita_subito: 'regola del sabato',
     lascia_un_docente_alle_celle_di_oggi: 'lascerebbe una cella senza docenti o senza abbastanza lezioni',
+    situazione_risolvibile: 'la scelta di prima rende il resto impossibile',
     lascia_spazio_alle_ore_di_oggi_della_classe: 'toglierebbe spazio a un altro docente',
   })[n] || n;
   return solo ? 'coppie e da solo: ' + t : t;
@@ -168,6 +170,7 @@ function descriviIngressi(nome, i, d) {
         i.ore_rimaste.filter(x => x !== null).join(' e ');
     case 'deve_svolgere_ancora_ora_in_questa_classe_senza_codocente':
       return `ore da solo fatte: ${i.ore_da_solo_svolte} su ${i.ore_da_solo}`;
+    case 'situazione_risolvibile':
     case 'lascia_un_docente_alle_celle_di_oggi':
       if (i.non_calcolato) return 'non calcolato: la ricerca si ferma prima';
       if (i.cella_bloccata < 0) return 'nessuna cella di oggi resta senza docenti e le lezioni possibili bastano';
@@ -322,9 +325,13 @@ function disegnaBacktrack(contenitore, d, b, filtro, sopra, prima, passo) {
   sostituisci(document.getElementById('intestazione-backtrack'),
     el('h3', {}, `Backtrack n. ${numeroIt(b.n)}: ${testoPos(d, b.pos)}`),
     el('p', {class: 'tenue piccolo'}, [
-      `Al nodo ${numeroIt(b.nodo)} della ricerca la classe ${nomeClasse(d, s.classe)} non ha potuto avere nessun ` +
-      `docente in quest'ora. `,
-      b.buca_dopo ? "Siamo oltre le ore obbligatorie: dopo la ricerca prova l'ora buca, quindi non è un vicolo cieco."
+      b.slot.nome === 'situazione_risolvibile'
+        ? `Al nodo ${numeroIt(b.nodo)} la ricerca entra in questa cella, ma la scelta fatta nella cella prima rende il ` +
+          `resto impossibile (vedi «La classe» qui sotto). `
+        : `Al nodo ${numeroIt(b.nodo)} della ricerca la classe ${nomeClasse(d, s.classe)} non ha potuto avere nessun ` +
+          `docente in quest'ora. `,
+      b.slot.nome === 'situazione_risolvibile' ? 'La ricerca torna indietro e cambia quella scelta.'
+      : b.buca_dopo ? "Siamo oltre le ore obbligatorie: dopo la ricerca prova l'ora buca, quindi non è un vicolo cieco."
       : b.ora >= (d.parametri || {}).ore_obbligatorie
         ? 'La classe deve fare lezione in quest\'ora (le ore che le restano non starebbero nei giorni dopo): la ' +
           'ricerca torna indietro e cambia una scelta precedente.'
