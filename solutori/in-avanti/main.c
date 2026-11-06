@@ -365,6 +365,80 @@ int cella_bloccata_dopo_la_scelta(const int pos) {
     return q;
 }
 
+// ---- verifiche di fattibilita' (sui soli dati, prima della ricerca) ----
+// Condizioni necessarie che si vedono senza cercare: se una non vale, l'orario non esiste e la ricerca non parte (il
+// test finisce con «errore nei dati» e il motivo). G giorni, O ore al giorno, M ore obbligatorie, al massimo
+// MAX_ORE_PROF_IN_UNA_CLASSE (3) ore al giorno di un docente in una classe e MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO
+// (3) classi al giorno; un docente che entra all'ora k ha O - k ore al giorno.
+//  1. docente in una classe: ore <= G x min(3, O - k)              (entra alla quarta ora: al massimo 6 x 3 = 18)
+//  2. docente in tutto: ore <= G x (O - k)
+//  3. docente, classi al giorno: ogni classe gli prende almeno ore/3 giorni (arrotondato in su), al massimo 3 classi al
+//     giorno: la somma <= 3 x G
+//  4. classe, ore obbligatorie: per ogni ora h < M, le lezioni possibili tra la prima ora e h (per voce: un docente da
+//     solo o una coppia, dall'ingresso, al massimo 3 al giorno e le ore della voce) bastano per (h + 1) x G
+//  5. ora per ora: alle ore obbligatorie i docenti gia' entrati (con lezioni) sono almeno quante le classi
+// (Per una coppia non serve un controllo a parte: le ore insieme sono anche ore di chi entra piu' tardi, e per lui
+// vale gia' la 1.) Ritorna 1 se tutto va, se no 0 con il motivo in errore.
+static int verifica_fattibilita(char *errore, const size_t dimensione) {
+    const int G = actual_giorni_settimana, O = actual_ore_giornaliere;
+    const int maxo = MAX_ORE_PROF_IN_UNA_CLASSE, maxc = MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO;
+    const int M = MIN(PRIME_N_ORE_OBBLIGATORIE, O);
+    for (int p = 0; p < actual_insegnanti; p++) {
+        const int k = ora_di_entrata_prof[p], al_giorno = O - k;
+        int totale = 0, giorni_classe = 0;
+        for (int c = 0; c < actual_classi_sezione; c++) {
+            const int ore = ore_classi_docenti[c * INSEGNANTE_SZ + p];
+            if (!ore) continue;
+            totale += ore;
+            giorni_classe += (ore + maxo - 1) / maxo;
+            if (ore > G * MIN(maxo, al_giorno)) {  // 1
+                snprintf(errore, dimensione, "%s in %s: %d ore, ma %s%s ne puo' fare al massimo %d (%d al giorno per "
+                         "%d giorni)", insegnanti[p], classe_sezione[c], ore, k ? "entrando alle " : "",
+                         k ? ore_giornaliere[k] : "", G * MIN(maxo, al_giorno), MIN(maxo, al_giorno), G);
+                return 0;
+            }
+        }
+        if (totale > G * al_giorno) {  // 2
+            snprintf(errore, dimensione, "%s: %d ore in tutto, ma %s%s ne puo' fare al massimo %d (%d al giorno per %d "
+                     "giorni)", insegnanti[p], totale, k ? "entrando alle " : "", k ? ore_giornaliere[k] : "",
+                     G * al_giorno, al_giorno, G);
+            return 0;
+        }
+        if (giorni_classe > maxc * G) {  // 3
+            snprintf(errore, dimensione, "%s: le sue classi gli prendono almeno %d giornate-classe (al massimo %d ore al "
+                     "giorno in una classe), ma con %d classi al giorno ne ha %d", insegnanti[p], giorni_classe, maxo,
+                     maxc, maxc * G);
+            return 0;
+        }
+    }
+    for (int c = 0; c < actual_classi_sezione; c++) {
+        for (int h = 0; h < M; h++) {  // 4
+            int possibili = 0;
+            for (int v = 0; v < n_voci[c]; v++) {
+                const int p = voce_p[c][v], q = voce_q[c][v];
+                const int entra = MAX(ora_di_entrata_prof[p], q >= 0 ? ora_di_entrata_prof[q] : 0);
+                possibili += MIN(ore_rimaste_voce(c, p, q), G * MIN(maxo, MAX(0, h + 1 - entra)));
+            }
+            if (possibili < (h + 1) * G) {
+                snprintf(errore, dimensione, "%s: dalle %s alle %s servono %d lezioni in una settimana (%d al giorno), "
+                         "ma con gli ingressi dei suoi docenti ce ne possono essere al massimo %d", classe_sezione[c],
+                         ore_giornaliere[0], ore_giornaliere[h], (h + 1) * G, h + 1, possibili);
+                return 0;
+            }
+        }
+    }
+    for (int h = 0; h < M; h++) {  // 5
+        int presenti = 0;
+        for (int p = 0; p < actual_insegnanti; p++) presenti += ore_docenti[p] > 0 && ora_di_entrata_prof[p] <= h;
+        if (presenti < actual_classi_sezione) {
+            snprintf(errore, dimensione, "alle %s sono entrati solo %d docenti, ma le classi sono %d (e l'ora e' "
+                     "obbligatoria)", ore_giornaliere[h], presenti, actual_classi_sezione);
+            return 0;
+        }
+    }
+    return 1;
+}
+
 // ---- la ricerca ----
 // print_orario(pos) decide la cella pos. Se la classe puo' fare lezione, prova i docenti della coda in ordine: per
 // ognuno che passa i controlli base prova le coppie con i docenti dopo di lui nella coda, poi lui da solo; ogni scelta
@@ -510,6 +584,14 @@ int main(int argc, char **argv) {
     prepara_controllo_in_avanti();
 
     traccia_dati();
+    {
+        char errore[512];
+        if (!verifica_fattibilita(errore, sizeof errore)) {  // l'orario non esiste: la ricerca non parte
+            traccia_errore(errore);
+            traccia_chiudi();
+            return 2;
+        }
+    }
     // con --txt /dev/null orario.txt non si scrive per niente: la ricerca e' la stessa, ma non perde tempo a formattare
     // la griglia a ogni backtrack (dal sito e' quasi tutto il tempo)
     f = strcmp(file_txt, "/dev/null") ? fopen(file_txt, "w") : NULL;
