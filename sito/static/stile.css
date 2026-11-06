@@ -249,3 +249,17 @@ table.docenti-orizzontale td.altro-falso { background: var(--attenzione-tenue); 
   max-width: 11em; min-width: 8em; }
 /* il titolo di una sezione dei controlli, con la sua casella */
 label.titolo-sezione { font-weight: 600; font-size: 14px; cursor: pointer; }
+
+/* un test con piu' solver: una tab per solver (live/prova.html) */
+.tab-solver { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--bordo); margin: 12px 0 0; }
+.tab-solver button { font: inherit; background: none; border: 1px solid transparent; border-bottom: none;
+  border-radius: 8px 8px 0 0; padding: 8px 12px; margin-bottom: -1px; cursor: pointer; color: inherit;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; }
+.tab-solver button:hover { background: var(--superficie); }
+.tab-solver button.attiva { background: var(--superficie); border-color: var(--bordo); }
+.pagine-solver { position: relative; overflow: hidden; }
+/* le pagine delle altre tab restano aperte (seguono la loro ricerca), ma fuori dalla vista */
+.pagine-solver iframe { display: block; width: 100%; min-height: 60vh; border: none; }
+.pagine-solver iframe.nascosta { position: absolute; left: -10000px; top: 0; visibility: hidden; }
+body.incorporata main { padding-top: 12px; }
+[hidden] { display: none !important; }  /* anche sui bottoni, che hanno un display loro */

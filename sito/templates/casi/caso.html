@@ -2,7 +2,7 @@
 {% block titolo %}{{ e.caso }}{% endblock %}
 {% block contenuto %}
 {% set fine = r.get('fine') %}
-<p class="piccolo"><a href="{{ url_for('live.indice') }}">← Test in tempo reale</a></p>
+{% if not request.args.get('incorporata') %}<p class="piccolo"><a href="{{ url_for('live.indice') }}">← Test in tempo reale</a></p>{% endif %}
 <h1>{{ e.caso }}
   <span class="esito {{ (e.esito if not in_corso else none)|classe_esito }}">{{ 'in corso' if in_corso else (e.esito or e.stato_prova) }}</span></h1>
 
@@ -32,6 +32,7 @@
       <input type="hidden" name="sorgente" value="esecuzione"><input type="hidden" name="eid" value="{{ e.id }}">
       {% for k, v in (e.opzioni or {}).items() %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
       {% if not (e.opzioni or {}).get('tempo') %}<input type="hidden" name="tempo" value="0">{% endif %}
+      {% if not (e.opzioni or {}).get('solutore') %}<input type="hidden" name="solutore" value="main">{% endif %}
       <button class="secondario">Rifai il test con gli stessi dati</button>
     </form>
     <a class="bottone secondario" href="{{ url_for('casi.scarica_dati', eid=e.id) }}">Scarica i dati</a>

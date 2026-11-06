@@ -28,12 +28,16 @@
     <label>Tempo massimo (s, 0 = senza limite) <input type="number" name="tempo" min="0" value="60"></label>
     <label>Orari da trovare <input type="number" name="orari" min="1" max="1000" value="1"></label>
     <label>Backtrack da registrare <input type="number" name="max_backtrack" min="0" max="100000" value="1000"></label>
-    {% if solutori|length > 1 %}
-    <label>Solver <select name="solutore">
-      {% for nome, descrizione in solutori %}<option value="{{ nome }}">{{ descrizione }}</option>{% endfor %}
-    </select></label>
-    {% endif %}
   </div>
+  {% if solutori|length > 1 %}
+  <p style="margin-bottom: 4px">Solver da <strong>non</strong> usare <span class="tenue piccolo">(gli altri girano
+    insieme, ognuno nella sua tab)</span>:</p>
+  <div class="riga" id="escludi-solver" style="display: flex; flex-direction: column; gap: 2px;">
+    {% for nome, descrizione in solutori %}
+    <label class="spunta"><input type="checkbox" name="escludi" value="{{ nome }}"> {{ descrizione }}</label>
+    {% endfor %}
+  </div>
+  {% endif %}
   <p class="tenue piccolo">A ogni backtrack (uno slot in cui la ricerca non riesce a mettere nessun docente) il test
     registra l'orario fino a quel punto e, per ogni docente, i controlli della ricerca con i valori che leggono e il loro
     esito. Oltre il numero indicato i backtrack si contano soltanto (al massimo 100.000; ognuno occupa circa 2,5 kB nel
@@ -52,7 +56,8 @@
 <div class="scorre" id="da-verificare"><table class="dati">
   <thead><tr><th>Test</th><th>Quando</th><th>Esito</th><th class="num">Backtrack</th><th>Riassunto</th><th></th></tr></thead>
   <tbody>{% for n in da_verificare %}
-    <tr><td><a href="{{ url_for('casi.caso', eid=n.id) }}">{{ n.caso }}</a></td>
+    <tr data-pid="{{ n.prova_id }}"><td><a href="{{ url_for('live.prova', pid=n.prova_id, scheda=n.id) }}">{{ n.caso }}</a>
+      <span class="tenue piccolo">{{ n.solutore }}</span></td>
       <td class="piccolo" style="white-space: nowrap">{{ n.quando|data if n.quando }}</td>
       <td><span class="esito {{ n.esito|classe_esito }}">{{ n.esito }}</span></td>
       <td class="num">{{ n.marce|numero }}</td><td class="piccolo">{{ n.diagnosi or '' }}</td>
@@ -66,12 +71,13 @@
 <h2>Test recenti</h2>
 <div class="scorre">
 <table class="dati">
-  <thead><tr><th>#</th><th>Dati</th><th>Quando</th><th>Esito</th><th class="num">Backtrack</th><th class="num">Durata</th><th>Riassunto</th><th></th></tr></thead>
+  <thead><tr><th>#</th><th>Dati</th><th>Solver</th><th>Quando</th><th>Esito</th><th class="num">Backtrack</th><th class="num">Durata</th><th>Riassunto</th><th></th></tr></thead>
   <tbody>
   {% for p in prove %}
     <tr>
       <td>{{ p.id }}</td>
-      <td>{% if p.eid %}<a href="{{ url_for('casi.caso', eid=p.eid) }}">{{ p.nome or '-' }}</a>{% else %}{{ p.nome or '-' }}{% endif %}</td>
+      <td>{% if p.eid %}<a href="{{ url_for('live.prova', pid=p.id, scheda=p.eid) }}">{{ p.nome or '-' }}</a>{% else %}{{ p.nome or '-' }}{% endif %}</td>
+      <td class="piccolo">{{ p.solutore or '' }}</td>
       <td>{{ p.creata|data }}</td>
       <td><span class="esito {{ (p.esito or p.stato)|classe_esito }}">{{ p.esito or p.stato }}</span></td>
       <td class="num">{{ p.marce|numero }}</td>
@@ -79,14 +85,14 @@
       <td class="piccolo">{{ p.diagnosi or p.messaggio or '' }}</td>
       <td>
         <form method="post" action="{{ url_for('live.elimina', pid=p.id) }}" class="in-linea elimina-test"
-              data-caso="{{ url_for('casi.caso', eid=p.eid) if p.eid else '' }}">
+              data-pid="{{ p.id }}">
           <input type="hidden" name="_gettone" value="{{ gettone }}">
           <button class="link" title="Elimina">✕</button>
         </form>
       </td>
     </tr>
   {% else %}
-    <tr><td colspan="8" class="tenue">Nessun test.</td></tr>
+    <tr><td colspan="9" class="tenue">Nessun test.</td></tr>
   {% endfor %}
   </tbody>
 </table>
@@ -94,6 +100,19 @@
 {% endblock %}
 {% block script %}
 <script>
+// i solver esclusi si ricordano (in questo browser) per il test dopo
+(() => {
+  const caselle = document.querySelectorAll('#escludi-solver input');
+  let esclusi = [];
+  try { esclusi = JSON.parse(localStorage.getItem('solver-esclusi') || '[]'); } catch (e) {}
+  caselle.forEach(c => {
+    c.checked = esclusi.includes(c.value);
+    c.addEventListener('change', () => {
+      try { localStorage.setItem('solver-esclusi', JSON.stringify([...caselle].filter(x => x.checked).map(x => x.value))); }
+      catch (e) {}
+    });
+  });
+})();
 // la ✕ dei test da verificare toglie la riga senza ricaricare la pagina
 document.querySelectorAll('form.togli-verificare').forEach(f => f.addEventListener('submit', async ev => {
   ev.preventDefault();
@@ -109,12 +128,11 @@ document.querySelectorAll('form.elimina-test').forEach(f => f.addEventListener('
   const x = r.ok ? await r.json() : {ok: false, errore: 'Il test non è stato eliminato (errore ' + r.status + ').'};
   if (!x.ok) { alert(x.errore); return; }
   const corpo = f.closest('tbody');
-  f.closest('tr').remove();
+  // un test con piu' solver ha una riga per solver: se ne vanno tutte
+  corpo.querySelectorAll(`form.elimina-test[data-pid="${f.dataset.pid}"]`).forEach(x => x.closest('tr').remove());
   if (!corpo.querySelector('tr')) corpo.append(Object.assign(document.createElement('tr'),
-    {innerHTML: '<td colspan="8" class="tenue">Nessun test.</td>'}));
-  if (f.dataset.caso) document.querySelectorAll('#da-verificare tbody tr').forEach(tr => {
-    if (tr.querySelector(`a[href="${f.dataset.caso}"]`)) tr.remove();
-  });
+    {innerHTML: '<td colspan="9" class="tenue">Nessun test.</td>'}));
+  document.querySelectorAll(`#da-verificare tbody tr[data-pid="${f.dataset.pid}"]`).forEach(tr => tr.remove());
   const svuota = document.getElementById('svuota-verificare');
   if (svuota && !document.querySelector('#da-verificare tbody tr')) svuota.hidden = true;
 }));

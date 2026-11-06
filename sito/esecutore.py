@@ -200,66 +200,81 @@ def _riassunto(r):
     return ' · '.join(parti)
 
 
-def avvia_live(config, scuola_id, caso, opzioni):
-    """Crea la prova e l'esecuzione, lancia il solver in un thread e ritorna (id prova, id esecuzione)."""
+def avvia_live(config, scuola_id, caso, opzioni, solutori=('main',)):
+    """Crea la prova e un'esecuzione per ogni solver, lancia ognuno nel suo thread (girano in parallelo) e ritorna
+    (id prova, [id delle esecuzioni])."""
     with db.connetti(config.database_url) as c:
         dati = dati_del_caso(c, scuola_id, caso)
         nome = nome_caso(caso)
         caso_salvato = {k: v for k, v in caso.items() if k != 'dati'}
         pid = c.execute("insert into prove (scuola_id, tipo, nome, stato, opzioni, commit, inizio, dati_scuola) "
                         "values (%s, 'live', %s, 'in corso', %s, %s, now(), %s) returning id",
-                        (scuola_id, nome, _json({'caso': caso_salvato, **opzioni}), solver.commit_attuale(),
-                         _json(dati))).fetchone()['id']
-        eid = c.execute('insert into esecuzioni (prova_id, caso, caso_dati, fase, opzioni) '
-                        'values (%s, %s, %s, 1, %s) returning id',
-                        (pid, nome, _json(caso_salvato), _json(opzioni))).fetchone()['id']
+                        (scuola_id, nome, _json({'caso': caso_salvato, 'solutori': list(solutori), **opzioni}),
+                         solver.commit_attuale(), _json(dati))).fetchone()['id']
+        esecuzioni = []
+        for s in solutori:
+            o = dict(opzioni, solutore=s) if s != 'main' else dict(opzioni)  # 'main' non si scrive (i test di prima)
+            eid = c.execute('insert into esecuzioni (prova_id, caso, caso_dati, fase, opzioni) '
+                            'values (%s, %s, %s, 1, %s) returning id',
+                            (pid, nome, _json(caso_salvato), _json(o))).fetchone()['id']
+            esecuzioni.append((eid, o))
         c.commit()
-    pronto = threading.Event()
+    pronti = []
+    for eid, o in esecuzioni:
+        pronto = threading.Event()
+        threading.Thread(target=_esegui, args=(config, pid, eid, nome, dati, o, pronto), daemon=True,
+                         name='live-%d-%d' % (pid, eid)).start()
+        pronti.append(pronto)
+    for pronto in pronti:
+        pronto.wait(120)  # la compilazione puo' richiedere qualche secondo
+    return pid, [eid for eid, _ in esecuzioni]
 
-    def lavoro():
-        cartella = _cartella_lavoro(config)
-        registro = _Registro(config.database_url, eid)
+
+# la prova e' finita quando non resta nessuna sua esecuzione senza esito
+_FINE_PROVA = ("update prove set stato = %s, fine = now(), riepilogo = %s, messaggio = coalesce(%s, messaggio) "
+               "where id = %s and not exists (select 1 from esecuzioni where prova_id = %s and esito is null)")
+
+
+def _esegui(config, pid, eid, nome, dati, opzioni, pronto):
+    """Un'esecuzione (un solver) di una prova, dall'inizio alla fine: nel suo thread."""
+    cartella = _cartella_lavoro(config)
+    registro = _Registro(config.database_url, eid)
+    try:
+        exe = solver.compila(config.cartella_bin, opzioni.get('solutore', 'main'))
+        e = solver.Esecuzione(exe, dati, opzioni, cartella, su_record=registro.ricevi)
+        with _lock:
+            ATTIVE[eid] = (pid, e, nome)
+        pronto.set()
         try:
-            exe = solver.compila(config.cartella_bin, opzioni.get('solutore', 'main'))
-            e = solver.Esecuzione(exe, dati, opzioni, cartella, su_record=registro.ricevi)
-            with _lock:
-                ATTIVE[eid] = (pid, e, nome)
-            pronto.set()
-            try:
-                r = e.attendi()
-            finally:
-                with _lock:
-                    ATTIVE.pop(eid, None)
-            registro.scarica()
-            # da un solver fermato: i backtrack sono quelli contati fin li' (il progresso li conta anche oltre il
-            # limite di quelli registrati)
-            if r['fine'] is None:
-                r['backtrack'] = max(r['backtrack'] or 0, (e.ultimo_progresso or {}).get('backtrack') or 0)
-                r['nodi'] = (e.ultimo_progresso or {}).get('nodi')
-            risultato = {'dati': r['dati'], 'orari': r['orari'], 'fine': r['fine'], 'nodi': r['nodi'],
-                         'backtrack': r['backtrack'], 'errore_dati': r['errore_dati']}
-            with db.connetti(config.database_url) as c:
-                c.execute('update esecuzioni set esito = %s, finito = %s, marce = %s, trovati = %s, secondi = %s, '
-                          'diagnosi = %s, risultato = %s, fine = now() where id = %s',
-                          (r['esito'], r['finito'], r['backtrack'], r['trovati'], r['secondi'], _riassunto(r),
-                           _json(risultato), eid))
-                c.execute("update prove set stato = 'finita', fine = now(), riepilogo = %s where id = %s",
-                          (_json({'esito': r['esito']}), pid))
-                c.commit()
-        except Exception as ex:  # il test risulta in errore, con il motivo
-            traceback.print_exc()
-            with db.connetti(config.database_url) as c:
-                c.execute("update esecuzioni set esito = 'errore', finito = false, fine = now(), diagnosi = %s "
-                          "where id = %s and esito is null", (str(ex), eid))
-                c.execute("update prove set stato = 'errore', fine = now(), messaggio = %s where id = %s", (str(ex), pid))
-                c.commit()
+            r = e.attendi()
         finally:
-            pronto.set()
-            shutil.rmtree(cartella, ignore_errors=True)
-
-    threading.Thread(target=lavoro, daemon=True, name='live-%d' % pid).start()
-    pronto.wait(120)  # la compilazione puo' richiedere qualche secondo
-    return pid, eid
+            with _lock:
+                ATTIVE.pop(eid, None)
+        registro.scarica()
+        # da un solver fermato: i backtrack sono quelli contati fin li' (il progresso li conta anche oltre il
+        # limite di quelli registrati)
+        if r['fine'] is None:
+            r['backtrack'] = max(r['backtrack'] or 0, (e.ultimo_progresso or {}).get('backtrack') or 0)
+            r['nodi'] = (e.ultimo_progresso or {}).get('nodi')
+        risultato = {'dati': r['dati'], 'orari': r['orari'], 'fine': r['fine'], 'nodi': r['nodi'],
+                     'backtrack': r['backtrack'], 'errore_dati': r['errore_dati']}
+        with db.connetti(config.database_url) as c:
+            c.execute('update esecuzioni set esito = %s, finito = %s, marce = %s, trovati = %s, secondi = %s, '
+                      'diagnosi = %s, risultato = %s, fine = now() where id = %s',
+                      (r['esito'], r['finito'], r['backtrack'], r['trovati'], r['secondi'], _riassunto(r),
+                       _json(risultato), eid))
+            c.execute(_FINE_PROVA, ('finita', _json({'esito': r['esito']}), None, pid, pid))
+            c.commit()
+    except Exception as ex:  # l'esecuzione risulta in errore, con il motivo
+        traceback.print_exc()
+        with db.connetti(config.database_url) as c:
+            c.execute("update esecuzioni set esito = 'errore', finito = false, fine = now(), diagnosi = %s "
+                      "where id = %s and esito is null", (str(ex), eid))
+            c.execute(_FINE_PROVA, ('errore', _json({'esito': 'errore'}), str(ex), pid, pid))
+            c.commit()
+    finally:
+        pronto.set()
+        shutil.rmtree(cartella, ignore_errors=True)
 
 
 def in_corso(esecuzione_id):

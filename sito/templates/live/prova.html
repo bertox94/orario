@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block titolo %}{{ p.nome }}{% endblock %}
+{% block contenuto %}
+{# Un test con piu' solver: una tab per solver, ognuna con la pagina del suo solver (incorporata). Tutte le pagine
+   restano aperte, quindi ognuna segue la sua ricerca mentre le ricerche vanno in parallelo. #}
+<p class="piccolo"><a href="{{ url_for('live.indice') }}">← Test in tempo reale</a></p>
+<h1>{{ p.nome }} <span class="tenue piccolo">test n. {{ p.id }} · {{ esecuzioni|length }} solver in parallelo</span></h1>
+
+<div class="barra-comandi">
+  <button type="button" id="ferma-tutti" class="pericolo" hidden>Ferma tutti</button>
+  <form method="post" action="{{ url_for('live.avvia') }}" class="in-linea">
+    <input type="hidden" name="_gettone" value="{{ gettone }}">
+    <input type="hidden" name="sorgente" value="esecuzione"><input type="hidden" name="eid" value="{{ esecuzioni[0].id }}">
+    {% for k, v in (p.opzioni or {}).items() if k not in ('caso', 'solutori') %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+    {% if not (p.opzioni or {}).get('tempo') %}<input type="hidden" name="tempo" value="0">{% endif %}
+    {% for x in esecuzioni %}<input type="hidden" name="solutore" value="{{ x.solutore }}">{% endfor %}
+    <button class="secondario">Rifai il test con gli stessi dati e questi solver</button>
+  </form>
+</div>
+
+<div class="tab-solver" role="tablist">
+  {% for x in esecuzioni %}
+  <button type="button" role="tab" data-eid="{{ x.id }}" title="{{ descrizioni.get(x.solutore, x.solutore) }}"
+          class="{{ 'attiva' if x.id == scheda }}">
+    <strong>{{ x.solutore }}</strong> <span class="esito {{ x.esito|classe_esito }}">{{ x.esito or 'in corso' }}</span>
+    <span class="avanzamento piccolo tenue"></span>
+  </button>
+  {% endfor %}
+</div>
+<div class="pagine-solver">
+  {% for x in esecuzioni %}
+  <iframe data-eid="{{ x.id }}" src="{{ url_for('casi.caso', eid=x.id, incorporata=1) }}"
+          class="{{ '' if x.id == scheda else 'nascosta' }}" title="{{ x.solutore }}"></iframe>
+  {% endfor %}
+</div>
+{% endblock %}
+{% block script %}
+<script>
+(() => {
+  const tab = [...document.querySelectorAll('.tab-solver [data-eid]')];
+  const pagine = [...document.querySelectorAll('.pagine-solver iframe')];
+  const fermaTutti = document.getElementById('ferma-tutti');
+
+  // la tab scelta (anche nell'indirizzo, per ricaricare la pagina sulla stessa tab)
+  function scegli(eid) {
+    tab.forEach(t => t.classList.toggle('attiva', t.dataset.eid === eid));
+    pagine.forEach(f => f.classList.toggle('nascosta', f.dataset.eid !== eid));
+    const u = new URL(location.href);
+    u.searchParams.set('scheda', eid);
+    history.replaceState(null, '', u);
+  }
+  tab.forEach(t => t.addEventListener('click', () => scegli(t.dataset.eid)));
+
+  // ogni pagina e' alta quanto il suo contenuto (niente seconda barra di scorrimento)
+  pagine.forEach(f => f.addEventListener('load', () => {
+    const doc = f.contentDocument;
+    const adatta = () => { f.style.height = doc.documentElement.scrollHeight + 'px'; };
+    new ResizeObserver(adatta).observe(doc.body);
+    adatta();
+  }));
+
+  // nelle tab: esito o avanzamento di ogni solver
+  const inCorso = new Set();
+  async function segui(t) {
+    const eid = t.dataset.eid;
+    try {
+      const s = await (await fetch(`{{ url_for('casi.caso', eid=0) }}`.replace(/0$/, eid) + '/stato')).json();
+      const esito = t.querySelector('.esito'), avanti = t.querySelector('.avanzamento');
+      const p = s.progresso;
+      if (s.in_corso) {
+        inCorso.add(eid);
+        esito.textContent = 'in corso';
+        esito.className = 'esito esito-in-corso';
+        if (p) avanti.textContent = `${numeroIt(Math.round(p.secondi))} s · ${numeroIt(p.nodi)} nodi · slot ${numeroIt(p.pos)}`;
+      } else {
+        inCorso.delete(eid);
+        if (s.esito) {
+          esito.textContent = s.esito;
+          esito.className = 'esito esito-' + s.esito.replace(/\s*\(.*/, '').trim().replace(/ /g, '-');
+          avanti.textContent = '';
+        }
+      }
+      fermaTutti.hidden = !inCorso.size;
+      if (!s.in_corso && s.esito) return;  // finito: la tab non cambia piu'
+    } catch (e) { /* rete: si riprova */ }
+    setTimeout(() => segui(t), 1000);
+  }
+  tab.forEach(segui);
+
+  fermaTutti.addEventListener('click', async () => {
+    fermaTutti.disabled = true;
+    await Promise.all([...inCorso].map(eid => fetch(`{{ url_for('casi.caso', eid=0) }}`.replace(/0$/, eid) + '/ferma',
+      {method: 'POST', headers: {'X-Gettone': window.GETTONE}})));
+  });
+})();
+</script>
+{% endblock %}

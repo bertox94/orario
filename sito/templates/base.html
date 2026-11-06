@@ -6,8 +6,11 @@
   <title>{% block titolo %}Orario{% endblock %} · Orario</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='stile.css') }}">
   <script>window.GETTONE = "{{ gettone }}";</script>
+  {% set incorporata = request.args.get('incorporata') %}
+  {% if incorporata %}<base target="_top">{% endif %}
 </head>
-<body>
+<body{% if incorporata %} class="incorporata"{% endif %}>
+{% if not incorporata %}
 <header class="testata">
   <a class="marchio" href="{{ url_for('home') }}">Orario</a>
   {% if utente %}
@@ -28,6 +31,7 @@
   </form>
   {% endif %}
 </header>
+{% endif %}
 <main>
   {% with messaggi = get_flashed_messages(with_categories=true) %}
     {% for categoria, m in messaggi %}<div class="avviso {{ categoria }}">{{ m }}</div>{% endfor %}

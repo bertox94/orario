@@ -27,7 +27,7 @@ def _intero(nome, predefinito, minimo=None, massimo=None):
 # I test che non sono arrivati a una conclusione (fermati, finiti per tempo, in errore...) e non ancora segnati come
 # verificati: da rivedere.
 _DA_VERIFICARE = '''
-    select e.id, e.prova_id, e.caso, e.esito, e.marce, e.diagnosi, coalesce(e.fine, e.inizio) as quando
+    select e.id, e.prova_id, e.caso, coalesce(e.opzioni->>'solutore', 'main') as solutore, e.esito, e.marce, e.diagnosi, coalesce(e.fine, e.inizio) as quando
     from esecuzioni e join prove p on p.id = e.prova_id
     where p.tipo = 'live' and p.scuola_id = %s and e.esito is not null
       and e.esito not in ('trovato', 'nessuna soluzione') and not e.verificato
@@ -37,9 +37,10 @@ _DA_VERIFICARE = '''
 @bp.route('/')
 def indice():
     prove = conn().execute('''
-        select p.*, e.id as eid, e.esito, e.marce, e.secondi, e.diagnosi
+        select p.*, e.id as eid, coalesce(e.opzioni->>'solutore', 'main') as solutore, e.esito, e.marce, e.secondi,
+            e.diagnosi
         from prove p left join esecuzioni e on e.prova_id = p.id
-        where p.tipo = 'live' and p.scuola_id = %s order by p.id desc limit 50''', (g.scuola['id'],)).fetchall()
+        where p.tipo = 'live' and p.scuola_id = %s order by p.id desc, e.id limit 100''', (g.scuola['id'],)).fetchall()
     n_classi = conn().execute('select count(*) as n from classi where scuola_id = %s', (g.scuola['id'],)).fetchone()['n']
     da_verificare = conn().execute(_DA_VERIFICARE + ' limit 40', (g.scuola['id'],)).fetchall()
     return render_template('live/indice.html', prove=prove, n_classi=n_classi, da_verificare=da_verificare,
@@ -80,24 +81,41 @@ def avvia():
                 'ritardi': bool(f.get('ritardi'))}
     opzioni = {'tempo': _intero('tempo', 60, 0, 24 * 3600), 'orari': _intero('orari', 1, 1, 1000),
                'max_backtrack': _intero('max_backtrack', 1000, 0, 100000)}
-    solutore = f.get('solutore') or 'main'
-    if solutore != 'main' and solutore in solver.solutori():
-        opzioni['solutore'] = solutore  # 'main' non si scrive: i test di prima sono tutti di main
     if opzioni['tempo'] == 0:
         opzioni.pop('tempo')  # senza limite: si ferma col pulsante
+    disponibili = list(solver.solutori())
+    if f.getlist('solutore'):  # «Rifai il test»: gli stessi solver (dalla pagina di un solver: solo quello)
+        solutori = [s for s in disponibili if s in f.getlist('solutore')]
+    else:  # dal modulo: tutti tranne quelli esclusi
+        esclusi = set(f.getlist('escludi'))
+        solutori = [s for s in disponibili if s not in esclusi]
+    if not solutori:
+        flash('Hai escluso tutti i solver: lasciane almeno uno.', 'errore')
+        return redirect(url_for('.indice'))
     try:
-        pid, eid = esecutore.avvia_live(_config(), g.scuola['id'], caso, opzioni)
+        pid, eids = esecutore.avvia_live(_config(), g.scuola['id'], caso, opzioni, solutori)
     except ValueError as ex:  # per esempio il generatore non trova dati validi
         flash(str(ex), 'errore')
         return redirect(url_for('.indice'))
-    return redirect(url_for('casi.caso', eid=eid))
+    return redirect(url_for('.prova', pid=pid))
 
 
 @bp.route('/<int:pid>')
 def prova(pid):
-    """Le pagine vecchie dei test portano alla pagina del test."""
-    e = conn().execute('select id from esecuzioni where prova_id = %s order by id desc limit 1', (pid,)).fetchone()
-    return redirect(url_for('casi.caso', eid=e['id']) if e else url_for('.indice'))
+    """Un test: con un solo solver la sua pagina; con piu' solver una tab per ognuno (?scheda=id dell'esecuzione da
+    aprire), ognuna con la pagina del suo solver, che segue la ricerca mentre gira: le ricerche vanno in parallelo."""
+    p = conn().execute('select * from prove where id = %s and scuola_id = %s', (pid, g.scuola['id'])).fetchone()
+    esecuzioni = conn().execute("select id, esito, coalesce(opzioni->>'solutore', 'main') as solutore "
+                                "from esecuzioni where prova_id = %s order by id", (pid,)).fetchall()
+    if not p or not esecuzioni:
+        return redirect(url_for('.indice'))
+    if len(esecuzioni) == 1:
+        return redirect(url_for('casi.caso', eid=esecuzioni[0]['id']))
+    scheda = request.args.get('scheda', type=int)
+    if scheda not in [e['id'] for e in esecuzioni]:
+        scheda = esecuzioni[0]['id']
+    return render_template('live/prova.html', p=p, esecuzioni=esecuzioni, scheda=scheda,
+                           descrizioni=solver.DESCRIZIONI)
 
 
 @bp.route('/verificato/<int:eid>', methods=['POST'])
