@@ -21,12 +21,21 @@ gcc -O2 -std=gnu11 -w main.c data_initialization/database_initializers.c printer
   subito; i conflitti tra classi alla stessa ora si vedono più tardi. L'orario resta indicizzato per cella come in
   `main`; la traccia ha in più `"ordine"` nei dati (la cella decisa a ogni passo) e scrive posizioni e orari in
   quell'ordine.
-- **`in-avanti`**: la ricerca di `main` con un controllo in avanti. Dopo ogni scelta, ogni cella obbligatoria che resta
-  nella giornata deve avere ancora almeno un docente possibile (ha ancora ore nella classe, è libero a quell'ora, è
-  già entrato, non ha già il massimo di ore oggi nella classe, il suo blocco non è chiuso, non ha già il massimo di
-  classi oggi); se no, la scelta si scarta subito. Nella traccia è un controllo in più, alla fine delle coppie e del
-  «da solo»: `lascia_un_docente_alle_celle_di_oggi`. Sui dati di `inizializza_dati()` dà lo stesso `orario.txt` di
-  `main` (md5 `777dc4909e4e48ed721bf0a52d664e91`).
+- **`in-avanti`**: la ricerca di `main` (identica: stessi controlli, stesso ordine) più un controllo in avanti, dopo
+  ogni scelta:
+  1. ogni cella obbligatoria che resta oggi deve avere ancora almeno un docente possibile (ha ancora ore nella
+     classe, è libero a quell'ora, è già entrato, non ha già il massimo di ore oggi nella classe, il suo blocco non è
+     chiuso, non ha già il massimo di classi oggi);
+  2. il conteggio delle lezioni di ogni classe: per ogni ora obbligatoria h, le lezioni possibili fino a h (oggi e in
+     ognuno dei giorni che restano) devono bastare. Le lezioni si contano per voce, come le fa la ricerca: un docente
+     da solo, o una coppia (una lezione con due docenti, possibile solo quando tutti e due sono entrati); ogni voce
+     al massimo le ore che le restano e 3 al giorno. Esempio (test 309, seme 5, 8 classi, ritardi): alla C07 restano
+     Kakashi da solo e Hinata con Zoro, e Zoro entra alle 11; le ore 08–10 dei giorni che restano non hanno abbastanza
+     lezioni possibili, e la scelta che porta lì si scarta subito.
+
+  Se una delle due non va, la scelta si scarta subito. Nella traccia è un controllo in più, alla fine delle coppie e
+  del «da solo»: `lascia_un_docente_alle_celle_di_oggi` (con `motivo`: `cella` o `ore`). Sui dati di
+  `inizializza_dati()` l'orario è lo stesso di `main`.
 - **`due-livelli`**: livello 1, all'inizio di ogni giorno, le quote del giorno (quante ore fa oggi ogni docente in
   ogni classe, da solo e in ogni coppia), con i vincoli che si vedono senza l'orario delle ore e guardando che i giorni
   dopo restino fattibili; livello 2, l'orario del giorno con la ricerca di `main` (una classe alla volta) e i controlli
@@ -36,14 +45,10 @@ gcc -O2 -std=gnu11 -w main.c data_initialization/database_initializers.c printer
   limite di nodi (`NODI_PER_TENTATIVO`): se è stato superato almeno una volta e non si trova niente, l'esito è «non
   trovato» invece di «nessuna soluzione», perché non tutto è stato provato.
 
-## Due controlli che `main` non ha
+## Due regole che `main` all'inizio non aveva
 
-Il verificatore delle prove (indipendente dal solver) ha trovato orari di `main` che non rispettano le regole:
-
-1. `main` controlla l'ora di ingresso solo per il primo docente di una coppia: il codocente può essere messo prima
-   del suo ingresso;
-2. il controllo finale delle ore (`verifica_ore_classe_materia`) è commentato: una classe può chiudere la settimana
-   con ore buche al posto di lezioni che le mancavano.
-
-I tre solver qui hanno tutti e due i controlli: `verifica_ora_ingresso` anche per il codocente (nella traccia, alla
-fine dei controlli di coppia) e, alla fine, ogni classe deve aver fatto tutte le sue ore.
+Il verificatore delle prove (indipendente dal solver) aveva trovato orari di `main` che non rispettavano le regole: il
+codocente messo prima del suo ingresso, e classi che chiudevano la settimana con meno ore di quelle da fare. Ora
+`main` ha tutte e due le correzioni (PR #67: `verifica_ora_ingresso` anche per il codocente; PR #68:
+`ora_buca_possibile`), e i solver qui pure. `per-classe` e `due-livelli` hanno in più, alla fine, il controllo «ogni
+classe ha fatto tutte le sue ore», che con `ora_buca_possibile` non scatta mai.

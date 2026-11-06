@@ -13,6 +13,7 @@
 
 #define SCHEDULES_PER_GB 55000
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 long long int n_gen = 0;
 long long int n_gen_max = SCHEDULES_PER_GB / 5;
@@ -378,19 +379,111 @@ int ora_buca_possibile(const int giorno, const int ora, const int cla) {
 // Ritorna la prima cella senza nessun docente possibile, o -1.
 static int docenti_di_classe[CLASSE_SEZIONE_SZ][INSEGNANTE_SZ], n_docenti_di_classe[CLASSE_SEZIONE_SZ];
 
+// le "voci" di una classe, cioe' le lezioni che deve fare: un docente da solo (q < 0) o una coppia (p < q)
+#define MAX_VOCI 64
+static int voce_p[CLASSE_SEZIONE_SZ][MAX_VOCI], voce_q[CLASSE_SEZIONE_SZ][MAX_VOCI], n_voci[CLASSE_SEZIONE_SZ];
+
 static void prepara_controllo_in_avanti(void) {
     for (int c = 0; c < actual_classi_sezione; c++) {
-        n_docenti_di_classe[c] = 0;
-        for (int p = 0; p < actual_insegnanti; p++)
+        n_docenti_di_classe[c] = n_voci[c] = 0;
+        for (int p = 0; p < actual_insegnanti; p++) {
             if (ore_classi_docenti[c * INSEGNANTE_SZ + p]) docenti_di_classe[c][n_docenti_di_classe[c]++] = p;
+            if (ore_classi_docenti_alone[c * INSEGNANTE_SZ + p] && n_voci[c] < MAX_VOCI) {
+                voce_p[c][n_voci[c]] = p; voce_q[c][n_voci[c]++] = -1;
+            }
+            for (int q = p + 1; q < actual_insegnanti; q++)
+                if (get_ore_insegnanti_codocenza_in_una_classe(c, p, q) && n_voci[c] < MAX_VOCI) {
+                    voce_p[c][n_voci[c]] = p; voce_q[c][n_voci[c]++] = q;
+                }
+        }
     }
+}
+
+// Il conteggio delle lezioni di una classe in un giorno, dall'ora da (la prima non ancora decisa) alle ore
+// obbligatorie: fino a ogni ora h servono h - da + 1 lezioni. Si contano le lezioni come le fa la ricerca, per voce: un
+// docente da solo, o una coppia (una lezione con due docenti). Ogni voce ne puo' dare al massimo quante ore le
+// restano, non piu' di MAX_ORE_PROF_IN_UNA_CLASSE oggi per ognuno dei suoi docenti, e solo nelle ore tra da e h in cui
+// tutti i suoi docenti sono gia' entrati e liberi. nuovo: il giorno non e' ancora cominciato (nessuno e' occupato,
+// nessuno ha ancora fatto ore). Se le lezioni possibili non bastano, ritorna la cella di quell'ora; se no -1.
+// Esempio: il sabato alla classe restano Kakashi da solo 2 ore e Hinata con Zoro 3 ore, ma Zoro entra alle 11: fino
+// alle 10 servono 3 lezioni e ce ne sono 2 (quelle di Kakashi).
+int motivo_blocco = 0;  // 0: una cella senza docenti possibili; 1: non bastano le lezioni possibili (il conteggio)
+
+// quante ore puo' dare oggi il docente p nella classe c (0 se ha il blocco chiuso o troppe classi)
+static int massimo_oggi(const int giorno, const int c, const int p, const int nuovo, const int *classi_oggi,
+                        const teaching_slot *ultima) {
+    if (nuovo) return MAX_ORE_PROF_IN_UNA_CLASSE;
+    const int fatte = ore_fatte_da_un_prof_in_una_classe_in_giorno[giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ +
+                                                                   c * INSEGNANTE_SZ + p];
+    if (fatte && (!ultima || (ultima->insegnante1 != p && ultima->insegnante2 != p))) return 0;  // blocco chiuso
+    if (!fatte && classi_oggi[p] >= MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO) return 0;
+    return MAX_ORE_PROF_IN_UNA_CLASSE - fatte;
+}
+
+// dopo: i giorni interi che restano dopo oggi. Per ogni ora h servono (h - da + 1) lezioni oggi (se h >= da) piu'
+// (h + 1) lezioni in ognuno dei giorni dopo; una voce ne puo' dare oggi quante ne entrano tra da e h, e in ognuno dei
+// giorni dopo al massimo MAX_ORE_PROF_IN_UNA_CLASSE tra le 0 e h (dalle ore in cui i suoi docenti sono entrati), e in
+// tutto non piu' delle ore che le restano. Cosi' si vede anche giorni prima che le ore rimaste non bastano.
+static int conteggio_ore(const int giorno, const int c, const int da, const int nuovo, const int *classi_oggi,
+                         const teaching_slot *ultima, const int dopo) {
+    int possibili[ORA_GIORNALIERA_SZ] = {0};  // lezioni possibili fino a ogni ora (oggi e nei giorni dopo)
+    for (int v = 0; v < n_voci[c]; v++) {
+        const int p = voce_p[c][v], q = voce_q[c][v];
+        const int resto = q < 0
+            ? ore_classi_docenti_alone[c * INSEGNANTE_SZ + p] - ore_classi_docenti_alone_svolte[c * INSEGNANTE_SZ + p]
+            : get_ore_insegnanti_codocenza_in_una_classe(c, p, q) - get_ore_insegnanti_codocenza_svolte_in_una_classe(c, p, q);
+        if (resto <= 0) continue;
+        // oggi: solo se resta qualcosa da decidere (da < ore obbligatorie)
+        int massimo = 0;
+        if (da < PRIME_N_ORE_OBBLIGATORIE) {
+            massimo = MIN(resto, massimo_oggi(giorno, c, p, nuovo, classi_oggi, ultima));
+            if (q >= 0) massimo = MIN(massimo, massimo_oggi(giorno, c, q, nuovo, classi_oggi, ultima));
+        }
+        const int entra = MAX(ora_di_entrata_prof[p], q >= 0 ? ora_di_entrata_prof[q] : 0);
+        int ore = 0;
+        for (int h = 0; h < PRIME_N_ORE_OBBLIGATORIE; h++) {
+            if (h >= da) {  // oggi
+                int libero = h >= entra;
+                const int pp[2] = {p, q};
+                for (int z = 0; z < 2; z++)
+                    if (pp[z] >= 0 && !nuovo)
+                        libero &= !prof_gia_impegnato_giorno_ora[giorno * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ +
+                                                                 h * INSEGNANTE_SZ + pp[z]];
+                if (libero && ore < massimo) ore++;
+            }
+            // nei giorni dopo: al massimo MAX_ORE_PROF_IN_UNA_CLASSE al giorno, tra le ore 0..h in cui sono entrati
+            const int al_giorno = MIN(MAX_ORE_PROF_IN_UNA_CLASSE, MAX(0, h + 1 - entra));
+            possibili[h] += MIN(resto, ore + al_giorno * dopo);
+        }
+    }
+    for (int h = 0; h < PRIME_N_ORE_OBBLIGATORIE; h++) {
+        const int servono = MAX(0, h - da + 1) + (h + 1) * dopo;
+        if (possibili[h] < servono)
+            return h >= da && (h - da + 1) > 0 && dopo == 0
+                   ? (giorno * actual_ore_giornaliere + h) * actual_classi_sezione + c
+                   : ((giorno + (h >= da ? 0 : 1)) * actual_ore_giornaliere + h) * actual_classi_sezione + c;
+    }
+    return -1;
 }
 
 int prima_cella_bloccata(const int pos) {
     const int giorno = g_giorno(pos), ora = g_ora(pos), cla = g_classe(pos);
     const int inizio = giorno * actual_ore_giornaliere * actual_classi_sezione;
     const int fine = inizio + PRIME_N_ORE_OBBLIGATORIE * actual_classi_sezione;  // dopo: ore che possono restare vuote
-    if (pos + 1 >= fine) return -1;
+    const int fine_giorno = inizio + actual_ore_giornaliere * actual_classi_sezione;
+    motivo_blocco = 0;
+    (void) fine_giorno;
+    if (pos + 1 >= fine) {
+        // oltre le ore obbligatorie di oggi: resta il conteggio dei giorni dopo
+        motivo_blocco = 1;
+        for (int c = 0; c < actual_classi_sezione; c++) {
+            const int q = conteggio_ore(giorno, c, actual_ore_giornaliere, 0, NULL, NULL,
+                                        actual_giorni_settimana - 1 - giorno);
+            if (q >= 0) return q;
+        }
+        motivo_blocco = 0;
+        return -1;
+    }
     // quante classi diverse ha gia' oggi ogni docente (celle decise: fino a pos compresa)
     static int classi_oggi[INSEGNANTE_SZ];
     static int timbro = 0;
@@ -428,6 +521,17 @@ int prima_cella_bloccata(const int pos) {
         }
         if (!possibile) return q;
     }
+    // il conteggio delle lezioni, per ogni classe dalla sua prima ora non ancora decisa: oggi da solo, poi con i giorni
+    // dopo
+    motivo_blocco = 1;
+    for (int c = 0; c < actual_classi_sezione; c++) {
+        const int ultima = c <= cla ? ora : ora - 1;
+        const teaching_slot *u = ultima >= 0 ? &orario[inizio + ultima * actual_classi_sezione + c] : NULL;
+        int q = conteggio_ore(giorno, c, ultima + 1, 0, classi_oggi, u, 0);
+        if (q < 0) q = conteggio_ore(giorno, c, ultima + 1, 0, classi_oggi, u, actual_giorni_settimana - 1 - giorno);
+        if (q >= 0) return q;
+    }
+    motivo_blocco = 0;
     return -1;
 }
 
@@ -439,9 +543,6 @@ void print_orario(const int pos) {
 
     //print(orario, pos, n_gen, f);
     if (pos == orario_len) {
-        // (solo nei solver nuovi) ogni classe deve aver fatto tutte le sue ore: in main questo controllo e' commentato
-        // e una classe puo' chiudere la settimana con ore buche al posto di lezioni
-        for (int c = 0; c < actual_classi_sezione; c++) if (ore_classe_svolte[c] != ore_classi[c]) return;
         //if (verifica_ore_classe_materia()) { //not needed ? all hours should match
         n_gen++;
         //printf("%lld \n", n_gen);
@@ -502,7 +603,7 @@ void print_orario(const int pos) {
                         && sabato_esaurisci_priorita_subito_cod(pos, giorno, ora, base2d_ci, p1, p2)
                         //ogni docente fa al max MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO materie (classi) diverse ogni giorno
                         && ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(pos, giorno, cla, p2)
-                        // (solo nei solver nuovi) anche il codocente deve essere gia' entrato
+                        // anche il codocente deve essere gia' entrato a quest'ora
                         && verifica_ora_ingresso(p2, ora)
                         && 1
                     ) {
