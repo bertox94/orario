@@ -172,8 +172,6 @@ static void coppia_o_null(const int a, const int b) {
 
 // L'inizio di un controllo nell'elenco: {"nome":...,"ingressi":{  (si chiude con fine_controllo)
 static int n_controllo;
-// i controlli base del docente in esame si sono fermati a questo indice (-1: li passa tutti)
-static int base_fermato = -1;
 
 static void inizia_controllo(const char *nome) {
     fprintf(t, "%s{\"nome\":\"%s\",\"ingressi\":{", n_controllo++ ? "," : "", nome);
@@ -317,25 +315,72 @@ static int c_senza_cod(const int base2d_ci, const int p, int *fermato_a, const i
     return u;
 }
 
-// Controllo in avanti: la coppia (p2 >= 0) o il docente da solo si mette per prova nella cella, si guarda se una cella
-// obbligatoria di oggi resta senza docenti possibili, e si toglie (come fa la ricerca). Se un controllo prima e' gia'
-// falso la ricerca non ci arriva: non si prova (lo stato non sarebbe valido) e la casella resta in grigio.
-static int c_avanti(const int pos, const int giorno, const int cla, const int base2d_ci, const int base3d_goi,
-                    QueueItem *it, QueueItem *jt, int *fermato_a, const int k) {
-    inizia_controllo("lascia_un_docente_alle_celle_di_oggi");
-    if (*fermato_a >= 0 || base_fermato >= 0) {
-        fprintf(t, "\"non_calcolato\":1");
-        fine_controllo(1, fermato_a, k);
-        return 1;
+// La prova di una coppia (o di un docente da solo) nella cella: si mette come fa la ricerca
+// (prep_chiamata_ricorsiva[_insieme]) e poi si rimette tutto esattamente com'era, valore per valore. Non si usa
+// post_chiamata_ricorsiva[_insieme] per togliere la prova: la prova si fa anche per docenti che non passano i controlli
+// (per esempio gia' occupati in quest'ora) e post_... li renderebbe liberi. Il risultato vuol dire: "se la coppia si
+// mettesse qui comunque".
+typedef struct {
+    double priorita[2];
+    int impegnato[2], svolte[2], oggi[2], solo, insieme;
+    teaching_slot cella;
+} Prova;
+
+static int idx_oggi(const int giorno, const int cla, const int p) {
+    return giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + p;
+}
+
+static Prova metti_per_prova(const int pos, const int giorno, const int cla, const int base2d_ci, const int base3d_goi,
+                             QueueItem *it, QueueItem *jt) {
+    Prova s;
+    QueueItem *q[2] = {it, jt};
+    for (int z = 0; z < 2; z++) {
+        if (!q[z]) continue;
+        const int p = q[z]->teacher;
+        s.priorita[z] = q[z]->priority;
+        s.impegnato[z] = prof_gia_impegnato_giorno_ora[base3d_goi + p];
+        s.svolte[z] = ore_classi_docenti_svolte[base2d_ci + p];
+        s.oggi[z] = ore_fatte_da_un_prof_in_una_classe_in_giorno[idx_oggi(giorno, cla, p)];
     }
-    const teaching_slot prima = orario[pos];
+    s.solo = ore_classi_docenti_alone_svolte[base2d_ci + it->teacher];
+    s.insieme = jt ? get_ore_insegnanti_codocenza_svolte_in_una_classe(cla, it->teacher, jt->teacher) : 0;
+    s.cella = orario[pos];
     if (jt) prep_chiamata_ricorsiva_insieme(base2d_ci, base3d_goi, cla, it, jt, giorno);
     else prep_chiamata_ricorsiva(base2d_ci, base3d_goi, it, giorno, cla, it->teacher);
     orario[pos] = (teaching_slot){it->teacher, jt ? jt->teacher : -1};
+    return s;
+}
+
+static void togli_prova(const Prova *s, const int pos, const int giorno, const int cla, const int base2d_ci,
+                        const int base3d_goi, QueueItem *it, QueueItem *jt) {
+    QueueItem *q[2] = {it, jt};
+    for (int z = 0; z < 2; z++) {
+        if (!q[z]) continue;
+        const int p = q[z]->teacher;
+        q[z]->priority = s->priorita[z];
+        prof_gia_impegnato_giorno_ora[base3d_goi + p] = s->impegnato[z];
+        ore_classi_docenti_svolte[base2d_ci + p] = s->svolte[z];
+        ore_fatte_da_un_prof_in_una_classe_in_giorno[idx_oggi(giorno, cla, p)] = s->oggi[z];
+    }
+    ore_classi_docenti_alone_svolte[base2d_ci + it->teacher] = s->solo;
+    if (jt) {
+        while (get_ore_insegnanti_codocenza_svolte_in_una_classe(cla, it->teacher, jt->teacher) > s->insieme)
+            decrement_ore_classi_codocenza_svolte(cla, it->teacher, jt->teacher);
+        while (get_ore_insegnanti_codocenza_svolte_in_una_classe(cla, it->teacher, jt->teacher) < s->insieme)
+            increment_ore_classi_codocenza_svolte(cla, it->teacher, jt->teacher);
+    }
+    orario[pos] = s->cella;
+}
+
+// Controllo in avanti: con la coppia (o il docente da solo) nella cella per prova, una cella obbligatoria di oggi
+// resta senza docenti possibili? Si calcola per tutti, anche dopo un controllo falso: la ricerca in quel caso non ci
+// arriva, ma la pagina lo mostra con «tutti i motivi».
+static int c_avanti(const int pos, const int giorno, const int cla, const int base2d_ci, const int base3d_goi,
+                    QueueItem *it, QueueItem *jt, int *fermato_a, const int k) {
+    inizia_controllo("lascia_un_docente_alle_celle_di_oggi");
+    const Prova s = metti_per_prova(pos, giorno, cla, base2d_ci, base3d_goi, it, jt);
     const int q = prima_cella_bloccata(pos);
-    if (jt) post_chiamata_ricorsiva_insieme(base2d_ci, base3d_goi, cla, it, jt, giorno);
-    else post_chiamata_ricorsiva(base2d_ci, base3d_goi, it, giorno, cla, it->teacher);
-    orario[pos] = prima;
+    togli_prova(&s, pos, giorno, cla, base2d_ci, base3d_goi, it, jt);
     fprintf(t, "\"cella_bloccata\":%d", q);
     if (q >= 0) fprintf(t, ",\"giorno\":%d,\"ora\":%d,\"classe\":%d", g_giorno(q), g_ora(q), g_classe(q));
     fine_controllo(q < 0, fermato_a, k);
@@ -392,11 +437,10 @@ void traccia_backtrack(const int pos, const int giorno, const int ora, const int
         c_max_classi(pos, giorno, cla, p1, &fermato, 4);
         c_ingresso(ora, p1, &fermato, 5);
         fprintf(t, "],\"fermato_a\":%d", fermato);
-        base_fermato = fermato;
         {
             // le coppie con i docenti dopo di lui nella coda, poi da solo. La ricerca le prova solo se il docente passa
             // i controlli sopra (fermato < 0); la traccia le calcola per tutti, cosi' la pagina puo' mostrarle anche
-            // per gli altri. I controlli che mettono per prova la coppia nella cella si fanno solo per chi li passa.
+            // per gli altri (anche i controlli che mettono la coppia nella cella per prova).
             fprintf(t, ",\"coppie\":[");
             int pc = 1;
             for (int jj = ii + 1; jj < fine_coda; jj++) {
