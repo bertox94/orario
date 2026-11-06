@@ -41,7 +41,7 @@ gcc -O2 -std=gnu11 -w main.c data_initialization/database_initializers.c printer
 - **`in-avanti-dopo`**: gli stessi controlli in avanti di `in-avanti`, ma fatti all'ingresso della cella dopo la
   scelta invece che prima di scendere: il ciclo dei candidati è quello di `main`, riga per riga, e all'inizio di
   `print_orario` c'è un controllo in più (se la scelta nella cella prima rende il resto impossibile, si torna indietro).
-  Trova gli stessi orari di `in-avanti`; ogni scelta scartata è un nodo in più, e nella traccia un backtrack nella
+  Ha anche le stesse verifiche di fattibilità sui dati, prima della ricerca. Trova gli stessi orari di `in-avanti`; ogni scelta scartata è un nodo in più, e nella traccia un backtrack nella
   cella dopo, con il controllo `situazione_risolvibile` (la cella che non si può riempire e il motivo).
 - **`due-livelli`**: livello 1, all'inizio di ogni giorno, le quote del giorno (quante ore fa oggi ogni docente in
   ogni classe, da solo e in ogni coppia), con i vincoli che si vedono senza l'orario delle ore e guardando che i giorni
