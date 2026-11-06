@@ -77,13 +77,6 @@ extern const int *traccia_classi;
 extern int traccia_giro, traccia_fissati;
 // All'inizio di ogni giro: si registrano di nuovo fino a max_backtrack backtrack (per ogni giro i primi).
 void traccia_nuovo_giro(void);
-// Un solver che confronta le ore con altri obiettivi invece dei totali della settimana (due-livelli: le quote del
-// giorno). NULL: i totali, come in main. ore_da_fare e ore_da_solo hanno gli indici di ore_classi_docenti
-// (classe * INSEGNANTE_SZ + docente); slot da' le ore che restano alla classe e gli slot obbligatori che mancano.
-extern const int *traccia_ore_da_fare, *traccia_ore_da_solo;
-extern int (*traccia_ore_insieme)(int cla, int p1, int p2);
-extern void (*traccia_slot)(int giorno, int ora, int cla, int *ore_rimanenti, int *mancanti);
-extern int traccia_ricerca_incompleta;  // non tutto e' stato provato: senza orari l'esito e' "non trovato"
 
 void traccia_orario_trovato(void);
 

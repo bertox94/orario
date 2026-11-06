@@ -1,0 +1,292 @@
+:root {
+  --sfondo: #f6f7f9;
+  --superficie: #ffffff;
+  --testo: #1d2330;
+  --tenue: #5d6677;
+  --bordo: #dfe3ea;
+  --accento: #2f5fd0;
+  --accento-tenue: #e7eefc;
+  --ok: #1d7a46;
+  --ok-tenue: #e3f4ea;
+  --male: #b3261e;
+  --male-tenue: #fbe7e5;
+  --attenzione: #946200;
+  --attenzione-tenue: #fdf3dc;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --sfondo: #14171d;
+    --superficie: #1c2028;
+    --testo: #e6e9ef;
+    --tenue: #9aa3b4;
+    --bordo: #2e3440;
+    --accento: #7aa2ff;
+    --accento-tenue: #24304d;
+    --ok: #6fd39b;
+    --ok-tenue: #1d3328;
+    --male: #ff8a80;
+    --male-tenue: #3b2220;
+    --attenzione: #f0c25c;
+    --attenzione-tenue: #3a3220;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--sfondo); color: var(--testo);
+  font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+a { color: var(--accento); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.testata {
+  display: flex; align-items: center; gap: 24px; padding: 10px 20px;
+  background: var(--superficie); border-bottom: 1px solid var(--bordo); flex-wrap: wrap;
+}
+.marchio { font-weight: 700; font-size: 18px; color: var(--testo); }
+.testata nav { display: flex; gap: 4px; flex-wrap: wrap; flex: 1; }
+.testata nav a { padding: 6px 12px; border-radius: 6px; color: var(--tenue); }
+.testata nav a.attiva { background: var(--accento-tenue); color: var(--accento); font-weight: 600; }
+.esci { margin: 0; }
+main { max-width: 1400px; margin: 0 auto; padding: 20px 16px 60px; }
+h1 { font-size: 22px; margin: 0 0 16px; }
+h2 { font-size: 17px; margin: 28px 0 10px; }
+h3 { font-size: 15px; margin: 18px 0 8px; }
+.tenue { color: var(--tenue); }
+.piccolo { font-size: 13px; }
+
+.scheda { background: var(--superficie); border: 1px solid var(--bordo); border-radius: 10px; padding: 16px; margin: 0 0 16px; }
+.griglia-schede { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.numero { font-size: 26px; font-weight: 700; }
+.etichetta { color: var(--tenue); font-size: 13px; }
+.due-colonne { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .due-colonne { grid-template-columns: 1fr; } }
+
+table.dati { width: 100%; border-collapse: collapse; background: var(--superficie); }
+table.dati th, table.dati td { padding: 6px 10px; border-bottom: 1px solid var(--bordo); text-align: left; vertical-align: top; }
+table.dati th { font-size: 13px; color: var(--tenue); font-weight: 600; }
+table.dati td.num, table.dati th.num { text-align: right; font-variant-numeric: tabular-nums; }
+table.dati tr:hover td { background: var(--accento-tenue); }
+.scorre { overflow-x: auto; }
+
+form.riga { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+label { display: flex; flex-direction: column; gap: 3px; font-size: 13px; color: var(--tenue); }
+label.spunta { flex-direction: row; align-items: center; gap: 6px; color: var(--testo); }
+input, select, textarea {
+  font: inherit; color: var(--testo); background: var(--superficie);
+  border: 1px solid var(--bordo); border-radius: 6px; padding: 6px 8px;
+}
+input[type=number] { width: 90px; }
+textarea { width: 100%; min-height: 80px; }
+button, .bottone {
+  font: inherit; cursor: pointer; border: 1px solid var(--accento); background: var(--accento); color: #fff;
+  border-radius: 6px; padding: 6px 14px; display: inline-block;
+}
+button.secondario, .bottone.secondario { background: transparent; color: var(--accento); }
+button.pericolo { background: var(--male); border-color: var(--male); }
+button.link { background: none; border: none; color: var(--tenue); padding: 4px; }
+button:disabled { opacity: .5; cursor: default; }
+form.in-linea { display: inline; margin: 0; }
+
+.avviso { padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; background: var(--accento-tenue); }
+.avviso.errore { background: var(--male-tenue); color: var(--male); }
+.avviso.ok { background: var(--ok-tenue); color: var(--ok); }
+.avviso.attenzione { background: var(--attenzione-tenue); color: var(--attenzione); }
+
+.esito { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 13px; white-space: nowrap; }
+.esito-trovato, .esito-finita { background: var(--ok-tenue); color: var(--ok); }
+.esito-errore, .esito-errore-nei-dati, .esito-nessuna-soluzione { background: var(--male-tenue); color: var(--male); }
+.esito-non-finito, .esito-limite-di-nodi, .esito-fermato, .esito-interrotto, .esito-interrotta, .esito-annullamento { background: var(--attenzione-tenue); color: var(--attenzione); }
+.esito-in-corso { background: var(--accento-tenue); color: var(--accento); }
+
+pre.testo { background: var(--superficie); border: 1px solid var(--bordo); border-radius: 8px; padding: 12px; overflow-x: auto; font-size: 13px; }
+
+/* griglia dell'orario (static/orario.js): righe = classi, colonne = giorni e ore */
+table.orario { border-collapse: collapse; font-size: 12px; background: var(--superficie); }
+table.orario th, table.orario td { border: 1px solid var(--bordo); padding: 3px 5px; text-align: center; }
+table.orario th { font-weight: 600; color: var(--tenue); background: var(--sfondo); position: sticky; top: 0; }
+table.orario th.classe, table.orario td.classe { position: sticky; left: 0; background: var(--sfondo); text-align: left; }
+table.orario { table-layout: fixed; }
+table.orario td { height: 36px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; }
+table.orario td .cod { overflow: hidden; text-overflow: ellipsis; }
+table.orario td.inizio-giorno, table.orario th.inizio-giorno { border-left: 2px solid var(--tenue); }
+table.orario td .cod { color: var(--tenue); font-size: 11px; display: block; }
+table.orario td, table.orario td .cod { white-space: nowrap; }
+table.orario td.buca { color: var(--tenue); }
+table.orario td.dopo { background: var(--sfondo); }
+/* lo slot del backtrack: la ricerca non ha potuto mettere nessun docente */
+table.orario td.blocco { outline: 2px solid var(--male); outline-offset: -2px; color: var(--male); font-weight: 700;
+  background: var(--male-tenue); scroll-margin: 90px 40px; }
+table.orario tr.classe-blocco td.classe { color: var(--male); font-weight: 700; }
+/* come si risolve un gruppo di backtrack: le celle cambiate e la cella di partenza, ora piena */
+table.orario td.cambiata { background: var(--ok-tenue); }
+table.orario td.risolta { outline: 2px solid var(--ok); outline-offset: -2px; color: var(--ok); font-weight: 700;
+  background: var(--ok-tenue); }
+.barra { height: 8px; background: var(--bordo); border-radius: 4px; overflow: hidden; }
+.barra > div { height: 100%; background: var(--accento); }
+.scorre.alta { max-height: 60vh; overflow: auto; }
+.scorre.alta table.dati thead th { position: sticky; top: 0; background: var(--sfondo); z-index: 1; }
+
+/* elenco dei backtrack */
+table.dati tr.backtrack { cursor: pointer; }
+table.dati tr.backtrack.scelto td { background: var(--accento-tenue); font-weight: 600; }
+.esito-gruppo { display: inline-block; padding: 0 6px; border-radius: 8px; font-size: 12px; white-space: nowrap; }
+.esito-gruppo.ok { background: var(--ok-tenue); color: var(--ok); }
+.esito-gruppo.attenzione { background: var(--attenzione-tenue); color: var(--attenzione); }
+.esito-gruppo.errore { background: var(--male-tenue); color: var(--male); }
+/* il cursore dei backtrack, sotto l'elenco: la riga del backtrack attuale, il cursore, gli estremi */
+.cursore-backtrack { margin-top: 10px; }
+.cursore-backtrack table.dati { margin-bottom: 6px; }
+/* elenco e riga sopra il cursore: colonne di larghezza fissa, uguali nelle due tabelle */
+table.backtrack-fissa { table-layout: fixed; }
+table.backtrack-fissa td { overflow: hidden; }
+#cursore-backtrack { width: 100%; margin: 0; display: block; }
+.cursore-con-tacche { flex: 1; min-width: 0; position: relative; padding-bottom: 9px; }
+#tacche-cursore { position: absolute; left: 0; right: 0; bottom: 0; height: 8px; }
+.tacca { position: absolute; top: 0; width: 2px; height: 8px; margin-left: -1px; border-radius: 1px; }
+/* i colori delle celle di un gruppo: 0 = cella di partenza, 1-4 = le altre */
+.c0 { background: var(--tenue); }
+.pallino { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
+/* i colori delle tacche del cursore (c0: il primo backtrack del gruppo) */
+.c1 { background: #d97706; } .c2 { background: #7c3aed; } .c3 { background: #0891b2; } .c4 { background: #db2777; }
+table.dati tr.sottoriga td { font-size: 12px; color: var(--tenue); padding-top: 2px; padding-bottom: 2px; cursor: pointer; }
+.riga-cursore { display: flex; align-items: center; gap: 6px; margin: 6px 0; }
+.riga-cursore button { padding: 4px 10px; font-variant-numeric: tabular-nums; }
+.cursore-backtrack input[type=number] { width: 9em; }
+.motivo { display: inline-block; padding: 0 6px; margin: 1px 2px 1px 0; border-radius: 8px; background: var(--male-tenue);
+  color: var(--male); font-size: 12px; white-space: nowrap; }
+.barra-comandi { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
+
+/* un backtrack: i controlli di ogni docente */
+.docente { border: 1px solid var(--bordo); border-radius: 8px; padding: 8px 12px; margin: 0 0 10px; background: var(--superficie); }
+.docente h4 { margin: 0 0 4px; font-size: 14px; }
+.docente h5 { margin: 8px 0 2px; font-size: 13px; color: var(--tenue); font-weight: 600; }
+table.controlli { border-collapse: collapse; font-size: 13px; width: 100%; }
+table.controlli td { padding: 2px 8px 2px 0; vertical-align: top; border-bottom: 1px dotted var(--bordo); }
+table.controlli td.segno { width: 1.6em; font-weight: 700; }
+table.controlli tr.si td.segno { color: var(--ok); }
+table.controlli tr.no td { color: var(--male); }
+table.controlli tr.no td.nome { font-weight: 700; }
+/* dopo il primo controllo falso la ricerca non valuta gli altri (&&): si mostrano in grigio */
+table.controlli tr.non-valutato td { color: var(--tenue); opacity: .7; }
+table.controlli code { font-size: 11px; color: var(--tenue); }
+.ingressi { font-variant-numeric: tabular-nums; }
+
+/* Tabelle larghe: barra di scorrimento e, sotto, un cursore che resta in fondo allo schermo finche' la tabella e'
+   visibile (static/orario.js, aggiornaCursori). Compaiono solo con il mouse sopra la tabella (o sul cursore, o con il
+   cursore selezionato da tastiera); lo spazio resta riservato, cosi' la pagina non si sposta quando compaiono.
+   Senza mouse (telefono, tablet) il cursore non c'e': si scorre la tabella con il dito. */
+.scorre { scrollbar-width: auto; scrollbar-color: transparent transparent; }
+.scorre::-webkit-scrollbar { height: 12px; }
+.scorre::-webkit-scrollbar-track, .scorre::-webkit-scrollbar-thumb { background: transparent; border-radius: 6px; }
+.scorre:hover, .con-cursore:hover .scorre { scrollbar-color: var(--tenue) var(--bordo); }
+.scorre:hover::-webkit-scrollbar-track, .con-cursore:hover .scorre::-webkit-scrollbar-track { background: var(--bordo); }
+.scorre:hover::-webkit-scrollbar-thumb, .con-cursore:hover .scorre::-webkit-scrollbar-thumb { background: var(--tenue); }
+.con-cursore { margin-bottom: 12px; }
+.cursore-tabella {
+  display: block; width: 100%; margin: 6px 0 0; padding: 6px 0;
+  position: sticky; bottom: 0; z-index: 2;
+  background: var(--sfondo); border: none; accent-color: var(--accento); cursor: ew-resize;
+  opacity: 0; transition: opacity .15s;
+}
+.con-cursore:hover .cursore-tabella, .cursore-tabella:focus-visible { opacity: 1; }
+.cursore-tabella[hidden] { display: none; }  /* tabella che non deborda */
+@media (hover: none) {
+  .cursore-tabella { display: none; }
+}
+/* Celle fisse mentre la tabella scorre: l'angolo "Classe" sopra a tutto, poi le intestazioni, poi la colonna delle classi
+   (altrimenti scorrendo le intestazioni delle ore passano sopra l'angolo). */
+table.orario th { z-index: 1; }
+table.orario td.classe { z-index: 2; }
+table.orario th.classe { z-index: 3; }
+
+/* la colonna «Celle toccate» c'e' solo con i gruppi consecutivi */
+#tabella-gruppi:not(.con-celle) .col-celle { display: none; }
+/* i docenti in orizzontale: una colonna per docente, una riga per controllo */
+table.docenti-orizzontale { border-collapse: collapse; font-size: 13px; margin: 0 0 12px; }
+table.docenti-orizzontale th, table.docenti-orizzontale td { padding: 3px 8px; border-bottom: 1px dotted var(--bordo);
+  text-align: center; vertical-align: top; }
+table.docenti-orizzontale th.doc { min-width: 5.5em; max-width: 9em; font-weight: 600; white-space: nowrap; }
+table.docenti-orizzontale th.doc.passa { color: var(--ok); }
+table.docenti-orizzontale .nome { text-align: left; position: sticky; left: 0; background: var(--sfondo); z-index: 1;
+  min-width: 14em; max-width: 22em; }
+table.docenti-orizzontale td.si { color: var(--ok); font-weight: 700; }
+table.docenti-orizzontale td.no { color: var(--male); font-weight: 700; }
+table.docenti-orizzontale td.fermo { background: var(--male-tenue); font-weight: 400; max-width: 11em; min-width: 8em; }
+table.docenti-orizzontale td.non-valutato { color: var(--tenue); opacity: .6; }
+/* scorrendo il cursore: la prima cella cambiata dal backtrack precedente (fin dove la ricerca e' tornata) */
+table.orario td.tornata { outline: 2px solid var(--ok); outline-offset: -2px; font-weight: 700; }
+/* la riga sopra l'orario raggiunto: sempre alta due righe, cosi' la griglia non si sposta in su e in giu' */
+p.didascalia { height: 3em; margin-bottom: 4px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical; }
+/* la riga sopra il cursore resta alta una riga (i motivi lunghi finiscono con …): scorrendo non sposta la pagina */
+#riga-attuale td { white-space: nowrap; text-overflow: ellipsis; }
+#riga-attuale td .motivo { display: inline; }
+/* «backtrack … nel gruppo …» sotto il cursore: una riga sola, cosi' cambiando testo la pagina non si sposta */
+#posizione { flex: 1 1 0; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* il play: larghezza fissa (▶ Play / ⏸ Pausa), cosi' la riga non va a capo cambiando testo */
+#cursore-play { min-width: 7.5em; }
+#dettaglio-backtrack { box-sizing: border-box; }
+/* i margini del contenuto restano dentro (paragrafo o titolo che sia): l'altezza della pagina non cambia */
+#dettaglio-backtrack, #orario-raggiunto { display: flow-root; }
+/* passo passo per cella: la cella di questo passo (azzurra) e dove è finito l'ultimo backtracking (bordata in verde) */
+table.orario td.attuale { background: var(--accento-tenue); color: var(--accento); font-weight: 700; }
+table.orario td.ritorno { outline: 2px solid var(--ok); outline-offset: -2px; }
+/* titolo e frase del backtrack sopra il cursore: altezza fissa, cosi' la pagina non si sposta */
+#intestazione-backtrack { display: flow-root; min-height: 5.6em; }
+#intestazione-backtrack h3 { margin: 10px 0 2px; }
+#intestazione-backtrack p { margin: 0 0 6px; }
+/* i dati del test: classi, docenti e il grafo delle codocenze */
+.dati-caso { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+svg.grafo-codocenze { max-width: 440px; width: 100%; height: auto; }
+svg.grafo-codocenze .filo { stroke: var(--male); stroke-opacity: .55; }
+svg.grafo-codocenze .nodo { fill: var(--testo); }
+svg.grafo-codocenze text { fill: var(--tenue); }
+table.dati tr.seguito td { border-top: none; }
+/* «tutti i motivi»: gli altri controlli falsi, dopo quello dove la ricerca si ferma (in rosso pieno) */
+table.docenti-orizzontale td.altro-falso { background: var(--attenzione-tenue); color: var(--attenzione); font-weight: 400;
+  max-width: 11em; min-width: 8em; }
+/* il titolo di una sezione dei controlli, con la sua casella */
+label.titolo-sezione { font-weight: 600; font-size: 14px; cursor: pointer; }
+
+/* un test con piu' solver: una tab per solver (live/prova.html) */
+.tab-solver { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--bordo); margin: 12px 0 0;
+  position: sticky; top: 0; z-index: 5; background: var(--sfondo); padding-top: 4px; }
+#descrizione-solver { flex-basis: 100%; padding: 2px 4px 6px; }
+.tab-solver button { font: inherit; background: none; border: 1px solid transparent; border-bottom: none;
+  border-radius: 8px 8px 0 0; padding: 8px 12px; margin-bottom: -1px; cursor: pointer; color: inherit;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; }
+.tab-solver button:hover { background: var(--superficie); }
+.tab-solver button.attiva { background: var(--superficie); border-color: var(--bordo); }
+.pagine-solver { position: relative; overflow: hidden; }
+/* le pagine delle altre tab restano aperte (seguono la loro ricerca), ma fuori dalla vista */
+/* width 1px + min-width 100%: Safari su iPad non allarga l'iframe fino al contenuto */
+.pagine-solver iframe { display: block; width: 1px; min-width: 100%; height: 80vh; border: none; }
+.pagine-solver iframe.nascosta { position: absolute; left: -10000px; top: 0; visibility: hidden; }
+body.incorporata main { padding-top: 12px; }
+[hidden] { display: none !important; }  /* anche sui bottoni, che hanno un display loro */
+
+/* i contatori in grande della pagina del test */
+.contatori { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 0 0 14px; }
+.contatore { background: var(--sfondo); border: 1px solid var(--bordo); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.contatore .titolo { font-size: 13px; color: var(--tenue); }
+.contatore .valore { font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.2;
+  overflow-wrap: anywhere; }
+.contatore .valore .di { font-size: 17px; font-weight: 500; color: var(--tenue); }
+.contatore .sotto { font-size: 12px; color: var(--tenue); }
+
+/* test notturni: le righe e i valori diversi dal riferimento, in evidenza */
+table.dati tr.riga-diversa td { background: var(--male-tenue); }
+table.dati td.diverso { color: var(--male); font-weight: 700; }
+.atteso { font-size: 12px; font-weight: 400; color: var(--male); white-space: nowrap; }
+.esito-diverso { background: var(--male); color: #fff; font-weight: 700; }
+.esito-accettato { background: var(--attenzione-tenue); color: var(--attenzione); }
+.testo-male { color: var(--male); }
+table.dati tr.spento td { opacity: .55; }
+table.dati tr.in-corso td { background: var(--accento-tenue); }
+button.piccolo, .bottone.piccolo { padding: 2px 8px; font-size: 13px; }
+
+/* test notturni raggruppati per caso: una riga di titolo per ogni gruppo di classi */
+table.dati tr.sottotitolo th { background: var(--sfondo); text-align: left; font-size: 13px; padding-top: 8px; }
+table.tabella-casi td { white-space: nowrap; }
+table.tabella-casi .inizio-solver { border-left: 1px solid var(--bordo); }

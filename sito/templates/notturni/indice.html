@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% from 'notturni/_celle.html' import cella, confronto, campi_diversi %}
+{% block titolo %}Test notturni{% endblock %}
+{% block contenuto %}
+<h1>Test notturni</h1>
+<p class="tenue piccolo">Ogni notte {{ 'alle ' + ora if ora != 'mai' else '(spenti: solo a mano)' }} il sito rifà
+  questi test, uno dopo l'altro. Ogni test si ferma sempre allo stesso nodo (o prima, se trova l'orario o prova tutto),
+  quindi <strong>risultato, nodi, backtrack, posizione massima e orario trovato devono coincidere</strong> con il
+  riferimento accettato. Il tempo si mostra ma non si confronta. Se qualcosa cambia, la riga è in rosso con il valore
+  atteso: un cambiamento voluto della ricerca si accetta, e i numeri nuovi diventano il riferimento.</p>
+
+{% if diversi %}
+<div class="avviso errore">
+  <strong>{{ diversi|length }} test diversi dal riferimento</strong>:
+  {% for r in diversi[:8] %}{{ ', ' if not loop.first }}{{ r.nome }} ({{ r.solutore }}: {{ campi_diversi(r, nomi_campi) }}){% endfor %}{{ '…' if diversi|length > 8 }}.
+  <div class="barra-comandi" style="margin-top: 8px">
+    <form method="post" action="{{ url_for('notturni.accetta_tutti') }}" class="in-linea"
+          onsubmit="return confirm('Accettare tutti i {{ diversi|length }} cambiamenti come nuovo riferimento?')">
+      <input type="hidden" name="_gettone" value="{{ gettone }}">
+      <button class="pericolo">Accetta tutti i cambiamenti</button>
+    </form>
+    <form method="post" action="{{ url_for('notturni.esegui') }}" class="in-linea">
+      <input type="hidden" name="_gettone" value="{{ gettone }}"><input type="hidden" name="diversi" value="1">
+      <button class="secondario" {{ 'disabled' if in_corso }}>Rifai solo questi</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<div class="scheda">
+  <div class="barra-comandi" style="margin-top: 0">
+    {% if in_corso %}
+      <span><span class="esito esito-in-corso">giro in corso</span> la pagina si aggiorna da sola</span>
+      <form method="post" action="{{ url_for('notturni.ferma') }}" class="in-linea">
+        <input type="hidden" name="_gettone" value="{{ gettone }}"><button class="pericolo">Ferma il giro</button>
+      </form>
+    {% else %}
+      <form method="post" action="{{ url_for('notturni.esegui') }}" class="in-linea">
+        <input type="hidden" name="_gettone" value="{{ gettone }}">
+        <button {{ 'disabled' if not righe }}>Esegui adesso tutti i test</button>
+      </form>
+    {% endif %}
+    <form method="post" action="{{ url_for('notturni.ora') }}" class="in-linea">
+      <input type="hidden" name="_gettone" value="{{ gettone }}">
+      <label>Ogni notte alle <input name="ora" value="{{ ora }}" size="5" title="hh:mm, oppure «mai»"></label>
+      <button class="secondario">Salva</button>
+    </form>
+  </div>
+</div>
+
+{# Una tabella di casi: una riga per caso, una colonna per solver (l'ultima esecuzione di ognuno). #}
+{% macro tabella_casi(gruppi, id) %}
+<div class="scorre">
+<table class="dati tabella-casi" id="{{ id }}">
+  <thead>
+    <tr><th rowspan="2">Caso</th><th rowspan="2">Data</th>
+      {% for s in solver_colonne %}<th colspan="3" class="inizio-solver">{{ s }}</th>{% endfor %}</tr>
+    <tr>{% for s in solver_colonne %}<th class="inizio-solver">Esito</th><th class="num">Nodi</th><th class="num">Durata</th>{% endfor %}</tr>
+  </thead>
+  {% for gr in gruppi %}
+  <tbody>
+    <tr class="sottotitolo"><th colspan="2">{{ gr.titolo }} <span class="tenue piccolo">({{ gr.casi|length }} cas{{ 'o' if gr.casi|length == 1 else 'i' }})</span></th>
+      {% for s in solver_colonne %}{% set n = gr.conto[s] %}
+      <th colspan="3" class="piccolo inizio-solver">{% if n[1] %}{{ n[0] }} trovat{{ 'o' if n[0] == 1 else 'i' }} su {{ n[1] }}{% endif %}</th>{% endfor %}</tr>
+  {% for c in gr.casi %}
+    {% set primo = (c.per_solver.values()|list)[0] %}
+    <tr class="{{ 'riga-diversa' if c.per_solver.values()|selectattr('confronto', 'equalto', 'diverso')|list }}">
+      <td>{{ c.nome }}<div class="tenue piccolo">fermo dopo {{ primo.opzioni.get('ferma_nodi')|numero }} nodi</div></td>
+      <td class="piccolo">{{ c.data|data if c.data else '-' }}</td>
+      {% for s in solver_colonne %}{% set r = c.per_solver.get(s) %}
+      {% if not r %}<td class="inizio-solver tenue">—</td><td></td><td></td>
+      {% elif not r.nid %}<td class="inizio-solver"><a class="tenue" href="{{ url_for('notturni.test', tid=r.id) }}">{{ 'in coda' if in_corso else 'mai eseguito' }}</a></td><td></td><td></td>
+      {% else %}
+      <td class="inizio-solver{{ ' in-corso' if test_in_corso == r.id }}">
+        <a href="{{ url_for('notturni.test', tid=r.id) }}" title="{{ r.esito }}{{ ': ' ~ r.errore if r.errore }}"
+           ><span class="esito {{ r.esito|classe_esito }}">{{ {'nessuna soluzione': 'nessuna', 'errore nei dati': 'errore dati', 'limite di nodi': 'limite'}.get(r.esito, r.esito) }}</span></a>
+        {% if r.confronto == 'diverso' %}<span class="esito esito-diverso" title="diverso dal riferimento: {{ campi_diversi(r, nomi_campi) }}">≠</span>{% endif %}</td>
+      <td class="num">{{ r.nodi|numero if r.nodi is not none else '-' }}</td>
+      <td class="num">{{ '%.1f s'|format(r.secondi) if r.secondi is not none else '-' }}</td>
+      {% endif %}{% endfor %}
+    </tr>
+  {% endfor %}
+  </tbody>
+  {% endfor %}
+</table>
+</div>
+{% endmacro %}
+
+<h2>Test</h2>
+{% if riepilogo %}
+<p class="tenue piccolo">Per ogni solver, l'ultima esecuzione dei suoi test. «Solo lui»: i casi in cui è l'unico a
+  trovare l'orario.</p>
+<div class="scorre"><table class="dati" id="riepilogo-notturni">
+  <thead><tr><th>Solver</th><th class="num">Test</th><th class="num">Trovato</th><th class="num">Nessuna soluzione</th>
+    <th class="num">Errore nei dati</th><th class="num">Non terminati</th><th class="num">Solo lui</th>
+    <th class="num">Diversi</th><th class="num">Tempo</th></tr></thead>
+  <tbody>{% for x in riepilogo %}
+    <tr><td><strong>{{ x.solver }}</strong></td><td class="num">{{ x.test }}</td><td class="num">{{ x.trovato }}</td>
+      <td class="num">{{ x.nessuna }}</td><td class="num">{{ x.errore_dati }}</td>
+      <td class="num">{{ x.non_terminati }}{% if x.mai %} <span class="tenue piccolo">(+{{ x.mai }} mai eseguiti)</span>{% endif %}</td>
+      <td class="num">{{ x.solo_lui }}</td>
+      <td class="num">{% if x.diversi %}<strong class="testo-male">{{ x.diversi }}</strong>{% else %}0{% endif %}</td>
+      <td class="num">{{ x.secondi|durata }}</td></tr>
+  {% endfor %}</tbody></table></div>
+{% endif %}
+
+<form method="get" class="riga" style="margin: 14px 0 0">
+  <label>Raggruppa i casi per <select name="per" onchange="this.form.submit()">
+    {% for k in raggruppamenti %}<option value="{{ k }}" {{ 'selected' if k == per }}>{{ {'seme': 'seme', 'classi': 'numero di classi', 'ritardi': 'ritardi', 'ordine': 'ordine delle classi'}[k] }}</option>{% endfor %}
+  </select></label>
+  <span class="tenue piccolo">dentro il gruppo i casi sono in ordine di seme, classi, ritardi e ordine delle classi</span>
+</form>
+<h3>Conclusi <span class="tenue piccolo">i casi in cui almeno un solver ha trovato l'orario, dimostrato che non c'è o riconosciuto un errore nei dati; una riga per caso ({{ conclusi|sum(attribute='casi', start=[])|length }} casi)</span></h3>
+{% if conclusi %}{{ tabella_casi(conclusi, 'casi-conclusi') }}{% else %}<p class="tenue">Nessuno.</p>{% endif %}
+
+<h3>Da parte: non terminati <span class="tenue piccolo">i casi in cui nessun solver è arrivato a una conclusione (limite di nodi, fermati a mano, in errore, non ancora eseguiti), da rivedere ({{ da_parte|sum(attribute='casi', start=[])|length }} casi)</span></h3>
+{% if da_parte %}{{ tabella_casi(da_parte, 'casi-da-parte') }}{% else %}<p class="tenue">Nessuno.</p>{% endif %}
+
+{% if disattivati %}
+<h3>Disattivati</h3>
+<p class="piccolo">{% for r in disattivati %}{{ ', ' if not loop.first }}<a href="{{ url_for('notturni.test', tid=r.id) }}">{{ r.nome }} ({{ r.solutore }})</a>{% endfor %}</p>
+{% endif %}
+{% if not righe %}<p class="tenue">Nessun test: generali qui sotto.</p>{% endif %}
+
+<h2>Genera i test</h2>
+<form method="post" action="{{ url_for('notturni.genera') }}" class="scheda">
+  <input type="hidden" name="_gettone" value="{{ gettone }}">
+  <p class="tenue piccolo" style="margin-top: 0">Un test per ogni combinazione di seme, classi, ritardi e ordine delle
+    classi, per ogni solver scelto (di default tutti). I dati si generano adesso e si salvano: restano gli stessi anche se cambia il generatore. Un test che c'è
+    già (stessi dati, solver e opzioni) non si aggiunge due volte. Si può anche aggiungere un test in tempo reale dalla
+    sua pagina.</p>
+  <div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
+    <label title="un numero o un intervallo col trattino (1-6); più di uno separati da virgole">Semi <input name="semi" value="1-6" size="8"></label>
+    <label title="un numero o un intervallo col trattino (8-16), come i semi; più di uno separati da virgole">Classi <input name="classi" value="8, 12, 16" size="10"></label>
+    <label title="un numero o un intervallo col trattino (0-3), come i semi. 0: le classi come le genera il seme; 1, 2...: le stesse classi in un altro ordine (dentro ogni ora la ricerca le decide in quell'ordine)">Ordine delle classi <input name="ordini" value="0" size="6"></label>
+    <label>Docenti in ritardo <select name="ritardi">
+      <option value="entrambi">senza e con</option><option value="senza">senza</option><option value="con">con</option>
+    </select></label>
+    <label>Fermati dopo nodi <input type="number" name="ferma_nodi" min="1" value="{{ ferma_nodi }}"></label>
+    <label>Orari da trovare <input type="number" name="orari" min="1" max="1000" value="1"></label>
+  </div>
+  <div class="riga" style="display: flex; flex-direction: column; gap: 2px; margin-top: 10px">
+    {% for nome, descrizione in solutori %}
+    <label class="spunta"><input type="checkbox" name="solutore" value="{{ nome }}" checked> {{ descrizione }}</label>
+    {% endfor %}
+    <label class="spunta" style="margin-top: 6px"><input type="checkbox" name="repository" value="1">
+      Anche i casi del repository (<code>tests/casi</code>: i dati impossibili costruiti apposta e quelli dei test di non regressione)</label>
+  </div>
+  <p class="tenue piccolo">Con 50.000.000 di nodi un test che non finisce dura circa 40 secondi sul Mac (main fa circa un milione di nodi al
+    secondo), di più sul Raspberry; i casi facili finiscono prima, con l'orario.</p>
+  <p style="margin-bottom: 0"><button>Genera</button></p>
+</form>
+
+{% if giri %}
+<h2>Giri</h2>
+<div class="scorre"><table class="dati">
+  <thead><tr><th>#</th><th>Quando</th><th>Perché</th><th>Stato</th><th class="num">Test</th><th class="num">Uguali</th>
+    <th class="num">Diversi</th><th class="num">Riferimento</th><th class="num">Non confrontati</th><th class="num">Tempo</th><th>Versione</th></tr></thead>
+  <tbody>{% for gi in giri %}
+    <tr class="{{ 'riga-diversa' if gi.diversi }}"><td>{{ gi.id }}</td><td class="piccolo">{{ gi.inizio|data }}</td>
+      <td class="piccolo">{{ gi.motivo }}</td>
+      <td><span class="esito {{ ('in corso' if gi.stato == 'in corso' else ('trovato' if gi.stato == 'finito' else 'fermato'))|classe_esito }}">{{ gi.stato }}</span></td>
+      <td class="num">{{ gi.quanti }}</td><td class="num">{{ gi.uguali }}</td>
+      <td class="num">{% if gi.diversi %}<strong class="testo-male">{{ gi.diversi }}</strong>{% else %}0{% endif %}</td>
+      <td class="num">{{ gi.nuovi }}</td><td class="num">{{ gi.errori }}</td>
+      <td class="num">{{ gi.secondi|durata }}</td><td class="piccolo"><code>{{ gi.commit or '' }}</code></td></tr>
+  {% endfor %}</tbody></table></div>
+{% endif %}
+{% endblock %}
+{% block script %}
+{% if in_corso %}
+<script>
+// mentre un giro gira: la pagina si ricarica quando passa al test dopo o quando il giro finisce
+(() => {
+  let ultimo = {{ (test_in_corso or 'null')|tojson }};
+  setInterval(async () => {
+    try {
+      const s = await (await fetch('{{ url_for('notturni.stato') }}')).json();
+      if (s.test !== ultimo || !s.giro) location.reload();
+    } catch (e) {}
+  }, 2000);
+})();
+</script>
+{% endif %}
+{% endblock %}

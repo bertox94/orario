@@ -13,7 +13,7 @@ codice del sito e messaggi di commit sono in italiano.
 - **Il sito** (Flask + Postgres, cartella `sito/`, branch `sito/terza-versione`): dati della scuola e test in tempo
   reale. A ogni backtrack la pagina del test mostra l'orario fino a quel punto e, per ogni docente, i controlli della
   ricerca con ingressi ed esito. Vedi `sito/INSTALLAZIONE.md`.
-- **I solver alternativi** (cartella `solutori/`, nel branch del sito): `per-classe`, `in-avanti`, `due-livelli`,
+- **I solver alternativi** (cartella `solutori/`, nel branch del sito): `per-classe`, `in-avanti`,
   `giorni-liberi`, `ordini-classi`.
   Ognuno ha solo la sua ricerca (`main.c`) e, se serve, la sua parte di traccia; data layer, stampa, JSON, coda,
   costanti e potature sono i file della radice (`../../` nel suo `CMakeLists.txt`). Stessa riga di comando e stessa
@@ -25,10 +25,11 @@ codice del sito e messaggi di commit sono in italiano.
 
 ## Branch
 
-- `main`: solo l'ultima versione del solver.
-- `sito/terza-versione`: il sito e i solver alternativi di `solutori/`, dal 6 novembre 2026 (pulizia del codice,
-  sorgenti condivisi tra i solver, test di non regressione). Le modifiche si fanno direttamente qui, con push diretto.
-- `sito/seconda-versione`: la versione precedente del sito, quella sul Raspberry finche' non si passa alla terza.
+- `main`: il solver, i solver alternativi di `solutori/`, il sito e i test di non regressione (la terza versione, unita
+  in `main` il 6 novembre 2026 su richiesta di Alb).
+- `sito/terza-versione`: il ramo di lavoro del sito, seguito dal Raspberry. Le modifiche al sito si fanno direttamente
+  qui, con push diretto; in `main` si portano con una PR quando Alb lo chiede.
+- `sito/seconda-versione`: la versione precedente del sito.
 - `archivio/2026-11-04`: tutto il lavoro precedente (solver avanzato, vecchio sito, esperimenti). Non si tocca.
 - `prototipo/scheletro-accoppiamenti`: prototipo in Python (accoppiamenti, Monte Carlo, SAT), non unito.
 
