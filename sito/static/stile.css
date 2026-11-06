@@ -122,7 +122,6 @@ table.orario tr.classe-blocco td.classe { color: var(--male); font-weight: 700; 
 table.orario td.cambiata { background: var(--ok-tenue); }
 table.orario td.risolta { outline: 2px solid var(--ok); outline-offset: -2px; color: var(--ok); font-weight: 700;
   background: var(--ok-tenue); }
-table.dati tr.risoluzione td { color: var(--ok); }
 .barra { height: 8px; background: var(--bordo); border-radius: 4px; overflow: hidden; }
 .barra > div { height: 100%; background: var(--accento); }
 .scorre.alta { max-height: 60vh; overflow: auto; }
@@ -217,7 +216,6 @@ table.docenti-orizzontale td.fermo { background: var(--male-tenue); font-weight:
 table.docenti-orizzontale td.non-valutato { color: var(--tenue); opacity: .6; }
 /* scorrendo il cursore: la prima cella cambiata dal backtrack precedente (fin dove la ricerca e' tornata) */
 table.orario td.tornata { outline: 2px solid var(--ok); outline-offset: -2px; font-weight: 700; }
-.cris { background: var(--ok); }
 /* la riga sopra l'orario raggiunto: sempre alta due righe, cosi' la griglia non si sposta in su e in giu' */
 p.didascalia { height: 3em; margin-bottom: 4px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2;
   -webkit-box-orient: vertical; }
