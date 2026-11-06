@@ -14,7 +14,7 @@ Le opzioni di un test:
     orari           quanti orari completi trovare prima di fermarsi (-n)
     max_backtrack   quanti backtrack registrare per esteso (gli altri si contano soltanto)
     max_nodi        quanti nodi della ricerca registrare (per scorrerla passo passo), default MAX_NODI
-    ferma_nodi      fermare la ricerca dopo tanti nodi (--ferma-nodi: al primo multiplo di 65.536), esito
+    ferma_nodi      fermare la ricerca dopo esattamente tanti nodi (--ferma-nodi), esito
                     'limite di nodi': sempre allo stesso punto, per i test notturni (assente = nessun limite)
 """
 import hashlib

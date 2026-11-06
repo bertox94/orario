@@ -29,8 +29,8 @@
     <label>Backtrack da registrare <input type="number" name="max_backtrack" min="0" max="100000" value="1000"></label>
     <label>Fermati dopo nodi (0 = mai) <input type="number" name="ferma_nodi" min="0" value="{{ ferma_nodi }}"></label>
   </div>
-  <p class="tenue piccolo">Il test non ha un limite di tempo: la ricerca si ferma dopo quel numero di nodi (al primo
-    multiplo di 65.536 da quel numero in poi), sempre allo stesso punto su qualunque computer, oppure prima se trova gli
+  <p class="tenue piccolo">Il test non ha un limite di tempo: la ricerca si ferma dopo esattamente quel numero di
+    nodi, sempre allo stesso punto su qualunque computer, oppure prima se trova gli
     orari o prova tutto; con 0 va avanti finché non la fermi col pulsante. Come nei <a href="{{ url_for('notturni.indice') }}">test
     notturni</a>, che si possono rifare qui con gli stessi numeri.</p>
   {% if solutori|length > 1 %}

@@ -631,8 +631,9 @@ static void cerca_cella(const int s) {
             return;
         }
     }
-    // traccia: solo conteggio dei nodi e, ogni tanto, il progresso (non cambia la ricerca)
-    if (!(++traccia_nodi & 0xFFFF)) traccia_progresso(s);
+    // traccia: solo conteggio dei nodi e, ogni 65.536 nodi o al limite di --ferma-nodi, il progresso
+    // (non cambia la ricerca)
+    if (++traccia_nodi >= traccia_prossimo) traccia_progresso(s);
     if (s > traccia_pos_max) traccia_pos_max = s;  // la posizione piu' avanti raggiunta (solo traccia)
     if (traccia_con_nodi) traccia_nodo(s);
 
@@ -764,7 +765,7 @@ static void cerca_cella(const int s) {
 //   --txt FILE:         dove scrivere orario.txt (per esempio /dev/null)
 //   --max-backtrack N:  quanti backtrack registrare per esteso nella traccia (gli altri si contano), default 1000
 //   --max-nodi N:       registra nella traccia anche i nodi della ricerca, al massimo N (default 0: nessuno)
-//   --ferma-nodi N:     ferma la ricerca dopo N nodi (al primo multiplo di 65.536), con esito "limite di nodi":
+//   --ferma-nodi N:     ferma la ricerca dopo N nodi esatti, con esito "limite di nodi":
 //                       sempre allo stesso punto, per i test notturni
 //   --progresso:        ogni mezzo secondo una riga JSON di progresso su stderr
 int main(int argc, char **argv) {

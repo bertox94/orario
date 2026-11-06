@@ -48,6 +48,7 @@ void post_chiamata_ricorsiva_insieme(int base2d_ci, int base3d_goi, int cla, Que
 
 long long int traccia_nodi = 0;
 long long int traccia_ferma_nodi = 0;
+long long int traccia_prossimo = 0x10000;
 int traccia_pos_max = 0;
 long long int traccia_backtrack_n = 0;
 int traccia_con_nodi = 0;
@@ -93,6 +94,7 @@ void traccia_nodo(const int pos) {
 
 int traccia_apri(const char *percorso, const long long int max_backtrack, const long long int max_nodi,
                  const int progresso) {
+    if (traccia_ferma_nodi > 0 && traccia_ferma_nodi < traccia_prossimo) traccia_prossimo = traccia_ferma_nodi;
     inizio = ultimo_progresso = clock();
     con_progresso = progresso;
     max_registrati = max_backtrack;
@@ -484,9 +486,10 @@ void traccia_orario_trovato(void) {
     fflush(t);
 }
 
-// Con --ferma-nodi N la ricerca si ferma qui, alla prima chiamata dopo N nodi: la ricerca la chiama ogni 65.536 nodi,
-// quindi si ferma al primo multiplo di 65.536 da N in poi. Sempre allo stesso nodo (non dipende dal tempo): per i test
-// notturni, che devono dare ogni volta gli stessi numeri. Fino a quel nodo la ricerca e' la stessa.
+// Con --ferma-nodi N la ricerca si ferma qui, esattamente al nodo N (o prima, se finisce prima): la ricerca chiama
+// traccia_progresso quando il contatore dei nodi arriva a traccia_prossimo, che e' il prossimo multiplo di 65.536 (il
+// progresso) oppure N, se viene prima. Sempre allo stesso nodo (non dipende dal tempo): per i test notturni, che
+// devono dare ogni volta gli stessi numeri. Fino a quel nodo la ricerca e' la stessa.
 static void ferma_per_limite(void) {
     if (t) {
         scrivi_nodi();
@@ -502,6 +505,9 @@ static void ferma_per_limite(void) {
 
 void traccia_progresso(const int pos) {
     if (traccia_ferma_nodi > 0 && traccia_nodi >= traccia_ferma_nodi) ferma_per_limite();
+    traccia_prossimo = (traccia_nodi | 0xFFFF) + 1;  // il prossimo multiplo di 65.536...
+    if (traccia_ferma_nodi > traccia_nodi && traccia_ferma_nodi < traccia_prossimo)
+        traccia_prossimo = traccia_ferma_nodi;  // ...o il limite, se viene prima
     if (!con_progresso) return;
     const clock_t ora = clock();
     if ((double) (ora - ultimo_progresso) / CLOCKS_PER_SEC < 0.5) return;

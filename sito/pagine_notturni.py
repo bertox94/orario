@@ -110,7 +110,7 @@ def genera():
         flash('Troppi test in una volta (al massimo 500).', 'errore')
         return redirect(url_for('.indice'))
     try:
-        ferma_nodi = max(65536, int(f.get('ferma_nodi') or notturni.FERMA_NODI))
+        ferma_nodi = max(1, int(f.get('ferma_nodi') or notturni.FERMA_NODI))
         orari = min(1000, max(1, int(f.get('orari') or 1)))
     except ValueError:
         flash('Limite di nodi e orari: numeri interi.', 'errore')
@@ -133,7 +133,7 @@ def da_test(eid):
         abort(404)
     o = e['opzioni'] or {}
     try:
-        ferma_nodi = max(65536, int(request.form.get('ferma_nodi') or o.get('ferma_nodi') or notturni.FERMA_NODI))
+        ferma_nodi = max(1, int(request.form.get('ferma_nodi') or o.get('ferma_nodi') or notturni.FERMA_NODI))
     except ValueError:
         ferma_nodi = notturni.FERMA_NODI
     caso = dict((e['opzioni_prova'] or {}).get('caso') or {}, da_test=eid)

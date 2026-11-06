@@ -9,7 +9,7 @@ codice del sito e messaggi di commit sono in italiano.
   (`print_orario`) e i controlli; i dati di prova sono in `data_initialization/database_initializers.c`
   (`inizializza_dati()`). `ingresso_uscita/` è solo ingresso e uscita per il sito: `--input` (dati da JSON),
   `--traccia` (un JSON per riga: dati, backtrack con i controlli, nodi, orari trovati, fine), `-n`, `--txt`, `--max-nodi`,
-  `--max-backtrack`, `--progresso`, `--ferma-nodi` (ferma la ricerca dopo N nodi, sempre allo stesso punto: test in tempo reale e notturni). Senza opzioni il solver fa esattamente quello che faceva prima.
+  `--max-backtrack`, `--progresso`, `--ferma-nodi` (ferma la ricerca esattamente dopo N nodi, sempre allo stesso punto: test in tempo reale e notturni). Senza opzioni il solver fa esattamente quello che faceva prima.
 - **Il sito** (Flask + Postgres, cartella `sito/`, branch `sito/terza-versione`): dati della scuola e test in tempo
   reale. A ogni backtrack la pagina del test mostra l'orario fino a quel punto e, per ogni docente, i controlli della
   ricerca con ingressi ed esito. Vedi `sito/INSTALLAZIONE.md`.
