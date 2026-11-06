@@ -67,16 +67,52 @@ _ULTIME = '''
 NON_TERMINATI = ('limite di nodi', 'fermato', 'interrotto', 'errore')
 
 
-def _chiave_caso(r):
-    """L'ordine dei casi nella tabella: i casi casuali per classi, seme, ritardi e ordine; poi gli altri per nome."""
-    k = r['caso'] or {}
-    if k.get('tipo') == 'casuale':
-        return (0, k.get('classi', 0), k.get('seme', 0), bool(k.get('ritardi')), k.get('percento_ritardi', 20),
-                k.get('ordine', 0), '')
-    return (1, 0, 0, False, 0, 0, r['nome'])
+# come raggruppare i casi nella pagina (?per=...): il campo del caso, e il titolo del gruppo
+RAGGRUPPAMENTI = {
+    'seme': ('seme', lambda k: 'seme %s' % k.get('seme')),
+    'classi': ('classi', lambda k: '%s classi' % k.get('classi')),
+    'ritardi': ('ritardi', lambda k: 'con ritardi (%d%%)' % k.get('percento_ritardi', 20) if k.get('ritardi')
+                else 'senza ritardi'),
+    'ordine': ('ordine', lambda k: 'ordine delle classi %d%s' % (k.get('ordine', 0), ' (come generato)'
+                                                                     if not k.get('ordine') else '')),
+}
+CAMPI_CASO = ('seme', 'classi', 'ritardi', 'ordine')
 
 
-def raggruppa(righe, ordine_solver):
+def _valore(k, campo):
+    if campo == 'ritardi':
+        return (bool(k.get('ritardi')), k.get('percento_ritardi', 20))
+    return k.get(campo, 0)
+
+
+def _chiave_caso(caso, nome, per):
+    """L'ordine dei casi: prima il campo del raggruppamento, poi gli altri (seme, classi, ritardi, ordine); i casi non
+    casuali (file, test in tempo reale) in fondo, per nome."""
+    k = caso or {}
+    if k.get('tipo') != 'casuale':
+        return (1, (), nome)
+    campi = (per,) + tuple(c for c in CAMPI_CASO if c != per)
+    return (0, tuple(_valore(k, c) for c in campi), '')
+
+
+def _gruppi(casi, per, quali, solver):
+    """I casi divisi in gruppi (stesso seme, stesse classi...), ognuno con il conto per solver: quanti trovati su
+    quanti test."""
+    gruppi = []
+    for c in casi:
+        k = c['caso']
+        titolo = RAGGRUPPAMENTI[per][1](k) if k.get('tipo') == 'casuale' else 'altri casi'
+        if not gruppi or gruppi[-1]['titolo'] != titolo:
+            gruppi.append({'titolo': titolo, 'casi': [], 'conto': {}})
+        gruppi[-1]['casi'].append(c)
+    for gr in gruppi:
+        for s in solver:
+            test = [c[quali][s] for c in gr['casi'] if s in c[quali]]
+            gr['conto'][s] = (sum(1 for r in test if r['esito'] == 'trovato'), len(test))
+    return gruppi
+
+
+def raggruppa(righe, ordine_solver, per='seme'):
     """I test raggruppati per caso (stesso nome): una riga per caso, una colonna per solver. Ritorna (solver, casi con
     almeno un test concluso, casi con almeno un test da parte, test disattivati, riepilogo per solver). Un test va da
     parte se non e' arrivato a una conclusione (limite di nodi, fermato, interrotto, errore) o non ha ancora girato:
@@ -86,16 +122,16 @@ def raggruppa(righe, ordine_solver):
     solver += sorted({r['solutore'] for r in attivi} - set(solver))
     casi = {}
     for r in attivi:
-        c = casi.setdefault(r['nome'], {'nome': r['nome'], 'chiave': _chiave_caso(r), 'caso': r['caso'] or {},
-                                        'per_solver': {}})
+        c = casi.setdefault(r['nome'], {'nome': r['nome'], 'chiave': _chiave_caso(r['caso'], r['nome'], per),
+                                        'caso': r['caso'] or {}, 'per_solver': {}})
         c['per_solver'][r['solutore']] = r
     casi = sorted(casi.values(), key=lambda c: c['chiave'])
     aperto = lambda r: not r['esito'] or r['esito'] in NON_TERMINATI  # noqa: E731
     for c in casi:
         c['conclusi'] = {s: r for s, r in c['per_solver'].items() if not aperto(r)}
         c['aperti'] = {s: r for s, r in c['per_solver'].items() if aperto(r)}
-    conclusi = [c for c in casi if c['conclusi']]
-    da_parte = [c for c in casi if c['aperti']]
+    conclusi = _gruppi([c for c in casi if c['conclusi']], per, 'conclusi', solver)
+    da_parte = _gruppi([c for c in casi if c['aperti']], per, 'aperti', solver)
     riepilogo = []
     for s in solver:
         mie = [r for r in attivi if r['solutore'] == s]
@@ -119,7 +155,8 @@ def raggruppa(righe, ordine_solver):
 @bp.route('/')
 def indice():
     righe = conn().execute(_ULTIME, (g.scuola['id'],)).fetchall()
-    solver_colonne, conclusi, da_parte, disattivati, riepilogo = raggruppa(righe, list(solver.solutori()))
+    per = request.args.get('per') if request.args.get('per') in RAGGRUPPAMENTI else 'seme'
+    solver_colonne, conclusi, da_parte, disattivati, riepilogo = raggruppa(righe, list(solver.solutori()), per)
     totali = {t['id']: celle(t['dati']) for t in conn().execute(
         'select id, dati from test_notturni where scuola_id = %s', (g.scuola['id'],))}
     giri = conn().execute('''
@@ -134,7 +171,8 @@ def indice():
     diversi = [r for r in righe if r['confronto'] == 'diverso']
     return render_template('notturni/indice.html', righe=righe, totali=totali, giri=giri, diversi=diversi,
                            solver_colonne=solver_colonne, conclusi=conclusi, da_parte=da_parte,
-                           disattivati=disattivati, riepilogo=riepilogo,
+                           disattivati=disattivati, riepilogo=riepilogo, per=per,
+                           raggruppamenti=list(RAGGRUPPAMENTI),
                            in_corso=notturni.giro_in_corso(), test_in_corso=notturni.test_in_corso(),
                            ora=notturni.ora_impostata(conn()), nomi_campi=notturni.NOMI_CAMPI,
                            solutori=[(n, solver.DESCRIZIONI.get(n, n)) for n in solver.solutori()],
