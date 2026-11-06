@@ -359,8 +359,10 @@ void traccia_backtrack(const int pos, const int giorno, const int ora, const int
         c_max_classi(pos, giorno, cla, p1, &fermato, 4);
         c_ingresso(ora, p1, &fermato, 5);
         fprintf(t, "],\"fermato_a\":%d", fermato);
-        if (fermato < 0) {
-            // passato: la ricerca ha provato le coppie con i docenti dopo di lui nella coda, poi da solo
+        {
+            // le coppie con i docenti dopo di lui nella coda, poi da solo. La ricerca le prova solo se il docente passa
+            // i controlli sopra (fermato < 0); la traccia le calcola per tutti, cosi' la pagina puo' mostrarle anche
+            // per gli altri (sono controlli che leggono soltanto, non cambiano niente)
             fprintf(t, ",\"coppie\":[");
             int pc = 1;
             for (int jj = ii + 1; jj < fine_coda; jj++) {
@@ -378,7 +380,7 @@ void traccia_backtrack(const int pos, const int giorno, const int ora, const int
                 c_max_classi(pos, giorno, cla, p2, &f2, 5);
                 c_ingresso(ora, p2, &f2, 6);
                 fprintf(t, "],\"fermato_a\":%d}", f2);
-                incoerente |= f2 < 0;
+                incoerente |= fermato < 0 && f2 < 0;
             }
             int f3 = -1;
             n_controllo = 0;
@@ -386,7 +388,7 @@ void traccia_backtrack(const int pos, const int giorno, const int ora, const int
             c_senza_cod(base2d_ci, p1, &f3, 0);
             c_sabato(pos, giorno, ora, base2d_ci, p1, &f3, 1);
             fprintf(t, "],\"fermato_a\":%d}", f3);
-            incoerente |= f3 < 0;
+            incoerente |= fermato < 0 && f3 < 0;
         }
         fputc('}', t);
     }
