@@ -27,6 +27,7 @@ int deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(int base2d_ci, int
 int ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(int pos, int giorno, int cla, int prof);
 int verifica_ora_ingresso(int prof, int ora);
 int prima_cella_bloccata(int pos);
+extern int motivo_blocco;  // 0: una cella senza docenti possibili; 1: non bastano le lezioni possibili
 int g_giorno(int p);
 void prep_chiamata_ricorsiva(int base2d_ci, int base3d_goi, QueueItem *it, int giorno, int cla, int prof);
 void prep_chiamata_ricorsiva_insieme(int base2d_ci, int base3d_goi, int cla, QueueItem *it, QueueItem *jt, int giorno);
@@ -381,7 +382,7 @@ static int c_avanti(const int pos, const int giorno, const int cla, const int ba
     const Prova s = metti_per_prova(pos, giorno, cla, base2d_ci, base3d_goi, it, jt);
     const int q = prima_cella_bloccata(pos);
     togli_prova(&s, pos, giorno, cla, base2d_ci, base3d_goi, it, jt);
-    fprintf(t, "\"cella_bloccata\":%d", q);
+    fprintf(t, "\"cella_bloccata\":%d,\"motivo\":\"%s\"", q, motivo_blocco ? "ore" : "cella");
     if (q >= 0) fprintf(t, ",\"giorno\":%d,\"ora\":%d,\"classe\":%d", g_giorno(q), g_ora(q), g_classe(q));
     fine_controllo(q < 0, fermato_a, k);
     return q < 0;
@@ -456,7 +457,7 @@ void traccia_backtrack(const int pos, const int giorno, const int ora, const int
                 c_contigue(giorno, ora, cla, p2, &f2, 3);
                 c_sabato_cod(pos, giorno, ora, base2d_ci, p1, p2, &f2, 4);
                 c_max_classi(pos, giorno, cla, p2, &f2, 5);
-                c_ingresso(ora, p2, &f2, 6);  // (solo nei solver nuovi) anche il codocente deve essere gia' entrato
+                c_ingresso(ora, p2, &f2, 6);
                 c_avanti(pos, giorno, cla, base2d_ci, base3d_goi, queue_mul[ii], queue_mul[jj], &f2, 7);
                 fprintf(t, "],\"fermato_a\":%d}", f2);
                 incoerente |= fermato < 0 && f2 < 0;
