@@ -4,7 +4,7 @@ import json
 
 from flask import Blueprint, Response, abort, jsonify, render_template, request, stream_with_context
 
-from . import esecutore
+from . import esecutore, notturni
 from .db import conn
 
 bp = Blueprint('casi', __name__, url_prefix='/casi')
@@ -24,7 +24,25 @@ def caso(eid):
     e = _esecuzione(eid)
     n = conn().execute('select count(*) as n from backtrack where esecuzione_id = %s', (eid,)).fetchone()['n']
     return render_template('casi/caso.html', e=e, r=e['risultato'] or {}, n_registrati=n,
-                           in_corso=esecutore.in_corso(eid))
+                           in_corso=esecutore.in_corso(eid), notturno=_confronto_notturno(e))
+
+
+def _confronto_notturno(e):
+    """Un test rifatto da un test notturno («Ritesta in tempo reale»): il suo riferimento e, a test finito, il confronto
+    con i numeri di questa esecuzione (devono coincidere)."""
+    tid = (e['caso_dati'] or {}).get('notturno')
+    t = tid and conn().execute('select id, nome, riferimento from test_notturni where id = %s', (tid,)).fetchone()
+    if not t or not t['riferimento']:
+        return None
+    r = e['risultato'] or {}
+    if e['esito'] is None or not r.get('fine') and e['esito'] != 'errore nei dati':
+        return {'test': t, 'differenze': None}  # in corso, o fermato prima della fine: niente confronto
+    trovato = {'esito': e['esito'], 'nodi': r.get('nodi'), 'backtrack': r.get('backtrack'), 'pos_max': r.get('pos_max'),
+               'orario': notturni.impronta_orario(r['orari'][0] if r.get('orari') else None),
+               'errore': r.get('errore_dati')}
+    if e['esito'] == 'errore nei dati':
+        trovato.update(nodi=None, backtrack=None, pos_max=None)
+    return {'test': t, 'differenze': notturni.confronta(t['riferimento'], trovato), 'nomi': notturni.NOMI_CAMPI}
 
 
 @bp.route('/<int:eid>/stato')

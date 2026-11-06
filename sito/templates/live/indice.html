@@ -25,10 +25,14 @@
 
   <h2>Ricerca</h2>
   <div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
-    <label>Tempo massimo (s, 0 = senza limite) <input type="number" name="tempo" min="0" value="60"></label>
     <label>Orari da trovare <input type="number" name="orari" min="1" max="1000" value="1"></label>
     <label>Backtrack da registrare <input type="number" name="max_backtrack" min="0" max="100000" value="1000"></label>
+    <label>Fermati dopo nodi (0 = mai) <input type="number" name="ferma_nodi" min="0" value="{{ ferma_nodi }}"></label>
   </div>
+  <p class="tenue piccolo">Il test non ha un limite di tempo: la ricerca si ferma dopo quel numero di nodi (al primo
+    multiplo di 65.536 da quel numero in poi), sempre allo stesso punto su qualunque computer, oppure prima se trova gli
+    orari o prova tutto; con 0 va avanti finché non la fermi col pulsante. Come nei <a href="{{ url_for('notturni.indice') }}">test
+    notturni</a>, che si possono rifare qui con gli stessi numeri.</p>
   {% if solutori|length > 1 %}
   <p style="margin-bottom: 4px">Solver da <strong>non</strong> usare <span class="tenue piccolo">(gli altri girano
     insieme, ognuno nella sua tab)</span>:</p>
@@ -74,15 +78,25 @@
   <thead><tr><th>#</th><th>Dati</th><th>Solver</th><th>Quando</th><th>Esito</th><th class="num">Backtrack</th><th class="num">Durata</th><th>Riassunto</th><th></th></tr></thead>
   <tbody>
   {% for p in prove %}
-    <tr>
-      <td>{{ p.id }}</td>
+    {% set piu = p.solver|length > 1 %}
+    <tr data-pid="{{ p.id }}" class="{{ 'gruppo-solver' if piu }}">
+      <td>{% if piu %}<button type="button" class="link apri-solver" aria-expanded="false" title="Mostra i solver">▸</button>{% endif %}{{ p.id }}</td>
       <td>{% if p.eid %}<a href="{{ url_for('live.prova', pid=p.id, scheda=p.eid) }}">{{ p.nome or '-' }}</a>{% else %}{{ p.nome or '-' }}{% endif %}</td>
+      {% if piu %}
+      <td class="piccolo">{{ p.solver|length }} solver</td>
+      <td>{{ p.creata|data }}</td>
+      <td>{% for s in p.solver %}<span class="esito {{ (s.esito or 'in corso')|classe_esito }}" title="{{ s.solutore }}">{{ s.solutore }}: {{ s.esito or 'in corso' }}</span> {% endfor %}</td>
+      <td class="num">{{ p.solver|map(attribute='marce')|reject('none')|max|default(none)|numero }}</td>
+      <td class="num">{{ p.solver|map(attribute='secondi')|reject('none')|max|default(none)|durata }}</td>
+      <td class="piccolo">{{ p.messaggio or '' }}</td>
+      {% else %}
       <td class="piccolo">{{ p.solutore or '' }}</td>
       <td>{{ p.creata|data }}</td>
       <td><span class="esito {{ (p.esito or p.stato)|classe_esito }}">{{ p.esito or p.stato }}</span></td>
       <td class="num">{{ p.marce|numero }}</td>
       <td class="num">{{ p.secondi|durata }}</td>
       <td class="piccolo">{{ p.diagnosi or p.messaggio or '' }}</td>
+      {% endif %}
       <td>
         <form method="post" action="{{ url_for('live.elimina', pid=p.id) }}" class="in-linea elimina-test"
               data-pid="{{ p.id }}">
@@ -91,6 +105,19 @@
         </form>
       </td>
     </tr>
+    {% if piu %}{% for s in p.solver %}
+    <tr class="riga-solver" data-pid="{{ p.id }}" hidden>
+      <td></td>
+      <td class="piccolo">↳ <a href="{{ url_for('live.prova', pid=p.id, scheda=s.eid) }}">{{ s.solutore }}</a></td>
+      <td class="piccolo">{{ s.solutore }}</td>
+      <td></td>
+      <td><span class="esito {{ (s.esito or 'in corso')|classe_esito }}">{{ s.esito or 'in corso' }}</span></td>
+      <td class="num">{{ s.marce|numero }}</td>
+      <td class="num">{{ s.secondi|durata }}</td>
+      <td class="piccolo">{{ s.diagnosi or '' }}</td>
+      <td></td>
+    </tr>
+    {% endfor %}{% endif %}
   {% else %}
     <tr><td colspan="9" class="tenue">Nessun test.</td></tr>
   {% endfor %}
@@ -113,6 +140,26 @@
     });
   });
 })();
+// un test con piu' solver: la freccia apre e chiude le righe dei suoi solver (si ricorda in questo browser)
+(() => {
+  let aperti = [];
+  try { aperti = JSON.parse(localStorage.getItem('test-aperti') || '[]'); } catch (e) {}
+  const mostra = (tr, si) => {
+    const b = tr.querySelector('.apri-solver');
+    b.textContent = si ? '▾' : '▸';
+    b.setAttribute('aria-expanded', si);
+    document.querySelectorAll(`tr.riga-solver[data-pid="${tr.dataset.pid}"]`).forEach(r => r.hidden = !si);
+  };
+  document.querySelectorAll('tr.gruppo-solver').forEach(tr => {
+    if (aperti.includes(tr.dataset.pid)) mostra(tr, true);
+    tr.querySelector('.apri-solver').addEventListener('click', () => {
+      const si = tr.querySelector('.apri-solver').getAttribute('aria-expanded') !== 'true';
+      mostra(tr, si);
+      aperti = aperti.filter(x => x !== tr.dataset.pid).concat(si ? [tr.dataset.pid] : []).slice(-50);
+      try { localStorage.setItem('test-aperti', JSON.stringify(aperti)); } catch (e) {}
+    });
+  });
+})();
 // la ✕ dei test da verificare toglie la riga senza ricaricare la pagina
 document.querySelectorAll('form.togli-verificare').forEach(f => f.addEventListener('submit', async ev => {
   ev.preventDefault();
@@ -128,8 +175,8 @@ document.querySelectorAll('form.elimina-test').forEach(f => f.addEventListener('
   const x = r.ok ? await r.json() : {ok: false, errore: 'Il test non è stato eliminato (errore ' + r.status + ').'};
   if (!x.ok) { alert(x.errore); return; }
   const corpo = f.closest('tbody');
-  // un test con piu' solver ha una riga per solver: se ne vanno tutte
-  corpo.querySelectorAll(`form.elimina-test[data-pid="${f.dataset.pid}"]`).forEach(x => x.closest('tr').remove());
+  // il test e, se ha piu' solver, le righe dei suoi solver
+  corpo.querySelectorAll(`tr[data-pid="${f.dataset.pid}"]`).forEach(tr => tr.remove());
   if (!corpo.querySelector('tr')) corpo.append(Object.assign(document.createElement('tr'),
     {innerHTML: '<td colspan="9" class="tenue">Nessun test.</td>'}));
   document.querySelectorAll(`#da-verificare tbody tr[data-pid="${f.dataset.pid}"]`).forEach(tr => tr.remove());

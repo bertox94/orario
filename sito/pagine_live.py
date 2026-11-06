@@ -7,6 +7,8 @@ from .db import conn
 
 bp = Blueprint('live', __name__, url_prefix='/live')
 
+FERMA_NODI = 50000000  # limite di nodi predefinito di un test
+
 
 def _config():
     return current_app.config['SITO']
@@ -36,15 +38,22 @@ _DA_VERIFICARE = '''
 
 @bp.route('/')
 def indice():
-    prove = conn().execute('''
+    righe = conn().execute('''
         select p.*, e.id as eid, coalesce(e.opzioni->>'solutore', 'main') as solutore, e.esito, e.marce, e.secondi,
             e.diagnosi
-        from prove p left join esecuzioni e on e.prova_id = p.id
-        where p.tipo = 'live' and p.scuola_id = %s order by p.id desc, e.id limit 100''', (g.scuola['id'],)).fetchall()
+        from (select * from prove where tipo = 'live' and scuola_id = %s order by id desc limit 60) p
+        left join esecuzioni e on e.prova_id = p.id order by p.id desc, e.id''', (g.scuola['id'],)).fetchall()
+    # una riga per test; un test con piu' solver si apre con una riga per solver
+    prove = []
+    for r in righe:
+        if not prove or prove[-1]['id'] != r['id']:
+            prove.append(dict(r, solver=[]))
+        if r['eid']:
+            prove[-1]['solver'].append(r)
     n_classi = conn().execute('select count(*) as n from classi where scuola_id = %s', (g.scuola['id'],)).fetchone()['n']
     da_verificare = conn().execute(_DA_VERIFICARE + ' limit 40', (g.scuola['id'],)).fetchall()
     return render_template('live/indice.html', prove=prove, n_classi=n_classi, da_verificare=da_verificare,
-                           solutori=[(n, solver.DESCRIZIONI.get(n, n)) for n in solver.solutori()],
+                           solutori=[(n, solver.DESCRIZIONI.get(n, n)) for n in solver.solutori()], ferma_nodi=FERMA_NODI,
                            preseleziona_scuola=bool(request.args.get('scuola')))
 
 
@@ -79,10 +88,13 @@ def avvia():
     else:
         caso = {'tipo': 'casuale', 'seme': _intero('seme', 1, 0), 'classi': _intero('classi', 8, 1, 120),
                 'ritardi': bool(f.get('ritardi'))}
-    opzioni = {'tempo': _intero('tempo', 60, 0, 24 * 3600), 'orari': _intero('orari', 1, 1, 1000),
+    # niente limite di tempo: la ricerca si ferma dopo un numero di nodi (sempre allo stesso punto, qualunque sia il
+    # computer), quando trova gli orari o prova tutto, oppure col pulsante
+    opzioni = {'orari': _intero('orari', 1, 1, 1000),
                'max_backtrack': _intero('max_backtrack', 1000, 0, 100000)}
-    if opzioni['tempo'] == 0:
-        opzioni.pop('tempo')  # senza limite: si ferma col pulsante
+    ferma_nodi = _intero('ferma_nodi', FERMA_NODI, 0)
+    if ferma_nodi:  # 0: senza limite, si ferma col pulsante
+        opzioni['ferma_nodi'] = ferma_nodi
     disponibili = list(solver.solutori())
     if f.getlist('solutore'):  # «Rifai il test»: gli stessi solver (dalla pagina di un solver: solo quello)
         solutori = [s for s in disponibili if s in f.getlist('solutore')]

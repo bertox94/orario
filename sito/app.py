@@ -1,7 +1,7 @@
 """L'applicazione Flask: login, protezione dei moduli, sezioni.
 
 Sezioni (blueprint): dati della scuola (pagine_dati), test in tempo reale (pagine_live), dettaglio di un test con i
-suoi backtrack (pagine_casi). Le prove girano in thread dello stesso processo (esecutore.py): il sito va avviato con
+suoi backtrack (pagine_casi), test notturni (pagine_notturni). Le prove girano in thread dello stesso processo (esecutore.py): il sito va avviato con
 un solo processo (python3 -m sito avvia).
 """
 import datetime
@@ -42,7 +42,8 @@ def crea_app(config=None, avvia_esecutore=True):
     from .pagine_casi import bp as casi
     from .pagine_dati import bp as dati
     from .pagine_live import bp as live
-    for bp in (dati, live, casi):
+    from .pagine_notturni import bp as notturni
+    for bp in (dati, live, casi, notturni):
         app.register_blueprint(bp)
 
     app.register_blueprint(accesso.bp)
@@ -71,6 +72,8 @@ def crea_app(config=None, avvia_esecutore=True):
     if avvia_esecutore:
         from . import esecutore
         esecutore.avvia(app)
+        from . import notturni as test_notturni
+        test_notturni.avvia_sorveglianza(config)
     return app
 
 
@@ -104,8 +107,9 @@ def registra_filtri(app):
     def opzioni(o):
         """Le opzioni di un test in parole: "tempo 60 s · 1 orario · 1.000 backtrack registrati"."""
         o = o or {}
-        parti = ['tempo %s s' % o['tempo'] if o.get('tempo') else 'senza limite di tempo',
-                 '%s orar%s' % (o.get('orari', 1), 'io' if o.get('orari', 1) == 1 else 'i')]
+        parti = (['tempo %s s' % o['tempo']] if o.get('tempo') else []) + \
+            (['fermo dopo %s nodi' % numero(o['ferma_nodi'])] if o.get('ferma_nodi') else []) + \
+            (['senza limite'] if not o.get('tempo') and not o.get('ferma_nodi') else []) + ['%s orar%s' % (o.get('orari', 1), 'io' if o.get('orari', 1) == 1 else 'i')]
         if o.get('max_backtrack') is not None:
             parti.append('%s backtrack registrati al massimo' % numero(o['max_backtrack']))
         if o.get('solutore'):

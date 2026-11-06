@@ -20,6 +20,7 @@
       {% if e.esito == 'trovato' %}La ricerca ha trovato {{ e.trovati|numero }} orari{{ 'o' if e.trovati == 1 }}.
       {% elif e.esito == 'nessuna soluzione' %}La ricerca ha provato tutto: con questi dati e questi controlli l'orario non esiste.
       {% elif e.esito == 'non finito' %}Finito il tempo massimo prima di trovare un orario.
+      {% elif e.esito == 'limite di nodi' %}La ricerca si è fermata al limite di nodi ({{ (e.opzioni or {}).get('ferma_nodi')|numero }}) prima di trovare un orario.
       {% elif e.esito == 'fermato' %}Test fermato a mano.
       {% elif e.esito == 'errore nei dati' %}Il solver non accetta i dati: {{ r.get('errore_dati') }}
       {% elif e.esito == 'interrotto' %}Il sito si è riavviato mentre il test girava.
@@ -28,16 +29,34 @@
       {% if r.get('nodi') is not none %}Nodi visitati: {{ r.nodi|numero }} · backtrack: {{ r.backtrack|numero }}.{% endif %}
     </p>
   {% endif %}
+  {% if notturno %}
+  <div class="avviso {{ 'ok' if notturno.differenze == [] else ('errore' if notturno.differenze else '') }}" style="margin: 8px 0 0">
+    Rifatto dal test notturno <a href="{{ url_for('notturni.test', tid=notturno.test.id) }}">{{ notturno.test.nome }}</a>:
+    {% set rif = notturno.test.riferimento %}
+    atteso {{ rif.esito }}, {{ rif.nodi|numero }} nodi, {{ rif.backtrack|numero }} backtrack, posizione massima {{ rif.pos_max|numero }}.
+    {% if notturno.differenze is none %}Il confronto si fa a test finito.
+    {% elif not notturno.differenze %}<strong>Uguale al riferimento.</strong>
+    {% else %}<strong>Diverso:</strong> {% for d in notturno.differenze %}{{ ', ' if not loop.first }}{{ notturno.nomi.get(d.campo, d.campo) }}
+      {{ d.trovato|numero if d.trovato is number else d.trovato }} invece di {{ d.atteso|numero if d.atteso is number else d.atteso }}{% endfor %}.
+    {% endif %}
+  </div>
+  {% endif %}
   <div class="barra-comandi">
     <form method="post" action="{{ url_for('live.avvia') }}" class="in-linea">
       <input type="hidden" name="_gettone" value="{{ gettone }}">
       <input type="hidden" name="sorgente" value="esecuzione"><input type="hidden" name="eid" value="{{ e.id }}">
       {% for k, v in (e.opzioni or {}).items() %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
-      {% if not (e.opzioni or {}).get('tempo') %}<input type="hidden" name="tempo" value="0">{% endif %}
+      {# un test senza limite (né di tempo né di nodi) si rifà senza limite #}
+      {% if not (e.opzioni or {}).get('ferma_nodi') and not (e.opzioni or {}).get('tempo') %}<input type="hidden" name="ferma_nodi" value="0">{% endif %}
       {% if not (e.opzioni or {}).get('solutore') %}<input type="hidden" name="solutore" value="main">{% endif %}
       <button class="secondario">Rifai il test con gli stessi dati</button>
     </form>
     <a class="bottone secondario" href="{{ url_for('casi.scarica_dati', eid=e.id) }}">Scarica i dati</a>
+    <form method="post" action="{{ url_for('notturni.da_test', eid=e.id) }}" class="in-linea"
+          title="Stessi dati e stesso solver, ogni notte, fermo sempre allo stesso nodo">
+      <input type="hidden" name="_gettone" value="{{ gettone }}">
+      <button class="secondario">Aggiungi ai test notturni</button>
+    </form>
     {% if n_registrati or in_corso %}<a class="bottone secondario" href="{{ url_for('casi.scarica_backtrack', eid=e.id) }}">Scarica i backtrack</a>{% endif %}
   </div>
 </div>

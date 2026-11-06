@@ -96,7 +96,7 @@ form.in-linea { display: inline; margin: 0; }
 .esito { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 13px; white-space: nowrap; }
 .esito-trovato, .esito-finita { background: var(--ok-tenue); color: var(--ok); }
 .esito-errore, .esito-errore-nei-dati, .esito-nessuna-soluzione { background: var(--male-tenue); color: var(--male); }
-.esito-non-finito, .esito-fermato, .esito-interrotto, .esito-interrotta, .esito-annullamento { background: var(--attenzione-tenue); color: var(--attenzione); }
+.esito-non-finito, .esito-limite-di-nodi, .esito-fermato, .esito-interrotto, .esito-interrotta, .esito-annullamento { background: var(--attenzione-tenue); color: var(--attenzione); }
 .esito-in-corso { background: var(--accento-tenue); color: var(--accento); }
 
 pre.testo { background: var(--superficie); border: 1px solid var(--bordo); border-radius: 8px; padding: 12px; overflow-x: auto; font-size: 13px; }
@@ -276,3 +276,14 @@ body.incorporata main { padding-top: 12px; }
   overflow-wrap: anywhere; }
 .contatore .valore .di { font-size: 17px; font-weight: 500; color: var(--tenue); }
 .contatore .sotto { font-size: 12px; color: var(--tenue); }
+
+/* test notturni: le righe e i valori diversi dal riferimento, in evidenza */
+table.dati tr.riga-diversa td { background: var(--male-tenue); }
+table.dati td.diverso { color: var(--male); font-weight: 700; }
+.atteso { font-size: 12px; font-weight: 400; color: var(--male); white-space: nowrap; }
+.esito-diverso { background: var(--male); color: #fff; font-weight: 700; }
+.esito-accettato { background: var(--attenzione-tenue); color: var(--attenzione); }
+.testo-male { color: var(--male); }
+table.dati tr.spento td { opacity: .55; }
+table.dati tr.in-corso td { background: var(--accento-tenue); }
+button.piccolo, .bottone.piccolo { padding: 2px 8px; font-size: 13px; }

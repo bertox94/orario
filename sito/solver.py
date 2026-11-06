@@ -14,6 +14,8 @@ Le opzioni di un test:
     orari           quanti orari completi trovare prima di fermarsi (-n)
     max_backtrack   quanti backtrack registrare per esteso (gli altri si contano soltanto)
     max_nodi        quanti nodi della ricerca registrare (per scorrerla passo passo), default MAX_NODI
+    ferma_nodi      fermare la ricerca dopo tanti nodi (--ferma-nodi: al primo multiplo di 65.536), esito
+                    'limite di nodi': sempre allo stesso punto, per i test notturni (assente = nessun limite)
 """
 import hashlib
 import json
@@ -139,7 +141,8 @@ def argomenti(opzioni):
     """La riga di comando (senza l'eseguibile). I file stanno nella cartella dell'esecuzione."""
     return ['--input', DATI, '--traccia', TRACCIA, '-n', str(opzioni.get('orari', 1)),
             '--max-backtrack', str(opzioni.get('max_backtrack', 1000)), '--txt', os.devnull, '--progresso'] + \
-        (['--max-nodi', str(opzioni.get('max_nodi', MAX_NODI))] if supporta_nodi(opzioni.get('solutore')) else [])
+        (['--max-nodi', str(opzioni.get('max_nodi', MAX_NODI))] if supporta_nodi(opzioni.get('solutore')) else []) + \
+        (['--ferma-nodi', str(opzioni['ferma_nodi'])] if opzioni.get('ferma_nodi') else [])
 
 
 class Esecuzione:
@@ -227,6 +230,7 @@ class Esecuzione:
 def interpreta(percorso_traccia, codice, fermato_a_mano=False, scaduto=False):
     """L'esito di un'esecuzione dalla sua traccia:
         esito: 'trovato', 'nessuna soluzione' (la ricerca ha provato tutto), 'non finito' (limite di tempo),
+               'limite di nodi' (--ferma-nodi),
                'fermato' (pulsante), 'errore nei dati', 'errore'
         finito: la ricerca e' arrivata a una conclusione (trovato o nessuna soluzione)
         dati, orari (i primi orari trovati), fine (la riga finale), nodi, backtrack, errore_dati"""
