@@ -25,10 +25,11 @@ codice del sito e messaggi di commit sono in italiano.
 
 ## Branch
 
-- `main`: solo l'ultima versione del solver.
-- `sito/terza-versione`: il sito e i solver alternativi di `solutori/`, dal 6 novembre 2026 (pulizia del codice,
-  sorgenti condivisi tra i solver, test di non regressione). Le modifiche si fanno direttamente qui, con push diretto.
-- `sito/seconda-versione`: la versione precedente del sito, quella sul Raspberry finche' non si passa alla terza.
+- `main`: il solver, i solver alternativi di `solutori/`, il sito e i test di non regressione (la terza versione, unita
+  in `main` il 6 novembre 2026 su richiesta di Alb).
+- `sito/terza-versione`: il ramo di lavoro del sito, seguito dal Raspberry. Le modifiche al sito si fanno direttamente
+  qui, con push diretto; in `main` si portano con una PR quando Alb lo chiede.
+- `sito/seconda-versione`: la versione precedente del sito.
 - `archivio/2026-11-04`: tutto il lavoro precedente (solver avanzato, vecchio sito, esperimenti). Non si tocca.
 - `prototipo/scheletro-accoppiamenti`: prototipo in Python (accoppiamenti, Monte Carlo, SAT), non unito.
 
