@@ -8,6 +8,7 @@ from .db import conn
 bp = Blueprint('live', __name__, url_prefix='/live')
 
 FERMA_NODI = 50000000  # limite di nodi predefinito di un test
+MAX_SERIE = 500  # test al massimo in una serie
 
 
 def _config():
@@ -53,6 +54,7 @@ def indice():
     n_classi = conn().execute('select count(*) as n from classi where scuola_id = %s', (g.scuola['id'],)).fetchone()['n']
     da_verificare = conn().execute(_DA_VERIFICARE + ' limit 40', (g.scuola['id'],)).fetchall()
     return render_template('live/indice.html', prove=prove, n_classi=n_classi, da_verificare=da_verificare,
+                           serie=esecutore.serie(),
                            solutori=[(n, solver.DESCRIZIONI.get(n, n)) for n in solver.solutori()], ferma_nodi=FERMA_NODI,
                            preseleziona_scuola=bool(request.args.get('scuola')))
 
@@ -86,8 +88,22 @@ def avvia():
             return redirect(url_for('.indice'))
         caso = {'tipo': 'input', 'nome': p['nome'], 'dati': p['dati_scuola']}
     else:
-        caso = {'tipo': 'casuale', 'seme': _intero('seme', 1, 0), 'classi': _intero('classi', 8, 1, 120),
-                'ritardi': bool(f.get('ritardi'))}
+        # semi, classi e ordini come nei test notturni: un numero o un intervallo col trattino, anche piu' di uno
+        try:
+            semi = notturni.intervallo(f.get('semi', '') or '1', 0, 10 ** 9)
+            classi = notturni.intervallo(f.get('classi', '') or '8', 1, 120)
+            ordini = notturni.intervallo(f.get('ordini', '') or '0', 0, 10 ** 6)
+        except ValueError:
+            flash('Seme, classi e ordine delle classi: un numero o un intervallo col trattino, anche più di uno separati '
+                  'da virgole, per esempio «1-6», «8-12» e «0-3» (classi da 1 a 120; ordine 0: come generato).', 'errore')
+            return redirect(url_for('.indice'))
+        ritardi = {'senza': [False], 'con': [True], 'entrambi': [False, True]}.get(f.get('ritardi'), [False])
+        casi = [dict({'tipo': 'casuale', 'seme': s, 'classi': n, 'ritardi': r}, **({'ordine': k} if k else {}))
+                for s in semi for n in classi for r in ritardi for k in ordini]
+        if len(casi) > MAX_SERIE:
+            flash('Troppi test in una volta: %d (al massimo %d).' % (len(casi), MAX_SERIE), 'errore')
+            return redirect(url_for('.indice'))
+        caso = casi[0] if len(casi) == 1 else None
     # niente limite di tempo: la ricerca si ferma dopo un numero di nodi (sempre allo stesso punto, qualunque sia il
     # computer), quando trova gli orari o prova tutto, oppure col pulsante
     opzioni = {'orari': _intero('orari', 1, 1, 1000),
@@ -96,13 +112,19 @@ def avvia():
     if ferma_nodi:  # 0: senza limite, si ferma col pulsante
         opzioni['ferma_nodi'] = ferma_nodi
     disponibili = list(solver.solutori())
-    if f.getlist('solutore'):  # «Rifai il test»: gli stessi solver (dalla pagina di un solver: solo quello)
+    if f.getlist('solutore') or sorgente != 'esecuzione':  # dal modulo, o «Rifai solo con»: quelli scelti
         solutori = [s for s in disponibili if s in f.getlist('solutore')]
-    else:  # dal modulo: tutti tranne quelli esclusi
-        esclusi = set(f.getlist('escludi'))
-        solutori = [s for s in disponibili if s not in esclusi]
+    else:  # «Rifai il test con gli stessi dati»: tutti
+        solutori = disponibili
     if not solutori:
-        flash('Hai escluso tutti i solver: lasciane almeno uno.', 'errore')
+        flash('Scegli almeno un solver.', 'errore')
+        return redirect(url_for('.indice'))
+    if caso is None:  # piu' combinazioni: una serie, un test dopo l'altro
+        if esecutore.avvia_serie(_config(), g.scuola['id'], casi, opzioni, solutori):
+            flash('Serie avviata: %d test, uno dopo l\'altro (ognuno con %d solver in parallelo).'
+                  % (len(casi), len(solutori)), 'ok')
+        else:
+            flash('C\'è già una serie in corso: aspetta che finisca, o fermala.', 'errore')
         return redirect(url_for('.indice'))
     try:
         pid, eids = esecutore.avvia_live(_config(), g.scuola['id'], caso, opzioni, solutori)
@@ -157,3 +179,16 @@ def elimina(pid):
     else:
         flash('Un test in corso non si puo\' eliminare: prima fermalo.', 'errore')
     return redirect(url_for('.indice'))
+
+
+@bp.route('/serie/ferma', methods=['POST'])
+def ferma_serie():
+    esecutore.ferma_serie()
+    flash('Serie fermata: il test in corso si ferma, i successivi non partono.', 'ok')
+    return redirect(url_for('.indice'))
+
+
+@bp.route('/serie/stato')
+def stato_serie():
+    """Interrogato dalla pagina mentre una serie gira."""
+    return jsonify(esecutore.serie())

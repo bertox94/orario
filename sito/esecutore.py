@@ -48,7 +48,8 @@ def riprendi_dopo_riavvio(config):
 
 def nome_caso(caso):
     if caso['tipo'] == 'casuale':
-        return 'seme %d, %d classi%s' % (caso['seme'], caso.get('classi', 8), ', ritardi' if caso.get('ritardi') else '')
+        return 'seme %d, %d classi%s%s' % (caso['seme'], caso.get('classi', 8), ', ritardi' if caso.get('ritardi') else '',
+                                          ', ordine %d' % caso['ordine'] if caso.get('ordine') else '')
     if caso['tipo'] == 'scuola':
         return 'dati della scuola'
     return caso.get('nome') or 'file'
@@ -231,7 +232,10 @@ def avvia_live(config, scuola_id, caso, opzioni, solutori=('main',)):
     return pid, [eid for eid, _ in esecuzioni]
 
 
-# la prova e' finita quando non resta nessuna sua esecuzione senza esito
+# la prova e' finita quando non resta nessuna sua esecuzione senza esito. Prima di scrivere l'esito ogni esecuzione
+# blocca la riga della prova (_BLOCCA_PROVA, fino al commit): se due solver finiscono nello stesso istante, il secondo
+# aspetta il primo e vede il suo esito; senza, nessuno dei due vedeva l'altro e la prova restava «in corso».
+_BLOCCA_PROVA = 'select 1 from prove where id = %s for update'
 _FINE_PROVA = ("update prove set stato = %s, fine = now(), riepilogo = %s, messaggio = coalesce(%s, messaggio) "
                "where id = %s and not exists (select 1 from esecuzioni where prova_id = %s and esito is null)")
 
@@ -262,6 +266,7 @@ def _esegui(config, pid, eid, nome, dati, opzioni, pronto):
         risultato = {'dati': r['dati'], 'orari': r['orari'], 'fine': r['fine'], 'nodi': r['nodi'],
                      'backtrack': r['backtrack'], 'errore_dati': r['errore_dati'], 'pos_max': pos_max}
         with db.connetti(config.database_url) as c:
+            c.execute(_BLOCCA_PROVA, (pid,))
             c.execute('update esecuzioni set esito = %s, finito = %s, marce = %s, trovati = %s, secondi = %s, '
                       'diagnosi = %s, risultato = %s, fine = now() where id = %s',
                       (r['esito'], r['finito'], r['backtrack'], r['trovati'], r['secondi'], _riassunto(r),
@@ -271,6 +276,7 @@ def _esegui(config, pid, eid, nome, dati, opzioni, pronto):
     except Exception as ex:  # l'esecuzione risulta in errore, con il motivo
         traceback.print_exc()
         with db.connetti(config.database_url) as c:
+            c.execute(_BLOCCA_PROVA, (pid,))
             c.execute("update esecuzioni set esito = 'errore', finito = false, fine = now(), diagnosi = %s "
                       "where id = %s and esito is null", (str(ex), eid))
             c.execute(_FINE_PROVA, ('errore', _json({'esito': 'errore'}), str(ex), pid, pid))
@@ -309,3 +315,66 @@ def elimina_prova(config, prova_id):
         c.execute('delete from prove where id = %s', (prova_id,))
         c.commit()
     return True
+
+
+# ---- una serie di test (piu' combinazioni di seme, classi, ritardi e ordine dal modulo) ----
+# I test di una serie partono uno dopo l'altro, come i test notturni: ognuno con i suoi solver in parallelo, il
+# successivo quando il precedente e' finito (tutti i suoi solver hanno un esito). Una serie alla volta; se il sito si
+# riavvia la serie si perde (i test gia' fatti restano).
+SERIE = {'attiva': False, 'fermare': False, 'casi': 0, 'fatti': 0, 'pid': None, 'problemi': []}
+
+
+def serie():
+    """Lo stato della serie: una copia di SERIE."""
+    with _lock:
+        return dict(SERIE, problemi=list(SERIE['problemi']))
+
+
+def avvia_serie(config, scuola_id, casi, opzioni, solutori):
+    """Avvia in un thread i test dei casi, uno dopo l'altro. False se c'e' gia' una serie in corso."""
+    with _lock:
+        if SERIE['attiva']:
+            return False
+        SERIE.update(attiva=True, fermare=False, casi=len(casi), fatti=0, pid=None, problemi=[])
+    threading.Thread(target=_esegui_serie, args=(config, scuola_id, casi, opzioni, solutori), daemon=True,
+                     name='serie').start()
+    return True
+
+
+def ferma_serie():
+    """Non avvia piu' test della serie e ferma quello in corso."""
+    with _lock:
+        SERIE['fermare'] = True
+        pid = SERIE['pid']
+        attive = [a[1] for a in ATTIVE.values() if a[0] == pid]
+    for e in attive:
+        e.ferma()
+
+
+def _esegui_serie(config, scuola_id, casi, opzioni, solutori):
+    try:
+        for caso in casi:
+            with _lock:
+                if SERIE['fermare']:
+                    break
+            try:
+                pid, _ = avvia_live(config, scuola_id, caso, opzioni, solutori)
+            except ValueError as ex:  # il generatore non trova dati validi per questo caso
+                with _lock:
+                    SERIE['problemi'].append('%s: %s' % (nome_caso(caso), ex))
+                    SERIE['fatti'] += 1
+                continue
+            with _lock:
+                SERIE['pid'] = pid
+            while True:  # finito quando nessuna sua esecuzione e' ancora attiva
+                time.sleep(1)
+                with _lock:
+                    if not any(a[0] == pid for a in ATTIVE.values()):
+                        break
+            with _lock:
+                SERIE['fatti'] += 1
+    except Exception:
+        traceback.print_exc()
+    finally:
+        with _lock:
+            SERIE.update(attiva=False, pid=None)

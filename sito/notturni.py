@@ -16,6 +16,7 @@ o a mano. Un solo giro alla volta.
 import datetime
 import hashlib
 import json
+import re
 import os
 import shutil
 import tempfile
@@ -46,6 +47,24 @@ def impronta_orario(orario):
 
 
 # ---- creare i test ----
+
+def intervallo(testo, minimo, massimo):
+    """Semi, classi e ordini delle classi, tutti allo stesso modo: numeri o intervalli col trattino, separati da virgole
+    o spazi. "1-6, 9" -> [1, 2, 3, 4, 5, 6, 9]; anche "1 - 6" e il trattino lungo (ValueError se non si legge)."""
+    valori = []
+    testo = re.sub(r'\s*[-–—]\s*', '-', testo.strip())
+    for parte in re.split(r'[,;\s]+', testo):
+        if not parte:
+            continue
+        a, trattino, b = parte.partition('-')
+        a, b = int(a), int(b if trattino else a)  # «8-» non si legge
+        if not minimo <= a <= b <= massimo:
+            raise ValueError(parte)
+        valori.extend(range(a, b + 1))
+    if not valori:
+        raise ValueError('vuoto')
+    return sorted(set(valori))
+
 
 def nome_casuale(seme, classi, ritardi, ordine=0):
     nome = 'seme %d, %d classi%s' % (seme, classi, ', ritardi' if ritardi else '')
