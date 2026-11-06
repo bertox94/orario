@@ -73,13 +73,17 @@
 {% endif %}
 
 <h2>Test recenti</h2>
+<div class="barra-comandi" style="margin-top: 0">
+  <button type="button" id="elimina-selezionati" class="secondario" disabled>Elimina i selezionati</button>
+</div>
 <div class="scorre">
-<table class="dati">
-  <thead><tr><th>#</th><th>Dati</th><th>Solver</th><th>Quando</th><th>Esito</th><th class="num">Backtrack</th><th class="num">Durata</th><th>Riassunto</th><th></th></tr></thead>
+<table class="dati" id="test-recenti">
+  <thead><tr><th><input type="checkbox" id="seleziona-tutti" title="Seleziona tutti"></th><th>#</th><th>Dati</th><th>Solver</th><th>Quando</th><th>Esito</th><th class="num">Backtrack</th><th class="num">Durata</th><th>Riassunto</th><th></th></tr></thead>
   <tbody>
   {% for p in prove %}
     {% set piu = p.solver|length > 1 %}
     <tr data-pid="{{ p.id }}" class="{{ 'gruppo-solver' if piu }}">
+      <td><input type="checkbox" class="seleziona-test" value="{{ p.id }}" data-azione="{{ url_for('live.elimina', pid=p.id) }}"></td>
       <td>{% if piu %}<button type="button" class="link apri-solver" aria-expanded="false" title="Mostra i solver">▸</button>{% endif %}{{ p.id }}</td>
       <td>{% if p.eid %}<a href="{{ url_for('live.prova', pid=p.id, scheda=p.eid) }}">{{ p.nome or '-' }}</a>{% else %}{{ p.nome or '-' }}{% endif %}</td>
       {% if piu %}
@@ -107,7 +111,7 @@
     </tr>
     {% if piu %}{% for s in p.solver %}
     <tr class="riga-solver" data-pid="{{ p.id }}" hidden>
-      <td></td>
+      <td></td><td></td>
       <td class="piccolo">↳ <a href="{{ url_for('live.prova', pid=p.id, scheda=s.eid) }}">{{ s.solutore }}</a></td>
       <td class="piccolo">{{ s.solutore }}</td>
       <td></td>
@@ -119,7 +123,7 @@
     </tr>
     {% endfor %}{% endif %}
   {% else %}
-    <tr><td colspan="9" class="tenue">Nessun test.</td></tr>
+    <tr><td colspan="10" class="tenue">Nessun test.</td></tr>
   {% endfor %}
   </tbody>
 </table>
@@ -167,21 +171,58 @@ document.querySelectorAll('form.togli-verificare').forEach(f => f.addEventListen
   if (r.ok) f.closest('tr').remove();
   if (!document.querySelector('#da-verificare tbody tr')) document.getElementById('svuota-verificare').hidden = true;
 }));
-// la ✕ dei test recenti elimina il test senza ricaricare la pagina (toglie anche la sua riga dai test da verificare)
+// eliminare un test senza ricaricare la pagina: toglie le sue righe (con quelle dei suoi solver) dai test recenti e
+// da quelli da verificare; ritorna il messaggio d'errore, o null
+async function eliminaTest(pid, azione) {
+  const r = await fetch(azione, {method: 'POST', headers: {'X-Gettone': window.GETTONE}});
+  const x = r.ok ? await r.json() : {ok: false, errore: 'Il test non è stato eliminato (errore ' + r.status + ').'};
+  if (!x.ok) return x.errore;
+  document.querySelectorAll(`#test-recenti tbody tr[data-pid="${pid}"], #da-verificare tbody tr[data-pid="${pid}"]`)
+    .forEach(tr => tr.remove());
+  return null;
+}
+function dopoEliminati() {
+  const corpo = document.querySelector('#test-recenti tbody');
+  if (!corpo.querySelector('tr')) corpo.append(Object.assign(document.createElement('tr'),
+    {innerHTML: '<td colspan="10" class="tenue">Nessun test.</td>'}));
+  const svuota = document.getElementById('svuota-verificare');
+  if (svuota && !document.querySelector('#da-verificare tbody tr')) svuota.hidden = true;
+  aggiornaSelezione();
+}
+// la ✕ di un test
 document.querySelectorAll('form.elimina-test').forEach(f => f.addEventListener('submit', async ev => {
   ev.preventDefault();
   if (!confirm('Eliminare questo test?')) return;
-  const r = await fetch(f.action, {method: 'POST', headers: {'X-Gettone': window.GETTONE}});
-  const x = r.ok ? await r.json() : {ok: false, errore: 'Il test non è stato eliminato (errore ' + r.status + ').'};
-  if (!x.ok) { alert(x.errore); return; }
-  const corpo = f.closest('tbody');
-  // il test e, se ha piu' solver, le righe dei suoi solver
-  corpo.querySelectorAll(`tr[data-pid="${f.dataset.pid}"]`).forEach(tr => tr.remove());
-  if (!corpo.querySelector('tr')) corpo.append(Object.assign(document.createElement('tr'),
-    {innerHTML: '<td colspan="9" class="tenue">Nessun test.</td>'}));
-  document.querySelectorAll(`#da-verificare tbody tr[data-pid="${f.dataset.pid}"]`).forEach(tr => tr.remove());
-  const svuota = document.getElementById('svuota-verificare');
-  if (svuota && !document.querySelector('#da-verificare tbody tr')) svuota.hidden = true;
+  const errore = await eliminaTest(f.dataset.pid, f.action);
+  if (errore) alert(errore);
+  dopoEliminati();
 }));
+// le caselle: «Elimina i selezionati» li elimina uno dopo l'altro (quelli in corso restano, con un avviso)
+const caselleTest = () => [...document.querySelectorAll('#test-recenti .seleziona-test')];
+function aggiornaSelezione() {
+  const tutte = caselleTest(), scelte = tutte.filter(c => c.checked);
+  const b = document.getElementById('elimina-selezionati');
+  b.disabled = !scelte.length;
+  b.textContent = scelte.length ? `Elimina i selezionati (${scelte.length})` : 'Elimina i selezionati';
+  const t = document.getElementById('seleziona-tutti');
+  t.checked = tutte.length > 0 && scelte.length === tutte.length;
+  t.indeterminate = scelte.length > 0 && scelte.length < tutte.length;
+}
+document.getElementById('test-recenti').addEventListener('change', ev => {
+  if (ev.target.id === 'seleziona-tutti') caselleTest().forEach(c => c.checked = ev.target.checked);
+  aggiornaSelezione();
+});
+document.getElementById('elimina-selezionati').addEventListener('click', async ev => {
+  const scelte = caselleTest().filter(c => c.checked);
+  if (!scelte.length || !confirm(`Eliminare ${scelte.length} test?`)) return;
+  ev.target.disabled = true;
+  const errori = [];
+  for (const c of scelte) {
+    const errore = await eliminaTest(c.value, c.dataset.azione);
+    if (errore) errori.push(`#${c.value}: ${errore}`);
+  }
+  dopoEliminati();
+  if (errori.length) alert(errori.join('\n'));
+});
 </script>
 {% endblock %}
