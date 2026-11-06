@@ -49,30 +49,35 @@
 </div>
 
 {# Una tabella di casi: una riga per caso, una colonna per solver (l'ultima esecuzione di ognuno). #}
-{% macro tabella_casi(gruppi, id, quali) %}
+{% macro tabella_casi(gruppi, id) %}
 <div class="scorre">
 <table class="dati tabella-casi" id="{{ id }}">
-  <thead><tr><th>Caso</th>{% for s in solver_colonne %}<th>{{ s }}</th>{% endfor %}</tr></thead>
+  <thead>
+    <tr><th rowspan="2">Caso</th><th rowspan="2">Data</th>
+      {% for s in solver_colonne %}<th colspan="3" class="inizio-solver">{{ s }}</th>{% endfor %}</tr>
+    <tr>{% for s in solver_colonne %}<th class="inizio-solver">Esito</th><th class="num">Nodi</th><th class="num">Durata</th>{% endfor %}</tr>
+  </thead>
   {% for gr in gruppi %}
   <tbody>
-    <tr class="sottotitolo"><th>{{ gr.titolo }} <span class="tenue piccolo">({{ gr.casi|length }} cas{{ 'o' if gr.casi|length == 1 else 'i' }})</span></th>
+    <tr class="sottotitolo"><th colspan="2">{{ gr.titolo }} <span class="tenue piccolo">({{ gr.casi|length }} cas{{ 'o' if gr.casi|length == 1 else 'i' }})</span></th>
       {% for s in solver_colonne %}{% set n = gr.conto[s] %}
-      <th class="piccolo">{% if n[1] %}{{ n[0] }} trovat{{ 'o' if n[0] == 1 else 'i' }} su {{ n[1] }}{% endif %}</th>{% endfor %}</tr>
+      <th colspan="3" class="piccolo inizio-solver">{% if n[1] %}{{ n[0] }} trovat{{ 'o' if n[0] == 1 else 'i' }} su {{ n[1] }}{% endif %}</th>{% endfor %}</tr>
   {% for c in gr.casi %}
     {% set primo = (c.per_solver.values()|list)[0] %}
     <tr class="{{ 'riga-diversa' if c.per_solver.values()|selectattr('confronto', 'equalto', 'diverso')|list }}">
       <td>{{ c.nome }}<div class="tenue piccolo">fermo dopo {{ primo.opzioni.get('ferma_nodi')|numero }} nodi</div></td>
-      {% for s in solver_colonne %}{% set r = c[quali].get(s) %}
-      <td class="{{ ' in-corso' if r and test_in_corso == r.id }}">
-        {% if not r %}<span class="tenue">{{ ('da parte' if quali == 'conclusi' else 'concluso') if c.per_solver.get(s) else '—' }}</span>
-        {% elif not r.nid %}<a class="tenue" href="{{ url_for('notturni.test', tid=r.id) }}">{{ 'in coda' if in_corso else 'mai eseguito' }}</a>
-        {% else %}
-          <a href="{{ url_for('notturni.test', tid=r.id) }}" title="{{ r.esito }}{{ ': ' ~ r.errore if r.errore }} · {{ r.inizio|data }}"
-             ><span class="esito {{ r.esito|classe_esito }}">{{ {'nessuna soluzione': 'nessuna', 'errore nei dati': 'errore dati', 'limite di nodi': 'limite'}.get(r.esito, r.esito) }}</span></a>
-          {% if r.confronto == 'diverso' %}<span class="esito esito-diverso" title="diverso dal riferimento: {{ campi_diversi(r, nomi_campi) }}">≠</span>{% endif %}
-          <div class="tenue piccolo">{{ r.nodi|numero if r.nodi is not none else '' }}{{ ' nodi' if r.nodi is not none }}{% if r.secondi is not none %}{{ ' · ' if r.nodi is not none }}{{ '%.1f s'|format(r.secondi) }}{% endif %}</div>
-        {% endif %}
-      </td>{% endfor %}
+      <td class="piccolo">{{ c.data|data if c.data else '-' }}</td>
+      {% for s in solver_colonne %}{% set r = c.per_solver.get(s) %}
+      {% if not r %}<td class="inizio-solver tenue">—</td><td></td><td></td>
+      {% elif not r.nid %}<td class="inizio-solver"><a class="tenue" href="{{ url_for('notturni.test', tid=r.id) }}">{{ 'in coda' if in_corso else 'mai eseguito' }}</a></td><td></td><td></td>
+      {% else %}
+      <td class="inizio-solver{{ ' in-corso' if test_in_corso == r.id }}">
+        <a href="{{ url_for('notturni.test', tid=r.id) }}" title="{{ r.esito }}{{ ': ' ~ r.errore if r.errore }}"
+           ><span class="esito {{ r.esito|classe_esito }}">{{ {'nessuna soluzione': 'nessuna', 'errore nei dati': 'errore dati', 'limite di nodi': 'limite'}.get(r.esito, r.esito) }}</span></a>
+        {% if r.confronto == 'diverso' %}<span class="esito esito-diverso" title="diverso dal riferimento: {{ campi_diversi(r, nomi_campi) }}">≠</span>{% endif %}</td>
+      <td class="num">{{ r.nodi|numero if r.nodi is not none else '-' }}</td>
+      <td class="num">{{ '%.1f s'|format(r.secondi) if r.secondi is not none else '-' }}</td>
+      {% endif %}{% endfor %}
     </tr>
   {% endfor %}
   </tbody>
@@ -105,11 +110,11 @@
   </select></label>
   <span class="tenue piccolo">dentro il gruppo i casi sono in ordine di seme, classi, ritardi e ordine delle classi</span>
 </form>
-<h3>Conclusi <span class="tenue piccolo">i test che hanno trovato l'orario, dimostrato che non c'è o riconosciuto un errore nei dati ({{ conclusi|sum(attribute='casi', start=[])|length }} casi)</span></h3>
-{% if conclusi %}{{ tabella_casi(conclusi, 'casi-conclusi', 'conclusi') }}{% else %}<p class="tenue">Nessuno.</p>{% endif %}
+<h3>Conclusi <span class="tenue piccolo">i casi in cui almeno un solver ha trovato l'orario, dimostrato che non c'è o riconosciuto un errore nei dati; una riga per caso ({{ conclusi|sum(attribute='casi', start=[])|length }} casi)</span></h3>
+{% if conclusi %}{{ tabella_casi(conclusi, 'casi-conclusi') }}{% else %}<p class="tenue">Nessuno.</p>{% endif %}
 
-<h3>Da parte: non terminati <span class="tenue piccolo">i test fermati al limite di nodi (o fermati a mano, in errore, non ancora eseguiti), da rivedere ({{ da_parte|sum(attribute='casi', start=[])|length }} casi)</span></h3>
-{% if da_parte %}{{ tabella_casi(da_parte, 'casi-da-parte', 'aperti') }}{% else %}<p class="tenue">Nessuno.</p>{% endif %}
+<h3>Da parte: non terminati <span class="tenue piccolo">i casi in cui nessun solver è arrivato a una conclusione (limite di nodi, fermati a mano, in errore, non ancora eseguiti), da rivedere ({{ da_parte|sum(attribute='casi', start=[])|length }} casi)</span></h3>
+{% if da_parte %}{{ tabella_casi(da_parte, 'casi-da-parte') }}{% else %}<p class="tenue">Nessuno.</p>{% endif %}
 
 {% if disattivati %}
 <h3>Disattivati</h3>

@@ -113,10 +113,10 @@ def _gruppi(casi, per, quali, solver):
 
 
 def raggruppa(righe, ordine_solver, per='seme'):
-    """I test raggruppati per caso (stesso nome): una riga per caso, una colonna per solver. Ritorna (solver, casi con
-    almeno un test concluso, casi con almeno un test da parte, test disattivati, riepilogo per solver). Un test va da
-    parte se non e' arrivato a una conclusione (limite di nodi, fermato, interrotto, errore) o non ha ancora girato:
-    nella tabella dei conclusi la sua casella dice solo «da parte», e lui sta nella tabella dei test da parte."""
+    """I test raggruppati per caso (stesso nome): una riga per caso (la data dell'ultima esecuzione, poi per ogni solver
+    esito, nodi e durata). Ritorna (solver, casi conclusi, casi da parte, test disattivati, riepilogo per solver). Un
+    caso va da parte se nessun solver e' arrivato a una conclusione (tutti al limite di nodi, fermati, in errore o mai
+    eseguiti); ogni caso sta in una riga sola."""
     attivi = [r for r in righe if r['attivo']]
     solver = [s for s in ordine_solver if any(r['solutore'] == s for r in attivi)]
     solver += sorted({r['solutore'] for r in attivi} - set(solver))
@@ -128,10 +128,12 @@ def raggruppa(righe, ordine_solver, per='seme'):
     casi = sorted(casi.values(), key=lambda c: c['chiave'])
     aperto = lambda r: not r['esito'] or r['esito'] in NON_TERMINATI  # noqa: E731
     for c in casi:
-        c['conclusi'] = {s: r for s, r in c['per_solver'].items() if not aperto(r)}
-        c['aperti'] = {s: r for s, r in c['per_solver'].items() if aperto(r)}
-    conclusi = _gruppi([c for c in casi if c['conclusi']], per, 'conclusi', solver)
-    da_parte = _gruppi([c for c in casi if c['aperti']], per, 'aperti', solver)
+        c['concluso'] = any(not aperto(r) for r in c['per_solver'].values())
+        date = [r['inizio'] for r in c['per_solver'].values() if r['inizio']]
+        c['data'] = max(date) if date else None  # l'ultima esecuzione del caso
+    # una riga per caso: tra i conclusi se almeno un solver e' arrivato a una conclusione, se no da parte
+    conclusi = _gruppi([c for c in casi if c['concluso']], per, 'per_solver', solver)
+    da_parte = _gruppi([c for c in casi if not c['concluso']], per, 'per_solver', solver)
     riepilogo = []
     for s in solver:
         mie = [r for r in attivi if r['solutore'] == s]
