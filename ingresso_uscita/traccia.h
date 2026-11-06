@@ -42,6 +42,8 @@ void traccia_backtrack(int pos, int giorno, int ora, int cla, int base2d_ci, int
 // Lo slot non puo' avere lezione (activities_for_this_class_and_hour falso) e siamo nelle ore obbligatorie: la ricerca
 // torna indietro senza provare nessun docente.
 void traccia_slot_chiuso(int pos, int giorno, int ora, int cla);
+// la scelta nella cella prima lascia un resto impossibile (una potatura, vedi potature/potature.h)
+void traccia_potatura(int pos, int giorno, int ora, int cla);
 
 void traccia_orario_trovato(void);
 
