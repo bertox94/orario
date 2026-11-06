@@ -213,12 +213,24 @@ def genera():
     except ValueError:
         flash('Limite di nodi e orari: numeri interi.', 'errore')
         return redirect(url_for('.indice'))
-    aggiunti, gia, problemi = notturni.genera(conn(), g.scuola['id'], semi, classi, ritardi, solutori, ferma_nodi,
-                                              orari, casi_repository=bool(f.get('repository')), ordini=ordini)
+    aggiunti, gia, problemi, ids = notturni.genera(conn(), g.scuola['id'], semi, classi, ritardi, solutori, ferma_nodi,
+                                                   orari, casi_repository=bool(f.get('repository')), ordini=ordini)
     flash('Test aggiunti: %d%s.' % (aggiunti, ' (%d c\'era%s già)' % (gia, '' if gia == 1 else 'no') if gia else ''), 'ok')
     for p in problemi[:10]:
         flash('Non generato: %s' % p, 'errore')
+    if f.get('esegui') and ids:
+        conn().commit()  # il giro legge i test con un'altra connessione: devono esserci gia'
+        _avvia(ids)
     return redirect(url_for('.indice'))
+
+
+def _avvia(soli):
+    """Un giro a mano adesso con i test indicati (None: tutti i test attivi)."""
+    gid = notturni.avvia_giro(_config(), g.scuola['id'], 'a mano', soli)
+    if gid is None:
+        flash('C\'e\' gia\' un giro in corso: aspetta che finisca, o fermalo.' if notturni.giro_in_corso()
+              else 'Nessun test da eseguire.', 'errore')
+    return gid
 
 
 def _aggiungi_esecuzioni(eids):
@@ -233,7 +245,7 @@ def _aggiungi_esecuzioni(eids):
         if not t:
             continue
         if not t['presente'] and notturni.aggiungi(conn(), g.scuola['id'], t['nome'], t['solutore'], t['caso'],
-                                                   t['dati'], t['opzioni']):
+                                                   t['dati'], t['opzioni'])[1]:
             nuovi += 1
         else:
             gia += 1
@@ -264,16 +276,16 @@ def da_prova(pid):
 
 @bp.route('/esegui', methods=['POST'])
 def esegui():
-    """Un giro adesso: tutti i test attivi, o solo quello indicato (tid) o solo quelli diversi (diversi=1)."""
+    """Un giro adesso: tutti i test attivi, o solo quelli indicati (tid, anche piu' di uno: i solver di un caso) o solo
+    quelli diversi (diversi=1)."""
     soli = None
-    if request.form.get('tid'):
-        soli = [_test(int(request.form['tid']))['id']]
+    if request.form.getlist('tid'):
+        soli = [_test(int(t))['id'] for t in request.form.getlist('tid')]
     elif request.form.get('diversi'):
         soli = [r['id'] for r in conn().execute(_ULTIME, (g.scuola['id'],)) if r['confronto'] == 'diverso']
-    gid = notturni.avvia_giro(_config(), g.scuola['id'], 'a mano', soli)
-    if gid is None:
-        flash('C\'e\' gia\' un giro in corso.' if notturni.giro_in_corso() else 'Nessun test da eseguire.', 'errore')
-    return redirect(url_for('.indice'))
+    _avvia(soli)
+    poi = request.form.get('poi', '')
+    return redirect(poi if poi.startswith('/') and not poi.startswith('//') else url_for('.indice'))
 
 
 @bp.route('/ferma', methods=['POST'])

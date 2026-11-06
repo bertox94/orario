@@ -53,13 +53,13 @@
 <div class="scorre">
 <table class="dati tabella-casi" id="{{ id }}">
   <thead>
-    <tr><th rowspan="2">Caso</th><th rowspan="2">Data</th>
+    <tr><th rowspan="2">Caso</th><th rowspan="2">Data</th><th rowspan="2"></th>
       {% for s in solver_colonne %}<th colspan="3" class="inizio-solver">{{ s }}</th>{% endfor %}</tr>
     <tr>{% for s in solver_colonne %}<th class="inizio-solver">Esito</th><th class="num">Nodi</th><th class="num">Durata</th>{% endfor %}</tr>
   </thead>
   {% for gr in gruppi %}
   <tbody>
-    <tr class="sottotitolo"><th colspan="2">{{ gr.titolo }} <span class="tenue piccolo">({{ gr.casi|length }} cas{{ 'o' if gr.casi|length == 1 else 'i' }})</span></th>
+    <tr class="sottotitolo"><th colspan="3">{{ gr.titolo }} <span class="tenue piccolo">({{ gr.casi|length }} cas{{ 'o' if gr.casi|length == 1 else 'i' }})</span></th>
       {% for s in solver_colonne %}{% set n = gr.conto[s] %}
       <th colspan="3" class="piccolo inizio-solver">{% if n[1] %}{{ n[0] }} trovat{{ 'o' if n[0] == 1 else 'i' }} su {{ n[1] }}{% endif %}</th>{% endfor %}</tr>
   {% for c in gr.casi %}
@@ -67,6 +67,11 @@
     <tr class="{{ 'riga-diversa' if c.per_solver.values()|selectattr('confronto', 'equalto', 'diverso')|list }}">
       <td>{{ c.nome }}<div class="tenue piccolo">fermo dopo {{ primo.opzioni.get('ferma_nodi')|numero }} nodi</div></td>
       <td class="piccolo">{{ c.data|data if c.data else '-' }}</td>
+      <td><form method="post" action="{{ url_for('notturni.esegui') }}" class="in-linea">
+        <input type="hidden" name="_gettone" value="{{ gettone }}">
+        {% for r in c.per_solver.values() %}<input type="hidden" name="tid" value="{{ r.id }}">{% endfor %}
+        <button class="secondario piccolo" {{ 'disabled' if in_corso }} title="Un giro adesso con questo caso, per ogni solver ({{ c.per_solver|length }} test)">Esegui ora</button>
+      </form></td>
       {% for s in solver_colonne %}{% set r = c.per_solver.get(s) %}
       {% if not r %}<td class="inizio-solver tenue">—</td><td></td><td></td>
       {% elif not r.nid %}<td class="inizio-solver"><a class="tenue" href="{{ url_for('notturni.test', tid=r.id) }}">{{ 'in coda' if in_corso else 'mai eseguito' }}</a></td><td></td><td></td>
@@ -148,7 +153,9 @@
   </div>
   <p class="tenue piccolo">Con 50.000.000 di nodi un test che non finisce dura circa 40 secondi sul Mac (main fa circa un milione di nodi al
     secondo), di più sul Raspberry; i casi facili finiscono prima, con l'orario.</p>
-  <p style="margin-bottom: 0"><button>Genera</button></p>
+  <p style="margin-bottom: 0"><label class="spunta" style="margin-bottom: 8px"><input type="checkbox" name="esegui" value="1" checked>
+      Eseguili subito (un giro adesso con questi test, anche quelli che c'erano già)</label>
+    <button>Genera</button></p>
 </form>
 
 {% if giri %}
