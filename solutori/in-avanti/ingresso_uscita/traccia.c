@@ -26,7 +26,7 @@ int docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(int cla, int 
 int deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(int base2d_ci, int prof);
 int ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(int pos, int giorno, int cla, int prof);
 int verifica_ora_ingresso(int prof, int ora);
-int prima_cella_bloccata(int pos);
+int cella_bloccata_dopo_la_scelta(int pos);
 extern int motivo_blocco;  // 0: una cella senza docenti possibili; 1: non bastano le lezioni possibili
 int g_giorno(int p);
 void prep_chiamata_ricorsiva(int base2d_ci, int base3d_goi, QueueItem *it, int giorno, int cla, int prof);
@@ -380,7 +380,7 @@ static int c_avanti(const int pos, const int giorno, const int cla, const int ba
                     QueueItem *it, QueueItem *jt, int *fermato_a, const int k) {
     inizia_controllo("lascia_un_docente_alle_celle_di_oggi");
     const Prova s = metti_per_prova(pos, giorno, cla, base2d_ci, base3d_goi, it, jt);
-    const int q = prima_cella_bloccata(pos);
+    const int q = cella_bloccata_dopo_la_scelta(pos);
     togli_prova(&s, pos, giorno, cla, base2d_ci, base3d_goi, it, jt);
     fprintf(t, "\"cella_bloccata\":%d,\"motivo\":\"%s\"", q, motivo_blocco ? "ore" : "cella");
     if (q >= 0) fprintf(t, ",\"giorno\":%d,\"ora\":%d,\"classe\":%d", g_giorno(q), g_ora(q), g_classe(q));
