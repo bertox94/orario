@@ -219,10 +219,6 @@ const CONTROLLI = {
     breve: 'non è la scelta del giorno fissato',
     ingressi: (i, d) => !i.giorno_fissato ? 'il giorno non è fissato: vale qualunque scelta'
       : `giorno fissato, la sua scelta: ${i.scelta_fissata[0] < 0 && i.scelta_fissata[1] < 0 ? "l'ora buca" : coppia(d, i.scelta_fissata)}`},
-  lascia_spazio_alle_ore_di_oggi_della_classe: {  // due-livelli
-    descrizione: 'lascia spazio alle ore di oggi degli altri docenti della classe', breve: 'toglierebbe spazio a un altro docente',
-    ingressi: (i, d) => i.non_calcolato ? 'non calcolato: la ricerca si ferma prima'
-      : i.docente_senza_spazio < 0 ? "c'è spazio per tutti" : `non ci sarebbe spazio per ${nomeDoc(d, i.docente_senza_spazio)}`},
 };
 
 function descrizioneControllo(nome, d) {

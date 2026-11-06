@@ -19,9 +19,9 @@ gcc -O2 -std=gnu11 -w main.c ../../data_initialization/database_initializers.c .
 Dal 6 novembre 2026 tutti i solver, `main` compreso, hanno gli stessi controlli (richiesta di Alb): quelli di `main`, le
 potature L, C e T, il controllo in avanti A e la verifica dei dati prima della ricerca (`controllo_in_avanti/`, prima
 solo in `in-avanti`), e alla fine il controllo «ogni classe ha fatto tutte le sue ore». Cambia solo come cercano
-(l'ordine delle celle, i giri, i due livelli) e quando: `in-avanti` fa A prima di scendere alla cella dopo, gli altri
+(l'ordine delle celle, i giri) e quando: `in-avanti` fa A prima di scendere alla cella dopo, gli altri
 entrando nella cella dopo (una potatura: nella traccia `situazione_risolvibile`). Restano propri di un solver solo i
-controlli che hanno senso solo lì: le quote del giorno di `due-livelli` e i giorni fissati di `giorni-liberi`.
+controlli che hanno senso solo lì: i giorni fissati di `giorni-liberi`.
 
 ## I solver (oltre a main)
 
@@ -52,18 +52,6 @@ controlli che hanno senso solo lì: le quote del giorno di `due-livelli` e i gio
   `inizializza_dati()` l'orario è lo stesso di `main`.
   Con `--txt /dev/null` (come dal sito) `orario.txt` non si scrive per niente: la ricerca è la stessa, ma non formatta
   la griglia a ogni backtrack, che era quasi tutto il tempo (circa 14 volte più veloce).
-- **`due-livelli`**: livello 1, all'inizio di ogni giorno, le quote del giorno (quante ore fa oggi ogni docente in
-  ogni classe, da solo e in ogni coppia), con i vincoli che si vedono senza l'orario delle ore e guardando che i giorni
-  dopo restino fattibili; livello 2, l'orario del giorno con la ricerca di `main` (una classe alla volta) e i controlli
-  sulle quote del giorno invece che sui totali della settimana. In più: le ore buche solo a quota finita, e il
-  controllo `lascia_spazio_alle_ore_di_oggi_della_classe` (le ore di un docente in una classe sono un blocco: chi ha
-  cominciato deve continuare, chi non ha cominciato deve trovare spazio). Ogni tentativo di disporre un giorno ha un
-  limite di nodi (`NODI_PER_TENTATIVO`): se è stato superato almeno una volta e non si trova niente, l'esito è «non
-  trovato» invece di «nessuna soluzione», perché non tutto è stato provato. I nodi (e quindi `--ferma-nodi`) contano
-  anche il livello 1, un nodo ogni 100 passi (sono milioni al secondo): prima un giorno senza quote possibili teneva
-  la ricerca ferma lì per sempre, senza arrivare al limite. La traccia è quella della radice, con le quote del giorno
-  al posto dei totali (`traccia_ore_da_fare`, `traccia_slot`...).
-
 - **`giorni-liberi`** (idea di Alb): la ricerca di `main` (stessi controlli, stessa coda, stesse potature) a giri.
   Quando la ricerca resta bloccata in un giorno, per esempio il sabato, si libera il primo giorno (il lunedì), si
   tengono fissati i giorni in mezzo (da martedì a venerdì, come li aveva riempiti la ricerca nel punto più avanti), si
@@ -116,7 +104,7 @@ ricerca torna indietro. Si controllano all'ingresso della cella dopo una scelta:
 - **a ogni cella, alla fine**: A, il controllo in avanti (vedi `in-avanti` sopra).
 
 Sono scritte sulle celle già decise (per ogni classe la sua prima cella non decisa), quindi valgono anche per l'ordine
-di `per-classe` e di `due-livelli`. Nella traccia una potatura è un backtrack nella cella dopo la scelta, con il
+di `per-classe`. Nella traccia una potatura è un backtrack nella cella dopo la scelta, con il
 controllo `ore_dei_docenti_stanno_nel_tempo`, `lezioni_della_classe_bastano` o `situazione_risolvibile` (A) e i suoi
 numeri.
 

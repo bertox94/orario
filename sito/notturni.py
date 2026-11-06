@@ -180,8 +180,9 @@ def avvia_giro(config, scuola_id, motivo, soli=None):
         _giro.update(id=-1, fermare=False, test=None)  # occupato finche' il giro non e' nel database
     try:
         with db.connetti(config.database_url) as c:
-            q = 'select id from test_notturni where scuola_id = %s and attivo'
-            ids = [r['id'] for r in c.execute(q + ' order by id', (scuola_id,))]
+            # i test attivi, di un solver che c'e' ancora (un solver eliminato, come due-livelli, si salta)
+            q = 'select id from test_notturni where scuola_id = %s and attivo and solutore = any(%s)'
+            ids = [r['id'] for r in c.execute(q + ' order by id', (scuola_id, list(solver.solutori())))]
             if soli is not None:
                 ids = [i for i in ids if i in set(soli)]
             if not ids:

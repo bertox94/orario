@@ -47,10 +47,6 @@ traccia_controllo_fn traccia_controllo_extra = NULL;
 
 const int *traccia_giorni = NULL, *traccia_posti = NULL, *traccia_classi = NULL;
 int traccia_giro = 0, traccia_fissati = 0;
-const int *traccia_ore_da_fare = NULL, *traccia_ore_da_solo = NULL;
-int (*traccia_ore_insieme)(int cla, int p1, int p2) = NULL;
-void (*traccia_slot)(int giorno, int ora, int cla, int *ore_rimanenti, int *mancanti) = NULL;
-int traccia_ricerca_incompleta = 0;
 
 // il posto del giorno g nell'ordine in cui si riempiono i giorni (senza traccia_posti: il calendario)
 static int posto(const int g) { return traccia_posti ? traccia_posti[g] : g; }
@@ -241,7 +237,7 @@ static int c_disponibile(const int pos, const int giorno, const int ora, const i
 static int c_deve_ancora(const int base2d_ci, const int p, int *fermato_a, const int k) {
     inizia_controllo("deve_ancora_svolgere_ore_in_questa_classe");
     fprintf(t, "\"ore_svolte\":%d,\"ore_da_fare\":%d", ore_classi_docenti_svolte[base2d_ci + p],
-            (traccia_ore_da_fare ? traccia_ore_da_fare : ore_classi_docenti)[base2d_ci + p]);
+            ore_classi_docenti[base2d_ci + p]);
     const int u = deve_ancora_svolgere_ore_in_questa_classe(base2d_ci, p);
     fine_controllo(u, fermato_a, k);
     return u;
@@ -303,7 +299,7 @@ static int c_insieme(const int cla, const int p1, const int p2, int *fermato_a, 
     inizia_controllo("docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe");
     fprintf(t, "\"ore_insieme_svolte\":%d,\"ore_insieme_da_fare\":%d",
             get_ore_insegnanti_codocenza_svolte_in_una_classe(cla, p1, p2),
-            (traccia_ore_insieme ? traccia_ore_insieme : get_ore_insegnanti_codocenza_in_una_classe)(cla, p1, p2));
+            get_ore_insegnanti_codocenza_in_una_classe(cla, p1, p2));
     const int u = docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(cla, p1, p2);
     fine_controllo(u, fermato_a, k);
     return u;
@@ -347,17 +343,16 @@ static int c_sabato(const int pos, const int giorno, const int ora, const int ba
 static int c_senza_cod(const int base2d_ci, const int p, int *fermato_a, const int k) {
     inizia_controllo("deve_svolgere_ancora_ora_in_questa_classe_senza_codocente");
     fprintf(t, "\"ore_da_solo_svolte\":%d,\"ore_da_solo\":%d", ore_classi_docenti_alone_svolte[base2d_ci + p],
-            (traccia_ore_da_solo ? traccia_ore_da_solo : ore_classi_docenti_alone)[base2d_ci + p]);
+            ore_classi_docenti_alone[base2d_ci + p]);
     const int u = deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(base2d_ci, p);
     fine_controllo(u, fermato_a, k);
     return u;
 }
 
 static void controllo_slot(const int pos, const int giorno, const int ora, const int cla) {
-    int ore_rimanenti = ore_classi[cla] - ore_classe_svolte[cla];
+    const int ore_rimanenti = ore_classi[cla] - ore_classe_svolte[cla];
     const int occupati = posto(giorno) * PRIME_N_ORE_OBBLIGATORIE + MIN(ora, PRIME_N_ORE_OBBLIGATORIE - 1);
-    int mancanti = PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana - occupati;
-    if (traccia_slot) traccia_slot(giorno, ora, cla, &ore_rimanenti, &mancanti);
+    const int mancanti = PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana - occupati;
     fprintf(t, "\"slot\":{\"nome\":\"activities_for_this_class_and_hour\",\"ingressi\":{\"ore_rimanenti\":%d,"
             "\"slot_obbligatori_mancanti\":%d,\"ore_buche_oggi\":%d},\"uscita\":%d}", ore_rimanenti, mancanti,
             n_ore_buche[giorno * CLASSE_SEZIONE_SZ + cla], activities_for_this_class_and_hour(pos, giorno, ora, cla));
@@ -565,7 +560,7 @@ void traccia_fine(const double secondi) {
     scrivi_nodi();
     fprintf(t, "{\"tipo\":\"fine\",\"esito\":\"%s\",\"orari\":%lld,\"orari_massimi\":%lld,\"nodi\":%lld,"
             "\"backtrack\":%lld,\"backtrack_registrati\":%lld,\"pos_max\":%d,\"secondi\":%.3f%s}\n",
-            n_gen > 0 ? "trovato" : traccia_ricerca_incompleta ? "non trovato" : "nessuna soluzione", n_gen, n_gen_max, traccia_nodi, traccia_backtrack_n,
+            n_gen > 0 ? "trovato" : "nessuna soluzione", n_gen, n_gen_max, traccia_nodi, traccia_backtrack_n,
             registrati, traccia_pos_max, secondi, giri());
     fflush(t);
 }

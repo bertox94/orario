@@ -9,7 +9,7 @@ orario.txt, come in CLAUDE.md.
 Uso, dalla radice del repository:
     python3 tests/non_regressione.py                  tutti i casi, i solver main, per-classe, in-avanti, giorni-liberi e
                                                       ordini-classi
-    python3 tests/non_regressione.py --solver main    un solver solo (anche piu' volte; due-livelli solo se chiesto)
+    python3 tests/non_regressione.py --solver main    un solver solo (anche piu' volte)
     python3 tests/non_regressione.py --aggiorna       riscrive tests/attesi.json con i valori di adesso (dopo una
                                                       modifica voluta della ricerca: va detto nel commit)
     python3 tests/non_regressione.py --caso seme_3_8  solo i casi il cui nome contiene il testo

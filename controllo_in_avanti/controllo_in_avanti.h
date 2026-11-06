@@ -19,7 +19,7 @@
 // Quando: in-avanti lo fa prima di scendere alla cella dopo; gli altri solver all'ingresso della cella dopo, con le
 // potature (potature/potature.h, POTATURA_IN_AVANTI). Lo stato e' lo stesso: cambia solo se il nodo si conta.
 //
-// Vale per qualunque ordine delle celle (main: un'ora alla volta; per-classe e due-livelli: dentro il giorno una
+// Vale per qualunque ordine delle celle (main: un'ora alla volta; per-classe: dentro il giorno una
 // classe alla volta) e dei giorni (giorni-liberi): i solver si decidono un giorno alla volta, e dentro il giorno ogni
 // classe le sue ore in ordine di tempo, quindi per ogni classe le celle decise oggi sono le prime ore.
 //
