@@ -256,8 +256,10 @@ def _esegui(config, pid, eid, nome, dati, opzioni, pronto):
         if r['fine'] is None:
             r['backtrack'] = max(r['backtrack'] or 0, (e.ultimo_progresso or {}).get('backtrack') or 0)
             r['nodi'] = (e.ultimo_progresso or {}).get('nodi')
+        # la posizione piu' avanti raggiunta: dalla fine, o (solver fermato) dall'ultimo progresso
+        pos_max = (r['fine'] or {}).get('pos_max', (e.ultimo_progresso or {}).get('pos_max'))
         risultato = {'dati': r['dati'], 'orari': r['orari'], 'fine': r['fine'], 'nodi': r['nodi'],
-                     'backtrack': r['backtrack'], 'errore_dati': r['errore_dati']}
+                     'backtrack': r['backtrack'], 'errore_dati': r['errore_dati'], 'pos_max': pos_max}
         with db.connetti(config.database_url) as c:
             c.execute('update esecuzioni set esito = %s, finito = %s, marce = %s, trovati = %s, secondi = %s, '
                       'diagnosi = %s, risultato = %s, fine = now() where id = %s',

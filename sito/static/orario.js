@@ -113,6 +113,8 @@ function descrizioneControllo(nome, d) {
     deve_svolgere_ancora_ora_in_questa_classe_senza_codocente: 'ha ancora ore da solo in questa classe',
     lascia_un_docente_alle_celle_di_oggi: 'lascia un docente a ogni cella obbligatoria di oggi e abbastanza lezioni alle classi',
     situazione_risolvibile: 'la scelta nella cella prima lascia un docente a ogni cella di oggi e abbastanza lezioni alle classi',
+    ore_dei_docenti_stanno_nel_tempo: 'dopo la scelta nella cella prima, le ore che restano a ogni docente stanno nel tempo che gli resta',
+    lezioni_della_classe_bastano: 'dopo la scelta nella cella prima, le lezioni che restano alla classe bastano per le sue ore',
     lascia_spazio_alle_ore_di_oggi_della_classe: 'lascia spazio alle ore di oggi degli altri docenti della classe',
   })[nome] || nome;
 }
@@ -133,6 +135,8 @@ function motivoBreve(nome) {
     sabato_esaurisci_priorita_subito: 'regola del sabato',
     lascia_un_docente_alle_celle_di_oggi: 'lascerebbe una cella senza docenti o senza abbastanza lezioni',
     situazione_risolvibile: 'la scelta di prima rende il resto impossibile',
+    ore_dei_docenti_stanno_nel_tempo: 'potatura: a un docente non basterebbe il tempo',
+    lezioni_della_classe_bastano: 'potatura: a una classe non basterebbero le lezioni',
     lascia_spazio_alle_ore_di_oggi_della_classe: 'toglierebbe spazio a un altro docente',
   })[n] || n;
   return solo ? 'coppie e da solo: ' + t : t;
@@ -176,6 +180,18 @@ function descriviIngressi(nome, i, d) {
       if (i.cella_bloccata < 0) return 'nessuna cella di oggi resta senza docenti e le lezioni possibili bastano';
       return (i.motivo === 'ore' ? 'non bastano le lezioni possibili fino a ' : 'resterebbe senza docenti: ') +
         `${d.giorni[i.giorno]} ${nomeOra(d, i.ora)} ${nomeClasse(d, i.classe)}`;
+    case 'ore_dei_docenti_stanno_nel_tempo':
+      return i.classe >= 0
+        ? `a ${nomeDoc(d, i.docente)} restano ${i.restano} ore in ${nomeClasse(d, i.classe)}, ma da ` +
+          `${d.giorni[i.giorno]} ${nomeOra(d, i.ora)} ne può fare al massimo ${i.possibili} (al massimo ` +
+          `${(d.parametri || {}).max_ore_prof_in_una_classe || 3} al giorno, dal suo ingresso, con le ore di un giorno contigue)`
+        : `a ${nomeDoc(d, i.docente)} restano ${i.restano} ore in tutto, ma da ${d.giorni[i.giorno]} ha al massimo ` +
+          `${i.possibili} ore libere (dal suo ingresso, un'ora per volta)`;
+    case 'lezioni_della_classe_bastano':
+      return `${nomeClasse(d, i.classe)}: da ${d.giorni[i.giorno]} ${nomeOra(d, i.ora)} ` +
+        (i.fino_ora === d.ore.length - 1 ? `restano ${i.restano} ore da fare` :
+          `fino alle ${nomeOra(d, i.fino_ora)} di ogni giorno vanno riempite ${i.restano} celle`) +
+        `, ma le lezioni che le restano ne possono riempire al massimo ${i.possibili}`;
     case 'lascia_spazio_alle_ore_di_oggi_della_classe':
       if (i.non_calcolato) return 'non calcolato: la ricerca si ferma prima';
       return i.docente_senza_spazio < 0 ? 'c\'è spazio per tutti' : `non ci sarebbe spazio per ${nomeDoc(d, i.docente_senza_spazio)}`;
@@ -325,12 +341,16 @@ function disegnaBacktrack(contenitore, d, b, filtro, sopra, prima, passo) {
   sostituisci(document.getElementById('intestazione-backtrack'),
     el('h3', {}, `Backtrack n. ${numeroIt(b.n)}: ${testoPos(d, b.pos)}`),
     el('p', {class: 'tenue piccolo'}, [
-      b.slot.nome === 'situazione_risolvibile'
+      ['ore_dei_docenti_stanno_nel_tempo', 'lezioni_della_classe_bastano'].includes(b.slot.nome)
+        ? `Al nodo ${numeroIt(b.nodo)} la ricerca entra in questa cella, ma una potatura dice che dopo la scelta nella ` +
+          `cella prima l'orario non si può più completare (vedi «La classe» qui sotto). `
+        : b.slot.nome === 'situazione_risolvibile'
         ? `Al nodo ${numeroIt(b.nodo)} la ricerca entra in questa cella, ma la scelta fatta nella cella prima rende il ` +
           `resto impossibile (vedi «La classe» qui sotto). `
         : `Al nodo ${numeroIt(b.nodo)} della ricerca la classe ${nomeClasse(d, s.classe)} non ha potuto avere nessun ` +
           `docente in quest'ora. `,
-      b.slot.nome === 'situazione_risolvibile' ? 'La ricerca torna indietro e cambia quella scelta.'
+      ['situazione_risolvibile', 'ore_dei_docenti_stanno_nel_tempo', 'lezioni_della_classe_bastano'].includes(b.slot.nome)
+        ? 'La ricerca torna indietro e cambia quella scelta.'
       : b.buca_dopo ? "Siamo oltre le ore obbligatorie: dopo la ricerca prova l'ora buca, quindi non è un vicolo cieco."
       : b.ora >= (d.parametri || {}).ore_obbligatorie
         ? 'La classe deve fare lezione in quest\'ora (le ore che le restano non starebbero nei giorni dopo): la ' +
@@ -1257,13 +1277,39 @@ function paginaTest(cfg) {
   if (cfg.orario && d) disegnaOrario($('orario-trovato'), d, cfg.orario);
   disegnaDatiCaso($('dati-caso'), d);
 
+  // i contatori in grande: tempo, nodo corrente, backtrack, posizione (corrente / piu' avanti raggiunta / totale)
+  function contatori(v) {
+    const tot = d && d.giorni ? d.giorni.length * d.ore.length * d.classi.length : null;
+    const n = x => x === null || x === undefined ? '–' : numeroIt(x);
+    const cella = p => d && p !== null && p !== undefined && p < tot ? testoPos(d, p) : '';
+    const s = v.secondi === null || v.secondi === undefined ? null : Math.round(v.secondi);
+    const tempo = s === null ? '–' : s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')} s`;
+    const riquadro = (titolo, valore, sotto) => el('div', {class: 'contatore'}, [
+      el('div', {class: 'titolo'}, titolo), el('div', {class: 'valore'}, valore),
+      el('div', {class: 'sotto'}, sotto || '\u00a0')]);
+    $('contatori').replaceChildren(
+      riquadro('Tempo', tempo),
+      riquadro(cfg.inCorso ? 'Nodo corrente' : 'Nodi', n(v.nodi)),
+      riquadro('Backtrack', n(v.backtrack)),
+      riquadro('Posizione', [n(v.pos), el('span', {class: 'di'}, ` / ${n(v.pos_max)} / ${n(tot)}`)],
+        `corrente / più avanti raggiunta / totale${v.pos_max !== null && v.pos_max !== undefined && cella(v.pos_max)
+          ? ' · più avanti: ' + cella(v.pos_max) : ''}`));
+  }
+  if (!cfg.inCorso) {
+    const f = cfg.finali || {};
+    contatori({secondi: f.secondi, nodi: f.nodi, backtrack: f.backtrack, pos_max: f.pos_max,
+               pos: f.trovato && d ? d.giorni.length * d.ore.length * d.classi.length : null});
+  } else contatori({});
+
   async function segui() {
     try {
       const r = await fetch(cfg.urlStato);
       const s = await r.json();
       const p = s.progresso;
-      if (p) $('progresso').textContent = `${numeroIt(p.nodi)} nodi · ${numeroIt(p.backtrack)} backtrack · ` +
-        `${numeroIt(p.orari)} orari trovati · slot ${numeroIt(p.pos)} · ${numeroIt(Math.round(p.secondi))} s`;
+      if (p) {
+        $('progresso').textContent = `${numeroIt(p.orari)} orari trovati`;
+        contatori(p);
+      }
       await aggiungiBacktrack();
       if (!s.in_corso && s.esito) { location.reload(); return; }
     } catch (e) { /* rete: si riprova */ }

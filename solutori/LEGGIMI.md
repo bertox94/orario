@@ -4,7 +4,7 @@ Ogni cartella è un solver completo e indipendente: una copia dei sorgenti di `m
 uscita) con le sue modifiche e il suo `CMakeLists.txt`. Nessuna cartella usa file delle altre o della radice. Tutti
 accettano la stessa riga di comando di `main` (`--input`, `--traccia`, `-n`, `--txt`, `--max-backtrack`,
 `--max-nodi`, `--progresso`) e scrivono la stessa traccia, quindi il sito li usa senza cambiare: nel modulo del test
-c'è il menu «Solver».
+ci sono le caselle dei solver da non usare: gli altri girano insieme, ognuno nella sua tab.
 
 Si compilano come `main`, dalla loro cartella:
 
@@ -14,7 +14,7 @@ gcc -O2 -std=gnu11 -w main.c data_initialization/database_initializers.c printer
     priority_queue/prio_queue.c ingresso_uscita/*.c -o /tmp/solver-in-avanti -lm
 ```
 
-## I tre solver
+## I quattro solver (oltre a main)
 
 - **`per-classe`**: la ricerca di `main`, ma dentro ogni giorno riempie una classe alla volta (tutte le ore di C01,
   poi C02...) invece di un'ora alla volta. Le regole di una classe (ore contigue, massimo di ore, ingresso) si vedono
@@ -51,6 +51,23 @@ gcc -O2 -std=gnu11 -w main.c data_initialization/database_initializers.c printer
   cominciato deve continuare, chi non ha cominciato deve trovare spazio). Ogni tentativo di disporre un giorno ha un
   limite di nodi (`NODI_PER_TENTATIVO`): se è stato superato almeno una volta e non si trova niente, l'esito è «non
   trovato» invece di «nessuna soluzione», perché non tutto è stato provato.
+
+## Le potature (in tutti i solver)
+
+Le due potature del solver precedente (`archivio/2026-11-04`, `ricerca/vincoli.c`) sono in `potature/`, lo stesso
+file in `main` e in ogni cartella. Sono condizioni necessarie: scartano solo rami senza soluzioni, quindi il primo orario
+trovato non cambia; cambia quanto presto la ricerca torna indietro. Si controllano all'ingresso della cella dopo una
+scelta:
+
+- **a ogni cella**, per la classe appena decisa: le sue lezioni (un docente da solo o una coppia) bastano per le sue
+  ore obbligatorie di ogni giorno che resta e per tutte le ore che le restano; le ore che restano a ogni suo docente
+  stanno in quelle che può ancora fare lì (oggi dal suo ingresso e se il suo blocco non si è chiuso, poi 3 al giorno);
+- **a ogni ora chiusa e dopo ogni ora buca**, per tutti: le ore di ogni docente in ogni classe, e in tutto nelle ore
+  libere che gli restano dal suo ingresso.
+
+Sono scritte sulle celle già decise (per ogni classe la sua prima cella non decisa), quindi valgono anche per l'ordine
+di `per-classe` e di `due-livelli`. Nella traccia una potatura è un backtrack nella cella dopo la scelta, con il
+controllo `ore_dei_docenti_stanno_nel_tempo` o `lezioni_della_classe_bastano` e i suoi numeri.
 
 ## Due regole che `main` all'inizio non aveva
 

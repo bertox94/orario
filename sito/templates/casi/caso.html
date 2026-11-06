@@ -7,6 +7,8 @@
   <span class="esito {{ (e.esito if not in_corso else none)|classe_esito }}">{{ 'in corso' if in_corso else (e.esito or e.stato_prova) }}</span></h1>
 
 <div class="scheda">
+  {# tempo, nodo, backtrack e posizione in grande: aggiornati ogni secondo mentre il test gira (paginaTest) #}
+  <div class="contatori" id="contatori"></div>
   <p class="piccolo" style="margin-top: 0">
     Test n. {{ e.prova_id }} · {{ e.inizio|data }}{% if e.secondi %} · durata {{ e.secondi|durata }}{% endif %}
     · {{ e.opzioni|opzioni }}{% if e.commit %} · solver <code>{{ e.commit }}</code>{% endif %}</p>
@@ -138,6 +140,9 @@ paginaTest({
   esito: {{ (e.esito if not in_corso else none)|tojson }},
   maxBacktrack: {{ (e.opzioni or {}).get('max_backtrack', 1000)|tojson }},
   totaleBacktrack: {{ (fine.backtrack if fine else (r.get('backtrack') or 0))|tojson }},
+  finali: {{ {'secondi': e.secondi, 'nodi': r.get('nodi'), 'backtrack': r.get('backtrack'),
+              'pos_max': (fine.pos_max if fine and fine.pos_max is defined else r.get('pos_max')),
+              'trovato': e.esito == 'trovato'}|tojson }},
   urlStato: {{ url_for('casi.stato', eid=e.id)|tojson }},
   urlDati: {{ url_for('casi.dati', eid=e.id)|tojson }},
   urlElenco: {{ url_for('casi.elenco_backtrack', eid=e.id)|tojson }},

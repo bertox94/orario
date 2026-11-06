@@ -1,3 +1,4 @@
+#include "../potature/potature.h"
 #include "traccia.h"
 
 #include "../data_initialization/database_initializers.h"
@@ -36,6 +37,7 @@ int verifica_ora_ingresso(int prof, int ora);
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 long long int traccia_nodi = 0;
+int traccia_pos_max = 0;
 long long int traccia_backtrack_n = 0;
 int traccia_con_nodi = 0;
 
@@ -429,6 +431,22 @@ void traccia_slot_chiuso(const int s, const int giorno, const int ora, const int
     fflush(t);
 }
 
+// Una potatura (vedi potature/potature.h) all'ingresso della cella pos: la scelta nella cella prima lascia un resto
+// impossibile. Nella traccia e' un backtrack in questa cella, con il controllo e i suoi numeri.
+void traccia_potatura(const int pos, const int giorno, const int ora, const int cla) {
+    if (!registra()) return;
+    testa_backtrack(pos, giorno, ora, cla, 0);
+    fprintf(t, "\"slot\":{\"nome\":\"%s\",\"ingressi\":{\"docente\":%d,\"classe\":%d,\"restano\":%d,"
+            "\"possibili\":%d,\"fino_ora\":%d,\"giorno\":%d,\"ora\":%d},\"uscita\":0}",
+            potatura.controllo == POTATURA_ORE_DOCENTI ? "ore_dei_docenti_stanno_nel_tempo" : "lezioni_della_classe_bastano",
+            potatura.docente, potatura.classe, potatura.restano, potatura.possibili, potatura.fino_ora,
+            potatura.giorno, potatura.ora);
+    fprintf(t, ",\"docenti\":[],\"altri_docenti\":0,\"incoerente\":0,");
+    orario_fino_a(pos);
+    fprintf(t, "}\n");
+    fflush(t);
+}
+
 void traccia_orario_trovato(void) {
     if (!t || orari_scritti >= MAX_ORARI_SCRITTI) return;
     orari_scritti++;
@@ -445,7 +463,7 @@ void traccia_progresso(const int pos) {
     if ((double) (ora - ultimo_progresso) / CLOCKS_PER_SEC < 0.5) return;
     ultimo_progresso = ora;
     fprintf(stderr, "{\"tipo\":\"progresso\",\"nodi\":%lld,\"backtrack\":%lld,\"orari\":%lld,\"pos\":%d,"
-            "\"secondi\":%.1f}\n", traccia_nodi, traccia_backtrack_n, n_gen, pos,
+            "\"pos_max\":%d,\"secondi\":%.1f}\n", traccia_nodi, traccia_backtrack_n, n_gen, pos, traccia_pos_max,
             (double) (ora - inizio) / CLOCKS_PER_SEC);
     fflush(stderr);
 }
@@ -454,9 +472,9 @@ void traccia_fine(const double secondi) {
     if (!t) return;
     scrivi_nodi();
     fprintf(t, "{\"tipo\":\"fine\",\"esito\":\"%s\",\"orari\":%lld,\"orari_massimi\":%lld,\"nodi\":%lld,"
-            "\"backtrack\":%lld,\"backtrack_registrati\":%lld,\"secondi\":%.3f}\n",
+            "\"backtrack\":%lld,\"backtrack_registrati\":%lld,\"pos_max\":%d,\"secondi\":%.3f}\n",
             n_gen > 0 ? "trovato" : "nessuna soluzione", n_gen, n_gen_max, traccia_nodi, traccia_backtrack_n,
-            MIN(traccia_backtrack_n, max_registrati), secondi);
+            MIN(traccia_backtrack_n, max_registrati), traccia_pos_max, secondi);
     fflush(t);
 }
 

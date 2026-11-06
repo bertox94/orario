@@ -10,6 +10,7 @@
 #include "printer/printer.h"
 #include "ingresso_uscita/dati_json.h"
 #include "ingresso_uscita/traccia.h"
+#include "potature/potature.h"
 
 #define SCHEDULES_PER_GB 55000
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -369,6 +370,7 @@ void print_orario(const int s) {
     if (n_gen_max <= n_gen) return;
     // traccia: solo conteggio dei nodi e, ogni tanto, il progresso (non cambia la ricerca)
     if (!(++traccia_nodi & 0xFFFF)) traccia_progresso(s);
+    if (s > traccia_pos_max) traccia_pos_max = s;  // la posizione piu' avanti raggiunta (solo traccia)
     if (traccia_con_nodi) traccia_nodo(s);
 
     if (s == orario_len) {
@@ -381,6 +383,12 @@ void print_orario(const int s) {
         print(orario, orario_len, n_gen, f);
         traccia_orario_trovato();
         //  }
+        return;
+    }
+
+    // le potature (potature/potature.h): la scelta nella cella prima lascia un resto ancora possibile?
+    if (potatura_dopo(s)) {
+        traccia_potatura(s, g_giorno(cella_di[s]), g_ora(cella_di[s]), g_classe(cella_di[s]));
         return;
     }
 
@@ -531,6 +539,7 @@ int main(int argc, char **argv) {
     //imposta la lunghezza dell'orario
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
     prepara_ordine();
+    prepara_potature(cella_di);
     //test(100);
 
     /*  // if you initialize with less elements it will set the remaming elements to 0.

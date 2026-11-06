@@ -23,4 +23,6 @@ add_executable(solutore_in_avanti_dopo main.c
         ingresso_uscita/dati_json.c
         ingresso_uscita/traccia.h
         ingresso_uscita/traccia.c
+        potature/potature.h
+        potature/potature.c
 )

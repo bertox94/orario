@@ -22,6 +22,7 @@
 
 extern long long int traccia_nodi;        // nodi visitati (chiamate di print_orario)
 extern long long int traccia_backtrack_n; // backtrack incontrati
+extern int traccia_pos_max;               // la posizione piu' avanti raggiunta dalla ricerca
 extern int traccia_con_nodi;              // la ricerca chiama traccia_nodo (finche' non si supera un limite)
 
 // Apre la traccia; max_backtrack = quanti backtrack registrare per esteso (gli altri si contano soltanto);
@@ -41,6 +42,8 @@ void traccia_backtrack(int pos, int giorno, int ora, int cla, int base2d_ci, int
 
 // Lo slot non puo' avere lezione (activities_for_this_class_and_hour falso) e siamo nelle ore obbligatorie: la ricerca
 // torna indietro senza provare nessun docente.
+// la scelta nella cella prima lascia un resto impossibile (una potatura, vedi potature/potature.h)
+void traccia_potatura(int pos, int giorno, int ora, int cla);
 void traccia_slot_chiuso(int pos, int giorno, int ora, int cla);
 
 // Controllo in avanti nella cella dopo la scelta: la scelta in pos - 1 lascia la cella q impossibile da riempire
