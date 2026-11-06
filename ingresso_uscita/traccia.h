@@ -20,6 +20,9 @@
 
 #include <stdio.h>
 
+#include "../potature/potature.h"
+#include "../priority_queue/prio_queue.h"
+
 extern long long int traccia_nodi;        // nodi visitati (chiamate di print_orario)
 extern long long int traccia_backtrack_n; // backtrack incontrati
 extern int traccia_pos_max;               // la posizione piu' avanti raggiunta dalla ricerca
@@ -44,7 +47,21 @@ void traccia_backtrack(int pos, int giorno, int ora, int cla, int base2d_ci, int
 // torna indietro senza provare nessun docente.
 void traccia_slot_chiuso(int pos, int giorno, int ora, int cla);
 // la scelta nella cella prima lascia un resto impossibile (una potatura, vedi potature/potature.h)
-void traccia_potatura(int pos, int giorno, int ora, int cla);
+void traccia_potatura(int pos, int giorno, int ora, int cla, const Potatura *p);
+
+// ---- per i solver di solutori/ (la stessa traccia, con due aggiunte) ----
+// Un solver che non decide le celle in ordine di indice (per-classe): cella_di[s] e' la cella decisa al passo s,
+// indice_di[cella] il passo. Da chiamare prima della ricerca. Nella traccia "pos" e' il passo s, i dati hanno
+// "ordine" e gli orari sono in quell'ordine; le funzioni traccia_* ricevono s.
+void traccia_imposta_ordine(const int *cella_di, const int *indice_di);
+// Un controllo in piu' per ogni coppia (jt) e per ogni docente da solo (jt = NULL), dopo quelli di main: scrive i suoi
+// ingressi nel file della traccia tra traccia_inizia_controllo e traccia_fine_controllo e ritorna la sua uscita.
+typedef int (*traccia_controllo_fn)(int pos, int giorno, int ora, int cla, int base2d_ci, int base3d_goi,
+                                    QueueItem *it, QueueItem *jt, int *fermato_a, int k);
+extern traccia_controllo_fn traccia_controllo_extra;
+void traccia_inizia_controllo(const char *nome);
+void traccia_fine_controllo(int uscita, int *fermato_a, int k);
+FILE *traccia_file(void);
 
 void traccia_orario_trovato(void);
 

@@ -68,9 +68,13 @@ def sorgenti(nome='main'):
 
 
 def impronta_sorgenti(nome='main'):
-    """Impronta di tutti i sorgenti (.c e .h) di un solver: cambia appena cambia una riga, anche senza commit."""
+    """Impronta di tutti i sorgenti (.c e .h) di un solver: cambia appena cambia una riga, anche senza commit. I solver
+    di solutori/ usano i sorgenti della radice (data layer, stampa, JSON, potature): la loro impronta comprende quella
+    di main."""
     radice = cartella(nome)
     h = hashlib.sha1()
+    if (nome or 'main') != 'main':
+        h.update(impronta_sorgenti('main').encode())
     for dir_, _, files in sorted(os.walk(radice)):
         # dentro la cartella del solver; per main restano fuori il sito, i test e gli altri solver
         parti = os.path.relpath(dir_, radice).split(os.sep)

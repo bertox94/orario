@@ -8,11 +8,14 @@
 #include <time.h>
 #include <string.h>
 
-#include "priority_queue/prio_queue.h"
-#include "data_initialization/database_initializers.h"
-#include "printer/printer.h"
-#include "ingresso_uscita/dati_json.h"
-#include "ingresso_uscita/traccia.h"
+#include "../../priority_queue/prio_queue.h"
+#include "../../data_initialization/database_initializers.h"
+#include "../../printer/printer.h"
+#include "../../ingresso_uscita/dati_json.h"
+#include "../../ingresso_uscita/traccia.h"
+
+int traccia_c_avanti(int pos, int giorno, int ora, int cla, int base2d_ci, int base3d_goi, QueueItem *it, QueueItem *jt,
+                     int *fermato_a, int k);  // traccia_in_avanti.c
 
 #define SCHEDULES_PER_GB 55000
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -682,6 +685,7 @@ int main(int argc, char **argv) {
     stampa_dati();
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
     prepara_controllo_in_avanti();
+    traccia_controllo_extra = traccia_c_avanti;  // nella traccia, il controllo in avanti per ogni coppia e da solo
 
     traccia_dati();
     {

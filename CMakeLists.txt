@@ -20,6 +20,8 @@ add_executable(untitled main.c
         ingresso_uscita/dati_json.c
         ingresso_uscita/traccia.h
         ingresso_uscita/traccia.c
+        ingresso_uscita/prova.h
+        ingresso_uscita/prova.c
         potature/potature.h
         potature/potature.c
 )

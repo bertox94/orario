@@ -1,4 +1,3 @@
-#include "../potature/potature.h"
 #include "traccia.h"
 
 #include "../data_initialization/database_initializers.h"
@@ -29,6 +28,20 @@ int ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(int pos, int giorno, int cl
 int verifica_ora_ingresso(int prof, int ora);
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
+
+// ---- l'ordine delle celle (solver che non decidono le celle in ordine di indice, vedi traccia_imposta_ordine) ----
+// Nella traccia "pos" e' il passo s della ricerca; la cella decisa al passo s e' cella(s). Senza ordine, cella(s) = s.
+static const int *ordine_cella = NULL, *ordine_indice = NULL;
+static int cella(const int s) { return ordine_cella ? ordine_cella[s] : s; }
+static int indice(const int c) { return ordine_indice ? ordine_indice[c] : c; }
+static int s_traccia;  // il passo del backtrack che si sta scrivendo
+
+void traccia_imposta_ordine(const int *cella_di, const int *indice_di) {
+    ordine_cella = cella_di;
+    ordine_indice = indice_di;
+}
+
+traccia_controllo_fn traccia_controllo_extra = NULL;
 
 long long int traccia_nodi = 0;
 int traccia_pos_max = 0;
@@ -68,8 +81,8 @@ void traccia_nodo(const int pos) {
     }
     if (!nodi_n) nodi_da = traccia_nodi;
     nodi_pezzo[nodi_n][0] = pos;
-    nodi_pezzo[nodi_n][1] = pos > 0 ? orario[pos - 1].insegnante1 : -1;
-    nodi_pezzo[nodi_n][2] = pos > 0 ? orario[pos - 1].insegnante2 : -1;
+    nodi_pezzo[nodi_n][1] = pos > 0 ? orario[cella(pos - 1)].insegnante1 : -1;
+    nodi_pezzo[nodi_n][2] = pos > 0 ? orario[cella(pos - 1)].insegnante2 : -1;
     nodi_registrati++;
     if (++nodi_n == NODI_PER_RIGA) scrivi_nodi();
 }
@@ -148,6 +161,10 @@ void traccia_dati(void) {
             }
             fprintf(t, "]}");
         }
+    if (ordine_cella) {  // la cella decisa a ogni passo: nella traccia "pos" e gli orari sono in quest'ordine
+        fprintf(t, "],\"ordine\":[");
+        for (int i = 0; i < orario_len; i++) fprintf(t, "%s%d", i ? "," : "", ordine_cella[i]);
+    }
     fprintf(t, "],\"parametri\":{\"ore_obbligatorie\":%d,\"max_ore_prof_in_una_classe\":%d,"
             "\"max_classi_diverse_al_giorno\":%d}}\n", PRIME_N_ORE_OBBLIGATORIE, MAX_ORE_PROF_IN_UNA_CLASSE,
             MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO);
@@ -158,7 +175,8 @@ void traccia_dati(void) {
 
 static void orario_fino_a(const int pos) {
     fprintf(t, "\"orario\":[");
-    for (int i = 0; i < pos; i++) fprintf(t, "%s[%d,%d]", i ? "," : "", orario[i].insegnante1, orario[i].insegnante2);
+    for (int i = 0; i < pos; i++)
+        fprintf(t, "%s[%d,%d]", i ? "," : "", orario[cella(i)].insegnante1, orario[cella(i)].insegnante2);
     fputc(']', t);
 }
 
@@ -173,10 +191,15 @@ static void inizia_controllo(const char *nome) {
     fprintf(t, "%s{\"nome\":\"%s\",\"ingressi\":{", n_controllo++ ? "," : "", nome);
 }
 
-static void fine_controllo(const int uscita, int *fermato_a, const int indice) {
+static void fine_controllo(const int uscita, int *fermato_a, const int k) {
     fprintf(t, "},\"uscita\":%d}", uscita ? 1 : 0);
-    if (!uscita && *fermato_a < 0) *fermato_a = indice;
+    if (!uscita && *fermato_a < 0) *fermato_a = k;
 }
+
+// per i controlli in piu' dei solver (traccia_controllo_extra)
+void traccia_inizia_controllo(const char *nome) { inizia_controllo(nome); }
+void traccia_fine_controllo(const int uscita, int *fermato_a, const int k) { fine_controllo(uscita, fermato_a, k); }
+FILE *traccia_file(void) { return t; }
 
 static int idx_giorno_classe(const int giorno, const int cla, const int prof) {
     return giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + prof;
@@ -188,9 +211,11 @@ static int c_disponibile(const int pos, const int giorno, const int ora, const i
                          int *fermato_a, const int k) {
     inizia_controllo("prof_è_disponibile");
     const int inizio_ora = giorno * actual_ore_giornaliere * actual_classi_sezione + ora * actual_classi_sezione;
-    int in_classe = -1;
-    for (int i = inizio_ora; i < pos; i++)
-        if (orario[i].insegnante1 == p || orario[i].insegnante2 == p) in_classe = g_classe(i);
+    int in_classe = -1;  // in quale classe e' gia', tra le celle di quest'ora gia' decise
+    for (int c = 0; c < actual_classi_sezione; c++) {
+        const int i = inizio_ora + c;
+        if (indice(i) < s_traccia && (orario[i].insegnante1 == p || orario[i].insegnante2 == p)) in_classe = c;
+    }
     fprintf(t, "\"impegnato_in_quest_ora\":%d,\"in_classe\":%d", prof_gia_impegnato_giorno_ora[base3d_goi + p],
             in_classe);
     const int u = prof_è_disponibile(base3d_goi, p);
@@ -235,8 +260,9 @@ static int c_max_classi(const int pos, const int giorno, const int cla, const in
     // le classi in cui il docente ha gia' insegnato oggi (prima di questo slot), piu' questa
     int classi[CLASSE_SEZIONE_SZ], n = 0;
     classi[n++] = cla;
-    for (int i = giorno * actual_ore_giornaliere * actual_classi_sezione; i < pos; i++) {
-        if (orario[i].insegnante1 != p && orario[i].insegnante2 != p) continue;
+    for (int i = giorno * actual_ore_giornaliere * actual_classi_sezione;
+         i < (giorno + 1) * actual_ore_giornaliere * actual_classi_sezione; i++) {
+        if (indice(i) >= s_traccia || (orario[i].insegnante1 != p && orario[i].insegnante2 != p)) continue;
         const int c = g_classe(i);
         int gia = 0;
         for (int j = 0; j < n; j++) gia |= classi[j] == c;
@@ -245,7 +271,7 @@ static int c_max_classi(const int pos, const int giorno, const int cla, const in
     fprintf(t, "\"classi_oggi_con_questa\":[");
     for (int j = 0; j < n; j++) fprintf(t, "%s%d", j ? "," : "", classi[j]);
     fprintf(t, "],\"massimo\":%d", MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO);
-    const int u = ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(pos, giorno, cla, p);
+    const int u = ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(s_traccia, giorno, cla, p);
     fine_controllo(u, fermato_a, k);
     return u;
 }
@@ -333,10 +359,12 @@ static void testa_backtrack(const int pos, const int giorno, const int ora, cons
 
 // ---- i record ----
 
-void traccia_backtrack(const int pos, const int giorno, const int ora, const int cla, const int base2d_ci,
+void traccia_backtrack(const int s, const int giorno, const int ora, const int cla, const int base2d_ci,
                        const int base3d_goi, const int base4d_queue, const int buca_dopo) {
     if (!registra()) return;
-    testa_backtrack(pos, giorno, ora, cla, buca_dopo);
+    const int pos = cella(s);  // la cella; nella traccia "pos" e' il passo s
+    s_traccia = s;
+    testa_backtrack(s, giorno, ora, cla, buca_dopo);
     controllo_slot(pos, giorno, ora, cla);
     fprintf(t, ",\"docenti\":[");
     int altri = 0, primo = 1, incoerente = 0;
@@ -364,7 +392,7 @@ void traccia_backtrack(const int pos, const int giorno, const int ora, const int
         {
             // le coppie con i docenti dopo di lui nella coda, poi da solo. La ricerca le prova solo se il docente passa
             // i controlli sopra (fermato < 0); la traccia le calcola per tutti, cosi' la pagina puo' mostrarle anche
-            // per gli altri (sono controlli che leggono soltanto, non cambiano niente)
+            // per gli altri (anche il controllo in piu' del solver, che mette la coppia nella cella per prova)
             fprintf(t, ",\"coppie\":[");
             int pc = 1;
             for (int jj = ii + 1; jj < fine_coda; jj++) {
@@ -381,6 +409,8 @@ void traccia_backtrack(const int pos, const int giorno, const int ora, const int
                 c_sabato_cod(pos, giorno, ora, base2d_ci, p1, p2, &f2, 4);
                 c_max_classi(pos, giorno, cla, p2, &f2, 5);
                 c_ingresso(ora, p2, &f2, 6);
+                if (traccia_controllo_extra)
+                    traccia_controllo_extra(pos, giorno, ora, cla, base2d_ci, base3d_goi, queue_mul[ii], queue_mul[jj], &f2, 7);
                 fprintf(t, "],\"fermato_a\":%d}", f2);
                 incoerente |= fermato < 0 && f2 < 0;
             }
@@ -389,6 +419,8 @@ void traccia_backtrack(const int pos, const int giorno, const int ora, const int
             fprintf(t, "],\"da_solo\":{\"controlli\":[");
             c_senza_cod(base2d_ci, p1, &f3, 0);
             c_sabato(pos, giorno, ora, base2d_ci, p1, &f3, 1);
+            if (traccia_controllo_extra)
+                traccia_controllo_extra(pos, giorno, ora, cla, base2d_ci, base3d_goi, queue_mul[ii], NULL, &f3, 2);
             fprintf(t, "],\"fermato_a\":%d}", f3);
             incoerente |= fermato < 0 && f3 < 0;
         }
@@ -397,33 +429,32 @@ void traccia_backtrack(const int pos, const int giorno, const int ora, const int
     // incoerente: una combinazione risulterebbe valida, ma la ricerca non ne ha trovata nessuna. Non deve succedere: se
     // succede, la traccia non rispecchia la ricerca.
     fprintf(t, "],\"altri_docenti\":%d,\"incoerente\":%d,", altri, incoerente);
-    orario_fino_a(pos);
+    orario_fino_a(s);
     fprintf(t, "}\n");
     fflush(t);
 }
 
-void traccia_slot_chiuso(const int pos, const int giorno, const int ora, const int cla) {
+void traccia_slot_chiuso(const int s, const int giorno, const int ora, const int cla) {
     if (!registra()) return;
-    testa_backtrack(pos, giorno, ora, cla, 0);
-    controllo_slot(pos, giorno, ora, cla);
+    testa_backtrack(s, giorno, ora, cla, 0);
+    controllo_slot(cella(s), giorno, ora, cla);
     fprintf(t, ",\"docenti\":[],\"altri_docenti\":0,\"incoerente\":0,");
-    orario_fino_a(pos);
+    orario_fino_a(s);
     fprintf(t, "}\n");
     fflush(t);
 }
 
 // Una potatura (vedi potature/potature.h) all'ingresso della cella pos: la scelta nella cella prima lascia un resto
 // impossibile. Nella traccia e' un backtrack in questa cella, con il controllo e i suoi numeri.
-void traccia_potatura(const int pos, const int giorno, const int ora, const int cla) {
+void traccia_potatura(const int s, const int giorno, const int ora, const int cla, const Potatura *p) {
     if (!registra()) return;
-    testa_backtrack(pos, giorno, ora, cla, 0);
+    testa_backtrack(s, giorno, ora, cla, 0);
     fprintf(t, "\"slot\":{\"nome\":\"%s\",\"ingressi\":{\"docente\":%d,\"classe\":%d,\"restano\":%d,"
             "\"possibili\":%d,\"fino_ora\":%d,\"giorno\":%d,\"ora\":%d},\"uscita\":0}",
-            potatura.controllo == POTATURA_ORE_DOCENTI ? "ore_dei_docenti_stanno_nel_tempo" : "lezioni_della_classe_bastano",
-            potatura.docente, potatura.classe, potatura.restano, potatura.possibili, potatura.fino_ora,
-            potatura.giorno, potatura.ora);
+            p->controllo == POTATURA_ORE_DOCENTI ? "ore_dei_docenti_stanno_nel_tempo" : "lezioni_della_classe_bastano",
+            p->docente, p->classe, p->restano, p->possibili, p->fino_ora, p->giorno, p->ora);
     fprintf(t, ",\"docenti\":[],\"altri_docenti\":0,\"incoerente\":0,");
-    orario_fino_a(pos);
+    orario_fino_a(s);
     fprintf(t, "}\n");
     fflush(t);
 }

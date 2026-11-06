@@ -1,8 +1,8 @@
-#include "../potature/potature.h"
+#include "../../../potature/potature.h"
 #include "traccia.h"
 
-#include "../data_initialization/database_initializers.h"
-#include "../priority_queue/prio_queue.h"
+#include "../../../data_initialization/database_initializers.h"
+#include "../../../priority_queue/prio_queue.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -333,62 +333,7 @@ static int c_senza_cod(const int base2d_ci, const int p, int *fermato_a, const i
     return u;
 }
 
-// La prova di una coppia (o di un docente da solo) nella cella: si mette come fa la ricerca
-// (prep_chiamata_ricorsiva[_insieme]) e poi si rimette tutto esattamente com'era, valore per valore. Non si usa
-// post_chiamata_ricorsiva[_insieme] per togliere la prova: la prova si fa anche per docenti che non passano i controlli
-// (per esempio gia' occupati in quest'ora) e post_... li renderebbe liberi. Il risultato vuol dire: "se la coppia si
-// mettesse qui comunque".
-typedef struct {
-    double priorita[2];
-    int impegnato[2], svolte[2], oggi[2], solo, insieme;
-    teaching_slot cella;
-} Prova;
-
-static int idx_oggi(const int giorno, const int cla, const int p) {
-    return giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + p;
-}
-
-static Prova metti_per_prova(const int pos, const int giorno, const int cla, const int base2d_ci, const int base3d_goi,
-                             QueueItem *it, QueueItem *jt) {
-    Prova s;
-    QueueItem *q[2] = {it, jt};
-    for (int z = 0; z < 2; z++) {
-        if (!q[z]) continue;
-        const int p = q[z]->teacher;
-        s.priorita[z] = q[z]->priority;
-        s.impegnato[z] = prof_gia_impegnato_giorno_ora[base3d_goi + p];
-        s.svolte[z] = ore_classi_docenti_svolte[base2d_ci + p];
-        s.oggi[z] = ore_fatte_da_un_prof_in_una_classe_in_giorno[idx_oggi(giorno, cla, p)];
-    }
-    s.solo = ore_classi_docenti_alone_svolte[base2d_ci + it->teacher];
-    s.insieme = jt ? get_ore_insegnanti_codocenza_svolte_in_una_classe(cla, it->teacher, jt->teacher) : 0;
-    s.cella = orario[pos];
-    if (jt) prep_chiamata_ricorsiva_insieme(base2d_ci, base3d_goi, cla, it, jt, giorno);
-    else prep_chiamata_ricorsiva(base2d_ci, base3d_goi, it, giorno, cla, it->teacher);
-    orario[pos] = (teaching_slot){it->teacher, jt ? jt->teacher : -1};
-    return s;
-}
-
-static void togli_prova(const Prova *s, const int pos, const int giorno, const int cla, const int base2d_ci,
-                        const int base3d_goi, QueueItem *it, QueueItem *jt) {
-    QueueItem *q[2] = {it, jt};
-    for (int z = 0; z < 2; z++) {
-        if (!q[z]) continue;
-        const int p = q[z]->teacher;
-        q[z]->priority = s->priorita[z];
-        prof_gia_impegnato_giorno_ora[base3d_goi + p] = s->impegnato[z];
-        ore_classi_docenti_svolte[base2d_ci + p] = s->svolte[z];
-        ore_fatte_da_un_prof_in_una_classe_in_giorno[idx_oggi(giorno, cla, p)] = s->oggi[z];
-    }
-    ore_classi_docenti_alone_svolte[base2d_ci + it->teacher] = s->solo;
-    if (jt) {
-        while (get_ore_insegnanti_codocenza_svolte_in_una_classe(cla, it->teacher, jt->teacher) > s->insieme)
-            decrement_ore_classi_codocenza_svolte(cla, it->teacher, jt->teacher);
-        while (get_ore_insegnanti_codocenza_svolte_in_una_classe(cla, it->teacher, jt->teacher) < s->insieme)
-            increment_ore_classi_codocenza_svolte(cla, it->teacher, jt->teacher);
-    }
-    orario[pos] = s->cella;
-}
+#include "../../../ingresso_uscita/prova.h"
 
 // La giornata della classe resta possibile (solver a due livelli): con la coppia (o il docente da solo) nella cella
 // per prova, a un docente della classe manca lo spazio per le sue ore di oggi? Si calcola per tutti, anche dopo un
@@ -514,14 +459,13 @@ void traccia_slot_chiuso(const int s, const int giorno, const int ora, const int
 
 // Una potatura (vedi potature/potature.h) all'ingresso della cella pos: la scelta nella cella prima lascia un resto
 // impossibile. Nella traccia e' un backtrack in questa cella, con il controllo e i suoi numeri.
-void traccia_potatura(const int pos, const int giorno, const int ora, const int cla) {
+void traccia_potatura(const int pos, const int giorno, const int ora, const int cla, const Potatura *p) {
     if (!registra()) return;
     testa_backtrack(pos, giorno, ora, cla, 0);
     fprintf(t, "\"slot\":{\"nome\":\"%s\",\"ingressi\":{\"docente\":%d,\"classe\":%d,\"restano\":%d,"
             "\"possibili\":%d,\"fino_ora\":%d,\"giorno\":%d,\"ora\":%d},\"uscita\":0}",
-            potatura.controllo == POTATURA_ORE_DOCENTI ? "ore_dei_docenti_stanno_nel_tempo" : "lezioni_della_classe_bastano",
-            potatura.docente, potatura.classe, potatura.restano, potatura.possibili, potatura.fino_ora,
-            potatura.giorno, potatura.ora);
+            p->controllo == POTATURA_ORE_DOCENTI ? "ore_dei_docenti_stanno_nel_tempo" : "lezioni_della_classe_bastano",
+            p->docente, p->classe, p->restano, p->possibili, p->fino_ora, p->giorno, p->ora);
     fprintf(t, ",\"docenti\":[],\"altri_docenti\":0,\"incoerente\":0,");
     orario_fino_a(pos);
     fprintf(t, "}\n");

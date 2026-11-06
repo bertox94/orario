@@ -220,7 +220,7 @@ void print_orario(const int pos) {
     }
     // le potature (potature/potature.h): la scelta nella cella prima lascia un resto ancora possibile?
     if (potatura_dopo(pos)) {
-        traccia_potatura(pos, g_giorno(pos), g_ora(pos), g_classe(pos));
+        traccia_potatura(pos, g_giorno(pos), g_ora(pos), g_classe(pos), &potatura);
         return;
     }
 
