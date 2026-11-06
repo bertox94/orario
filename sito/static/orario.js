@@ -96,114 +96,125 @@ function disegnaOrario(contenitore, d, orario, opz) {
 
 // ---- i controlli di main, in parole ----
 
-function descrizioneControllo(nome, d) {
-  const p = d.parametri || {};
-  return ({
-    activities_for_this_class_and_hour: "la classe può fare lezione in quest'ora",
-    'prof_è_disponibile': "è libero in quest'ora",
-    deve_ancora_svolgere_ore_in_questa_classe: 'ha ancora ore in questa classe',
-    prof_fa_al_max_n_ore: `oggi ha meno di ${p.max_ore_prof_in_una_classe || 3} ore in questa classe`,
-    prof_fa_ore_contigue: 'le sue ore di oggi in questa classe restano contigue',
-    ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno:
-      `oggi resta entro ${p.max_classi_diverse_al_giorno || 3} classi diverse`,
-    verifica_ora_ingresso: "è già entrato a quest'ora",
-    docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe: 'hanno ancora ore insieme in questa classe',
-    sabato_esaurisci_priorita_subito_cod: "regola del sabato: chi c'era nell'ora prima e ha ancora ore deve restare (in coppia)",
-    sabato_esaurisci_priorita_subito: "regola del sabato: chi c'era nell'ora prima e ha ancora ore deve restare",
-    deve_svolgere_ancora_ora_in_questa_classe_senza_codocente: 'ha ancora ore da solo in questa classe',
-    lascia_un_docente_alle_celle_di_oggi: 'lascia un docente a ogni cella obbligatoria di oggi, abbastanza lezioni alle classi e abbastanza tempo ai docenti',
-    situazione_risolvibile: 'la scelta nella cella prima lascia un docente a ogni cella di oggi, abbastanza lezioni alle classi e abbastanza tempo ai docenti',
-    ore_dei_docenti_stanno_nel_tempo: 'dopo la scelta nella cella prima, le ore che restano a ogni docente stanno nel tempo che gli resta',
-    lezioni_della_classe_bastano: 'dopo la scelta nella cella prima, le lezioni che restano alla classe bastano per le sue ore',
-    lascia_spazio_alle_ore_di_oggi_della_classe: 'lascia spazio alle ore di oggi degli altri docenti della classe',
-  })[nome] || nome;
+// ---- i controlli della ricerca, uno per riga: come si chiamano nel solver, cosa vogliono dire, cosa leggono ----
+// descrizione: la frase nella tabella; breve: l'etichetta nell'elenco dei backtrack; ingressi(i, d): i valori che il
+// controllo ha letto, in parole (i = il record "ingressi" della traccia, d = i dati del test). Un controllo nuovo nel
+// solver va aggiunto qui (e nella traccia, nello stesso ordine in cui la ricerca lo valuta).
+const siNo = v => v ? 'sì' : 'no';
+const doveCella = (d, i) => `${d.giorni[i.giorno]} ${nomeOra(d, i.ora)} ${nomeClasse(d, i.classe)}`;
+const maxOre = d => (d.parametri || {}).max_ore_prof_in_una_classe || 3;
+const maxClassi = d => (d.parametri || {}).max_classi_diverse_al_giorno || 3;
+
+// il controllo in avanti di in-avanti (prima di scendere) e lo stesso fatto entrando nella cella dopo (in-avanti-dopo)
+function ingressiInAvanti(i, d) {
+  if (i.non_calcolato) return 'non calcolato: la ricerca si ferma prima';
+  if (i.cella_bloccata < 0) return 'nessuna cella di oggi resta senza docenti, le lezioni possibili bastano e i docenti hanno tempo';
+  if (i.motivo === 'ore_classe')
+    return `${nomeClasse(d, i.classe_conto)}: restano ${i.restano} ore da fare, ma le lezioni possibili (oggi e nei ` +
+      `giorni dopo) sono al massimo ${i.possibili}`;
+  if (i.motivo === 'ore_docente')
+    return i.classe_conto >= 0
+      ? `a ${nomeDoc(d, i.docente)} restano ${i.restano} ore in ${nomeClasse(d, i.classe_conto)}, ma ne può fare ` +
+        `al massimo ${i.possibili} (oggi dopo l'ultima ora decisa, poi al massimo ${maxOre(d)} al giorno dal suo ingresso)`
+      : `a ${nomeDoc(d, i.docente)} restano ${i.restano} ore in tutto, ma ha al massimo ${i.possibili} ore libere`;
+  return (i.motivo === 'ore' ? 'non bastano le lezioni possibili fino a ' : 'resterebbe senza docenti: ') + doveCella(d, i);
 }
 
-// etichetta breve per l'elenco dei backtrack
+function ingressiSabato(i, d) {
+  if (!i.ultimo_giorno) return "non è l'ultimo giorno: non vale";
+  if (!i.ora_precedente) return "è la prima ora: non vale";
+  return `nell'ora prima: ${coppia(d, i.ora_precedente)}; ore che restano loro in questa classe: ` +
+    i.ore_rimaste.filter(x => x !== null).join(' e ');
+}
+
+const CONTROLLI = {
+  // lo slot (la classe in quest'ora)
+  activities_for_this_class_and_hour: {
+    descrizione: "la classe può fare lezione in quest'ora", breve: 'la classe non può fare lezione',
+    ingressi: i => `ore che restano alla classe: ${i.ore_rimanenti}, slot obbligatori ancora da riempire: ` +
+      `${i.slot_obbligatori_mancanti}, ore buche oggi: ${i.ore_buche_oggi}`},
+  // i controlli base del docente (e del codocente), nell'ordine della ricerca
+  'prof_è_disponibile': {
+    descrizione: "è libero in quest'ora", breve: 'occupato',
+    ingressi: (i, d) => `occupato in quest'ora: ${siNo(i.impegnato_in_quest_ora)}` +
+      (i.in_classe >= 0 ? ` (in ${nomeClasse(d, i.in_classe)})` : '')},
+  deve_ancora_svolgere_ore_in_questa_classe: {
+    descrizione: 'ha ancora ore in questa classe', breve: 'ore in classe finite',
+    ingressi: i => `ore fatte in questa classe: ${i.ore_svolte} su ${i.ore_da_fare}, ne restano ${i.ore_da_fare - i.ore_svolte}`},
+  prof_fa_al_max_n_ore: {
+    descrizione: d => `oggi ha meno di ${maxOre(d)} ore in questa classe`, breve: 'già al massimo di ore oggi',
+    ingressi: i => `ore oggi in questa classe: ${i.ore_oggi_in_classe}, massimo ${i.massimo}`},
+  prof_fa_ore_contigue: {
+    descrizione: 'le sue ore di oggi in questa classe restano contigue (se oggi ci ha già insegnato, c\'era anche nell\'ora prima)',
+    breve: 'ore non contigue',
+    ingressi: (i, d) => `ore oggi in questa classe: ${i.ore_oggi_in_classe}; nell'ora prima: ` +
+      (i.ora_precedente ? coppia(d, i.ora_precedente) : '(è la prima ora)')},
+  ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno: {
+    descrizione: d => `oggi resta entro ${maxClassi(d)} classi diverse`, breve: 'troppe classi oggi',
+    ingressi: (i, d) => `classi di oggi, con questa: ${i.classi_oggi_con_questa.map(c => nomeClasse(d, c)).join(', ')}` +
+      ` (${i.classi_oggi_con_questa.length}), massimo ${i.massimo}`},
+  verifica_ora_ingresso: {
+    descrizione: "è già entrato a quest'ora", breve: 'non ancora entrato',
+    ingressi: (i, d) => `ora ${nomeOra(d, i.ora)}, entra alle ${nomeOra(d, i.ora_di_ingresso)}`},
+  // in coppia
+  docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe: {
+    descrizione: 'hanno ancora ore insieme in questa classe', breve: 'ore insieme finite',
+    ingressi: i => `ore insieme fatte: ${i.ore_insieme_svolte} su ${i.ore_insieme_da_fare}`},
+  sabato_esaurisci_priorita_subito_cod: {
+    descrizione: "regola del sabato: l'ultimo giorno chi c'era nell'ora prima e ha ancora ore in questa classe deve restare (la coppia lo comprende)",
+    breve: 'regola del sabato', ingressi: ingressiSabato},
+  // da solo
+  deve_svolgere_ancora_ora_in_questa_classe_senza_codocente: {
+    descrizione: 'ha ancora ore da solo in questa classe', breve: 'ore da solo finite',
+    ingressi: i => `ore da solo fatte: ${i.ore_da_solo_svolte} su ${i.ore_da_solo}`},
+  sabato_esaurisci_priorita_subito: {
+    descrizione: "regola del sabato: l'ultimo giorno chi c'era nell'ora prima e ha ancora ore in questa classe deve restare (da solo: è lui)",
+    breve: 'regola del sabato', ingressi: ingressiSabato},
+  // i controlli in piu' dei solver di solutori/
+  lascia_un_docente_alle_celle_di_oggi: {  // in-avanti, prima di scendere
+    descrizione: 'controllo in avanti: lascia un docente a ogni cella obbligatoria di oggi, abbastanza lezioni alle classi e abbastanza tempo ai docenti',
+    breve: 'lascerebbe una cella senza docenti, senza lezioni o un docente senza tempo', ingressi: ingressiInAvanti},
+  situazione_risolvibile: {  // in-avanti-dopo (solver tolto; i test vecchi restano)
+    descrizione: 'la scelta nella cella prima lascia un docente a ogni cella di oggi, abbastanza lezioni alle classi e abbastanza tempo ai docenti',
+    breve: 'la scelta di prima rende il resto impossibile', ingressi: ingressiInAvanti},
+  ore_dei_docenti_stanno_nel_tempo: {  // potatura (main, per-classe, due-livelli)
+    descrizione: 'potatura: dopo la scelta nella cella prima, le ore che restano a ogni docente stanno nel tempo che gli resta',
+    breve: 'potatura: a un docente non basterebbe il tempo',
+    ingressi: (i, d) => i.classe >= 0
+      ? `a ${nomeDoc(d, i.docente)} restano ${i.restano} ore in ${nomeClasse(d, i.classe)}, ma da ` +
+        `${d.giorni[i.giorno]} ${nomeOra(d, i.ora)} ne può fare al massimo ${i.possibili} (al massimo ${maxOre(d)} al ` +
+        'giorno, dal suo ingresso, con le ore di un giorno contigue)'
+      : `a ${nomeDoc(d, i.docente)} restano ${i.restano} ore in tutto, ma da ${d.giorni[i.giorno]} ha al massimo ` +
+        `${i.possibili} ore libere (dal suo ingresso, un'ora per volta)`},
+  lezioni_della_classe_bastano: {  // potatura
+    descrizione: 'potatura: dopo la scelta nella cella prima, le lezioni che restano alla classe bastano per le sue ore',
+    breve: 'potatura: a una classe non basterebbero le lezioni',
+    ingressi: (i, d) => `${nomeClasse(d, i.classe)}: da ${d.giorni[i.giorno]} ${nomeOra(d, i.ora)} ` +
+      (i.fino_ora === d.ore.length - 1 ? `restano ${i.restano} ore da fare`
+        : `fino alle ${nomeOra(d, i.fino_ora)} di ogni giorno vanno riempite ${i.restano} celle`) +
+      `, ma le lezioni che le restano ne possono riempire al massimo ${i.possibili}`},
+  lascia_spazio_alle_ore_di_oggi_della_classe: {  // due-livelli
+    descrizione: 'lascia spazio alle ore di oggi degli altri docenti della classe', breve: 'toglierebbe spazio a un altro docente',
+    ingressi: (i, d) => i.non_calcolato ? 'non calcolato: la ricerca si ferma prima'
+      : i.docente_senza_spazio < 0 ? "c'è spazio per tutti" : `non ci sarebbe spazio per ${nomeDoc(d, i.docente_senza_spazio)}`},
+};
+
+function descrizioneControllo(nome, d) {
+  const c = CONTROLLI[nome];
+  return !c ? nome : typeof c.descrizione === 'function' ? c.descrizione(d) : c.descrizione;
+}
+
+// etichetta breve per l'elenco dei backtrack ("da solo: X" = si e' fermato nel ramo da solo)
 function motivoBreve(nome) {
   const solo = nome.startsWith('da solo: ');
   const n = solo ? nome.slice(9) : nome;
-  const t = ({
-    activities_for_this_class_and_hour: 'la classe non può fare lezione',
-    'prof_è_disponibile': 'occupato',
-    deve_ancora_svolgere_ore_in_questa_classe: 'ore in classe finite',
-    prof_fa_al_max_n_ore: 'già al massimo di ore oggi',
-    prof_fa_ore_contigue: 'ore non contigue',
-    ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno: 'troppe classi oggi',
-    verifica_ora_ingresso: 'non ancora entrato',
-    deve_svolgere_ancora_ora_in_questa_classe_senza_codocente: 'ore da solo finite',
-    sabato_esaurisci_priorita_subito: 'regola del sabato',
-    lascia_un_docente_alle_celle_di_oggi: 'lascerebbe una cella senza docenti o senza abbastanza lezioni',
-    situazione_risolvibile: 'la scelta di prima rende il resto impossibile',
-    ore_dei_docenti_stanno_nel_tempo: 'potatura: a un docente non basterebbe il tempo',
-    lezioni_della_classe_bastano: 'potatura: a una classe non basterebbero le lezioni',
-    lascia_spazio_alle_ore_di_oggi_della_classe: 'toglierebbe spazio a un altro docente',
-  })[n] || n;
+  const t = CONTROLLI[n] ? CONTROLLI[n].breve : n;
   return solo ? 'coppie e da solo: ' + t : t;
 }
 
-const siNo = v => v ? 'sì' : 'no';
-
 function descriviIngressi(nome, i, d) {
-  switch (nome) {
-    case 'activities_for_this_class_and_hour':
-      return `ore che restano alla classe: ${i.ore_rimanenti}, slot obbligatori ancora da riempire: ` +
-        `${i.slot_obbligatori_mancanti}, ore buche oggi: ${i.ore_buche_oggi}`;
-    case 'prof_è_disponibile':
-      return `occupato in quest'ora: ${siNo(i.impegnato_in_quest_ora)}` +
-        (i.in_classe >= 0 ? ` (in ${nomeClasse(d, i.in_classe)})` : '');
-    case 'deve_ancora_svolgere_ore_in_questa_classe':
-      return `ore fatte in questa classe: ${i.ore_svolte} su ${i.ore_da_fare}, ne restano ${i.ore_da_fare - i.ore_svolte}`;
-    case 'prof_fa_al_max_n_ore':
-      return `ore oggi in questa classe: ${i.ore_oggi_in_classe}, massimo ${i.massimo}`;
-    case 'prof_fa_ore_contigue':
-      return `ore oggi in questa classe: ${i.ore_oggi_in_classe}; nell'ora prima: ` +
-        (i.ora_precedente ? coppia(d, i.ora_precedente) : '(è la prima ora)');
-    case 'ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno':
-      return `classi di oggi, con questa: ${i.classi_oggi_con_questa.map(c => nomeClasse(d, c)).join(', ')}` +
-        ` (${i.classi_oggi_con_questa.length}), massimo ${i.massimo}`;
-    case 'verifica_ora_ingresso':
-      return `ora ${nomeOra(d, i.ora)}, entra alle ${nomeOra(d, i.ora_di_ingresso)}`;
-    case 'docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe':
-      return `ore insieme fatte: ${i.ore_insieme_svolte} su ${i.ore_insieme_da_fare}`;
-    case 'sabato_esaurisci_priorita_subito_cod':
-    case 'sabato_esaurisci_priorita_subito':
-      if (!i.ultimo_giorno) return "non è l'ultimo giorno: non vale";
-      if (!i.ora_precedente) return "è la prima ora: non vale";
-      return `nell'ora prima: ${coppia(d, i.ora_precedente)}; ore che restano loro in questa classe: ` +
-        i.ore_rimaste.filter(x => x !== null).join(' e ');
-    case 'deve_svolgere_ancora_ora_in_questa_classe_senza_codocente':
-      return `ore da solo fatte: ${i.ore_da_solo_svolte} su ${i.ore_da_solo}`;
-    case 'situazione_risolvibile':
-    case 'lascia_un_docente_alle_celle_di_oggi':
-      if (i.non_calcolato) return 'non calcolato: la ricerca si ferma prima';
-      if (i.cella_bloccata < 0) return 'nessuna cella di oggi resta senza docenti, le lezioni possibili bastano e i docenti hanno tempo';
-      if (i.motivo === 'ore_classe')
-        return `${nomeClasse(d, i.classe_conto)}: restano ${i.restano} ore da fare, ma le lezioni possibili (oggi e nei ` +
-          `giorni dopo) sono al massimo ${i.possibili}`;
-      if (i.motivo === 'ore_docente')
-        return i.classe_conto >= 0
-          ? `a ${nomeDoc(d, i.docente)} restano ${i.restano} ore in ${nomeClasse(d, i.classe_conto)}, ma ne può fare ` +
-            `al massimo ${i.possibili} (oggi dopo l'ultima ora decisa, poi al massimo 3 al giorno dal suo ingresso)`
-          : `a ${nomeDoc(d, i.docente)} restano ${i.restano} ore in tutto, ma ha al massimo ${i.possibili} ore libere`;
-      return (i.motivo === 'ore' ? 'non bastano le lezioni possibili fino a ' : 'resterebbe senza docenti: ') +
-        `${d.giorni[i.giorno]} ${nomeOra(d, i.ora)} ${nomeClasse(d, i.classe)}`;
-    case 'ore_dei_docenti_stanno_nel_tempo':
-      return i.classe >= 0
-        ? `a ${nomeDoc(d, i.docente)} restano ${i.restano} ore in ${nomeClasse(d, i.classe)}, ma da ` +
-          `${d.giorni[i.giorno]} ${nomeOra(d, i.ora)} ne può fare al massimo ${i.possibili} (al massimo ` +
-          `${(d.parametri || {}).max_ore_prof_in_una_classe || 3} al giorno, dal suo ingresso, con le ore di un giorno contigue)`
-        : `a ${nomeDoc(d, i.docente)} restano ${i.restano} ore in tutto, ma da ${d.giorni[i.giorno]} ha al massimo ` +
-          `${i.possibili} ore libere (dal suo ingresso, un'ora per volta)`;
-    case 'lezioni_della_classe_bastano':
-      return `${nomeClasse(d, i.classe)}: da ${d.giorni[i.giorno]} ${nomeOra(d, i.ora)} ` +
-        (i.fino_ora === d.ore.length - 1 ? `restano ${i.restano} ore da fare` :
-          `fino alle ${nomeOra(d, i.fino_ora)} di ogni giorno vanno riempite ${i.restano} celle`) +
-        `, ma le lezioni che le restano ne possono riempire al massimo ${i.possibili}`;
-    case 'lascia_spazio_alle_ore_di_oggi_della_classe':
-      if (i.non_calcolato) return 'non calcolato: la ricerca si ferma prima';
-      return i.docente_senza_spazio < 0 ? 'c\'è spazio per tutti' : `non ci sarebbe spazio per ${nomeDoc(d, i.docente_senza_spazio)}`;
-  }
+  const c = CONTROLLI[nome];
+  if (c) return c.ingressi(i, d);
   return Object.entries(i).map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join(', ');
 }
 
@@ -268,16 +279,17 @@ function tabellaDocenti(docenti, d) {
     controlli: x.controlli, fermato_a: x.fermato_a})), d);
 }
 
-function esitoTesto(fermato, controlli, d) {
-  return fermato >= 0 ? `si ferma a «${descrizioneControllo(controlli[fermato].nome, d)}»` : 'passa tutti i controlli';
-}
-
 // Ha esaurito le ore in questa classe? Lo dice il controllo deve_ancora_svolgere_ore_in_questa_classe, che la traccia
-// calcola per ogni docente (anche quando la ricerca si ferma prima).
+// calcola per ogni docente (anche quando la ricerca si ferma prima). Lo stesso per una coppia (ore insieme) e per il
+// ramo da solo (ore da solo): il controllo e' il secondo della coppia e il primo del da solo.
 function haEsauritoOre(x) {
   const c = x.controlli.find(c => c.nome === 'deve_ancora_svolgere_ore_in_questa_classe');
   return c ? !c.uscita : false;
 }
+const coppiaEsaurita = c => !c.controlli.find(k => k.nome === 'docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe').uscita;
+const soloEsaurito = s => !s.controlli.find(k => k.nome === 'deve_svolgere_ancora_ora_in_questa_classe_senza_codocente').uscita;
+// il filtro «docenti da mostrare» applicato a un docente, una coppia o un ramo da solo: esaurito = ha finito le ore
+const passaFiltro = (filtro, esaurito) => filtro === 'con-ore' ? !esaurito : filtro === 'esauriti' ? esaurito : true;
 
 // Cambia il contenuto senza che la pagina si sposti: il cursore delle tabelle larghe si aggiunge subito (non dopo,
 // facendo cambiare l'altezza) e la posizione verticale resta quella di prima.
@@ -381,8 +393,7 @@ function disegnaBacktrack(contenitore, d, b, filtro, sopra, prima, passo) {
       `fin lì e ha cambiato scelta.`;
   mettiGriglia(sopra, el('p', {class: 'tenue piccolo didascalia'}, passo ? passo.didascalia
     : `Al backtrack n. ${numeroIt(b.n)}: ${testoPos(d, b.pos)} (in rosso).` + testoCambi), griglia, 'td.blocco');
-  const mostrati = b.docenti.filter(x => filtro === 'con-ore' ? !haEsauritoOre(x)
-                                       : filtro === 'esauriti' ? haEsauritoOre(x) : true);
+  const mostrati = b.docenti.filter(x => passaFiltro(filtro, haEsauritoOre(x)));
   // Tre sezioni, ognuna con la sua casella (accesa di default; spenta, la sezione non si vede): i controlli base, in
   // coppia, da solo. Con «controlli incrementali» coppie e da solo ci sono solo per chi passa i controlli base (come
   // nella ricerca); senza, per tutti i docenti (la traccia li calcola per tutti). «Tutti i motivi» decide, in ogni
@@ -396,18 +407,33 @@ function disegnaBacktrack(contenitore, d, b, filtro, sopra, prima, passo) {
     if (b.altri_docenti) parti.push(el('p', {class: 'tenue piccolo'},
       `Più ${b.altri_docenti} docenti senza ore in questa classe: la ricerca li scarta al primo o al secondo controllo.`));
   }
-  parti.push(testaSezione('coppie', 'In coppia, con i docenti dopo nella coda che hanno ore insieme qui' +
+  // In coppia: per ogni docente mostrato, tutte le coppie che puo' fare in questa classe. La ricerca prova ogni coppia
+  // una volta sola, quando esamina il docente che viene prima nella coda (la traccia la registra li', in `coppie`);
+  // sotto il docente che viene dopo la stessa coppia si vede di nuovo, con la nota su chi la prova. Le coppie e i «da
+  // solo» che hanno esaurito le ore seguono il filtro «docenti da mostrare», come i docenti.
+  parti.push(testaSezione('coppie', 'In coppia: per ogni docente, le coppie possibili in questa classe (la ricerca prova ' +
+    'ogni coppia una volta, esaminando il docente che viene prima nella coda)' +
     (controlliIncrementali ? ' (per chi passa i controlli base)' : '')));
   if (sezioni.coppie) {
-    const colonne = conSeguito.flatMap(x => x.coppie.map(c => ({titolo: `${nome(x.docente)} + ${nome(c.codocente)}`,
-      sotto: sotto(x), controlli: c.controlli, fermato_a: c.fermato_a})));
+    const colonne = [];
+    for (const x of conSeguito) {
+      for (const c of x.coppie) if (passaFiltro(filtro, coppiaEsaurita(c)))
+        colonne.push({titolo: `${nome(x.docente)} + ${nome(c.codocente)}`, sotto: sotto(x), controlli: c.controlli,
+                      fermato_a: c.fermato_a});
+      for (const y of b.docenti) {  // le coppie con chi viene prima di lui nella coda, provate esaminando l'altro
+        if (y === x) break;
+        for (const c of y.coppie || []) if (c.codocente === x.docente && passaFiltro(filtro, coppiaEsaurita(c)))
+          colonne.push({titolo: `${nome(x.docente)} + ${nome(y.docente)}`, controlli: c.controlli, fermato_a: c.fermato_a,
+                        sotto: `provata da ${nome(y.docente)}, che ${y.fermato_a < 0 ? 'passa' : 'non passa'} i controlli base`});
+      }
+    }
     parti.push(colonne.length ? tabellaOrizzontale(colonne, d)
       : el('p', {class: 'tenue piccolo', testo: 'Nessuna coppia da provare.'}));
   }
   parti.push(testaSezione('solo', 'Da solo' + (controlliIncrementali ? ' (per chi passa i controlli base)' : '')));
   if (sezioni.solo) {
-    const colonne = conSeguito.filter(x => x.da_solo).map(x => ({titolo: nome(x.docente), sotto: sotto(x),
-      controlli: x.da_solo.controlli, fermato_a: x.da_solo.fermato_a}));
+    const colonne = conSeguito.filter(x => x.da_solo && passaFiltro(filtro, soloEsaurito(x.da_solo)))
+      .map(x => ({titolo: nome(x.docente), sotto: sotto(x), controlli: x.da_solo.controlli, fermato_a: x.da_solo.fermato_a}));
     parti.push(colonne.length ? tabellaOrizzontale(colonne, d)
       : el('p', {class: 'tenue piccolo', testo: 'Nessun docente da provare da solo.'}));
   }

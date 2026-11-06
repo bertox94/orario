@@ -10,12 +10,14 @@ codice del sito e messaggi di commit sono in italiano.
   (`inizializza_dati()`). `ingresso_uscita/` è solo ingresso e uscita per il sito: `--input` (dati da JSON),
   `--traccia` (un JSON per riga: dati, backtrack con i controlli, nodi, orari trovati, fine), `-n`, `--txt`, `--max-nodi`,
   `--max-backtrack`, `--progresso`. Senza opzioni il solver fa esattamente quello che faceva prima.
-- **Il sito** (Flask + Postgres, cartella `sito/`, branch `sito/seconda-versione`): dati della scuola e test in tempo
+- **Il sito** (Flask + Postgres, cartella `sito/`, branch `sito/terza-versione`): dati della scuola e test in tempo
   reale. A ogni backtrack la pagina del test mostra l'orario fino a quel punto e, per ogni docente, i controlli della
   ricerca con ingressi ed esito. Vedi `sito/INSTALLAZIONE.md`.
-- **I solver alternativi** (cartella `solutori/`, nel branch del sito): `per-classe`, `in-avanti`, `due-livelli`,
-  ognuno una copia completa e indipendente dei sorgenti con le sue modifiche, stessa riga di comando e stessa traccia.
-  Il sito li compila dalla loro cartella e li offre come caselle nel modulo del test (girano insieme, una tab ciascuno). Vedi
+- **I solver alternativi** (cartella `solutori/`, nel branch del sito): `per-classe`, `in-avanti`, `due-livelli`.
+  Ognuno ha solo la sua ricerca (`main.c`) e, se serve, la sua parte di traccia; data layer, stampa, JSON, coda,
+  costanti e potature sono i file della radice (`../../` nel suo `CMakeLists.txt`). Stessa riga di comando e stessa
+  traccia di `main`. Il sito li compila dai `.c` del loro `CMakeLists.txt` e li offre come caselle nel modulo del
+  test (girano insieme, una tab ciascuno). Vedi
   `solutori/LEGGIMI.md`. Le regole su «non cambiare come il solver calcola» valgono per `main`; i solver di
   `solutori/` sono esperimenti chiesti da Alb.
 - `bf_search/`: SQL di Alb, da non toccare senza chiedere.
@@ -23,8 +25,9 @@ codice del sito e messaggi di commit sono in italiano.
 ## Branch
 
 - `main`: solo l'ultima versione del solver.
-- `sito/seconda-versione`: il sito e i solver alternativi di `solutori/`. Le modifiche al sito e a `solutori/` si fanno
-  direttamente qui, con push diretto (i solver di `solutori/` non vanno in `main`).
+- `sito/terza-versione`: il sito e i solver alternativi di `solutori/`, dal 6 novembre 2026 (pulizia del codice,
+  sorgenti condivisi tra i solver, test di non regressione). Le modifiche si fanno direttamente qui, con push diretto.
+- `sito/seconda-versione`: la versione precedente del sito, quella sul Raspberry finche' non si passa alla terza.
 - `archivio/2026-11-04`: tutto il lavoro precedente (solver avanzato, vecchio sito, esperimenti). Non si tocca.
 - `prototipo/scheletro-accoppiamenti`: prototipo in Python (accoppiamenti, Monte Carlo, SAT), non unito.
 

@@ -147,8 +147,9 @@ table.backtrack-fissa td { overflow: hidden; }
 .tacca { position: absolute; top: 0; width: 2px; height: 8px; margin-left: -1px; border-radius: 1px; }
 /* i colori delle celle di un gruppo: 0 = cella di partenza, 1-4 = le altre */
 .c0 { background: var(--tenue); }
-.c1 { background: #d97706; } .c2 { background: #7c3aed; } .c3 { background: #0891b2; } .c4 { background: #db2777; }
 .pallino { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
+/* i colori delle tacche del cursore (c0: il primo backtrack del gruppo) */
+.c1 { background: #d97706; } .c2 { background: #7c3aed; } .c3 { background: #0891b2; } .c4 { background: #db2777; }
 table.dati tr.sottoriga td { font-size: 12px; color: var(--tenue); padding-top: 2px; padding-bottom: 2px; cursor: pointer; }
 .riga-cursore { display: flex; align-items: center; gap: 6px; margin: 6px 0; }
 .riga-cursore button { padding: 4px 10px; font-variant-numeric: tabular-nums; }
