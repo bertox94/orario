@@ -435,7 +435,6 @@ void print_orario(const int pos) {
     if (n_gen_max <= n_gen) return;
     // traccia: solo conteggio dei nodi e, ogni tanto, il progresso (non cambia la ricerca)
     if (!(++traccia_nodi & 0xFFFF)) traccia_progresso(pos);
-    if (pos > traccia_pos_max) traccia_pos_max = pos;
     if (traccia_con_nodi) traccia_nodo(pos);
 
     //print(orario, pos, n_gen, f);
