@@ -54,18 +54,22 @@
 <div class="scorre">
 <table class="dati tabella-casi" id="{{ id }}">
   <thead>
-    <tr><th rowspan="2">Caso</th><th rowspan="2">Data</th><th rowspan="2"></th>
+    <tr><th rowspan="2"><input type="checkbox" class="seleziona-tutti" title="Seleziona tutti i casi di questa tabella"></th>
+      <th rowspan="2">Caso</th><th rowspan="2">Data</th><th rowspan="2"></th>
       {% for s in solver_colonne %}<th colspan="3" class="inizio-solver">{{ s }}</th>{% endfor %}</tr>
     <tr>{% for s in solver_colonne %}<th class="inizio-solver">Esito</th><th class="num">Nodi</th><th class="num">Durata</th>{% endfor %}</tr>
   </thead>
   {% for gr in gruppi %}
   <tbody>
-    <tr class="sottotitolo"><th colspan="3">{{ gr.titolo }} <span class="tenue piccolo">({{ gr.casi|length }} cas{{ 'o' if gr.casi|length == 1 else 'i' }})</span></th>
+    <tr class="sottotitolo"><th colspan="4">{{ gr.titolo }} <span class="tenue piccolo">({{ gr.casi|length }} cas{{ 'o' if gr.casi|length == 1 else 'i' }})</span></th>
       {% for s in solver_colonne %}{% set n = gr.conto[s] %}
       <th colspan="3" class="piccolo inizio-solver">{% if n[1] %}{{ n[0] }} trovat{{ 'o' if n[0] == 1 else 'i' }} su {{ n[1] }}{% endif %}</th>{% endfor %}</tr>
   {% for c in gr.casi %}
     {% set primo = (c.per_solver.values()|list)[0] %}
     <tr class="{{ 'riga-diversa' if c.per_solver.values()|selectattr('confronto', 'equalto', 'diverso')|list }}">
+      <td><input type="checkbox" class="seleziona-caso" name="tid" form="togli-test"
+                 value="{{ c.per_solver.values()|map(attribute='id')|join(',') }}"
+                 title="Seleziona questo caso ({{ c.per_solver|length }} test, uno per solver)"></td>
       <td>{{ c.nome }}<div class="tenue piccolo">fermo dopo {{ primo.opzioni.get('ferma_nodi')|numero }} nodi</div></td>
       <td class="piccolo">{{ c.data|data if c.data else '-' }}</td>
       <td><form method="post" action="{{ url_for('notturni.esegui') }}" class="in-linea">
@@ -115,6 +119,14 @@
     {% for k in raggruppamenti %}<option value="{{ k }}" {{ 'selected' if k == per }}>{{ {'seme': 'seme', 'classi': 'numero di classi', 'ritardi': 'ritardi', 'ordine': 'ordine delle classi'}[k] }}</option>{% endfor %}
   </select></label>
   <span class="tenue piccolo">dentro il gruppo i casi sono in ordine di seme, classi, ritardi e ordine delle classi</span>
+</form>
+<form id="togli-test" method="post" action="{{ url_for('notturni.togli') }}" class="barra-comandi"
+      style="margin: 10px 0 0" onsubmit="return confirm('Eliminare i test dei casi selezionati, con le loro esecuzioni? I giri dopo eseguono solo i test rimasti.')">
+  <input type="hidden" name="_gettone" value="{{ gettone }}">
+  <button class="pericolo" id="togli-selezionati" disabled>Elimina i casi selezionati</button>
+  <span class="tenue piccolo">Spunta i casi nelle tabelle qui sotto: si eliminano i loro test (uno per solver), e i giri
+    dopo, compreso quello della notte, eseguono solo quelli rimasti. Un solo solver di un caso si toglie dalla pagina
+    del suo test.</span>
 </form>
 <h3>Conclusi <span class="tenue piccolo">i casi in cui almeno un solver ha trovato l'orario, dimostrato che non c'è o riconosciuto un errore nei dati; una riga per caso ({{ conclusi|sum(attribute='casi', start=[])|length }} casi)</span></h3>
 {% if conclusi %}{{ tabella_casi(conclusi, 'casi-conclusi') }}{% else %}<p class="tenue">Nessuno.</p>{% endif %}
@@ -167,6 +179,31 @@
 {% endif %}
 {% endblock %}
 {% block script %}
+<script>
+// le caselle dei casi: «seleziona tutti» per tabella e il conto sul pulsante
+(() => {
+  const caselle = () => [...document.querySelectorAll('.seleziona-caso')];
+  const pulsante = document.getElementById('togli-selezionati');
+  const aggiorna = () => {
+    const scelti = caselle().filter(c => c.checked);
+    const n = scelti.reduce((t, c) => t + c.value.split(',').length, 0);
+    pulsante.disabled = !scelti.length;
+    pulsante.textContent = scelti.length ? `Elimina i casi selezionati (${scelti.length}: ${n} test)` : 'Elimina i casi selezionati';
+    document.querySelectorAll('.tabella-casi').forEach(t => {
+      const tutte = [...t.querySelectorAll('.seleziona-caso')], si = tutte.filter(c => c.checked).length;
+      const s = t.querySelector('.seleziona-tutti');
+      s.checked = tutte.length > 0 && si === tutte.length;
+      s.indeterminate = si > 0 && si < tutte.length;
+    });
+  };
+  document.querySelectorAll('.tabella-casi').forEach(t => t.addEventListener('change', ev => {
+    if (ev.target.classList.contains('seleziona-tutti'))
+      t.querySelectorAll('.seleziona-caso').forEach(c => c.checked = ev.target.checked);
+    aggiorna();
+  }));
+  aggiorna();
+})();
+</script>
 {% if in_corso %}
 <script>
 // mentre un giro gira: la pagina si ricarica quando passa al test dopo o quando il giro finisce
