@@ -1,6 +1,7 @@
 #include "potature.h"
 
 #include "../data_initialization/database_initializers.h"
+#include "../controllo_in_avanti/controllo_in_avanti.h"
 
 // Le potature (vedi potature.h: cosa sono, perche' sono necessarie, quando avvengono). Sono scritte sullo stato di
 // questo solver e per qualunque ordine delle celle: per ogni classe conta la sua prima cella non decisa (giorno, ora).
@@ -19,6 +20,8 @@ int g_classe(int pos);
 #define N_CELLE (GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ)
 static int rango[N_CELLE];      // a quale passo della ricerca si decide ogni cella
 static const int *ordine;       // la cella decisa a ogni passo (NULL: la cella s al passo s)
+// l'ordine dei giorni (giorni-liberi): il giorno che si riempie per r-esimo e il posto di ogni giorno (NULL: calendario)
+static const int *giorno_al_posto, *posto_del_giorno;
 
 // le lezioni di ogni classe ("voci"): un docente da solo (q = -1) o una coppia; ingresso: quando possono cominciare
 #define MAX_VOCI_CLASSE (GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ)
@@ -36,6 +39,22 @@ static int cella_al_passo(const int s) {
     return ordine ? ordine[s] : s;
 }
 
+static int giorno_n(const int r) { return giorno_al_posto ? giorno_al_posto[r] : r; }
+
+// quanti giorni si riempiono dopo il giorno g
+static int giorni_dopo_il(const int g) {
+    return actual_giorni_settimana - 1 - (posto_del_giorno ? posto_del_giorno[g] : g);
+}
+
+void potature_ordine_giorni(const int *giorno_di_posto, const int *posto_di_giorno) {
+    giorno_al_posto = giorno_di_posto;
+    posto_del_giorno = posto_di_giorno;
+    controllo_in_avanti_ordine_giorni(giorno_di_posto, posto_di_giorno);
+}
+
+static int con_in_avanti = 1;  // A, il controllo in avanti (in-avanti lo fa da se', prima di scendere)
+void potature_in_avanti(const int attivo) { con_in_avanti = attivo; }
+
 static int docente_nella_cella(const int pos, const int p) {
     return orario[pos].insegnante1 == p || orario[pos].insegnante2 == p;
 }
@@ -43,6 +62,7 @@ static int docente_nella_cella(const int pos, const int p) {
 void prepara_potature(const int *cella_di) {
     ordine = cella_di;
     for (int s = 0; s < orario_len; s++) rango[cella_al_passo(s)] = s;
+    prepara_controllo_in_avanti(cella_di, cella_di ? rango : NULL);
     voci_complete = 1;
     for (int c = 0; c < actual_classi_sezione; c++) {
         n_voci[c] = 0;
@@ -73,8 +93,8 @@ typedef struct {
 
 static Classe stato_classe(const int c, const int s) {
     Classe k = {1, 0, 0, 0};
-    for (int g = 0; g < actual_giorni_settimana; g++)
-        for (int h = 0; h < actual_ore_giornaliere; h++)
+    for (int r = 0; r < actual_giorni_settimana; r++)
+        for (int g = giorno_n(r), h = 0; h < actual_ore_giornaliere; h++)
             if (rango[cella(g, h, c)] >= s) {
                 k = (Classe){0, g, h, n_ore_buche[g * CLASSE_SEZIONE_SZ + c] > 0};
                 return k;
@@ -99,7 +119,7 @@ static int ore_oggi_in_classe(const Classe *k, const int c, const int p) {
 // suo ingresso o dopo aver chiuso il suo blocco di oggi.
 static int ore_in_classe_stanno(const Classe *k, const int c) {
     if (k->finita) return 1;
-    const int giorni_dopo = actual_giorni_settimana - k->giorno - 1;
+    const int giorni_dopo = giorni_dopo_il(k->giorno);
     for (int p = 0; p < actual_insegnanti; p++) {
         const int restano = ore_classi_docenti[c * INSEGNANTE_SZ + p] - ore_classi_docenti_svolte[c * INSEGNANTE_SZ + p];
         if (!restano) continue;
@@ -120,7 +140,7 @@ static int ore_in_classe_stanno(const Classe *k, const int c) {
 // lezione per ora.
 static int ore_totali_stanno(const Classe k[], const int s) {
     const int oggi = g_giorno(cella_al_passo(s));
-    const int giorni_dopo = actual_giorni_settimana - oggi - 1;
+    const int giorni_dopo = giorni_dopo_il(oggi);
     int aperta[ORA_GIORNALIERA_SZ] = {0};  // l'ora h di oggi ha ancora una cella da decidere in una classe aperta
     for (int c = 0; c < actual_classi_sezione; c++)
         if (!k[c].finita && k[c].giorno == oggi && !k[c].chiusa)
@@ -151,7 +171,7 @@ static int ore_totali_stanno(const Classe k[], const int s) {
 // lezione, e nessuna lezione supera questi massimi.
 static int lezioni_bastano(const Classe *k, const int c) {
     if (k->finita || !voci_complete) return 1;
-    const int giorni_dopo = actual_giorni_settimana - k->giorno - 1;
+    const int giorni_dopo = giorni_dopo_il(k->giorno);
     const int ultima = actual_ore_giornaliere - 1;
     const int ultima_oggi = k->chiusa ? k->ora - 1 : ultima;  // dopo un'ora buca oggi non c'e' piu' lezione
     int restano[MAX_VOCI_CLASSE], oggi_max[MAX_VOCI_CLASSE];
@@ -203,11 +223,24 @@ int potatura_dopo(const int s) {
     int ora_chiusa = 1;
     for (int cc = 0; cc < actual_classi_sezione && ora_chiusa; cc++) ora_chiusa = rango[cella(g, h, cc)] < s;
     const int buca = orario[decisa].insegnante1 < 0 && orario[decisa].insegnante2 < 0;
-    if (!ora_chiusa && !buca) return 0;
-    Classe tutte[CLASSE_SEZIONE_SZ];
-    for (int cc = 0; cc < actual_classi_sezione; cc++) {
-        tutte[cc] = stato_classe(cc, s);
-        if (!ore_in_classe_stanno(&tutte[cc], cc)) return POTATURA_ORE_DOCENTI;
+    if (ora_chiusa || buca) {
+        Classe tutte[CLASSE_SEZIONE_SZ];
+        for (int cc = 0; cc < actual_classi_sezione; cc++) {
+            tutte[cc] = stato_classe(cc, s);
+            if (!ore_in_classe_stanno(&tutte[cc], cc)) return POTATURA_ORE_DOCENTI;
+        }
+        if (!ore_totali_stanno(tutte, s)) return POTATURA_ORE_DOCENTI;
     }
-    return ore_totali_stanno(tutte, s) ? 0 : POTATURA_ORE_DOCENTI;
+    // a ogni cella, alla fine: A, il controllo in avanti
+    if (con_in_avanti) {
+        const int q = controllo_in_avanti(s);
+        if (q >= 0) {
+            potatura = (Potatura){POTATURA_IN_AVANTI, -1, -1, 0, 0, -1, g_giorno(q), g_ora(q)};
+            numeri_in_avanti(&potatura.docente, &potatura.classe, &potatura.restano, &potatura.possibili);
+            potatura.cella = q;
+            potatura.motivo = motivo_in_avanti;
+            return POTATURA_IN_AVANTI;
+        }
+    }
+    return 0;
 }

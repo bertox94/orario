@@ -1,7 +1,3 @@
-//
-// Created by Alberto Tiraboschi on 20/06/2026.
-//
-
 #ifndef UNTITLED_PRINTER_H
 #define UNTITLED_PRINTER_H
 
@@ -10,6 +6,8 @@
 
 #include "../data_initialization/database_initializers.h"
 
-void print(const teaching_slot orario[], const int pos, unsigned long long attempt, FILE *f);
-void print_priority_queue(FILE *f, int start, int end);
+// la griglia dell'orario fino alla cella pos (e le statistiche per classe) in f, come in orario.txt
+void print(const teaching_slot orario[], int pos, unsigned long long attempt, FILE *f);
+// i dati letti, su stdout
+void stampa_dati(void);
 #endif //UNTITLED_PRINTER_H

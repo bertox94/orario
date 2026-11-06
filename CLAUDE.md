@@ -9,16 +9,26 @@ codice del sito e messaggi di commit sono in italiano.
   (`print_orario`) e i controlli; i dati di prova sono in `data_initialization/database_initializers.c`
   (`inizializza_dati()`). `ingresso_uscita/` è solo ingresso e uscita per il sito: `--input` (dati da JSON),
   `--traccia` (un JSON per riga: dati, backtrack con i controlli, nodi, orari trovati, fine), `-n`, `--txt`, `--max-nodi`,
-  `--max-backtrack`, `--progresso`. Senza opzioni il solver fa esattamente quello che faceva prima.
-- **Il sito** (Flask + Postgres, cartella `sito/`, branch `sito/seconda-versione`): dati della scuola e test in tempo
+  `--max-backtrack`, `--progresso`, `--ferma-nodi` (ferma la ricerca esattamente dopo N nodi, sempre allo stesso punto: test in tempo reale e notturni). Senza opzioni il solver fa esattamente quello che faceva prima.
+- **Il sito** (Flask + Postgres, cartella `sito/`, branch `sito/terza-versione`): dati della scuola e test in tempo
   reale. A ogni backtrack la pagina del test mostra l'orario fino a quel punto e, per ogni docente, i controlli della
   ricerca con ingressi ed esito. Vedi `sito/INSTALLAZIONE.md`.
+- **I solver alternativi** (cartella `solutori/`, nel branch del sito): `per-classe`, `in-avanti`, `due-livelli`,
+  `giorni-liberi`.
+  Ognuno ha solo la sua ricerca (`main.c`) e, se serve, la sua parte di traccia; data layer, stampa, JSON, coda,
+  costanti e potature sono i file della radice (`../../` nel suo `CMakeLists.txt`). Stessa riga di comando e stessa
+  traccia di `main`. Il sito li compila dai `.c` del loro `CMakeLists.txt` e li offre come caselle nel modulo del
+  test (girano insieme, una tab ciascuno). Vedi
+  `solutori/LEGGIMI.md`. Le regole su «non cambiare come il solver calcola» valgono per `main`; i solver di
+  `solutori/` sono esperimenti chiesti da Alb.
 - `bf_search/`: SQL di Alb, da non toccare senza chiedere.
 
 ## Branch
 
 - `main`: solo l'ultima versione del solver.
-- `sito/seconda-versione`: il sito. Le modifiche al sito si fanno direttamente qui, con push diretto.
+- `sito/terza-versione`: il sito e i solver alternativi di `solutori/`, dal 6 novembre 2026 (pulizia del codice,
+  sorgenti condivisi tra i solver, test di non regressione). Le modifiche si fanno direttamente qui, con push diretto.
+- `sito/seconda-versione`: la versione precedente del sito, quella sul Raspberry finche' non si passa alla terza.
 - `archivio/2026-11-04`: tutto il lavoro precedente (solver avanzato, vecchio sito, esperimenti). Non si tocca.
 - `prototipo/scheletro-accoppiamenti`: prototipo in Python (accoppiamenti, Monte Carlo, SAT), non unito.
 
@@ -26,10 +36,11 @@ codice del sito e messaggi di commit sono in italiano.
 
 - **Non cambiare come il solver calcola gli orari** (ricerca, ordine della coda, controlli) se Alb non lo chiede
   esplicitamente. Ingresso, uscita e traccia si possono toccare: non devono cambiare il percorso della ricerca.
-- I controlli sono solo quelli di `main`; gli altri (dall'archivio) si aggiungono **uno alla volta**, quando lei lo
-  chiede. Le due potature dell'archivio (ore dei docenti nel tempo rimasto, lezioni delle classi) sono in
-  `potature/`, uguale in `main` e in ogni solver di `solutori/`; nel commento di `potature.h` quando avvengono e
-  perché sono necessarie. Un controllo nuovo va anche nella traccia (`ingresso_uscita/traccia.c`), nello stesso ordine in cui la
+- I controlli sono gli stessi in tutti i solver, `main` compreso: quelli di `main`, le potature (`potature/`: ore dei
+  docenti nel tempo rimasto, lezioni delle classi, e il controllo in avanti), la verifica dei dati prima della ricerca
+  (`controllo_in_avanti/`) e il controllo finale delle ore. Nel commento di `potature.h` quando avvengono e perché
+  sono necessarie. Altri controlli (dall'archivio) si aggiungono **uno alla volta**, quando lei lo chiede, e a tutti
+  i solver. Un controllo nuovo va anche nella traccia (`ingresso_uscita/traccia.c`), nello stesso ordine in cui la
   ricerca lo valuta, e nelle descrizioni della pagina (`sito/static/orario.js`, `descrizioneControllo`,
   `descriviIngressi`, `motivoBreve`).
 - Ogni modifica al solver: branch separato da `main`, PR su GitHub, merge in `main`, poi `git merge origin/main` nel
@@ -39,13 +50,15 @@ codice del sito e messaggi di commit sono in italiano.
 
 ```bash
 gcc -O2 -std=gnu11 -w main.c data_initialization/database_initializers.c printer/printer.c \
-    priority_queue/prio_queue.c ingresso_uscita/*.c potature/potature.c -o /tmp/solver -lm
+    priority_queue/prio_queue.c ingresso_uscita/*.c potature/potature.c controllo_in_avanti/controllo_in_avanti.c \
+    -o /tmp/solver -lm
 cd /tmp && rm -f orario.txt && /tmp/solver > /dev/null && grep -v '^Current time:' orario.txt | md5sum
 ```
 
 Riferimento (dati di `inizializza_dati()`, 11.000 orari): `b7e8ad1800ea16bc0fc8be628c926fe6`, uguale su Mac e su
 Linux (il Raspberry): a parità di priorità la coda è ordinata per indice del docente, quindi l'ordine non dipende da
-`qsort`. Prima non era così: lo stesso solver dava `1f200e…` su Linux e `777dc…` su macOS. Una modifica che
+`qsort`. Il controllo in avanti e la verifica dei dati (6 novembre 2026) non lo cambiano: su questi dati non
+scartano niente (la ricerca è solo più lenta, circa 4 secondi invece di 2). Prima non era così: lo stesso solver dava `1f200e…` su Linux e `777dc…` su macOS. Una modifica che
 non deve cambiare la ricerca deve dare lo stesso valore. Se Alb chiede di cambiare la ricerca (per esempio un
 controllo nuovo), il valore cambia: si annota il nuovo riferimento qui.
 
@@ -62,7 +75,8 @@ esecuzioni fino allo stesso byte. Cancellare `orario.txt` dopo l'uso.
 - Le lezioni del sito sono le chiamate di `main`: il docente fa `ore` ore, di cui `ore_codocente` con il codocente
   (`set_classe_insegnante_ore_cod`). Verso il solver vanno nell'ordine di inserimento (`modello.per_main`): l'ordine
   delle chiamate decide gli indici dei docenti e quindi la coda.
-- I dati casuali vengono da `sito/generatore.py`, lo stesso generatore del solver precedente (xorshift64*).
+- I dati casuali vengono da `sito/generatore.py` (xorshift64*: stesso seme, stessi dati). I test notturni rigenerano i
+  casi dai semi: cambiare il generatore cambia i dati di ogni seme e quindi i riferimenti dei test.
 
 ## Raspberry
 
