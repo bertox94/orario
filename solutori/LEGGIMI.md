@@ -36,6 +36,8 @@ gcc -O2 -std=gnu11 -w main.c data_initialization/database_initializers.c printer
   Se una delle due non va, la scelta si scarta subito. Nella traccia è un controllo in più, alla fine delle coppie e
   del «da solo»: `lascia_un_docente_alle_celle_di_oggi` (con `motivo`: `cella` o `ore`). Sui dati di
   `inizializza_dati()` l'orario è lo stesso di `main`.
+  Con `--txt /dev/null` (come dal sito) `orario.txt` non si scrive per niente: la ricerca è la stessa, ma non formatta
+  la griglia a ogni backtrack, che era quasi tutto il tempo (circa 14 volte più veloce).
 - **`in-avanti-dopo`**: gli stessi controlli in avanti di `in-avanti`, ma fatti all'ingresso della cella dopo la
   scelta invece che prima di scendere: il ciclo dei candidati è quello di `main`, riga per riga, e all'inizio di
   `print_orario` c'è un controllo in più (se la scelta nella cella prima rende il resto impossibile, si torna indietro).
