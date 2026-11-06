@@ -45,7 +45,7 @@ void traccia_imposta_ordine(const int *cella_di, const int *indice_di) {
 
 traccia_controllo_fn traccia_controllo_extra = NULL;
 
-const int *traccia_giorni = NULL, *traccia_posti = NULL;
+const int *traccia_giorni = NULL, *traccia_posti = NULL, *traccia_classi = NULL;
 int traccia_giro = 0, traccia_fissati = 0;
 const int *traccia_ore_da_fare = NULL, *traccia_ore_da_solo = NULL;
 int (*traccia_ore_insieme)(int cla, int p1, int p2) = NULL;
@@ -382,6 +382,11 @@ static void testa_backtrack(const int pos, const int giorno, const int ora, cons
         fprintf(t, "\"giro\":%d,\"fissati\":%d,\"giorni\":[", traccia_giro, traccia_fissati);
         for (int r = 0; r < actual_giorni_settimana; r++) fprintf(t, "%s%d", r ? "," : "", traccia_giorni[r]);
         fprintf(t, "],");
+        if (traccia_classi) {
+            fprintf(t, "\"classi\":[");
+            for (int k = 0; k < actual_classi_sezione; k++) fprintf(t, "%s%d", k ? "," : "", traccia_classi[k]);
+            fprintf(t, "],");
+        }
     }
 }
 
