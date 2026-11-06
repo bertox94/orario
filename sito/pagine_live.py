@@ -2,7 +2,7 @@
 e mostra i suoi backtrack, con i controlli di ogni docente."""
 from flask import Blueprint, current_app, flash, g, jsonify, redirect, render_template, request, url_for
 
-from . import esecutore, modello, solver
+from . import esecutore, modello, notturni, solver
 from .db import conn
 
 bp = Blueprint('live', __name__, url_prefix='/live')
@@ -126,8 +126,11 @@ def prova(pid):
     scheda = request.args.get('scheda', type=int)
     if scheda not in [e['id'] for e in esecuzioni]:
         scheda = esecuzioni[0]['id']
+    # quanti solver di questo test non sono ancora tra i test notturni
+    da_aggiungere = [t for t in (notturni.da_esecuzione(conn(), g.scuola['id'], e['id']) for e in esecuzioni)
+                     if t and not t['presente']]
     return render_template('live/prova.html', p=p, esecuzioni=esecuzioni, scheda=scheda,
-                           descrizioni=solver.DESCRIZIONI)
+                           descrizioni=solver.DESCRIZIONI, da_aggiungere=len(da_aggiungere))
 
 
 @bp.route('/verificato/<int:eid>', methods=['POST'])

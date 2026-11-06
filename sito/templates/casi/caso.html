@@ -53,11 +53,16 @@
       <button class="secondario" name="solutore" value="{{ questo }}">Rifai solo con {{ questo }}</button>
     </form>
     <a class="bottone secondario" href="{{ url_for('casi.scarica_dati', eid=e.id) }}">Scarica i dati</a>
+    {% if nei_notturni %}
+    <a class="bottone secondario" href="{{ url_for('notturni.test', tid=nei_notturni) }}" target="_top"
+       title="C'è già un test notturno con gli stessi dati, lo stesso solver e lo stesso limite di nodi">✓ Nei test notturni</a>
+    {% elif si_aggiunge %}
     <form method="post" action="{{ url_for('notturni.da_test', eid=e.id) }}" class="in-linea"
-          title="Stessi dati e stesso solver, ogni notte, fermo sempre allo stesso nodo">
-      <input type="hidden" name="_gettone" value="{{ gettone }}">
+          title="Stessi dati, stesso solver e stesso limite di nodi, ogni notte, fermo sempre allo stesso nodo">
+      <input type="hidden" name="_gettone" value="{{ gettone }}"><input type="hidden" name="poi" value="{{ request.full_path }}">
       <button class="secondario">Aggiungi ai test notturni</button>
     </form>
+    {% endif %}
     {% if n_registrati or in_corso %}<a class="bottone secondario" href="{{ url_for('casi.scarica_backtrack', eid=e.id) }}">Scarica i backtrack</a>{% endif %}
   </div>
 </div>

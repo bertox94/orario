@@ -11,7 +11,7 @@ bp = Blueprint('casi', __name__, url_prefix='/casi')
 
 
 def _esecuzione(eid):
-    e = conn().execute('select e.*, p.nome as prova_nome, p.commit, p.stato as stato_prova, p.messaggio, '
+    e = conn().execute('select e.*, p.nome as prova_nome, p.commit, p.stato as stato_prova, p.messaggio, p.scuola_id, '
                        'p.opzioni as opzioni_prova from esecuzioni e join prove p on p.id = e.prova_id '
                        'where e.id = %s', (eid,)).fetchone()
     if not e:
@@ -23,8 +23,10 @@ def _esecuzione(eid):
 def caso(eid):
     e = _esecuzione(eid)
     n = conn().execute('select count(*) as n from backtrack where esecuzione_id = %s', (eid,)).fetchone()['n']
+    da_aggiungere = notturni.da_esecuzione(conn(), e['scuola_id'], eid) if e.get('scuola_id') else None
     return render_template('casi/caso.html', e=e, r=e['risultato'] or {}, n_registrati=n,
-                           in_corso=esecutore.in_corso(eid), notturno=_confronto_notturno(e))
+                           in_corso=esecutore.in_corso(eid), notturno=_confronto_notturno(e),
+                           nei_notturni=da_aggiungere and da_aggiungere['presente'], si_aggiunge=bool(da_aggiungere))
 
 
 def _confronto_notturno(e):

@@ -63,8 +63,7 @@ def _cartella_lavoro(config):
 def dati_del_caso(c, scuola_id, caso):
     """I dati per --input di un caso: generati da un seme, quelli attuali della scuola, o quelli gia' pronti."""
     if caso['tipo'] == 'casuale':
-        dati = generatore.genera(caso['seme'], caso.get('classi', 8), caso.get('ritardi', False),
-                                 caso.get('percento_ritardi', 20))
+        dati = generatore.genera(caso['seme'], caso.get('classi', 8), caso.get('ritardi', False))
         return generatore.riordina_classi(dati, caso.get('ordine', 0))
     if caso['tipo'] == 'scuola':
         return modello.per_main(modello.leggi(c, scuola_id))

@@ -28,7 +28,7 @@ from . import db, generatore, solver
 CAMPI = ('esito', 'nodi', 'backtrack', 'pos_max', 'orario', 'errore')  # quelli che devono coincidere
 NOMI_CAMPI = {'esito': 'risultato', 'nodi': 'nodi', 'backtrack': 'backtrack', 'pos_max': 'posizione massima',
               'orario': 'orario trovato', 'errore': 'errore nei dati'}
-FERMA_NODI = 5000000  # default per i test generati: su un Mac circa 5 s per test con main, sul Raspberry di piu'
+FERMA_NODI = 50000000  # default, come nel test in tempo reale: su un Mac fino a circa 40 s per test con main
 CASI_DEL_REPOSITORY = os.path.join(solver.RADICE, 'tests', 'casi')
 
 _lock = threading.Lock()
@@ -47,26 +47,43 @@ def impronta_orario(orario):
 
 # ---- creare i test ----
 
-def nome_casuale(seme, classi, ritardi, ordine=0, percento_ritardi=20):
+def nome_casuale(seme, classi, ritardi, ordine=0):
     nome = 'seme %d, %d classi%s' % (seme, classi, ', ritardi' if ritardi else '')
-    if ritardi and percento_ritardi != 20:
-        nome += ' %d%%' % percento_ritardi
     return nome + (', ordine %d' % ordine if ordine else '')
+
+
+def presente(c, scuola_id, solutore, dati, opzioni):
+    """L'id del test notturno attivo con gli stessi dati, solver e opzioni, o None."""
+    r = c.execute('select id from test_notturni where scuola_id = %s and solutore = %s and dati = %s::jsonb '
+                  'and opzioni = %s::jsonb and attivo', (scuola_id, solutore, _json(dati), _json(opzioni))).fetchone()
+    return r['id'] if r else None
+
+
+def da_esecuzione(c, scuola_id, eid, ferma_nodi=None):
+    """Il test notturno che si fa da un test in tempo reale (stessi dati e stesso solver; il limite di nodi del test, o
+    quello di default), come argomenti di aggiungi, piu' 'presente': l'id se c'e' gia'. None se non ci sono i dati."""
+    e = c.execute('select e.caso, e.opzioni, p.dati_scuola, p.opzioni as opzioni_prova from esecuzioni e '
+                  'join prove p on p.id = e.prova_id where e.id = %s and p.scuola_id = %s', (eid, scuola_id)).fetchone()
+    if not e or not e['dati_scuola']:
+        return None
+    o = e['opzioni'] or {}
+    t = {'nome': e['caso'], 'solutore': o.get('solutore', 'main'),
+         'caso': dict((e['opzioni_prova'] or {}).get('caso') or {}, da_test=eid), 'dati': e['dati_scuola'],
+         'opzioni': {'orari': o.get('orari', 1), 'ferma_nodi': ferma_nodi or o.get('ferma_nodi') or FERMA_NODI}}
+    t['presente'] = presente(c, scuola_id, t['solutore'], t['dati'], t['opzioni'])
+    return t
 
 
 def aggiungi(c, scuola_id, nome, solutore, caso, dati, opzioni):
     """Aggiunge un test (se non c'e' gia' lo stesso: stessi dati, solver e opzioni). Ritorna True se e' nuovo."""
-    gia = c.execute('select 1 from test_notturni where scuola_id = %s and solutore = %s and dati = %s::jsonb '
-                    'and opzioni = %s::jsonb and attivo', (scuola_id, solutore, _json(dati), _json(opzioni))).fetchone()
-    if gia:
+    if presente(c, scuola_id, solutore, dati, opzioni):
         return False
     c.execute('insert into test_notturni (scuola_id, nome, solutore, caso, dati, opzioni) values (%s, %s, %s, %s, %s, %s)',
               (scuola_id, nome, solutore, _json(caso), _json(dati), _json(opzioni)))
     return True
 
 
-def genera(c, scuola_id, semi, classi, ritardi, solutori, ferma_nodi, orari=1, casi_repository=False, ordini=(0,),
-           percento_ritardi=20):
+def genera(c, scuola_id, semi, classi, ritardi, solutori, ferma_nodi, orari=1, casi_repository=False, ordini=(0,)):
     """I test di tutte le combinazioni (seme x classi x ritardi x ordine delle classi) per ogni solver, piu' (se
     chiesto) i casi di tests/casi. Ritorna (aggiunti, gia' presenti, [messaggi per i casi che il generatore non sa
     fare])."""
@@ -76,17 +93,15 @@ def genera(c, scuola_id, semi, classi, ritardi, solutori, ferma_nodi, orari=1, c
         for n in classi:
             for r in ritardi:
                 try:
-                    base = generatore.genera(seme, n, r, percento_ritardi)
+                    base = generatore.genera(seme, n, r)
                 except ValueError as ex:
-                    problemi.append('%s: %s' % (nome_casuale(seme, n, r, 0, percento_ritardi), ex))
+                    problemi.append('%s: %s' % (nome_casuale(seme, n, r), ex))
                     continue
                 for k in ordini:
                     caso = {'tipo': 'casuale', 'seme': seme, 'classi': n, 'ritardi': r}
                     if k:
                         caso['ordine'] = k
-                    if r and percento_ritardi != 20:
-                        caso['percento_ritardi'] = percento_ritardi
-                    casi.append((nome_casuale(seme, n, r, k, percento_ritardi), caso, generatore.riordina_classi(base, k)))
+                    casi.append((nome_casuale(seme, n, r, k), caso, generatore.riordina_classi(base, k)))
     if casi_repository and os.path.isdir(CASI_DEL_REPOSITORY):
         for f in sorted(os.listdir(CASI_DEL_REPOSITORY)):
             if f.endswith('.json'):

@@ -28,13 +28,15 @@ def _test(tid):
 
 
 def _intervallo(testo, minimo, massimo):
-    """"1-6, 9" -> [1, 2, 3, 4, 5, 6, 9] (ValueError se non si legge)."""
+    """Semi, classi e ordini delle classi, tutti allo stesso modo: numeri o intervalli col trattino, separati da virgole
+    o spazi. "1-6, 9" -> [1, 2, 3, 4, 5, 6, 9]; anche "1 - 6" e il trattino lungo (ValueError se non si legge)."""
     valori = []
-    for parte in re.split(r'[,\s]+', testo.strip()):
+    testo = re.sub(r'\s*[-–—]\s*', '-', testo.strip())
+    for parte in re.split(r'[,;\s]+', testo):
         if not parte:
             continue
-        a, _, b = parte.partition('-')
-        a, b = int(a), int(b or a)
+        a, trattino, b = parte.partition('-')
+        a, b = int(a), int(b if trattino else a)  # «8-» non si legge
         if not minimo <= a <= b <= massimo:
             raise ValueError(parte)
         valori.extend(range(a, b + 1))
@@ -71,8 +73,7 @@ NON_TERMINATI = ('limite di nodi', 'fermato', 'interrotto', 'errore')
 RAGGRUPPAMENTI = {
     'seme': ('seme', lambda k: 'seme %s' % k.get('seme')),
     'classi': ('classi', lambda k: '%s classi' % k.get('classi')),
-    'ritardi': ('ritardi', lambda k: 'con ritardi (%d%%)' % k.get('percento_ritardi', 20) if k.get('ritardi')
-                else 'senza ritardi'),
+    'ritardi': ('ritardi', lambda k: 'con ritardi' if k.get('ritardi') else 'senza ritardi'),
     'ordine': ('ordine', lambda k: 'ordine delle classi %d%s' % (k.get('ordine', 0), ' (come generato)'
                                                                      if not k.get('ordine') else '')),
 }
@@ -81,7 +82,7 @@ CAMPI_CASO = ('seme', 'classi', 'ritardi', 'ordine')
 
 def _valore(k, campo):
     if campo == 'ritardi':
-        return (bool(k.get('ritardi')), k.get('percento_ritardi', 20))
+        return bool(k.get('ritardi'))
     return k.get(campo, 0)
 
 
@@ -194,12 +195,9 @@ def genera():
         semi = _intervallo(f.get('semi', ''), 0, 10 ** 9)
         classi = _intervallo(f.get('classi', ''), 1, 120)
         ordini = _intervallo(f.get('ordini', '') or '0', 0, 10 ** 6)
-        percento = int(f.get('percento_ritardi') or 20)
-        if not 0 <= percento <= 100:
-            raise ValueError(percento)
     except ValueError:
-        flash('Semi, classi e ordini delle classi: numeri o intervalli separati da virgole, per esempio «1-6», «8-16» e '
-              '«0-3» (classi da 1 a 120; ordine 0: come generato); docenti in ritardo: da 0 a 100%.', 'errore')
+        flash('Semi, classi e ordini delle classi: un numero o un intervallo col trattino, anche più di uno separati da '
+              'virgole, per esempio «1-6», «8-16» e «0-3» (classi da 1 a 120; ordine 0: come generato).', 'errore')
         return redirect(url_for('.indice'))
     ritardi = {'senza': [False], 'con': [True], 'entrambi': [False, True]}.get(f.get('ritardi'), [False])
     solutori = [s for s in solver.solutori() if s in f.getlist('solutore')]
@@ -216,32 +214,52 @@ def genera():
         flash('Limite di nodi e orari: numeri interi.', 'errore')
         return redirect(url_for('.indice'))
     aggiunti, gia, problemi = notturni.genera(conn(), g.scuola['id'], semi, classi, ritardi, solutori, ferma_nodi,
-                                              orari, casi_repository=bool(f.get('repository')), ordini=ordini,
-                                              percento_ritardi=percento)
-    flash('Test aggiunti: %d%s.' % (aggiunti, ' (%d c\'erano gia\')' % gia if gia else ''), 'ok')
+                                              orari, casi_repository=bool(f.get('repository')), ordini=ordini)
+    flash('Test aggiunti: %d%s.' % (aggiunti, ' (%d c\'era%s già)' % (gia, '' if gia == 1 else 'no') if gia else ''), 'ok')
     for p in problemi[:10]:
         flash('Non generato: %s' % p, 'errore')
     return redirect(url_for('.indice'))
 
 
+def _aggiungi_esecuzioni(eids):
+    """Le esecuzioni di un test in tempo reale diventano test notturni (quelle che non lo sono gia')."""
+    try:
+        ferma_nodi = max(1, int(request.form['ferma_nodi'])) if request.form.get('ferma_nodi') else None
+    except ValueError:
+        ferma_nodi = None
+    nuovi = gia = 0
+    for eid in eids:
+        t = notturni.da_esecuzione(conn(), g.scuola['id'], eid, ferma_nodi)
+        if not t:
+            continue
+        if not t['presente'] and notturni.aggiungi(conn(), g.scuola['id'], t['nome'], t['solutore'], t['caso'],
+                                                   t['dati'], t['opzioni']):
+            nuovi += 1
+        else:
+            gia += 1
+    if not nuovi and not gia:
+        abort(404)
+    if nuovi == 1 and not gia:
+        flash('Aggiunto ai test notturni.', 'ok')
+    else:
+        flash(' '.join(x for x in ('Aggiunti ai test notturni: %d.' % nuovi if nuovi else '',
+                                   '%d c\'era%s già.' % (gia, '' if gia == 1 else 'no') if gia else '') if x), 'ok')
+    poi = request.form.get('poi', '')
+    return redirect(poi if poi.startswith('/') and not poi.startswith('//') else url_for('.indice'))
+
+
 @bp.route('/da-test/<int:eid>', methods=['POST'])
 def da_test(eid):
-    """Un test in tempo reale diventa un test notturno: stessi dati e stesso solver (limite di nodi dal modulo)."""
-    e = conn().execute('select e.caso, e.opzioni, p.dati_scuola, p.opzioni as opzioni_prova from esecuzioni e '
-                       'join prove p on p.id = e.prova_id where e.id = %s and p.scuola_id = %s',
-                       (eid, g.scuola['id'])).fetchone()
-    if not e or not e['dati_scuola']:
-        abort(404)
-    o = e['opzioni'] or {}
-    try:
-        ferma_nodi = max(1, int(request.form.get('ferma_nodi') or o.get('ferma_nodi') or notturni.FERMA_NODI))
-    except ValueError:
-        ferma_nodi = notturni.FERMA_NODI
-    caso = dict((e['opzioni_prova'] or {}).get('caso') or {}, da_test=eid)
-    nuovo = notturni.aggiungi(conn(), g.scuola['id'], e['caso'], o.get('solutore', 'main'), caso, e['dati_scuola'],
-                              {'orari': o.get('orari', 1), 'ferma_nodi': ferma_nodi})
-    flash('Aggiunto ai test notturni.' if nuovo else 'Questo test c\'era gia\' tra i test notturni.', 'ok')
-    return redirect(url_for('.indice'))
+    """Un test in tempo reale diventa un test notturno: stessi dati e stesso solver, con il limite di nodi del test."""
+    return _aggiungi_esecuzioni([eid])
+
+
+@bp.route('/da-prova/<int:pid>', methods=['POST'])
+def da_prova(pid):
+    """Un test in tempo reale con piu' solver: un test notturno per ogni solver che non c'e' gia'."""
+    eids = [r['id'] for r in conn().execute('select e.id from esecuzioni e join prove p on p.id = e.prova_id '
+                                            'where p.id = %s and p.scuola_id = %s order by e.id', (pid, g.scuola['id']))]
+    return _aggiungi_esecuzioni(eids)
 
 
 @bp.route('/esegui', methods=['POST'])

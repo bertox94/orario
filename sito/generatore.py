@@ -6,9 +6,9 @@ il 60%, diversa a ogni tentativo) ha anche un codocente per alcune di quelle ore
 perche' in media abbiano tra 10 e 20 ore; ogni lezione va al meno carico fra tre docenti presi a caso. Se un docente
 resta con meno di 5 ore o ne avrebbe piu' di 24, o se mancano lezioni da soli o in coppia, si riprova da capo.
 
-Con i ritardi, piu' docenti possono entrare tardi: ognuno con probabilita' `percento_ritardi` (default 20: circa uno su
-cinque, di solito da 2 a 10 docenti per caso) entra alla seconda, terza o quarta ora, abbassata finche' le sue ore stanno
-ancora nelle ore che gli restano nella settimana. Nessun altro controllo: un caso con i ritardi puo' anche essere
+Con i ritardi, il seme decide quanti docenti entrano tardi (da uno a tutti, a caso) e quali; ognuno entra alla seconda,
+terza o quarta ora, abbassata finche' le sue ore stanno ancora nelle ore che gli restano nella settimana (alla seconda
+ci stanno sempre: un docente ha al massimo 24 ore, e dalla seconda ora ne restano 30). Nessun altro controllo: un caso con i ritardi puo' anche essere
 impossibile, e lo dice la ricerca. Con e senza ritardi i dati di un seme sono gli stessi, tranne le ore di ingresso.
 
 L'ordine delle classi (riordina_classi): le stesse classi e le stesse lezioni, con le classi in un altro ordine nei
@@ -115,9 +115,8 @@ def _tenta(r, n_classi):
     return lezioni, carico
 
 
-def genera(seme, n_classi=8, ritardi=False, percento_ritardi=20):
-    """I dati di un caso casuale, nel formato di --input. percento_ritardi: la probabilita' (0-100) che un docente entri
-    tardi (con ritardi)."""
+def genera(seme, n_classi=8, ritardi=False):
+    """I dati di un caso casuale, nel formato di --input."""
     if not 1 <= n_classi <= 120:
         raise ValueError('classi: da 1 a 120')
     r = _Casuale(seme)
@@ -139,9 +138,13 @@ def genera(seme, n_classi=8, ritardi=False, percento_ritardi=20):
             uscita.append(l)
     ingressi = []
     if ritardi:
-        for d in range(len(carico)):
-            if r.tra(1, 100) > percento_ritardi:
-                continue
+        # quanti (da 1 a tutti) e quali: i primi `quanti` di una permutazione dei docenti (Fisher-Yates parziale)
+        docenti = list(range(len(carico)))
+        quanti = r.tra(1, len(docenti))
+        for i in range(quanti):
+            j = r.tra(i, len(docenti) - 1)
+            docenti[i], docenti[j] = docenti[j], docenti[i]
+        for d in sorted(docenti[:quanti]):
             ingresso = r.tra(1, ORA_INGRESSO_MAX)
             while ingresso > 0 and carico[d] > (len(ORE) - ingresso) * len(GIORNI):
                 ingresso -= 1
