@@ -251,7 +251,9 @@ table.docenti-orizzontale td.altro-falso { background: var(--attenzione-tenue); 
 label.titolo-sezione { font-weight: 600; font-size: 14px; cursor: pointer; }
 
 /* un test con piu' solver: una tab per solver (live/prova.html) */
-.tab-solver { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--bordo); margin: 12px 0 0; }
+.tab-solver { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--bordo); margin: 12px 0 0;
+  position: sticky; top: 0; z-index: 5; background: var(--sfondo); padding-top: 4px; }
+#descrizione-solver { flex-basis: 100%; padding: 2px 4px 6px; }
 .tab-solver button { font: inherit; background: none; border: 1px solid transparent; border-bottom: none;
   border-radius: 8px 8px 0 0; padding: 8px 12px; margin-bottom: -1px; cursor: pointer; color: inherit;
   display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; }
@@ -259,7 +261,8 @@ label.titolo-sezione { font-weight: 600; font-size: 14px; cursor: pointer; }
 .tab-solver button.attiva { background: var(--superficie); border-color: var(--bordo); }
 .pagine-solver { position: relative; overflow: hidden; }
 /* le pagine delle altre tab restano aperte (seguono la loro ricerca), ma fuori dalla vista */
-.pagine-solver iframe { display: block; width: 100%; min-height: 60vh; border: none; }
+/* width 1px + min-width 100%: Safari su iPad non allarga l'iframe fino al contenuto */
+.pagine-solver iframe { display: block; width: 1px; min-width: 100%; height: 80vh; border: none; }
 .pagine-solver iframe.nascosta { position: absolute; left: -10000px; top: 0; visibility: hidden; }
 body.incorporata main { padding-top: 12px; }
 [hidden] { display: none !important; }  /* anche sui bottoni, che hanno un display loro */

@@ -26,6 +26,8 @@
     <span class="avanzamento piccolo tenue"></span>
   </button>
   {% endfor %}
+  {# su iPad il title non si vede: la descrizione del solver scelto sta qui #}
+  <div id="descrizione-solver" class="piccolo tenue">{% for x in esecuzioni if x.id == scheda %}{{ descrizioni.get(x.solutore, x.solutore) }}{% endfor %}</div>
 </div>
 <div class="pagine-solver">
   {% for x in esecuzioni %}
@@ -40,24 +42,30 @@
   const tab = [...document.querySelectorAll('.tab-solver [data-eid]')];
   const pagine = [...document.querySelectorAll('.pagine-solver iframe')];
   const fermaTutti = document.getElementById('ferma-tutti');
+  const descrizione = document.getElementById('descrizione-solver');
 
   // la tab scelta (anche nell'indirizzo, per ricaricare la pagina sulla stessa tab)
   function scegli(eid) {
     tab.forEach(t => t.classList.toggle('attiva', t.dataset.eid === eid));
+    descrizione.textContent = tab.find(t => t.dataset.eid === eid).title;
     pagine.forEach(f => f.classList.toggle('nascosta', f.dataset.eid !== eid));
     const u = new URL(location.href);
     u.searchParams.set('scheda', eid);
     history.replaceState(null, '', u);
   }
-  tab.forEach(t => t.addEventListener('click', () => scegli(t.dataset.eid)));
-
-  // ogni pagina e' alta quanto il suo contenuto (niente seconda barra di scorrimento)
-  pagine.forEach(f => f.addEventListener('load', () => {
-    const doc = f.contentDocument;
-    const adatta = () => { f.style.height = doc.documentElement.scrollHeight + 'px'; };
-    new ResizeObserver(adatta).observe(doc.body);
-    adatta();
+  tab.forEach(t => t.addEventListener('click', () => {
+    scegli(t.dataset.eid);
+    // porta la barra delle tab in cima, con la pagina scelta sotto, intera
+    if (barra.getBoundingClientRect().top > 0) barra.scrollIntoView({block: 'start'});
   }));
+
+  // ogni pagina e' alta quanto lo schermo meno la barra delle tab (che resta in alto) e scorre dentro di se': cosi'
+  // le misure in vh e le barre fisse della pagina del test funzionano come quando e' aperta da sola
+  const barra = document.querySelector('.tab-solver');
+  const adatta = () => pagine.forEach(f => { f.style.height = (innerHeight - barra.offsetHeight) + 'px'; });
+  addEventListener('resize', adatta);
+  new ResizeObserver(adatta).observe(barra);  // le tab vanno a capo, cambia l'avanzamento...
+  adatta();
 
   // nelle tab: esito o avanzamento di ogni solver
   const inCorso = new Set();
