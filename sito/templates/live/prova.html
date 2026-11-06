@@ -62,14 +62,19 @@
   }
   tab.forEach(t => t.addEventListener('click', () => {
     scegli(t.dataset.eid);
-    // porta la barra delle tab in cima, con la pagina scelta sotto, intera
-    if (barra.getBoundingClientRect().top > 0) barra.scrollIntoView({block: 'start'});
   }));
 
-  // ogni pagina e' alta quanto lo schermo meno la barra delle tab (che resta in alto) e scorre dentro di se': cosi'
-  // le misure in vh e le barre fisse della pagina del test funzionano come quando e' aperta da sola
+  // ogni pagina occupa lo spazio che resta fino in fondo alla finestra e scorre dentro di se': la pagina esterna non
+  // scorre, quindi la barra laterale e' una sola (prima scorrevano tutte e due). Le misure in vh e le barre fisse della
+  // pagina del test funzionano come quando e' aperta da sola.
   const barra = document.querySelector('.tab-solver');
-  const adatta = () => pagine.forEach(f => { f.style.height = (innerHeight - barra.offsetHeight) + 'px'; });
+  const contenitore = document.querySelector('.pagine-solver');
+  const adatta = () => {
+    const sopra = contenitore.getBoundingClientRect().top + scrollY;
+    const sotto = document.body.scrollHeight - sopra - contenitore.offsetHeight;  // margini sotto le pagine
+    const h = Math.max(300, innerHeight - sopra - Math.max(0, sotto));
+    pagine.forEach(f => { f.style.height = h + 'px'; });
+  };
   addEventListener('resize', adatta);
   new ResizeObserver(adatta).observe(barra);  // le tab vanno a capo, cambia l'avanzamento...
   adatta();
