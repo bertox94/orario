@@ -68,7 +68,7 @@
         <td>{{ confronto(r) }}{% if r.confronto == 'diverso' %}
           {% set altri = (r.differenze or [])|rejectattr('campo', 'in', ['nodi', 'backtrack', 'pos_max', 'esito'])|list %}
           {% if altri %}<div class="atteso">cambia anche: {% for d in altri %}{{ ', ' if not loop.first }}{{ nomi_campi.get(d.campo, d.campo) }}{% endfor %}</div>{% endif %}
-        {% endif %}{% if r.errore %}<div class="tenue piccolo">{{ r.errore[:120] }}</div>{% endif %}</td>
+        {% endif %}{% if r.errore %}<div class="tenue piccolo" title="{{ r.errore }}">{{ r.errore|truncate(40, true, '…') }}</div>{% endif %}</td>
       {% else %}
         <td colspan="7" class="tenue">{{ 'in coda nel giro in corso' if in_corso else 'mai eseguito' }}</td>
       {% endif %}
