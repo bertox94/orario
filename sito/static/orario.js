@@ -201,13 +201,15 @@ function tabellaControlli(controlli, fermato, d) {
 
 // I docenti in orizzontale: una colonna per docente (nell'ordine della coda), una riga per controllo. In ogni casella
 // ✓ o ✗; dove la ricerca si ferma, anche gli ingressi del controllo. Gli ingressi di tutte le caselle sono nel title.
-function tabellaDocenti(docenti, d) {
+// colonne: [{titolo, sotto, controlli, fermato_a}] (un docente, una coppia...)
+function tabellaOrizzontale(colonne, d) {
+  const docenti = colonne;
   // i controlli nell'ordine della ricerca (uguali per tutti i docenti; per sicurezza si uniscono i nomi)
   const nomi = [];
   for (const x of docenti) for (const c of x.controlli) if (!nomi.includes(c.nome)) nomi.push(c.nome);
   const testa = el('tr', {}, [el('th', {class: 'nome', testo: 'Controllo'}), ...docenti.map(x =>
-    el('th', {class: 'doc' + (x.fermato_a < 0 ? ' passa' : '')}, [nomeDoc(d, x.docente), el('br'),
-      el('span', {class: 'tenue piccolo', testo: `priorità ${x.priorita}`})]))]);
+    el('th', {class: 'doc' + (x.fermato_a < 0 ? ' passa' : '')}, [x.titolo, el('br'),
+      el('span', {class: 'tenue piccolo', testo: x.sotto})]))]);
   const righe = nomi.map(nome => el('tr', {}, [
     el('td', {class: 'nome', title: nome}, descrizioneControllo(nome, d) +
       (nome === 'deve_ancora_svolgere_ore_in_questa_classe' ? ' (ore che restano su quelle da fare)' : '')),
@@ -231,6 +233,11 @@ function tabellaDocenti(docenti, d) {
     })]));
   return el('div', {class: 'scorre'}, el('table', {class: 'docenti-orizzontale'},
     [el('thead', {}, testa), el('tbody', {}, righe)]));
+}
+
+function tabellaDocenti(docenti, d) {
+  return tabellaOrizzontale(docenti.map(x => ({titolo: nomeDoc(d, x.docente), sotto: `priorità ${x.priorita}`,
+    controlli: x.controlli, fermato_a: x.fermato_a})), d);
 }
 
 function esitoTesto(fermato, controlli, d) {
@@ -283,6 +290,24 @@ function centraCella(box, td) {
   if (box && td) box.scrollLeft = Math.max(0, td.offsetLeft - box.clientWidth / 2);
 }
 
+// Come mostrare i controlli dei docenti (le caselle della pagina del test): tutti i motivi o fino al primo falso;
+// controlli incrementali (coppie e da solo solo per chi passa i controlli base) o per tutti; le sezioni accese.
+let controlliIncrementali = true;
+const sezioni = {base: true, coppie: true, solo: true};
+let ridisegnaBacktrack = () => {};
+
+// il titolo di una sezione con la sua casella: spenta, la sezione non si vede (resta il titolo per riaccenderla)
+function testaSezione(chiave, titolo) {
+  const casella = el('input', {type: 'checkbox'});
+  casella.checked = sezioni[chiave];
+  casella.addEventListener('change', () => {
+    sezioni[chiave] = casella.checked;
+    try { localStorage.setItem('orario.sezione.' + chiave, casella.checked ? '1' : '0'); } catch (e) {}
+    ridisegnaBacktrack();
+  });
+  return el('h4', {}, el('label', {class: 'spunta titolo-sezione'}, [casella, ' ' + titolo]));
+}
+
 // Un backtrack: la griglia "l'orario fino a qui" va in sopra, i controlli in contenitore.
 // filtro: 'tutti', 'con-ore' (nasconde chi ha esaurito le ore in questa classe), 'esauriti' (nasconde chi ne ha ancora).
 // prima: il backtrack precedente sul cursore (se c'e'): in verde le celle cambiate da allora, e bordata la prima
@@ -322,28 +347,34 @@ function disegnaBacktrack(contenitore, d, b, filtro, sopra, prima, passo) {
     : `Al backtrack n. ${numeroIt(b.n)}: ${testoPos(d, b.pos)} (in rosso).` + testoCambi), griglia, 'td.blocco');
   const mostrati = b.docenti.filter(x => filtro === 'con-ore' ? !haEsauritoOre(x)
                                        : filtro === 'esauriti' ? haEsauritoOre(x) : true);
-  if (b.docenti.length) parti.push(el('h4', {testo: 'I docenti della classe, nell\'ordine in cui la ricerca li prova'}));
-  if (mostrati.length) parti.push(tabellaDocenti(mostrati, d));
-  // chi passa tutti i controlli: la ricerca prova le coppie e il docente da solo
-  for (const x of mostrati.filter(x => x.fermato_a < 0)) {
-    const blocco = el('div', {class: 'docente'});
-    blocco.append(el('h4', {}, `${nomeDoc(d, x.docente)} · priorità ${x.priorita} · passa tutti i controlli`));
-    if (x.coppie.length) {
-      blocco.append(el('h5', {testo: 'In coppia (con i docenti dopo di lui nella coda che hanno ore insieme a lui qui)'}));
-      for (const c of x.coppie) {
-        blocco.append(el('p', {class: 'piccolo', style: 'margin: 6px 0 2px'},
-          `con ${nomeDoc(d, c.codocente)}: ${esitoTesto(c.fermato_a, c.controlli, d)}`));
-        blocco.append(tabellaControlli(c.controlli, c.fermato_a, d));
-      }
-    } else {
-      blocco.append(el('h5', {testo: 'In coppia: nessun docente dopo di lui nella coda ha ore insieme a lui in questa classe'}));
-    }
-    blocco.append(el('h5', {}, `Da solo: ${esitoTesto(x.da_solo.fermato_a, x.da_solo.controlli, d)}`));
-    blocco.append(tabellaControlli(x.da_solo.controlli, x.da_solo.fermato_a, d));
-    parti.push(blocco);
+  // Tre sezioni, ognuna con la sua casella (accesa di default; spenta, la sezione non si vede): i controlli base, in
+  // coppia, da solo. Con «controlli incrementali» coppie e da solo ci sono solo per chi passa i controlli base (come
+  // nella ricerca); senza, per tutti i docenti (la traccia li calcola per tutti). «Tutti i motivi» decide, in ogni
+  // sezione, se i controlli dopo il primo falso sono in grigio o con il loro esito.
+  const nome = p => nomeDoc(d, p);
+  const conSeguito = mostrati.filter(x => x.coppie && (!controlliIncrementali || x.fermato_a < 0));
+  const sotto = x => x.fermato_a < 0 ? 'passa i controlli base' : 'non passa i controlli base';
+  parti.push(testaSezione('base', 'I docenti della classe: controlli base, nell\'ordine in cui la ricerca li prova'));
+  if (sezioni.base) {
+    if (mostrati.length) parti.push(tabellaDocenti(mostrati, d));
+    if (b.altri_docenti) parti.push(el('p', {class: 'tenue piccolo'},
+      `Più ${b.altri_docenti} docenti senza ore in questa classe: la ricerca li scarta al primo o al secondo controllo.`));
   }
-  if (b.altri_docenti) parti.push(el('p', {class: 'tenue piccolo'},
-    `Più ${b.altri_docenti} docenti senza ore in questa classe: la ricerca li scarta al primo o al secondo controllo.`));
+  parti.push(testaSezione('coppie', 'In coppia, con i docenti dopo nella coda che hanno ore insieme qui' +
+    (controlliIncrementali ? ' (per chi passa i controlli base)' : '')));
+  if (sezioni.coppie) {
+    const colonne = conSeguito.flatMap(x => x.coppie.map(c => ({titolo: `${nome(x.docente)} + ${nome(c.codocente)}`,
+      sotto: sotto(x), controlli: c.controlli, fermato_a: c.fermato_a})));
+    parti.push(colonne.length ? tabellaOrizzontale(colonne, d)
+      : el('p', {class: 'tenue piccolo', testo: 'Nessuna coppia da provare.'}));
+  }
+  parti.push(testaSezione('solo', 'Da solo' + (controlliIncrementali ? ' (per chi passa i controlli base)' : '')));
+  if (sezioni.solo) {
+    const colonne = conSeguito.filter(x => x.da_solo).map(x => ({titolo: nome(x.docente), sotto: sotto(x),
+      controlli: x.da_solo.controlli, fermato_a: x.da_solo.fermato_a}));
+    parti.push(colonne.length ? tabellaOrizzontale(colonne, d)
+      : el('p', {class: 'tenue piccolo', testo: 'Nessun docente da provare da solo.'}));
+  }
   // la classe (lo slot), dopo i docenti
   parti.push(el('h4', {testo: 'Lo slot'}));
   parti.push(tabellaControlli([b.slot], b.slot.uscita ? -1 : 0, d));
@@ -472,12 +503,24 @@ function paginaTest(cfg) {
     try { localStorage.setItem('orario.filtroDocenti', sceltaFiltro.value); } catch (e) {}
     if (aperto) disegnaBacktrack(dettaglio, d, aperto, sceltaFiltro.value, raggiunto, apertoPrima, apertoPasso);
   });
-  const sceltaTutti = $('tutti-i-motivi');
-  try { tuttiIMotivi = sceltaTutti.checked = localStorage.getItem('orario.tuttiIMotivi') === '1'; } catch (e) {}
+  ridisegnaBacktrack = () => {
+    if (aperto) disegnaBacktrack(dettaglio, d, aperto, sceltaFiltro.value, raggiunto, apertoPrima, apertoPasso);
+  };
+  const sceltaTutti = $('tutti-i-motivi'), sceltaIncrementali = $('controlli-incrementali');
+  try {
+    tuttiIMotivi = sceltaTutti.checked = localStorage.getItem('orario.tuttiIMotivi') === '1';
+    controlliIncrementali = sceltaIncrementali.checked = localStorage.getItem('orario.incrementali') !== '0';
+    for (const k of Object.keys(sezioni)) sezioni[k] = localStorage.getItem('orario.sezione.' + k) !== '0';
+  } catch (e) {}
   sceltaTutti.addEventListener('change', () => {
     tuttiIMotivi = sceltaTutti.checked;
     try { localStorage.setItem('orario.tuttiIMotivi', tuttiIMotivi ? '1' : '0'); } catch (e) {}
-    if (aperto) disegnaBacktrack(dettaglio, d, aperto, sceltaFiltro.value, raggiunto, apertoPrima, apertoPasso);
+    ridisegnaBacktrack();
+  });
+  sceltaIncrementali.addEventListener('change', () => {
+    controlliIncrementali = sceltaIncrementali.checked;
+    try { localStorage.setItem('orario.incrementali', controlliIncrementali ? '1' : '0'); } catch (e) {}
+    ridisegnaBacktrack();
   });
 
   async function caricaDati() {
