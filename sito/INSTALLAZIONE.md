@@ -221,7 +221,7 @@ altrimenti il sito si ferma.
 1. **Dati della scuola**: inserire calendario, classi, docenti (con l'ora di ingresso) e lezioni (ore, codocente, ore in
    coppia), oppure importare i dati del programma. La pagina mostra gli avvisi sui limiti evidenti.
 2. **Test in tempo reale**, scegliere i dati: *dati della scuola*, *dati casuali* (seme, numero di classi, docenti in
-   ritardo: lo stesso generatore del solver precedente) o *da un file JSON* (esportato dai dati, o i dati di un test).
+   ritardo: stesso seme, stessi dati) o *da un file JSON* (esportato dai dati, o i dati di un test).
 3. **Ricerca**: tempo massimo (0 = senza limite), quanti orari trovare, quanti backtrack registrare per esteso (gli
    altri si contano soltanto).
 4. **Avvia**: la pagina del test mostra il progresso (nodi, backtrack, slot) e i backtrack man mano che arrivano.

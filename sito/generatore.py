@@ -1,13 +1,17 @@
-"""Dati di prova casuali, riproducibili da un seme: lo stesso generatore del solver precedente
-(data_initialization/generatore.c del ramo archiviato), portato qui nel sito, nello stesso ordine di estrazioni.
+"""Dati di prova casuali, riproducibili da un seme: stesso seme, stessi dati, su qualunque computer (i numeri casuali
+vengono da xorshift64*, non da random di Python).
 
-Il risultato e' nel formato di --input del solver (ingresso_uscita/dati_json.h): giorni, ore, lezioni nell'ordine in cui
-il generatore le registrava, e le ore di ingresso.
+Come si generano. Ogni classe ha da 30 a 36 ore, divise in lezioni da 1 a 6 ore; una parte delle lezioni (tra il 15% e
+il 60%, diversa a ogni tentativo) ha anche un codocente per alcune di quelle ore. Il numero di docenti si sceglie
+perche' in media abbiano tra 10 e 20 ore; ogni lezione va al meno carico fra tre docenti presi a caso. Se un docente
+resta con meno di 5 ore o ne avrebbe piu' di 24, o se mancano lezioni da soli o in coppia, si riprova da capo.
 
-Una differenza voluta: con i ritardi, il generatore del ramo toglieva i ritardi ai docenti che entravano piu' tardi
-finche' la sua verifica preliminare dichiarava possibile il caso. Quella verifica non e' un controllo del solver di main,
-quindi qui non c'e': i dati con ritardi di un seme possono avere qualche ritardo in piu' di prima (e a volte essere
-impossibili). I dati senza ritardi sono gli stessi.
+Con i ritardi, circa un docente su cinque entra alla seconda, terza o quarta ora, abbassata finche' le sue ore stanno
+ancora nelle ore che gli restano nella settimana. Nessun altro controllo: un caso con i ritardi puo' anche essere
+impossibile, e lo dice la ricerca. Con e senza ritardi i dati di un seme sono gli stessi, tranne le ore di ingresso.
+
+Il risultato e' nel formato di --input del solver (ingresso_uscita/dati_json.h): giorni, ore, lezioni e ore di
+ingresso. Cambiare questo file cambia i dati di ogni seme, e quindi i riferimenti dei test notturni.
 """
 from .nomi import NOMI
 
@@ -23,7 +27,7 @@ M64 = (1 << 64) - 1
 
 
 class _Casuale:
-    """xorshift64*: la stessa sequenza del C."""
+    """xorshift64*: la stessa sequenza di numeri su ogni computer."""
 
     def __init__(self, seme):
         self.s = (seme * 0x9E3779B97F4A7C15 + 0x1234567) & M64 or 1

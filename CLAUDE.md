@@ -71,7 +71,8 @@ esecuzioni fino allo stesso byte. Cancellare `orario.txt` dopo l'uso.
 - Le lezioni del sito sono le chiamate di `main`: il docente fa `ore` ore, di cui `ore_codocente` con il codocente
   (`set_classe_insegnante_ore_cod`). Verso il solver vanno nell'ordine di inserimento (`modello.per_main`): l'ordine
   delle chiamate decide gli indici dei docenti e quindi la coda.
-- I dati casuali vengono da `sito/generatore.py`, lo stesso generatore del solver precedente (xorshift64*).
+- I dati casuali vengono da `sito/generatore.py` (xorshift64*: stesso seme, stessi dati). I test notturni rigenerano i
+  casi dai semi: cambiare il generatore cambia i dati di ogni seme e quindi i riferimenti dei test.
 
 ## Raspberry
 
