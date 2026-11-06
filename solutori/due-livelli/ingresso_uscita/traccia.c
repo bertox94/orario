@@ -5,6 +5,7 @@
 #include "../../../priority_queue/prio_queue.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -46,6 +47,7 @@ void post_chiamata_ricorsiva_insieme(int base2d_ci, int base3d_goi, int cla, Que
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 long long int traccia_nodi = 0;
+long long int traccia_ferma_nodi = 0;
 int traccia_pos_max = 0;
 long long int traccia_backtrack_n = 0;
 int traccia_con_nodi = 0;
@@ -482,7 +484,24 @@ void traccia_orario_trovato(void) {
     fflush(t);
 }
 
+// Con --ferma-nodi N la ricerca si ferma qui, alla prima chiamata dopo N nodi: la ricerca la chiama ogni 65.536 nodi,
+// quindi si ferma al primo multiplo di 65.536 da N in poi. Sempre allo stesso nodo (non dipende dal tempo): per i test
+// notturni, che devono dare ogni volta gli stessi numeri. Fino a quel nodo la ricerca e' la stessa.
+static void ferma_per_limite(void) {
+    if (t) {
+        scrivi_nodi();
+        fprintf(t, "{\"tipo\":\"fine\",\"esito\":\"limite di nodi\",\"orari\":%lld,\"orari_massimi\":%lld,"
+                "\"nodi\":%lld,\"backtrack\":%lld,\"backtrack_registrati\":%lld,\"pos_max\":%d,\"secondi\":%.3f}\n",
+                n_gen, n_gen_max, traccia_nodi, traccia_backtrack_n, MIN(traccia_backtrack_n, max_registrati),
+                traccia_pos_max, (double) (clock() - inizio) / CLOCKS_PER_SEC);
+        fclose(t);
+    }
+    printf("Fermato dopo %lld nodi (--ferma-nodi)\n", traccia_nodi);
+    exit(0);
+}
+
 void traccia_progresso(const int pos) {
+    if (traccia_ferma_nodi > 0 && traccia_nodi >= traccia_ferma_nodi) ferma_per_limite();
     if (!con_progresso) return;
     const clock_t ora = clock();
     if ((double) (ora - ultimo_progresso) / CLOCKS_PER_SEC < 0.5) return;

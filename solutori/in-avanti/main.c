@@ -636,7 +636,7 @@ void print_orario(const int pos) {
     }
 }
 
-// Uso: solutore [--input FILE] [--traccia FILE] [-n N] [--txt FILE] [--max-backtrack N] [--max-nodi N] [--progresso]
+// Uso: solutore [--input FILE] [--traccia FILE] [-n N] [--txt FILE] [--max-backtrack N] [--max-nodi N] [--ferma-nodi N] [--progresso]
 //   senza opzioni: i dati di inizializza_dati() e gli orari in orario.txt
 //   --input FILE:       i dati da un file JSON (vedi ingresso_uscita/dati_json.h) invece che da inizializza_dati()
 //   --traccia FILE:     la traccia della ricerca per il sito, un JSON per riga (vedi ingresso_uscita/traccia.h)
@@ -644,6 +644,8 @@ void print_orario(const int pos) {
 //   --txt FILE:         dove scrivere orario.txt (con /dev/null non si scrive per niente: piu' veloce)
 //   --max-backtrack N:  quanti backtrack registrare per esteso nella traccia (gli altri si contano), default 1000
 //   --max-nodi N:       registra nella traccia anche i nodi della ricerca, al massimo N (default 0: nessuno)
+//   --ferma-nodi N:     ferma la ricerca dopo N nodi (al primo multiplo di 65.536), con esito "limite di nodi":
+//                       sempre allo stesso punto, per i test notturni
 //   --progresso:        ogni mezzo secondo una riga JSON di progresso su stderr
 int main(int argc, char **argv) {
     const char *file_input = NULL, *file_traccia = NULL, *file_txt = "orario.txt";
@@ -656,6 +658,7 @@ int main(int argc, char **argv) {
         else if (!strcmp(argv[i], "--txt") && i + 1 < argc) file_txt = argv[++i];
         else if (!strcmp(argv[i], "--max-backtrack") && i + 1 < argc) max_backtrack = atoll(argv[++i]);
         else if (!strcmp(argv[i], "--max-nodi") && i + 1 < argc) max_nodi = atoll(argv[++i]);
+        else if (!strcmp(argv[i], "--ferma-nodi") && i + 1 < argc) traccia_ferma_nodi = atoll(argv[++i]);
         else if (!strcmp(argv[i], "--progresso")) progresso = 1;
         else {
             fprintf(stderr, "Opzione sconosciuta: %s\n", argv[i]);

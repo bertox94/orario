@@ -24,6 +24,7 @@
 #include "../priority_queue/prio_queue.h"
 
 extern long long int traccia_nodi;        // nodi visitati (chiamate di print_orario)
+extern long long int traccia_ferma_nodi;  // --ferma-nodi: fermarsi dopo tanti nodi (0: mai)
 extern long long int traccia_backtrack_n; // backtrack incontrati
 extern int traccia_pos_max;               // la posizione piu' avanti raggiunta dalla ricerca
 extern int traccia_con_nodi;              // la ricerca chiama traccia_nodo (finche' non si supera un limite)
