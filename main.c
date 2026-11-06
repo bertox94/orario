@@ -223,7 +223,9 @@ int compare_queue_items(const void *a, const void *b) {
     // Sort by priority (descending: highest priority first)
     if (itemA->priority < itemB->priority) return 1;
     if (itemA->priority > itemB->priority) return -1;
-    return 0;
+    // a parita' di priorita' decide l'indice del docente (prima il piu' basso): senza, l'ordine dei pari lo sceglie
+    // qsort, che su Linux (glibc) e su macOS li mette in modo diverso, e la ricerca cambia da una macchina all'altra
+    return (itemA->teacher > itemB->teacher) - (itemA->teacher < itemB->teacher);
 }
 
 // Assuming you know the number of elements in the array, say 'n'
