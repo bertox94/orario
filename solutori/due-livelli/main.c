@@ -736,6 +736,7 @@ static void cerca_cella(const int s) {
     }
     // traccia: solo conteggio dei nodi e, ogni tanto, il progresso (non cambia la ricerca)
     if (!(++traccia_nodi & 0xFFFF)) traccia_progresso(s);
+    if (s > traccia_pos_max) traccia_pos_max = s;
     if (traccia_con_nodi) traccia_nodo(s);
 
     if (s == orario_len) {
