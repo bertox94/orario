@@ -75,18 +75,21 @@ def da_esecuzione(c, scuola_id, eid, ferma_nodi=None):
 
 
 def aggiungi(c, scuola_id, nome, solutore, caso, dati, opzioni):
-    """Aggiunge un test (se non c'e' gia' lo stesso: stessi dati, solver e opzioni). Ritorna True se e' nuovo."""
-    if presente(c, scuola_id, solutore, dati, opzioni):
-        return False
-    c.execute('insert into test_notturni (scuola_id, nome, solutore, caso, dati, opzioni) values (%s, %s, %s, %s, %s, %s)',
-              (scuola_id, nome, solutore, _json(caso), _json(dati), _json(opzioni)))
-    return True
+    """Aggiunge un test (se non c'e' gia' lo stesso: stessi dati, solver e opzioni). Ritorna (id, True se e' nuovo):
+    l'id e' quello del test che c'era gia', se c'era."""
+    gia = presente(c, scuola_id, solutore, dati, opzioni)
+    if gia:
+        return gia, False
+    r = c.execute('insert into test_notturni (scuola_id, nome, solutore, caso, dati, opzioni) '
+                  'values (%s, %s, %s, %s, %s, %s) returning id',
+                  (scuola_id, nome, solutore, _json(caso), _json(dati), _json(opzioni))).fetchone()
+    return r['id'], True
 
 
 def genera(c, scuola_id, semi, classi, ritardi, solutori, ferma_nodi, orari=1, casi_repository=False, ordini=(0,)):
     """I test di tutte le combinazioni (seme x classi x ritardi x ordine delle classi) per ogni solver, piu' (se
     chiesto) i casi di tests/casi. Ritorna (aggiunti, gia' presenti, [messaggi per i casi che il generatore non sa
-    fare])."""
+    fare], [id di tutti i test chiesti, nuovi e gia' presenti])."""
     opzioni = {'orari': orari, 'ferma_nodi': ferma_nodi}
     casi, problemi = [], []
     for seme in semi:
@@ -108,13 +111,16 @@ def genera(c, scuola_id, semi, classi, ritardi, solutori, ferma_nodi, orari=1, c
                 with open(os.path.join(CASI_DEL_REPOSITORY, f)) as fh:
                     casi.append(('tests/casi/' + f[:-5], {'tipo': 'file', 'nome': 'tests/casi/' + f}, json.load(fh)))
     aggiunti = gia = 0
+    ids = []
     for nome, caso, dati in casi:
         for s in solutori:
-            if aggiungi(c, scuola_id, nome, s, caso, dati, opzioni):
+            tid, nuovo = aggiungi(c, scuola_id, nome, s, caso, dati, opzioni)
+            ids.append(tid)
+            if nuovo:
                 aggiunti += 1
             else:
                 gia += 1
-    return aggiunti, gia, problemi
+    return aggiunti, gia, problemi, ids
 
 
 # ---- eseguire un test ----
