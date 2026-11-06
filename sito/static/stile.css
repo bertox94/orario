@@ -289,3 +289,6 @@ button.piccolo, .bottone.piccolo { padding: 2px 8px; font-size: 13px; }
 /* test notturni raggruppati per caso: una riga di titolo per ogni gruppo di classi */
 table.dati tr.sottotitolo th { background: var(--sfondo); text-align: left; font-size: 13px; padding-top: 8px; }
 table.tabella-casi td { white-space: nowrap; }
+
+/* nella soluzione di un gruppo le celle dopo quella del gruppo (non ancora decise) restano bianche */
+#soluzione-contenuto table.orario td.dopo { background: var(--superficie); }
