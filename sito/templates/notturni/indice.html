@@ -136,7 +136,7 @@
     sua pagina.</p>
   <div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
     <label title="un numero o un intervallo col trattino (1-6); più di uno separati da virgole">Semi <input name="semi" value="1-6" size="8"></label>
-    <label title="un numero o un intervallo col trattino (8-16), come i semi; più di uno separati da virgole">Classi <input name="classi" value="8, 12, 16" size="10"></label>
+    <label title="un numero o un intervallo col trattino (8-16), come i semi; più di uno separati da virgole">Classi <input name="classi" value="8-12" size="10"></label>
     <label title="un numero o un intervallo col trattino (0-3), come i semi. 0: le classi come le genera il seme; 1, 2...: le stesse classi in un altro ordine (dentro ogni ora la ricerca le decide in quell'ordine)">Ordine delle classi <input name="ordini" value="0" size="6"></label>
     <label>Docenti in ritardo <select name="ritardi">
       <option value="entrambi">senza e con</option><option value="senza">senza</option><option value="con">con</option>
@@ -154,7 +154,9 @@
   <p class="tenue piccolo">Con 50.000.000 di nodi un test che non finisce dura circa 40 secondi sul Mac (main fa circa un milione di nodi al
     secondo), di più sul Raspberry; i casi facili finiscono prima, con l'orario.</p>
   <p style="margin-bottom: 0"><label class="spunta" style="margin-bottom: 8px"><input type="checkbox" name="esegui" value="1" checked>
-      Eseguili subito (un giro adesso con questi test, anche quelli che c'erano già)</label>
+      Esegui solo questi test ora</label>
+    <span class="tenue piccolo">(i test appena generati e quelli uguali che c'erano già; per eseguire tutti i test
+      c'è «Esegui adesso tutti i test» in cima alla pagina)</span><br>
     <button>Genera</button></p>
 </form>
 
