@@ -1,0 +1,4 @@
+.DS_Store
+orario.txt
+cmake-build-*/
+__pycache__/
