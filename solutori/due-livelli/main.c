@@ -6,7 +6,8 @@
 #include "../../data_initialization/database_initializers.h"
 #include "../../printer/printer.h"
 #include "../../ingresso_uscita/dati_json.h"
-#include "ingresso_uscita/traccia.h"
+#include "../../ingresso_uscita/traccia.h"
+#include "../../ingresso_uscita/prova.h"
 #include "../../potature/potature.h"
 
 #define SCHEDULES_PER_GB 55000
@@ -89,67 +90,24 @@ int activities_for_this_class_and_hour(int pos, int gio, const int ora, const in
     return 1;
 }
 
-int sabato_esaurisci_priorita_subito_cod(int pos, int giorno, int ora, int base2d_ci, int prof1, int prof2) {
-    if (giorno == actual_giorni_settimana - 1 && ora > 0) {
-        int prev_prof1 = orario[pos - actual_classi_sezione].insegnante1;
-        int prev_prof2 = orario[pos - actual_classi_sezione].insegnante2;
+// La regola del sabato (come main): l'ultimo giorno, dalla seconda ora, chi c'era nell'ora prima e ha ancora ore in
+// questa classe deve esserci anche adesso. Da solo e' la stessa regola con prof2 = -1.
+static int ha_ancora_ore(const int base2d_ci, const int p) {
+    return p != -1 && ore_classi_docenti[base2d_ci + p] - ore_classi_docenti_svolte[base2d_ci + p] > 0;
+}
 
-        if (prev_prof1 != -1 && prev_prof2 != -1) {
-            if (ore_classi_docenti[base2d_ci + prev_prof1] - ore_classi_docenti_svolte[base2d_ci + prev_prof1] > 0
-                && ore_classi_docenti[base2d_ci + prev_prof2] - ore_classi_docenti_svolte[base2d_ci + prev_prof2] > 0) {
-                return prof1 == prev_prof1 && prof2 == prev_prof2
-                       || prof1 == prev_prof2 && prof2 == prev_prof1;
-            } else if (ore_classi_docenti[base2d_ci + prev_prof1] - ore_classi_docenti_svolte[base2d_ci + prev_prof1] >
-                       0) {
-                return prof1 == prev_prof1 || prof2 == prev_prof1;
-            } else if (ore_classi_docenti[base2d_ci + prev_prof2] - ore_classi_docenti_svolte[base2d_ci + prev_prof2] >
-                       0) {
-                return prof1 == prev_prof2 || prof2 == prev_prof2;
-            }
-        } else if (prev_prof1 != -1) {
-            if (ore_classi_docenti[base2d_ci + prev_prof1] - ore_classi_docenti_svolte[base2d_ci + prev_prof1] >
-                0) {
-                return prof1 == prev_prof1 || prof2 == prev_prof1;
-            }
-        } else if (prev_prof2 != -1) {
-            if (ore_classi_docenti[base2d_ci + prev_prof2] - ore_classi_docenti_svolte[base2d_ci + prev_prof2] >
-                0) {
-                return prof1 == prev_prof2 || prof2 == prev_prof2;
-            }
-        }
-    }
+int sabato_esaurisci_priorita_subito_cod(int pos, int giorno, int ora, int base2d_ci, int prof1, int prof2) {
+    if (giorno != actual_giorni_settimana - 1 || ora == 0) return 1;
+    const int prev1 = orario[pos - actual_classi_sezione].insegnante1, prev2 = orario[pos - actual_classi_sezione].insegnante2;
+    const int resta1 = ha_ancora_ore(base2d_ci, prev1), resta2 = ha_ancora_ore(base2d_ci, prev2);
+    if (resta1 && resta2) return (prof1 == prev1 && prof2 == prev2) || (prof1 == prev2 && prof2 == prev1);
+    if (resta1) return prof1 == prev1 || prof2 == prev1;
+    if (resta2) return prof1 == prev2 || prof2 == prev2;
     return 1;
 }
 
 int sabato_esaurisci_priorita_subito(int pos, int giorno, int ora, int base2d_ci, int prof) {
-    if (giorno == actual_giorni_settimana - 1 && ora > 0) {
-        int prev_prof1 = orario[pos - actual_classi_sezione].insegnante1;
-        int prev_prof2 = orario[pos - actual_classi_sezione].insegnante2;
-
-        if (prev_prof1 != -1 && prev_prof2 != -1) {
-            if (ore_classi_docenti[base2d_ci + prev_prof1] - ore_classi_docenti_svolte[base2d_ci + prev_prof1] > 0
-                && ore_classi_docenti[base2d_ci + prev_prof2] - ore_classi_docenti_svolte[base2d_ci + prev_prof2] > 0) {
-                return 0; // both docenti need to be there in this hour, so one will never complete the hours
-            } else if (ore_classi_docenti[base2d_ci + prev_prof1] - ore_classi_docenti_svolte[base2d_ci + prev_prof1] >
-                       0) {
-                return prof == prev_prof1;
-            } else if (ore_classi_docenti[base2d_ci + prev_prof2] - ore_classi_docenti_svolte[base2d_ci + prev_prof2] >
-                       0) {
-                return prof == prev_prof2;
-            }
-        } else if (prev_prof1 != -1) {
-            if (ore_classi_docenti[base2d_ci + prev_prof1] - ore_classi_docenti_svolte[base2d_ci + prev_prof1] >
-                0) {
-                return prof == prev_prof1;
-            }
-        } else if (prev_prof2 != -1) {
-            if (ore_classi_docenti[base2d_ci + prev_prof2] - ore_classi_docenti_svolte[base2d_ci + prev_prof2] >
-                0) {
-                return prof == prev_prof2;
-            }
-        }
-    }
-    return 1;
+    return sabato_esaurisci_priorita_subito_cod(pos, giorno, ora, base2d_ci, prof, -1);
 }
 
 // Comparison function for qsort
@@ -200,51 +158,37 @@ int docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(const int cla
     return get_ore_insegnanti_codocenza_svolte_in_una_classe(cla, p1, p2) < obiettivo_coppia(cla, p1, p2);
 }
 
+// mettere (verso +1) e togliere (-1) un docente dalla cella, come in main
+static void segna(const int base2d_ci, const int base3d_goi, QueueItem *it, const int giorno, const int cla,
+                  const int verso) {
+    it->priority -= verso;
+    prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = verso > 0;
+    ore_classi_docenti_svolte[base2d_ci + it->teacher] += verso;
+    ore_fatte_da_un_prof_in_una_classe_in_giorno[giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ +
+                                                 it->teacher] += verso;
+}
+
 void prep_chiamata_ricorsiva(const int base2d_ci, const int base3d_goi, QueueItem *it, int giorno, int cla, int prof) {
-    it->priority--;
-    prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 1;
-    ore_classi_docenti_svolte[base2d_ci + it->teacher]++;
+    segna(base2d_ci, base3d_goi, it, giorno, cla, +1);
     ore_classi_docenti_alone_svolte[base2d_ci + it->teacher]++;
-    ore_fatte_da_un_prof_in_una_classe_in_giorno[
-        giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + prof]++;
+}
+
+void post_chiamata_ricorsiva(const int base2d_ci, const int base3d_goi, QueueItem *it, int giorno, int cla, int prof) {
+    segna(base2d_ci, base3d_goi, it, giorno, cla, -1);
+    ore_classi_docenti_alone_svolte[base2d_ci + it->teacher]--;
 }
 
 void prep_chiamata_ricorsiva_insieme(const int base2d_ci, const int base3d_goi, const int cla, QueueItem *it,
                                      QueueItem *jt, int giorno) {
-    it->priority--;
-    prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 1;
-    ore_classi_docenti_svolte[base2d_ci + it->teacher]++;
-    ore_fatte_da_un_prof_in_una_classe_in_giorno[
-        giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + it->teacher]++;
-    jt->priority--;
-    prof_gia_impegnato_giorno_ora[base3d_goi + jt->teacher] = 1;
-    ore_classi_docenti_svolte[base2d_ci + jt->teacher]++;
-    ore_fatte_da_un_prof_in_una_classe_in_giorno[
-        giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + jt->teacher]++;
+    segna(base2d_ci, base3d_goi, it, giorno, cla, +1);
+    segna(base2d_ci, base3d_goi, jt, giorno, cla, +1);
     increment_ore_classi_codocenza_svolte(cla, it->teacher, jt->teacher);
-}
-
-void post_chiamata_ricorsiva(const int base2d_ci, const int base3d_goi, QueueItem *it, int giorno, int cla, int prof) {
-    it->priority++;
-    prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 0;
-    ore_classi_docenti_svolte[base2d_ci + it->teacher]--;
-    ore_classi_docenti_alone_svolte[base2d_ci + it->teacher]--;
-    ore_fatte_da_un_prof_in_una_classe_in_giorno[
-        giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + prof]--;
 }
 
 void post_chiamata_ricorsiva_insieme(const int base2d_ci, const int base3d_goi, const int cla, QueueItem *it,
                                      QueueItem *jt, int giorno) {
-    it->priority++;
-    prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = 0;
-    ore_classi_docenti_svolte[base2d_ci + it->teacher]--;
-    ore_fatte_da_un_prof_in_una_classe_in_giorno[
-        giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + it->teacher]--;
-    jt->priority++;
-    prof_gia_impegnato_giorno_ora[base3d_goi + jt->teacher] = 0;
-    ore_classi_docenti_svolte[base2d_ci + jt->teacher]--;
-    ore_fatte_da_un_prof_in_una_classe_in_giorno[
-        giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + jt->teacher]--;
+    segna(base2d_ci, base3d_goi, it, giorno, cla, -1);
+    segna(base2d_ci, base3d_goi, jt, giorno, cla, -1);
     decrement_ore_classi_codocenza_svolte(cla, it->teacher, jt->teacher);
 }
 
@@ -301,7 +245,8 @@ static int giorno_l1 = -1, dopo_l1;  // il giorno che si sta decidendo; quanti g
 #define NODI_PER_TENTATIVO 50000
 static long long nodi_tentativo[GIORNO_SETTIMANA_SZ];
 static int abbandona_giorno = -1;  // >= 0: si torna al livello 1 di questo giorno
-int ricerca_tagliata = 0;
+#define PASSI_L1_PER_NODO 100
+static long long passi_l1;  // i passi del livello 1 (scegli_voce)
 #define quota_voce quota_voce_g[giorno_l1]
 // per ogni giorno: le voci di ogni classe in ordine di urgenza, e la "pressione" di ogni docente (quanto e' stretto
 // rispetto ai giorni che restano: ore che gli restano / ore che puo' ancora fare, classi da incontrare / classi al
@@ -366,6 +311,11 @@ static void scegli_classe(int c);
 // la voce v della classe c, poi le successive; somma = ore di oggi della classe finora
 static void scegli_voce(const int c, const int v, const int somma) {
     if (n_gen_max <= n_gen || abbandona_giorno >= 0) return;
+    // anche il livello 1 conta nei nodi, un nodo ogni PASSI_L1_PER_NODO passi: cosi' --ferma-nodi ferma la ricerca
+    // anche qui (senza, un giorno le cui quote non vanno mai bene la teneva ferma al livello 1 per sempre). I passi del
+    // livello 1 costano molto meno di un nodo del livello 2 (sono milioni al secondo), percio' non uno per uno.
+    if (++passi_l1 % PASSI_L1_PER_NODO == 0 && ++traccia_nodi >= traccia_prossimo)
+        traccia_progresso(giorno_l1 * actual_ore_giornaliere * actual_classi_sezione);
     const int rem_c = ore_classi[c] - ore_classe_svolte[c];
     const int lo = MAX(PRIME_N_ORE_OBBLIGATORIE, rem_c - actual_ore_giornaliere * dopo_l1);
     const int hi = MIN(actual_ore_giornaliere, rem_c - PRIME_N_ORE_OBBLIGATORIE * dopo_l1);
@@ -627,7 +577,7 @@ static void cerca_cella(const int s) {
         const int g = g_giorno(cella_di[s]);
         if (++nodi_tentativo[g] > NODI_PER_TENTATIVO) {
             abbandona_giorno = g;
-            ricerca_tagliata = 1;
+            traccia_ricerca_incompleta = 1;
             return;
         }
     }
@@ -757,6 +707,31 @@ static void cerca_cella(const int s) {
     }
 }
 
+// ---- la traccia: la traccia della radice, con le quote del giorno al posto dei totali e il controllo in piu' ----
+
+// controllo_slot: le ore della quota di oggi che restano e gli slot obbligatori di oggi che mancano
+static void traccia_slot_del_giorno(const int giorno, const int ora, const int cla, int *ore_rimanenti, int *mancanti) {
+    *ore_rimanenti = obiettivo_classe[cla] - ore_classe_svolte[cla];
+    *mancanti = PRIME_N_ORE_OBBLIGATORIE - MIN(ora, PRIME_N_ORE_OBBLIGATORIE - 1);
+}
+
+// La giornata della classe resta possibile: con la coppia (o il docente da solo) nella cella per prova, a un docente
+// della classe manca lo spazio per le sue ore di oggi? Si calcola per tutti, anche dopo un controllo falso: la ricerca
+// in quel caso non ci arriva, ma la pagina lo mostra con «tutti i motivi».
+static int traccia_spazio(const int pos, const int giorno, const int ora, const int cla, const int base2d_ci,
+                          const int base3d_goi, QueueItem *it, QueueItem *jt, int *fermato_a, const int k) {
+    traccia_inizia_controllo("lascia_spazio_alle_ore_di_oggi_della_classe");
+    const int classe_prima = ore_classe_svolte[cla];
+    ore_classe_svolte[cla]++;  // come nella ricerca: la lezione di quest'ora e' gia' contata
+    const Prova x = metti_per_prova(pos, giorno, cla, base2d_ci, base3d_goi, it, jt);
+    const int p = docente_senza_spazio(giorno, cla, ora);
+    togli_prova(&x, pos, giorno, cla, base2d_ci, base3d_goi, it, jt);
+    ore_classe_svolte[cla] = classe_prima;
+    fprintf(traccia_file(), "\"docente_senza_spazio\":%d", p);
+    traccia_fine_controllo(p < 0, fermato_a, k);
+    return p < 0;
+}
+
 // Uso: ./untitled [--input FILE] [--traccia FILE] [-n N] [--txt FILE] [--max-backtrack N] [--max-nodi N] [--ferma-nodi N] [--progresso]
 //   senza opzioni: come sempre, i dati di inizializza_dati() e gli orari in orario.txt
 //   --input FILE:       i dati da un file JSON (vedi ingresso_uscita/dati_json.h) invece che da inizializza_dati()
@@ -812,7 +787,12 @@ int main(int argc, char **argv) {
     prepara_voci();
     prepara_ordine();
     prepara_potature(cella_di);
-
+    traccia_imposta_ordine(cella_di, indice_di);  // nella traccia "pos" e' il passo s, e i dati hanno "ordine"
+    traccia_ore_da_fare = obiettivo_tot;
+    traccia_ore_da_solo = obiettivo_solo;
+    traccia_ore_insieme = obiettivo_coppia;
+    traccia_slot = traccia_slot_del_giorno;
+    traccia_controllo_extra = traccia_spazio;
 
     traccia_dati();
     // con --txt /dev/null orario.txt non si scrive per niente (come in main): la ricerca e' la stessa, ma non perde

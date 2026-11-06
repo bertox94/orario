@@ -48,7 +48,10 @@ gcc -O2 -std=gnu11 -w main.c ../../data_initialization/database_initializers.c .
   controllo `lascia_spazio_alle_ore_di_oggi_della_classe` (le ore di un docente in una classe sono un blocco: chi ha
   cominciato deve continuare, chi non ha cominciato deve trovare spazio). Ogni tentativo di disporre un giorno ha un
   limite di nodi (`NODI_PER_TENTATIVO`): se è stato superato almeno una volta e non si trova niente, l'esito è «non
-  trovato» invece di «nessuna soluzione», perché non tutto è stato provato.
+  trovato» invece di «nessuna soluzione», perché non tutto è stato provato. I nodi (e quindi `--ferma-nodi`) contano
+  anche il livello 1, un nodo ogni 100 passi (sono milioni al secondo): prima un giorno senza quote possibili teneva
+  la ricerca ferma lì per sempre, senza arrivare al limite. La traccia è quella della radice, con le quote del giorno
+  al posto dei totali (`traccia_ore_da_fare`, `traccia_slot`...).
 
 - **`giorni-liberi`** (idea di Alb): la ricerca di `main` (stessi controlli, stessa coda, stesse potature) a giri.
   Quando la ricerca resta bloccata in un giorno, per esempio il sabato, si libera il primo giorno (il lunedì), si
