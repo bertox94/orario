@@ -53,7 +53,7 @@ def celle(dati):
 
 
 _ULTIME = '''
-    select t.id, t.nome, t.solutore, t.opzioni, t.attivo, t.riferimento, t.accettato, t.accettato_da,
+    select t.id, t.nome, t.solutore, t.caso, t.opzioni, t.attivo, t.riferimento, t.accettato, t.accettato_da,
            (select count(*) from esecuzioni_notturne x where x.test_id = t.id) as quante,
            n.id as nid, n.inizio, n.secondi, n.esito, n.nodi, n.backtrack, n.pos_max, n.orario, n.errore, n.confronto,
            n.differenze, n.giro_id
@@ -63,9 +63,63 @@ _ULTIME = '''
     order by t.attivo desc, t.nome, t.solutore, t.id'''
 
 
+# esiti di una ricerca che non e' arrivata a una conclusione: questi test si mettono da parte
+NON_TERMINATI = ('limite di nodi', 'fermato', 'interrotto', 'errore')
+
+
+def _chiave_caso(r):
+    """L'ordine dei casi nella tabella: i casi casuali per classi, seme, ritardi e ordine; poi gli altri per nome."""
+    k = r['caso'] or {}
+    if k.get('tipo') == 'casuale':
+        return (0, k.get('classi', 0), k.get('seme', 0), bool(k.get('ritardi')), k.get('percento_ritardi', 20),
+                k.get('ordine', 0), '')
+    return (1, 0, 0, False, 0, 0, r['nome'])
+
+
+def raggruppa(righe, ordine_solver):
+    """I test raggruppati per caso (stesso nome): una riga per caso, una colonna per solver. Ritorna (solver, casi con
+    almeno un test concluso, casi con almeno un test da parte, test disattivati, riepilogo per solver). Un test va da
+    parte se non e' arrivato a una conclusione (limite di nodi, fermato, interrotto, errore) o non ha ancora girato:
+    nella tabella dei conclusi la sua casella dice solo «da parte», e lui sta nella tabella dei test da parte."""
+    attivi = [r for r in righe if r['attivo']]
+    solver = [s for s in ordine_solver if any(r['solutore'] == s for r in attivi)]
+    solver += sorted({r['solutore'] for r in attivi} - set(solver))
+    casi = {}
+    for r in attivi:
+        c = casi.setdefault(r['nome'], {'nome': r['nome'], 'chiave': _chiave_caso(r), 'caso': r['caso'] or {},
+                                        'per_solver': {}})
+        c['per_solver'][r['solutore']] = r
+    casi = sorted(casi.values(), key=lambda c: c['chiave'])
+    aperto = lambda r: not r['esito'] or r['esito'] in NON_TERMINATI  # noqa: E731
+    for c in casi:
+        c['conclusi'] = {s: r for s, r in c['per_solver'].items() if not aperto(r)}
+        c['aperti'] = {s: r for s, r in c['per_solver'].items() if aperto(r)}
+    conclusi = [c for c in casi if c['conclusi']]
+    da_parte = [c for c in casi if c['aperti']]
+    riepilogo = []
+    for s in solver:
+        mie = [r for r in attivi if r['solutore'] == s]
+        conta = lambda f: sum(1 for r in mie if f(r))  # noqa: E731
+        riepilogo.append({
+            'solver': s, 'test': len(mie),
+            'trovato': conta(lambda r: r['esito'] == 'trovato'),
+            'nessuna': conta(lambda r: r['esito'] == 'nessuna soluzione'),
+            'errore_dati': conta(lambda r: r['esito'] == 'errore nei dati'),
+            'non_terminati': conta(lambda r: r['esito'] in NON_TERMINATI),
+            'mai': conta(lambda r: not r['esito']),
+            'diversi': conta(lambda r: r['confronto'] == 'diverso'),
+            'secondi': sum(r['secondi'] or 0 for r in mie),
+            # quanti casi risolve solo lui (tra quelli in cui c'e')
+            'solo_lui': sum(1 for c in casi if (c['per_solver'].get(s) or {}).get('esito') == 'trovato' and
+                            not any(t != s and r['esito'] == 'trovato' for t, r in c['per_solver'].items())),
+        })
+    return solver, conclusi, da_parte, [r for r in righe if not r['attivo']], riepilogo
+
+
 @bp.route('/')
 def indice():
     righe = conn().execute(_ULTIME, (g.scuola['id'],)).fetchall()
+    solver_colonne, conclusi, da_parte, disattivati, riepilogo = raggruppa(righe, list(solver.solutori()))
     totali = {t['id']: celle(t['dati']) for t in conn().execute(
         'select id, dati from test_notturni where scuola_id = %s', (g.scuola['id'],))}
     giri = conn().execute('''
@@ -79,6 +133,8 @@ def indice():
         where gi.scuola_id = %s group by gi.id order by gi.id desc limit 15''', (g.scuola['id'],)).fetchall()
     diversi = [r for r in righe if r['confronto'] == 'diverso']
     return render_template('notturni/indice.html', righe=righe, totali=totali, giri=giri, diversi=diversi,
+                           solver_colonne=solver_colonne, conclusi=conclusi, da_parte=da_parte,
+                           disattivati=disattivati, riepilogo=riepilogo,
                            in_corso=notturni.giro_in_corso(), test_in_corso=notturni.test_in_corso(),
                            ora=notturni.ora_impostata(conn()), nomi_campi=notturni.NOMI_CAMPI,
                            solutori=[(n, solver.DESCRIZIONI.get(n, n)) for n in solver.solutori()],
@@ -97,17 +153,21 @@ def genera():
     try:
         semi = _intervallo(f.get('semi', ''), 0, 10 ** 9)
         classi = _intervallo(f.get('classi', ''), 1, 120)
+        ordini = _intervallo(f.get('ordini', '') or '0', 0, 10 ** 6)
+        percento = int(f.get('percento_ritardi') or 20)
+        if not 0 <= percento <= 100:
+            raise ValueError(percento)
     except ValueError:
-        flash('Semi e classi: numeri o intervalli separati da virgole, per esempio «1-6» e «8, 12, 16» (classi da 1 a '
-              '120).', 'errore')
+        flash('Semi, classi e ordini delle classi: numeri o intervalli separati da virgole, per esempio «1-6», «8-16» e '
+              '«0-3» (classi da 1 a 120; ordine 0: come generato); docenti in ritardo: da 0 a 100%.', 'errore')
         return redirect(url_for('.indice'))
     ritardi = {'senza': [False], 'con': [True], 'entrambi': [False, True]}.get(f.get('ritardi'), [False])
     solutori = [s for s in solver.solutori() if s in f.getlist('solutore')]
     if not solutori:
         flash('Scegli almeno un solver.', 'errore')
         return redirect(url_for('.indice'))
-    if len(semi) * len(classi) * len(ritardi) * len(solutori) > 500:
-        flash('Troppi test in una volta (al massimo 500).', 'errore')
+    if len(semi) * len(classi) * len(ritardi) * len(ordini) * len(solutori) > 2000:
+        flash('Troppi test in una volta (al massimo 2.000).', 'errore')
         return redirect(url_for('.indice'))
     try:
         ferma_nodi = max(1, int(f.get('ferma_nodi') or notturni.FERMA_NODI))
@@ -116,7 +176,8 @@ def genera():
         flash('Limite di nodi e orari: numeri interi.', 'errore')
         return redirect(url_for('.indice'))
     aggiunti, gia, problemi = notturni.genera(conn(), g.scuola['id'], semi, classi, ritardi, solutori, ferma_nodi,
-                                              orari, casi_repository=bool(f.get('repository')))
+                                              orari, casi_repository=bool(f.get('repository')), ordini=ordini,
+                                              percento_ritardi=percento)
     flash('Test aggiunti: %d%s.' % (aggiunti, ' (%d c\'erano gia\')' % gia if gia else ''), 'ok')
     for p in problemi[:10]:
         flash('Non generato: %s' % p, 'errore')

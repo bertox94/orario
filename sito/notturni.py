@@ -47,8 +47,11 @@ def impronta_orario(orario):
 
 # ---- creare i test ----
 
-def nome_casuale(seme, classi, ritardi):
-    return 'seme %d, %d classi%s' % (seme, classi, ', ritardi' if ritardi else '')
+def nome_casuale(seme, classi, ritardi, ordine=0, percento_ritardi=20):
+    nome = 'seme %d, %d classi%s' % (seme, classi, ', ritardi' if ritardi else '')
+    if ritardi and percento_ritardi != 20:
+        nome += ' %d%%' % percento_ritardi
+    return nome + (', ordine %d' % ordine if ordine else '')
 
 
 def aggiungi(c, scuola_id, nome, solutore, caso, dati, opzioni):
@@ -62,21 +65,28 @@ def aggiungi(c, scuola_id, nome, solutore, caso, dati, opzioni):
     return True
 
 
-def genera(c, scuola_id, semi, classi, ritardi, solutori, ferma_nodi, orari=1, casi_repository=False):
-    """I test di tutte le combinazioni (seme x classi x ritardi) per ogni solver, piu' (se chiesto) i casi di
-    tests/casi. Ritorna (aggiunti, gia' presenti, [messaggi per i casi che il generatore non sa fare])."""
+def genera(c, scuola_id, semi, classi, ritardi, solutori, ferma_nodi, orari=1, casi_repository=False, ordini=(0,),
+           percento_ritardi=20):
+    """I test di tutte le combinazioni (seme x classi x ritardi x ordine delle classi) per ogni solver, piu' (se
+    chiesto) i casi di tests/casi. Ritorna (aggiunti, gia' presenti, [messaggi per i casi che il generatore non sa
+    fare])."""
     opzioni = {'orari': orari, 'ferma_nodi': ferma_nodi}
     casi, problemi = [], []
     for seme in semi:
         for n in classi:
             for r in ritardi:
                 try:
-                    dati = generatore.genera(seme, n, r)
+                    base = generatore.genera(seme, n, r, percento_ritardi)
                 except ValueError as ex:
-                    problemi.append('%s: %s' % (nome_casuale(seme, n, r), ex))
+                    problemi.append('%s: %s' % (nome_casuale(seme, n, r, 0, percento_ritardi), ex))
                     continue
-                casi.append((nome_casuale(seme, n, r), {'tipo': 'casuale', 'seme': seme, 'classi': n, 'ritardi': r},
-                             dati))
+                for k in ordini:
+                    caso = {'tipo': 'casuale', 'seme': seme, 'classi': n, 'ritardi': r}
+                    if k:
+                        caso['ordine'] = k
+                    if r and percento_ritardi != 20:
+                        caso['percento_ritardi'] = percento_ritardi
+                    casi.append((nome_casuale(seme, n, r, k, percento_ritardi), caso, generatore.riordina_classi(base, k)))
     if casi_repository and os.path.isdir(CASI_DEL_REPOSITORY):
         for f in sorted(os.listdir(CASI_DEL_REPOSITORY)):
             if f.endswith('.json'):

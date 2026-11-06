@@ -287,3 +287,7 @@ table.dati td.diverso { color: var(--male); font-weight: 700; }
 table.dati tr.spento td { opacity: .55; }
 table.dati tr.in-corso td { background: var(--accento-tenue); }
 button.piccolo, .bottone.piccolo { padding: 2px 8px; font-size: 13px; }
+
+/* test notturni raggruppati per caso: una riga di titolo per ogni gruppo di classi */
+table.dati tr.sottotitolo th { background: var(--sfondo); text-align: left; font-size: 13px; padding-top: 8px; }
+table.tabella-casi td { white-space: nowrap; }

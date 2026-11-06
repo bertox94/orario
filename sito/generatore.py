@@ -6,9 +6,14 @@ il 60%, diversa a ogni tentativo) ha anche un codocente per alcune di quelle ore
 perche' in media abbiano tra 10 e 20 ore; ogni lezione va al meno carico fra tre docenti presi a caso. Se un docente
 resta con meno di 5 ore o ne avrebbe piu' di 24, o se mancano lezioni da soli o in coppia, si riprova da capo.
 
-Con i ritardi, circa un docente su cinque entra alla seconda, terza o quarta ora, abbassata finche' le sue ore stanno
+Con i ritardi, piu' docenti possono entrare tardi: ognuno con probabilita' `percento_ritardi` (default 20: circa uno su
+cinque, di solito da 2 a 10 docenti per caso) entra alla seconda, terza o quarta ora, abbassata finche' le sue ore stanno
 ancora nelle ore che gli restano nella settimana. Nessun altro controllo: un caso con i ritardi puo' anche essere
 impossibile, e lo dice la ricerca. Con e senza ritardi i dati di un seme sono gli stessi, tranne le ore di ingresso.
+
+L'ordine delle classi (riordina_classi): le stesse classi e le stesse lezioni, con le classi in un altro ordine nei
+dati. Il solver numera le classi in quell'ordine, e dentro ogni ora le decide in quell'ordine (anche i docenti si
+numerano in ordine di comparsa, quindi cambia anche il loro ordine a parita' di priorita'). Ordine 0: come generato.
 
 Il risultato e' nel formato di --input del solver (ingresso_uscita/dati_json.h): giorni, ore, lezioni e ore di
 ingresso. Cambiare questo file cambia i dati di ogni seme, e quindi i riferimenti dei test notturni.
@@ -110,8 +115,9 @@ def _tenta(r, n_classi):
     return lezioni, carico
 
 
-def genera(seme, n_classi=8, ritardi=False):
-    """I dati di un caso casuale, nel formato di --input."""
+def genera(seme, n_classi=8, ritardi=False, percento_ritardi=20):
+    """I dati di un caso casuale, nel formato di --input. percento_ritardi: la probabilita' (0-100) che un docente entri
+    tardi (con ritardi)."""
     if not 1 <= n_classi <= 120:
         raise ValueError('classi: da 1 a 120')
     r = _Casuale(seme)
@@ -134,7 +140,7 @@ def genera(seme, n_classi=8, ritardi=False):
     ingressi = []
     if ritardi:
         for d in range(len(carico)):
-            if r.tra(1, 100) > 20:
+            if r.tra(1, 100) > percento_ritardi:
                 continue
             ingresso = r.tra(1, ORA_INGRESSO_MAX)
             while ingresso > 0 and carico[d] > (len(ORE) - ingresso) * len(GIORNI):
@@ -142,3 +148,21 @@ def genera(seme, n_classi=8, ritardi=False):
             if ingresso > 0:
                 ingressi.append({'docente': _nome_docente(d), 'ora': ingresso})
     return {'giorni': list(GIORNI), 'ore': list(ORE), 'lezioni': uscita, 'ingressi': ingressi}
+
+
+def riordina_classi(dati, ordine):
+    """Gli stessi dati con le classi in un altro ordine (ordine 0: invariati). Le lezioni di ogni classe restano nel loro
+    ordine; le classi si mescolano con una permutazione riproducibile dal numero dell'ordine."""
+    if not ordine:
+        return dati
+    classi = []
+    for l in dati['lezioni']:
+        if l['classe'] not in classi:
+            classi.append(l['classe'])
+    r = _Casuale(1000003 * ordine + 17)
+    for i in range(len(classi) - 1, 0, -1):  # Fisher-Yates
+        j = r.tra(0, i)
+        classi[i], classi[j] = classi[j], classi[i]
+    posto = {c: i for i, c in enumerate(classi)}
+    lezioni = sorted(dati['lezioni'], key=lambda l: posto[l['classe']])  # stabile: dentro la classe lo stesso ordine
+    return dict(dati, lezioni=lezioni)
