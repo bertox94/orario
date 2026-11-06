@@ -38,7 +38,7 @@
 </div>
 <div class="pagine-solver">
   {% for x in esecuzioni %}
-  <iframe data-eid="{{ x.id }}" src="{{ url_for('casi.caso', eid=x.id, incorporata=1) }}"
+  <iframe scrolling="no" data-eid="{{ x.id }}" src="{{ url_for('casi.caso', eid=x.id, incorporata=1) }}"
           class="{{ '' if x.id == scheda else 'nascosta' }}" title="{{ x.solutore }}"></iframe>
   {% endfor %}
 </div>
@@ -62,22 +62,35 @@
   }
   tab.forEach(t => t.addEventListener('click', () => {
     scegli(t.dataset.eid);
+    // se la pagina e' scesa sotto le tab, si torna all'inizio della pagina scelta
+    if (barra.getBoundingClientRect().top <= 0) contenitore.scrollIntoView({block: 'start'});
   }));
 
-  // ogni pagina occupa lo spazio che resta fino in fondo alla finestra e scorre dentro di se': la pagina esterna non
-  // scorre, quindi la barra laterale e' una sola (prima scorrevano tutte e due). Le misure in vh e le barre fisse della
-  // pagina del test funzionano come quando e' aperta da sola.
+  // Una barra laterale sola, quella della pagina: ogni pagina di solver e' alta quanto il suo contenuto e non scorre
+  // dentro di se'. Le sue misure in vh si calcolano sulla finestra vera (--vh-finestra, vedi stile.css): altrimenti un
+  // elenco alto il 40% della pagina incorporata crescerebbe con la pagina stessa.
   const barra = document.querySelector('.tab-solver');
   const contenitore = document.querySelector('.pagine-solver');
-  const adatta = () => {
-    const sopra = contenitore.getBoundingClientRect().top + scrollY;
-    const sotto = document.body.scrollHeight - sopra - contenitore.offsetHeight;  // margini sotto le pagine
-    const h = Math.max(300, innerHeight - sopra - Math.max(0, sotto));
-    pagine.forEach(f => { f.style.height = h + 'px'; });
+  const vh = () => pagine.forEach(f => f.contentDocument &&
+    f.contentDocument.documentElement.style.setProperty('--vh-finestra', innerHeight / 100 + 'px'));
+  const adatta = f => {
+    const d = f.contentDocument;
+    if (d && d.body) f.style.height = Math.ceil(d.body.getBoundingClientRect().height) + 'px';
   };
-  addEventListener('resize', adatta);
-  new ResizeObserver(adatta).observe(barra);  // le tab vanno a capo, cambia l'avanzamento...
-  adatta();
+  pagine.forEach(f => {
+    const pronta = () => {
+      vh();
+      adatta(f);
+      new f.contentWindow.ResizeObserver(() => adatta(f)).observe(f.contentDocument.body);
+    };
+    // il caricamento si ascolta sempre: prima della pagina vera l'iframe ha un documento vuoto (about:blank) gia' «completo»
+    f.addEventListener('load', pronta);
+    const d = f.contentDocument;
+    if (d && d.readyState === 'complete' && d.URL !== 'about:blank' && d.body) pronta();
+  });
+  addEventListener('resize', vh);
+  // anche ogni secondo: il ResizeObserver scatta solo quando la pagina si disegna (non in una scheda nascosta)
+  setInterval(() => pagine.forEach(adatta), 1000);
 
   // nelle tab: esito o avanzamento di ogni solver
   const inCorso = new Set();
