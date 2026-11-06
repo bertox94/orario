@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% from '_modulo_casi.html' import campi, scelta_solver %}
 {% block titolo %}Test in tempo reale{% endblock %}
 {% block contenuto %}
 <h1>Test in tempo reale</h1>
@@ -14,40 +15,45 @@
     <label class="spunta"><input type="radio" name="sorgente" value="file"> Da un file JSON
       <input type="file" name="file" accept=".json,application/json" style="font: inherit"></label>
   </div>
-  <div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; align-items: end;">
-    <label>Seme dei dati casuali <input type="number" name="seme" min="0" value="1"></label>
-    <label>Classi <input type="number" name="classi" min="1" max="120" value="8"></label>
-    <label class="spunta"><input type="checkbox" name="ritardi" value="1"> Docenti in ritardo</label>
-  </div>
+  <div style="margin-top: 10px">{{ campi(ferma_nodi, ferma_min=0) }}</div>
   <p class="tenue piccolo">Il seme decide <em>quale scuola inventare</em>: classi, docenti, lezioni e codocenze (stesso seme
-    = stessi dati). Il file JSON è un file esportato dai dati della scuola o i dati di un test: il test li usa senza
-    toccare quelli della scuola.</p>
+    = stessi dati). Semi, classi e ordine delle classi si scrivono come nei test notturni: un numero o un intervallo col
+    trattino («1-6»), anche più di uno separati da virgole. Con più combinazioni parte una <strong>serie</strong>: un
+    test per combinazione, uno dopo l'altro, ognuno con i suoi solver in parallelo. Il file JSON è un file esportato dai
+    dati della scuola o i dati di un test: il test li usa senza toccare quelli della scuola.</p>
 
   <h2>Ricerca</h2>
   <div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
-    <label>Orari da trovare <input type="number" name="orari" min="1" max="1000" value="1"></label>
     <label>Backtrack da registrare <input type="number" name="max_backtrack" min="0" max="100000" value="1000"></label>
-    <label>Fermati dopo nodi (0 = mai) <input type="number" name="ferma_nodi" min="0" value="{{ ferma_nodi }}"></label>
   </div>
   <p class="tenue piccolo">Il test non ha un limite di tempo: la ricerca si ferma dopo esattamente quel numero di
     nodi, sempre allo stesso punto su qualunque computer, oppure prima se trova gli
     orari o prova tutto; con 0 va avanti finché non la fermi col pulsante. Come nei <a href="{{ url_for('notturni.indice') }}">test
     notturni</a>, che si possono rifare qui con gli stessi numeri.</p>
-  {% if solutori|length > 1 %}
-  <p style="margin-bottom: 4px">Solver da <strong>non</strong> usare <span class="tenue piccolo">(gli altri girano
-    insieme, ognuno nella sua tab)</span>:</p>
-  <div class="riga" id="escludi-solver" style="display: flex; flex-direction: column; gap: 2px;">
-    {% for nome, descrizione in solutori %}
-    <label class="spunta"><input type="checkbox" name="escludi" value="{{ nome }}"> {{ descrizione }}</label>
-    {% endfor %}
+  <p style="margin-bottom: 4px">Solver <span class="tenue piccolo">(quelli spuntati girano insieme, ognuno nella sua
+    tab; la scelta si ricorda in questo browser)</span>:</p>
+  <div class="riga" id="scelta-solver" style="display: flex; flex-direction: column; gap: 2px;">
+    {{ scelta_solver(solutori) }}
   </div>
-  {% endif %}
   <p class="tenue piccolo">A ogni backtrack (uno slot in cui la ricerca non riesce a mettere nessun docente) il test
     registra l'orario fino a quel punto e, per ogni docente, i controlli della ricerca con i valori che leggono e il loro
     esito. Oltre il numero indicato i backtrack si contano soltanto (al massimo 100.000; ognuno occupa circa 2,5 kB nel
     database, quindi 100.000 backtrack sono circa 250 MB). I controlli sono quelli del solver attuale.</p>
   <p><button>Avvia</button></p>
 </form>
+
+{% if serie.attiva or serie.problemi %}
+<div class="avviso {{ 'errore' if serie.problemi and not serie.attiva else '' }}" id="serie">
+  {% if serie.attiva %}
+  <strong>Serie in corso</strong>: {{ serie.fatti }} test finiti su {{ serie.casi }}{% if serie.pid %},
+    in corso il <a href="{{ url_for('live.prova', pid=serie.pid) }}">test n. {{ serie.pid }}</a>{% endif %}.
+  <form method="post" action="{{ url_for('live.ferma_serie') }}" class="in-linea">
+    <input type="hidden" name="_gettone" value="{{ gettone }}"><button class="pericolo piccolo">Ferma la serie</button>
+  </form>
+  {% else %}<strong>Serie finita</strong>: {{ serie.fatti }} test su {{ serie.casi }}.{% endif %}
+  {% for p in serie.problemi[:10] %}<div class="piccolo">Non generato: {{ p }}</div>{% endfor %}
+</div>
+{% endif %}
 
 {% if da_verificare %}
 <h2>Test da verificare</h2>
@@ -131,15 +137,27 @@
 {% endblock %}
 {% block script %}
 <script>
-// i solver esclusi si ricordano (in questo browser) per il test dopo
+{% if serie.attiva %}
+// mentre una serie gira: la pagina si ricarica quando un test della serie finisce (e il successivo compare tra i recenti)
 (() => {
-  const caselle = document.querySelectorAll('#escludi-solver input');
+  let fatti = {{ serie.fatti }};
+  setInterval(async () => {
+    try {
+      const s = await (await fetch('{{ url_for('live.stato_serie') }}')).json();
+      if (s.fatti !== fatti || !s.attiva) location.reload();
+    } catch (e) {}
+  }, 3000);
+})();
+{% endif %}
+// i solver tolti (non spuntati) si ricordano in questo browser per il test dopo
+(() => {
+  const caselle = document.querySelectorAll('#scelta-solver input');
   let esclusi = [];
   try { esclusi = JSON.parse(localStorage.getItem('solver-esclusi') || '[]'); } catch (e) {}
   caselle.forEach(c => {
-    c.checked = esclusi.includes(c.value);
+    c.checked = !esclusi.includes(c.value);
     c.addEventListener('change', () => {
-      try { localStorage.setItem('solver-esclusi', JSON.stringify([...caselle].filter(x => x.checked).map(x => x.value))); }
+      try { localStorage.setItem('solver-esclusi', JSON.stringify([...caselle].filter(x => !x.checked).map(x => x.value))); }
       catch (e) {}
     });
   });

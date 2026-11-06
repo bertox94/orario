@@ -27,24 +27,6 @@ def _test(tid):
     return t
 
 
-def _intervallo(testo, minimo, massimo):
-    """Semi, classi e ordini delle classi, tutti allo stesso modo: numeri o intervalli col trattino, separati da virgole
-    o spazi. "1-6, 9" -> [1, 2, 3, 4, 5, 6, 9]; anche "1 - 6" e il trattino lungo (ValueError se non si legge)."""
-    valori = []
-    testo = re.sub(r'\s*[-–—]\s*', '-', testo.strip())
-    for parte in re.split(r'[,;\s]+', testo):
-        if not parte:
-            continue
-        a, trattino, b = parte.partition('-')
-        a, b = int(a), int(b if trattino else a)  # «8-» non si legge
-        if not minimo <= a <= b <= massimo:
-            raise ValueError(parte)
-        valori.extend(range(a, b + 1))
-    if not valori:
-        raise ValueError('vuoto')
-    return sorted(set(valori))
-
-
 def celle(dati):
     """Le celle della ricerca (giorni x ore x classi): la posizione massima si legge su questo totale."""
     try:
@@ -192,9 +174,9 @@ def stato():
 def genera():
     f = request.form
     try:
-        semi = _intervallo(f.get('semi', ''), 0, 10 ** 9)
-        classi = _intervallo(f.get('classi', ''), 1, 120)
-        ordini = _intervallo(f.get('ordini', '') or '0', 0, 10 ** 6)
+        semi = notturni.intervallo(f.get('semi', ''), 0, 10 ** 9)
+        classi = notturni.intervallo(f.get('classi', ''), 1, 120)
+        ordini = notturni.intervallo(f.get('ordini', '') or '0', 0, 10 ** 6)
     except ValueError:
         flash('Semi, classi e ordini delle classi: un numero o un intervallo col trattino, anche più di uno separati da '
               'virgole, per esempio «1-6», «8-16» e «0-3» (classi da 1 a 120; ordine 0: come generato).', 'errore')
