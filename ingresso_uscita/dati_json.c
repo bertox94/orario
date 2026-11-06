@@ -9,8 +9,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-void set_classe_insegnante_ore_cod(char cla[], char prof[], int ore, char cod[], int ore_cod);
-int p_classe_sezione(char cla[]);
 
 static int fallisci(char *errore, const size_t dimensione, const char *formato, ...) {
     va_list a;
