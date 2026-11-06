@@ -381,7 +381,7 @@ void print_orario(const int pos) {
         //if (verifica_ore_classe_materia()) { //not needed ? all hours should match
         n_gen++;
         //printf("%lld \n", n_gen);
-        print(orario, pos, n_gen, f);
+        if (f) print(orario, pos, n_gen, f);
         traccia_orario_trovato();
         //  }
         return;
@@ -463,9 +463,11 @@ void print_orario(const int pos) {
         }
         ore_classe_svolte[cla]--;
         if (!found_prof) {
-            fprintf(f, "Backtrack, non si è potuto scegiere alcun insegnante nel giorno: %s, ora: %s, classe: %s\n",
-                    giorni_settimana[giorno], ore_giornaliere[ora], classe_sezione[cla]);
-            print(orario, pos, n_gen, f);
+            if (f) {  // in orario.txt tutta la griglia: e' la parte piu' lenta, per questo con --txt /dev/null si salta
+                fprintf(f, "Backtrack, non si è potuto scegiere alcun insegnante nel giorno: %s, ora: %s, classe: %s\n",
+                        giorni_settimana[giorno], ore_giornaliere[ora], classe_sezione[cla]);
+                print(orario, pos, n_gen, f);
+            }
             traccia_backtrack(pos, giorno, ora, cla, base2d_ci, base3d_goi, base4d_queue,
                               ora_buca_possibile(giorno, ora, cla));
         }
@@ -488,7 +490,7 @@ void print_orario(const int pos) {
 //   --input FILE:       i dati da un file JSON (vedi ingresso_uscita/dati_json.h) invece che da inizializza_dati()
 //   --traccia FILE:     la traccia della ricerca per il sito, un JSON per riga (vedi ingresso_uscita/traccia.h)
 //   -n N:               quanti orari cercare al massimo (n_gen_max; senza: SCHEDULES_PER_GB / 5)
-//   --txt FILE:         dove scrivere orario.txt (per esempio /dev/null)
+//   --txt FILE:         dove scrivere orario.txt (con /dev/null non si scrive per niente: piu' veloce)
 //   --max-backtrack N:  quanti backtrack registrare per esteso nella traccia (gli altri si contano), default 1000
 //   --max-nodi N:       registra nella traccia anche i nodi della ricerca, al massimo N (default 0: nessuno)
 //   --progresso:        ogni mezzo secondo una riga JSON di progresso su stderr
@@ -561,7 +563,9 @@ int main(int argc, char **argv) {
 
 
     traccia_dati();
-    f = fopen(file_txt, "w");
+    // con --txt /dev/null orario.txt non si scrive per niente: la ricerca e' la stessa, ma non perde tempo a formattare
+    // la griglia a ogni backtrack (dal sito era quasi tutto il tempo)
+    f = strcmp(file_txt, "/dev/null") ? fopen(file_txt, "w") : NULL;
     //f = stdout;
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
     print_orario(0);
@@ -572,7 +576,7 @@ int main(int argc, char **argv) {
     fflush(stdout);
     traccia_fine(elapsed);
     traccia_chiudi();
-    fclose(f);
+    if (f) fclose(f);
 
     return 0;
 }
