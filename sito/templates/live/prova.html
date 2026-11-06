@@ -12,7 +12,8 @@
     <input type="hidden" name="_gettone" value="{{ gettone }}">
     <input type="hidden" name="sorgente" value="esecuzione"><input type="hidden" name="eid" value="{{ esecuzioni[0].id }}">
     {% for k, v in (p.opzioni or {}).items() if k not in ('caso', 'solutori') %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
-    {% if not (p.opzioni or {}).get('tempo') %}<input type="hidden" name="tempo" value="0">{% endif %}
+    {# un test senza limite (né di tempo né di nodi) si rifà senza limite #}
+    {% if not (p.opzioni or {}).get('ferma_nodi') and not (p.opzioni or {}).get('tempo') %}<input type="hidden" name="ferma_nodi" value="0">{% endif %}
     {% for x in esecuzioni %}<input type="hidden" name="solutore" value="{{ x.solutore }}">{% endfor %}
     <button class="secondario">Rifai il test con gli stessi dati e questi solver</button>
   </form>

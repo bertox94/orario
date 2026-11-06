@@ -45,11 +45,13 @@
     <form method="post" action="{{ url_for('live.avvia') }}" class="in-linea">
       <input type="hidden" name="_gettone" value="{{ gettone }}">
       <input type="hidden" name="sorgente" value="esecuzione"><input type="hidden" name="eid" value="{{ e.id }}">
-      {% for k, v in (e.opzioni or {}).items() %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+      {% for k, v in (e.opzioni or {}).items() if k != 'solutore' %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
       {# un test senza limite (né di tempo né di nodi) si rifà senza limite #}
       {% if not (e.opzioni or {}).get('ferma_nodi') and not (e.opzioni or {}).get('tempo') %}<input type="hidden" name="ferma_nodi" value="0">{% endif %}
-      {% if not (e.opzioni or {}).get('solutore') %}<input type="hidden" name="solutore" value="main">{% endif %}
-      <button class="secondario">Rifai il test con gli stessi dati</button>
+      {# senza «solutore»: tutti i solver insieme, una tab per ognuno; il secondo pulsante solo con questo #}
+      {% set questo = (e.opzioni or {}).get('solutore') or 'main' %}
+      <button class="secondario" title="Con tutti i solver, ognuno nella sua tab">Rifai il test con gli stessi dati</button>
+      <button class="secondario" name="solutore" value="{{ questo }}">Rifai solo con {{ questo }}</button>
     </form>
     <a class="bottone secondario" href="{{ url_for('casi.scarica_dati', eid=e.id) }}">Scarica i dati</a>
     <form method="post" action="{{ url_for('notturni.da_test', eid=e.id) }}" class="in-linea"
