@@ -60,8 +60,8 @@ int verifica_ore_classe_materia(void) {
         for (int t = 0; t < INSEGNANTE_SZ; t++) {
             if (ore_classi_docenti[idx_2d] != ore_classi_docenti_svolte[idx_2d]
             ) {
-                print(orario, orario_len, n_gen, f);
-                fprintf(f, "Wrong: Classe: %s, Teacher: %s %d but got %d\n\n",
+                if (f) print(orario, orario_len, n_gen, f);
+                if (f) fprintf(f, "Wrong: Classe: %s, Teacher: %s %d but got %d\n\n",
                         classe_sezione[c],
                         insegnanti[t],
                         ore_classi_docenti[idx_2d],
@@ -380,7 +380,7 @@ void print_orario(const int s) {
         //if (verifica_ore_classe_materia()) { //not needed ? all hours should match
         n_gen++;
         //printf("%lld \n", n_gen);
-        print(orario, orario_len, n_gen, f);
+        if (f) print(orario, orario_len, n_gen, f);
         traccia_orario_trovato();
         //  }
         return;
@@ -469,9 +469,9 @@ void print_orario(const int s) {
         }
         ore_classe_svolte[cla]--;
         if (!found_prof) {
-            fprintf(f, "Backtrack, non si è potuto scegiere alcun insegnante nel giorno: %s, ora: %s, classe: %s\n",
+            if (f) fprintf(f, "Backtrack, non si è potuto scegiere alcun insegnante nel giorno: %s, ora: %s, classe: %s\n",
                     giorni_settimana[giorno], ore_giornaliere[ora], classe_sezione[cla]);
-            print(orario, orario_len, n_gen, f);
+            if (f) print(orario, orario_len, n_gen, f);
             traccia_backtrack(s, giorno, ora, cla, base2d_ci, base3d_goi, base4d_queue,
                               ora_buca_possibile(giorno, ora, cla));
         }
@@ -569,7 +569,9 @@ int main(int argc, char **argv) {
 
 
     traccia_dati();
-    f = fopen(file_txt, "w");
+    // con --txt /dev/null orario.txt non si scrive per niente (come in main): la ricerca e' la stessa, ma non perde
+    // tempo a formattare la griglia a ogni backtrack (dal sito e' quasi tutto il tempo)
+    f = strcmp(file_txt, "/dev/null") ? fopen(file_txt, "w") : NULL;
     //f = stdout;
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
     print_orario(0);
@@ -580,7 +582,7 @@ int main(int argc, char **argv) {
     fflush(stdout);
     traccia_fine(elapsed);
     traccia_chiudi();
-    fclose(f);
+    if (f) fclose(f);
 
     return 0;
 }
