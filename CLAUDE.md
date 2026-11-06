@@ -27,7 +27,9 @@ codice del sito e messaggi di commit sono in italiano.
 - **Non cambiare come il solver calcola gli orari** (ricerca, ordine della coda, controlli) se Alb non lo chiede
   esplicitamente. Ingresso, uscita e traccia si possono toccare: non devono cambiare il percorso della ricerca.
 - I controlli sono solo quelli di `main`; gli altri (dall'archivio) si aggiungono **uno alla volta**, quando lei lo
-  chiede. Un controllo nuovo va anche nella traccia (`ingresso_uscita/traccia.c`), nello stesso ordine in cui la
+  chiede. Le due potature dell'archivio (ore dei docenti nel tempo rimasto, lezioni delle classi) sono in
+  `potature/`, uguale in `main` e in ogni solver di `solutori/`; nel commento di `potature.h` quando avvengono e
+  perché sono necessarie. Un controllo nuovo va anche nella traccia (`ingresso_uscita/traccia.c`), nello stesso ordine in cui la
   ricerca lo valuta, e nelle descrizioni della pagina (`sito/static/orario.js`, `descrizioneControllo`,
   `descriviIngressi`, `motivoBreve`).
 - Ogni modifica al solver: branch separato da `main`, PR su GitHub, merge in `main`, poi `git merge origin/main` nel
@@ -37,7 +39,7 @@ codice del sito e messaggi di commit sono in italiano.
 
 ```bash
 gcc -O2 -std=gnu11 -w main.c data_initialization/database_initializers.c printer/printer.c \
-    priority_queue/prio_queue.c ingresso_uscita/*.c -o /tmp/solver -lm
+    priority_queue/prio_queue.c ingresso_uscita/*.c potature/potature.c -o /tmp/solver -lm
 cd /tmp && rm -f orario.txt && /tmp/solver > /dev/null && grep -v '^Current time:' orario.txt | md5sum
 ```
 

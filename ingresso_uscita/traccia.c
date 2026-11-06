@@ -1,3 +1,4 @@
+#include "../potature/potature.h"
 #include "traccia.h"
 
 #include "../data_initialization/database_initializers.h"
@@ -404,6 +405,22 @@ void traccia_slot_chiuso(const int pos, const int giorno, const int ora, const i
     if (!registra()) return;
     testa_backtrack(pos, giorno, ora, cla, 0);
     controllo_slot(pos, giorno, ora, cla);
+    fprintf(t, ",\"docenti\":[],\"altri_docenti\":0,\"incoerente\":0,");
+    orario_fino_a(pos);
+    fprintf(t, "}\n");
+    fflush(t);
+}
+
+// Una potatura (vedi potature/potature.h) all'ingresso della cella pos: la scelta nella cella prima lascia un resto
+// impossibile. Nella traccia e' un backtrack in questa cella, con il controllo e i suoi numeri.
+void traccia_potatura(const int pos, const int giorno, const int ora, const int cla) {
+    if (!registra()) return;
+    testa_backtrack(pos, giorno, ora, cla, 0);
+    fprintf(t, "\"slot\":{\"nome\":\"%s\",\"ingressi\":{\"docente\":%d,\"classe\":%d,\"restano\":%d,"
+            "\"possibili\":%d,\"fino_ora\":%d,\"giorno\":%d,\"ora\":%d},\"uscita\":0}",
+            potatura.controllo == POTATURA_ORE_DOCENTI ? "ore_dei_docenti_stanno_nel_tempo" : "lezioni_della_classe_bastano",
+            potatura.docente, potatura.classe, potatura.restano, potatura.possibili, potatura.fino_ora,
+            potatura.giorno, potatura.ora);
     fprintf(t, ",\"docenti\":[],\"altri_docenti\":0,\"incoerente\":0,");
     orario_fino_a(pos);
     fprintf(t, "}\n");
