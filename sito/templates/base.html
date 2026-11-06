@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block titolo %}Orario{% endblock %} · Orario</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='stile.css') }}">
+  <link rel="icon" href="data:,">{# nessuna favicon: senza questa riga ogni pagina chiede /favicon.ico e prende un 404 #}
   <script>window.GETTONE = "{{ gettone }}";</script>
   {% set incorporata = request.args.get('incorporata') %}
   {% if incorporata %}<base target="_top">{% endif %}
