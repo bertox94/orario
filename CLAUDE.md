@@ -13,9 +13,9 @@ codice del sito e messaggi di commit sono in italiano.
 - **Il sito** (Flask + Postgres, cartella `sito/`, branch `sito/seconda-versione`): dati della scuola e test in tempo
   reale. A ogni backtrack la pagina del test mostra l'orario fino a quel punto e, per ogni docente, i controlli della
   ricerca con ingressi ed esito. Vedi `sito/INSTALLAZIONE.md`.
-- **I solver alternativi** (cartella `solutori/`, nel branch del sito): `per-classe`, `in-avanti`, `in-avanti-dopo`,
-  `due-livelli`, ognuno una copia completa e indipendente dei sorgenti con le sue modifiche, stessa riga di comando e
-  stessa traccia. Il sito li compila dalla loro cartella e li offre nel menu «Solver» del test. Vedi
+- **I solver alternativi** (cartella `solutori/`, nel branch del sito): `per-classe`, `in-avanti`, `due-livelli`,
+  ognuno una copia completa e indipendente dei sorgenti con le sue modifiche, stessa riga di comando e stessa traccia.
+  Il sito li compila dalla loro cartella e li offre come caselle nel modulo del test (girano insieme, una tab ciascuno). Vedi
   `solutori/LEGGIMI.md`. Le regole su «non cambiare come il solver calcola» valgono per `main`; i solver di
   `solutori/` sono esperimenti chiesti da Alb.
 - `bf_search/`: SQL di Alb, da non toccare senza chiedere.

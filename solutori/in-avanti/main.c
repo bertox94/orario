@@ -13,7 +13,6 @@
 #include "printer/printer.h"
 #include "ingresso_uscita/dati_json.h"
 #include "ingresso_uscita/traccia.h"
-#include "potature/potature.h"
 
 #define SCHEDULES_PER_GB 55000
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -208,15 +207,21 @@ void post_chiamata_ricorsiva_insieme(const int base2d_ci, const int base3d_goi, 
 }
 
 // ---- controllo in avanti (solo in questo solver) ----
-// Dopo ogni scelta (una coppia o un docente nella cella pos) si guarda se il resto e' ancora risolvibile, con due
-// controlli di fattibilita'. Sono condizioni necessarie: se dicono "no" e' impossibile e la scelta si scarta subito;
-// se dicono "si'" non e' garantito niente.
+// Dopo ogni scelta nella cella pos (una coppia, un docente, o l'ora buca) si guarda se il resto e' ancora risolvibile.
+// Sono condizioni necessarie: se dicono "no" e' impossibile e la scelta si scarta subito, senza scendere; se dicono
+// "si'" non e' garantito niente. Si fanno a ogni scelta perche' dipendono dallo stato, che cambia a ogni cella (e
+// costano poco: classi x docenti x ore). In ordine:
 //  1. le celle di oggi, una per una: ogni cella obbligatoria che resta oggi ha ancora almeno un docente possibile;
-//  2. le classi, una per una: il conteggio delle lezioni possibili basta per le ore da riempire, oggi e nei giorni che
-//     restano.
-// Si fanno a ogni scelta perche' dipendono dallo stato, che cambia a ogni cella riempita (e costano poco: classi x
-// voci x ore). La funzione da chiamare e' cella_bloccata_dopo_la_scelta(pos); la traccia la usa per il controllo
-// lascia_un_docente_alle_celle_di_oggi.
+//  2. le lezioni delle classi, classe per classe (per voce: un docente da solo o una coppia):
+//     a. fino a ogni ora obbligatoria bastano per le celle da riempire, oggi e in ognuno dei giorni che restano;
+//     b. fino all'ultima ora di ogni giorno bastano per tutte le ore che restano alla classe;
+//  3. le ore dei docenti (le potature del solver precedente):
+//     a. in ogni classe: le ore che restano al docente li' stanno in quelle che puo' ancora fare (oggi dopo l'ultima
+//        ora decisa, se il suo blocco non si e' chiuso; poi al massimo 3 al giorno dal suo ingresso);
+//     b. in tutto: stanno nelle ore libere che gli restano (oggi dove c'e' ancora una classe da decidere; poi tutte le
+//        ore dal suo ingresso).
+// La funzione da chiamare e' cella_bloccata_dopo_la_scelta(pos); la traccia la usa per il controllo
+// lascia_un_docente_alle_celle_di_oggi (motivo: cella, ore, ore_classe, ore_docente).
 
 // -- i dati che servono, preparati una volta: i docenti e le voci di ogni classe --
 // una voce e' una lezione che la classe deve fare: un docente da solo (q < 0) o una coppia (p < q)
@@ -248,6 +253,9 @@ static int ore_rimaste_voce(const int c, const int p, const int q) {
         ? ore_classi_docenti_alone[c * INSEGNANTE_SZ + p] - ore_classi_docenti_alone_svolte[c * INSEGNANTE_SZ + p]
         : get_ore_insegnanti_codocenza_in_una_classe(c, p, q) - get_ore_insegnanti_codocenza_svolte_in_una_classe(c, p, q);
 }
+
+// i numeri di un blocco 2b o 3: il docente (-1 per 2b), la classe (-1: in tutto), quante ore restano, quante possibili
+typedef struct { int docente, classe, restano, possibili; } Blocco;
 
 // -- lo stato di oggi dopo la scelta in pos --
 typedef struct {
@@ -324,8 +332,17 @@ static int cella_senza_docenti(const int pos, const Oggi *o) {
 // cui non bastano (oggi, o il giorno dopo), o -1.
 // Esempio (test 309): alla C07 restano Kakashi da solo e Hinata con Zoro, e Zoro entra alle 11: fino alle 10 di ogni
 // giorno che resta servono 3 lezioni e ci sono solo quelle di Kakashi.
+// 2b, fino all'ultima ora: oggi (se la classe non ha gia' avuto un'ora buca) le ore libere della voce da `da` in poi,
+// al massimo massimo_oggi; in ognuno dei giorni dopo al massimo 3 dal suo ingresso; in tutto le ore che le restano;
+// e non piu' delle celle (oggi da `da` alla fine, poi un giorno intero per giorno). Se non vale, motivo_blocco = 2.
+static int ultima_ora_non_basta;
+static Blocco blocco;
+
 static int conteggio_lezioni(const Oggi *o, const int c, const int da, const int dopo) {
     int solo_oggi[ORA_GIORNALIERA_SZ] = {0}, con_dopo[ORA_GIORNALIERA_SZ] = {0};  // lezioni possibili fino a ogni ora
+    const int O = actual_ore_giornaliere;
+    const int chiusa = n_ore_buche[o->giorno * CLASSE_SEZIONE_SZ + c] > 0;        // oggi ha gia' avuto un'ora buca
+    int tutto_oggi = 0, tutto_giorno = 0, tutto = 0;                               // 2b: fino all'ultima ora
     for (int v = 0; v < n_voci[c]; v++) {
         const int p = voce_p[c][v], q = voce_q[c][v];
         const int resto = ore_rimaste_voce(c, p, q);
@@ -343,16 +360,92 @@ static int conteggio_lezioni(const Oggi *o, const int c, const int da, const int
             solo_oggi[h] += MIN(resto, ore);
             con_dopo[h] += MIN(resto, ore + al_giorno * dopo);
         }
+        // 2b: fino all'ultima ora
+        int oggi = 0;
+        if (!chiusa && da < O) {
+            int m = massimo_oggi(o, c, p);
+            if (q >= 0) m = MIN(m, massimo_oggi(o, c, q));
+            for (int h = da; h < O && oggi < m; h++) oggi += libero(o, h, p) && (q < 0 || libero(o, h, q));
+        }
+        const int al_giorno = MIN(MAX_ORE_PROF_IN_UNA_CLASSE, MAX(0, O - entra));
+        tutto_oggi += MIN(resto, oggi);
+        tutto_giorno += MIN(resto, al_giorno);
+        tutto += MIN(resto, oggi + al_giorno * dopo);
     }
     for (int h = da; h < PRIME_N_ORE_OBBLIGATORIE; h++)
         if (solo_oggi[h] < h - da + 1) return cella(o->giorno, h, c);
     for (int h = 0; h < PRIME_N_ORE_OBBLIGATORIE; h++)
         if (con_dopo[h] < MAX(0, h - da + 1) + (h + 1) * dopo) return cella(o->giorno + (h >= da ? 0 : 1), h, c);
+    const int celle_oggi = chiusa ? 0 : MAX(0, O - da);
+    const int possibili = MIN(tutto, MIN(tutto_oggi, celle_oggi) + dopo * MIN(tutto_giorno, O));
+    const int restano = ore_classi[c] - ore_classe_svolte[c];
+    if (possibili < restano) {
+        ultima_ora_non_basta = 1;
+        blocco = (Blocco){-1, c, restano, possibili};
+        return cella(o->giorno, O - 1, c);
+    }
     return -1;
 }
 
+// -- 3. le ore dei docenti --
+// a. in ogni classe: oggi (dopo l'ultima ora decisa della classe, se non ha avuto un'ora buca) le ore in cui il docente
+// e' libero, al massimo massimo_oggi; poi al massimo 3 al giorno dal suo ingresso.
+// b. in tutto: oggi le ore in cui e' libero e c'e' ancora una classe da decidere (non chiusa da un'ora buca); poi tutte
+// le ore dal suo ingresso. Ritorna 1 se a un docente non basta il tempo (con i numeri in `blocco`), se no 0.
+static int docente_senza_tempo(const Oggi *o, const int dopo) {
+    const int O = actual_ore_giornaliere;
+    int aperta[ORA_GIORNALIERA_SZ] = {0};  // l'ora h di oggi ha ancora una cella da decidere in una classe aperta
+    for (int c = 0; c < actual_classi_sezione; c++) {
+        const int da = ultima_ora(o, c) + 1;
+        if (n_ore_buche[o->giorno * CLASSE_SEZIONE_SZ + c]) continue;
+        for (int h = da; h < O; h++) aperta[h] = 1;
+        for (int k = 0; k < n_docenti_di_classe[c]; k++) {  // a
+            const int p = docenti_di_classe[c][k];
+            const int restano = ore_rimaste(c * INSEGNANTE_SZ, p);
+            if (!restano) continue;
+            int oggi = 0;
+            for (int h = da, m = massimo_oggi(o, c, p); h < O && oggi < m; h++) oggi += libero(o, h, p);
+            const int possibili = oggi + dopo * MIN(MAX_ORE_PROF_IN_UNA_CLASSE, O - ora_di_entrata_prof[p]);
+            if (restano > possibili) {
+                blocco = (Blocco){p, c, restano, possibili};
+                return 1;
+            }
+        }
+    }
+    // (a vale anche per le classi chiuse oggi: li' oggi non si fa piu' niente)
+    for (int c = 0; c < actual_classi_sezione; c++) {
+        if (!n_ore_buche[o->giorno * CLASSE_SEZIONE_SZ + c]) continue;
+        for (int k = 0; k < n_docenti_di_classe[c]; k++) {
+            const int p = docenti_di_classe[c][k];
+            const int restano = ore_rimaste(c * INSEGNANTE_SZ, p);
+            const int possibili = dopo * MIN(MAX_ORE_PROF_IN_UNA_CLASSE, O - ora_di_entrata_prof[p]);
+            if (restano > possibili) {
+                blocco = (Blocco){p, c, restano, possibili};
+                return 1;
+            }
+        }
+    }
+    for (int p = 0; p < actual_insegnanti; p++) {  // b
+        int restano = 0;
+        for (int c = 0; c < actual_classi_sezione; c++) restano += ore_rimaste(c * INSEGNANTE_SZ, p);
+        if (!restano) continue;
+        int possibili = dopo * (O - ora_di_entrata_prof[p]);
+        for (int h = 0; h < O; h++) possibili += aperta[h] && libero(o, h, p);
+        if (restano > possibili) {
+            blocco = (Blocco){p, -1, restano, possibili};
+            return 1;
+        }
+    }
+    return 0;
+}
+
 // -- tutto insieme --
-int motivo_blocco = 0;  // perche' la scelta si scarta: 0 una cella senza docenti, 1 non bastano le lezioni
+// perche' la scelta si scarta: 0 una cella senza docenti (1), 1 non bastano le lezioni fino a un'ora obbligatoria (2a),
+// 2 non bastano per tutte le ore della classe (2b), 3 a un docente non basta il tempo (3); i numeri di 2b e 3 in blocco
+int motivo_blocco = 0;
+void numeri_blocco(int *docente, int *classe, int *restano, int *possibili) {  // per la traccia
+    *docente = blocco.docente; *classe = blocco.classe; *restano = blocco.restano; *possibili = blocco.possibili;
+}
 
 int cella_bloccata_dopo_la_scelta(const int pos) {
     static Oggi o;
@@ -360,10 +453,15 @@ int cella_bloccata_dopo_la_scelta(const int pos) {
     motivo_blocco = 0;
     int q = cella_senza_docenti(pos, &o);
     if (q >= 0) return q;
-    motivo_blocco = 1;
     const int dopo = actual_giorni_settimana - 1 - o.giorno;
+    ultima_ora_non_basta = 0;
     for (int c = 0; c < actual_classi_sezione && q < 0; c++) q = conteggio_lezioni(&o, c, ultima_ora(&o, c) + 1, dopo);
-    return q;
+    if (q >= 0) {
+        motivo_blocco = ultima_ora_non_basta ? 2 : 1;
+        return q;
+    }
+    motivo_blocco = 3;
+    return docente_senza_tempo(&o, dopo) ? MIN(pos + 1, orario_len - 1) : -1;
 }
 
 // ---- verifiche di fattibilita' (sui soli dati, prima della ricerca) ----
@@ -458,11 +556,6 @@ void print_orario(const int pos) {
         traccia_orario_trovato();
         return;
     }
-    // le potature (potature/potature.h): la scelta nella cella prima lascia un resto ancora possibile?
-    if (potatura_dopo(pos)) {
-        traccia_potatura(pos, g_giorno(pos), g_ora(pos), g_classe(pos));
-        return;
-    }
 
     const int giorno = g_giorno(pos), ora = g_ora(pos), cla = g_classe(pos);
     const int base2d_ci = cla * INSEGNANTE_SZ;                                         // classe, docente
@@ -535,7 +628,7 @@ void print_orario(const int pos) {
     if (ora_buca_possibile(giorno, ora, cla)) {
         orario[pos] = (teaching_slot){-1, -1};
         n_ore_buche[giorno * CLASSE_SEZIONE_SZ + cla]++;
-        print_orario(pos + 1);
+        if (cella_bloccata_dopo_la_scelta(pos) < 0) print_orario(pos + 1);  // controllo in avanti anche dopo l'ora buca
         n_ore_buche[giorno * CLASSE_SEZIONE_SZ + cla]--;
     }
 }
@@ -589,7 +682,6 @@ int main(int argc, char **argv) {
     stampa_dati();
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
     prepara_controllo_in_avanti();
-    prepara_potature(NULL);
 
     traccia_dati();
     {

@@ -111,8 +111,8 @@ function descrizioneControllo(nome, d) {
     sabato_esaurisci_priorita_subito_cod: "regola del sabato: chi c'era nell'ora prima e ha ancora ore deve restare (in coppia)",
     sabato_esaurisci_priorita_subito: "regola del sabato: chi c'era nell'ora prima e ha ancora ore deve restare",
     deve_svolgere_ancora_ora_in_questa_classe_senza_codocente: 'ha ancora ore da solo in questa classe',
-    lascia_un_docente_alle_celle_di_oggi: 'lascia un docente a ogni cella obbligatoria di oggi e abbastanza lezioni alle classi',
-    situazione_risolvibile: 'la scelta nella cella prima lascia un docente a ogni cella di oggi e abbastanza lezioni alle classi',
+    lascia_un_docente_alle_celle_di_oggi: 'lascia un docente a ogni cella obbligatoria di oggi, abbastanza lezioni alle classi e abbastanza tempo ai docenti',
+    situazione_risolvibile: 'la scelta nella cella prima lascia un docente a ogni cella di oggi, abbastanza lezioni alle classi e abbastanza tempo ai docenti',
     ore_dei_docenti_stanno_nel_tempo: 'dopo la scelta nella cella prima, le ore che restano a ogni docente stanno nel tempo che gli resta',
     lezioni_della_classe_bastano: 'dopo la scelta nella cella prima, le lezioni che restano alla classe bastano per le sue ore',
     lascia_spazio_alle_ore_di_oggi_della_classe: 'lascia spazio alle ore di oggi degli altri docenti della classe',
@@ -177,7 +177,15 @@ function descriviIngressi(nome, i, d) {
     case 'situazione_risolvibile':
     case 'lascia_un_docente_alle_celle_di_oggi':
       if (i.non_calcolato) return 'non calcolato: la ricerca si ferma prima';
-      if (i.cella_bloccata < 0) return 'nessuna cella di oggi resta senza docenti e le lezioni possibili bastano';
+      if (i.cella_bloccata < 0) return 'nessuna cella di oggi resta senza docenti, le lezioni possibili bastano e i docenti hanno tempo';
+      if (i.motivo === 'ore_classe')
+        return `${nomeClasse(d, i.classe_conto)}: restano ${i.restano} ore da fare, ma le lezioni possibili (oggi e nei ` +
+          `giorni dopo) sono al massimo ${i.possibili}`;
+      if (i.motivo === 'ore_docente')
+        return i.classe_conto >= 0
+          ? `a ${nomeDoc(d, i.docente)} restano ${i.restano} ore in ${nomeClasse(d, i.classe_conto)}, ma ne può fare ` +
+            `al massimo ${i.possibili} (oggi dopo l'ultima ora decisa, poi al massimo 3 al giorno dal suo ingresso)`
+          : `a ${nomeDoc(d, i.docente)} restano ${i.restano} ore in tutto, ma ha al massimo ${i.possibili} ore libere`;
       return (i.motivo === 'ore' ? 'non bastano le lezioni possibili fino a ' : 'resterebbe senza docenti: ') +
         `${d.giorni[i.giorno]} ${nomeOra(d, i.ora)} ${nomeClasse(d, i.classe)}`;
     case 'ore_dei_docenti_stanno_nel_tempo':

@@ -1,4 +1,3 @@
-#include "../potature/potature.h"
 #include "traccia.h"
 
 #include "../data_initialization/database_initializers.h"
@@ -28,7 +27,9 @@ int deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(int base2d_ci, int
 int ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(int pos, int giorno, int cla, int prof);
 int verifica_ora_ingresso(int prof, int ora);
 int cella_bloccata_dopo_la_scelta(int pos);
-extern int motivo_blocco;  // 0: una cella senza docenti possibili; 1: non bastano le lezioni possibili
+extern int motivo_blocco;  // 0 cella senza docenti, 1 lezioni fino a un'ora obbligatoria, 2 tutte le ore, 3 ore docente
+void numeri_blocco(int *docente, int *classe, int *restano, int *possibili);
+static const char *nome_motivo(const int m) { return m == 0 ? "cella" : m == 1 ? "ore" : m == 2 ? "ore_classe" : "ore_docente"; }
 int g_giorno(int p);
 void prep_chiamata_ricorsiva(int base2d_ci, int base3d_goi, QueueItem *it, int giorno, int cla, int prof);
 void prep_chiamata_ricorsiva_insieme(int base2d_ci, int base3d_goi, int cla, QueueItem *it, QueueItem *jt, int giorno);
@@ -384,8 +385,13 @@ static int c_avanti(const int pos, const int giorno, const int cla, const int ba
     const Prova s = metti_per_prova(pos, giorno, cla, base2d_ci, base3d_goi, it, jt);
     const int q = cella_bloccata_dopo_la_scelta(pos);
     togli_prova(&s, pos, giorno, cla, base2d_ci, base3d_goi, it, jt);
-    fprintf(t, "\"cella_bloccata\":%d,\"motivo\":\"%s\"", q, motivo_blocco ? "ore" : "cella");
+    fprintf(t, "\"cella_bloccata\":%d,\"motivo\":\"%s\"", q, nome_motivo(motivo_blocco));
     if (q >= 0) fprintf(t, ",\"giorno\":%d,\"ora\":%d,\"classe\":%d", g_giorno(q), g_ora(q), g_classe(q));
+    if (q >= 0 && motivo_blocco >= 2) {  // i numeri: docente (-1 per le ore della classe), classe (-1: in tutto)
+        int d, c, r, p;
+        numeri_blocco(&d, &c, &r, &p);
+        fprintf(t, ",\"docente\":%d,\"classe_conto\":%d,\"restano\":%d,\"possibili\":%d", d, c, r, p);
+    }
     fine_controllo(q < 0, fermato_a, k);
     return q < 0;
 }
@@ -487,22 +493,6 @@ void traccia_slot_chiuso(const int pos, const int giorno, const int ora, const i
     if (!registra()) return;
     testa_backtrack(pos, giorno, ora, cla, 0);
     controllo_slot(pos, giorno, ora, cla);
-    fprintf(t, ",\"docenti\":[],\"altri_docenti\":0,\"incoerente\":0,");
-    orario_fino_a(pos);
-    fprintf(t, "}\n");
-    fflush(t);
-}
-
-// Una potatura (vedi potature/potature.h) all'ingresso della cella pos: la scelta nella cella prima lascia un resto
-// impossibile. Nella traccia e' un backtrack in questa cella, con il controllo e i suoi numeri.
-void traccia_potatura(const int pos, const int giorno, const int ora, const int cla) {
-    if (!registra()) return;
-    testa_backtrack(pos, giorno, ora, cla, 0);
-    fprintf(t, "\"slot\":{\"nome\":\"%s\",\"ingressi\":{\"docente\":%d,\"classe\":%d,\"restano\":%d,"
-            "\"possibili\":%d,\"fino_ora\":%d,\"giorno\":%d,\"ora\":%d},\"uscita\":0}",
-            potatura.controllo == POTATURA_ORE_DOCENTI ? "ore_dei_docenti_stanno_nel_tempo" : "lezioni_della_classe_bastano",
-            potatura.docente, potatura.classe, potatura.restano, potatura.possibili, potatura.fino_ora,
-            potatura.giorno, potatura.ora);
     fprintf(t, ",\"docenti\":[],\"altri_docenti\":0,\"incoerente\":0,");
     orario_fino_a(pos);
     fprintf(t, "}\n");

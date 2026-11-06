@@ -14,7 +14,7 @@ gcc -O2 -std=gnu11 -w main.c data_initialization/database_initializers.c printer
     priority_queue/prio_queue.c ingresso_uscita/*.c -o /tmp/solver-in-avanti -lm
 ```
 
-## I quattro solver (oltre a main)
+## I tre solver (oltre a main)
 
 - **`per-classe`**: la ricerca di `main`, ma dentro ogni giorno riempie una classe alla volta (tutte le ore di C01,
   poi C02...) invece di un'ora alla volta. Le regole di una classe (ore contigue, massimo di ore, ingresso) si vedono
@@ -32,17 +32,16 @@ gcc -O2 -std=gnu11 -w main.c data_initialization/database_initializers.c printer
      al massimo le ore che le restano e 3 al giorno. Esempio (test 309, seme 5, 8 classi, ritardi): alla C07 restano
      Kakashi da solo e Hinata con Zoro, e Zoro entra alle 11; le ore 08–10 dei giorni che restano non hanno abbastanza
      lezioni possibili, e la scelta che porta lì si scarta subito.
+  3. fino all'ultima ora di ogni giorno le lezioni bastano per tutte le ore che restano alla classe;
+  4. le ore dei docenti (le potature del solver precedente): in ogni classe le ore che restano stanno in quelle che il
+     docente può ancora fare lì, e in tutto nelle ore libere che gli restano dal suo ingresso.
 
-  Se una delle due non va, la scelta si scarta subito. Nella traccia è un controllo in più, alla fine delle coppie e
-  del «da solo»: `lascia_un_docente_alle_celle_di_oggi` (con `motivo`: `cella` o `ore`). Sui dati di
+  Si controllano dopo ogni scelta, anche dopo un'ora buca. Se uno non va, la scelta si scarta subito. Nella traccia è
+  un controllo in più, alla fine delle coppie e del «da solo»: `lascia_un_docente_alle_celle_di_oggi` (con `motivo`:
+  `cella`, `ore`, `ore_classe` o `ore_docente`, e per gli ultimi due i numeri). Sui dati di
   `inizializza_dati()` l'orario è lo stesso di `main`.
   Con `--txt /dev/null` (come dal sito) `orario.txt` non si scrive per niente: la ricerca è la stessa, ma non formatta
   la griglia a ogni backtrack, che era quasi tutto il tempo (circa 14 volte più veloce).
-- **`in-avanti-dopo`**: gli stessi controlli in avanti di `in-avanti`, ma fatti all'ingresso della cella dopo la
-  scelta invece che prima di scendere: il ciclo dei candidati è quello di `main`, riga per riga, e all'inizio di
-  `print_orario` c'è un controllo in più (se la scelta nella cella prima rende il resto impossibile, si torna indietro).
-  Ha anche le stesse verifiche di fattibilità sui dati, prima della ricerca. Trova gli stessi orari di `in-avanti`; ogni scelta scartata è un nodo in più, e nella traccia un backtrack nella
-  cella dopo, con il controllo `situazione_risolvibile` (la cella che non si può riempire e il motivo).
 - **`due-livelli`**: livello 1, all'inizio di ogni giorno, le quote del giorno (quante ore fa oggi ogni docente in
   ogni classe, da solo e in ogni coppia), con i vincoli che si vedono senza l'orario delle ore e guardando che i giorni
   dopo restino fattibili; livello 2, l'orario del giorno con la ricerca di `main` (una classe alla volta) e i controlli
@@ -55,7 +54,8 @@ gcc -O2 -std=gnu11 -w main.c data_initialization/database_initializers.c printer
 ## Le potature (in tutti i solver)
 
 Le due potature del solver precedente (`archivio/2026-11-04`, `ricerca/vincoli.c`) sono in `potature/`, lo stesso
-file in `main` e in ogni cartella. Sono condizioni necessarie: scartano solo rami senza soluzioni, quindi il primo orario
+file in `main`, `per-classe` e `due-livelli`. In `in-avanti` invece sono dentro il suo controllo in avanti (vedi sopra),
+insieme al conteggio delle lezioni, che fa gia' il lavoro della potatura sulle lezioni. Sono condizioni necessarie: scartano solo rami senza soluzioni, quindi il primo orario
 trovato non cambia; cambia quanto presto la ricerca torna indietro. Si controllano all'ingresso della cella dopo una
 scelta:
 
