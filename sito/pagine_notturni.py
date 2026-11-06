@@ -20,6 +20,12 @@ def _config():
     return current_app.config['SITO']
 
 
+def _torna(predefinito='.indice'):
+    """Dopo un modulo: alla pagina indicata in «poi» (solo un indirizzo di questo sito), se no a quella predefinita."""
+    poi = request.form.get('poi', '')
+    return redirect(poi if poi.startswith('/') and not poi.startswith('//') else url_for(predefinito))
+
+
 def _test(tid):
     t = conn().execute('select * from test_notturni where id = %s and scuola_id = %s', (tid, g.scuola['id'])).fetchone()
     if not t:
@@ -142,8 +148,6 @@ def indice():
     righe = conn().execute(_ULTIME, (g.scuola['id'],)).fetchall()
     per = request.args.get('per') if request.args.get('per') in RAGGRUPPAMENTI else 'seme'
     solver_colonne, conclusi, da_parte, disattivati, riepilogo = raggruppa(righe, list(solver.solutori()), per)
-    totali = {t['id']: celle(t['dati']) for t in conn().execute(
-        'select id, dati from test_notturni where scuola_id = %s', (g.scuola['id'],))}
     giri = conn().execute('''
         select gi.*, count(n.id) as quanti,
                count(*) filter (where n.confronto in ('diverso', 'accettato')) as diversi,
@@ -154,7 +158,7 @@ def indice():
         from giri_notturni gi left join esecuzioni_notturne n on n.giro_id = gi.id
         where gi.scuola_id = %s group by gi.id order by gi.id desc limit 15''', (g.scuola['id'],)).fetchall()
     diversi = [r for r in righe if r['confronto'] == 'diverso']
-    return render_template('notturni/indice.html', righe=righe, totali=totali, giri=giri, diversi=diversi,
+    return render_template('notturni/indice.html', righe=righe, giri=giri, diversi=diversi,
                            solver_colonne=solver_colonne, conclusi=conclusi, da_parte=da_parte,
                            disattivati=disattivati, riepilogo=riepilogo, per=per,
                            raggruppamenti=list(RAGGRUPPAMENTI),
@@ -238,8 +242,7 @@ def _aggiungi_esecuzioni(eids):
     else:
         flash(' '.join(x for x in ('Aggiunti ai test notturni: %d.' % nuovi if nuovi else '',
                                    '%d c\'era%s già.' % (gia, '' if gia == 1 else 'no') if gia else '') if x), 'ok')
-    poi = request.form.get('poi', '')
-    return redirect(poi if poi.startswith('/') and not poi.startswith('//') else url_for('.indice'))
+    return _torna()
 
 
 @bp.route('/da-test/<int:eid>', methods=['POST'])
@@ -266,8 +269,7 @@ def esegui():
     elif request.form.get('diversi'):
         soli = [r['id'] for r in conn().execute(_ULTIME, (g.scuola['id'],)) if r['confronto'] == 'diverso']
     _avvia(soli)
-    poi = request.form.get('poi', '')
-    return redirect(poi if poi.startswith('/') and not poi.startswith('//') else url_for('.indice'))
+    return _torna()
 
 
 @bp.route('/ferma', methods=['POST'])
@@ -285,7 +287,7 @@ def accetta(nid):
     notturni.accetta(conn(), nid, g.utente['nome'])
     if request.headers.get('X-Gettone'):
         return jsonify({'ok': True})
-    return redirect(request.form.get('poi') or url_for('.indice'))
+    return _torna()
 
 
 @bp.route('/accetta-tutti', methods=['POST'])
@@ -350,7 +352,7 @@ def attivo(tid):
     t = _test(tid)
     conn().execute('update test_notturni set attivo = not attivo where id = %s', (tid,))
     flash('Test %s.' % ('disattivato: non si esegue piu\'' if t['attivo'] else 'riattivato'), 'ok')
-    return redirect(request.form.get('poi') or url_for('.indice'))
+    return _torna()
 
 
 @bp.route('/<int:tid>/elimina', methods=['POST'])

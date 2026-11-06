@@ -8,14 +8,7 @@
 // Le celle di una classe si decidono sempre in ordine di tempo, quindi prima di quella cella e' tutto deciso e da li' in
 // poi niente.
 
-extern teaching_slot orario[];
-extern int orario_len;
-int g_giorno(int pos);
-int g_ora(int pos);
-int g_classe(int pos);
-
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#include "../controlli/controlli.h"
 
 #define N_CELLE (GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ)
 static int rango[N_CELLE];      // a quale passo della ricerca si decide ogni cella

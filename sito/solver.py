@@ -132,19 +132,11 @@ DATI, TRACCIA, USCITA = 'dati.json', 'traccia.jsonl', 'uscita.txt'
 MAX_NODI = 1000000
 
 
-def supporta_nodi(nome='main'):
-    """Il solver sa registrare i nodi (--max-nodi)? Si guarda nei sorgenti, che sono quelli che il sito compila."""
-    try:
-        return '--max-nodi' in open(os.path.join(cartella(nome), 'main.c')).read()
-    except (OSError, ValueError):
-        return False
-
-
 def argomenti(opzioni):
     """La riga di comando (senza l'eseguibile). I file stanno nella cartella dell'esecuzione."""
     return ['--input', DATI, '--traccia', TRACCIA, '-n', str(opzioni.get('orari', 1)),
             '--max-backtrack', str(opzioni.get('max_backtrack', 1000)), '--txt', os.devnull, '--progresso'] + \
-        (['--max-nodi', str(opzioni.get('max_nodi', MAX_NODI))] if supporta_nodi(opzioni.get('solutore')) else []) + \
+        ['--max-nodi', str(opzioni.get('max_nodi', MAX_NODI))] + \
         (['--ferma-nodi', str(opzioni['ferma_nodi'])] if opzioni.get('ferma_nodi') else [])
 
 

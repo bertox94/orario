@@ -7,14 +7,7 @@
 
 // Il controllo in avanti e la verifica dei dati: vedi controllo_in_avanti.h.
 
-extern teaching_slot orario[];
-extern int orario_len;
-int g_giorno(int pos);
-int g_ora(int pos);
-int g_classe(int pos);
-
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#include "../controlli/controlli.h"
 
 // ---- l'ordine della ricerca ----
 static const int *cella_al_passo, *passo_della_cella;     // NULL: la cella s al passo s

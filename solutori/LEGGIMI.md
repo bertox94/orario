@@ -1,7 +1,12 @@
 # Solver alternativi
 
 Ogni cartella ha solo la sua ricerca (`main.c`) e, se serve, la sua parte di traccia; data layer, stampa, JSON, coda,
-costanti, potature e traccia sono i file della radice (`../../` nel suo `CMakeLists.txt`). Tutti accettano la stessa
+costanti, potature e traccia sono i file della radice (`../../` nel suo `CMakeLists.txt`). Lo stato della ricerca e i
+controlli uguali a `main` (sul docente, sulla coppia, mettere e togliere un docente, la coda) sono in
+`controlli/comuni.h`, incluso dal `main.c` di `main`, `per-classe`, `giorni-liberi` e `ordini-classi`: nel `main.c` di un
+solver restano solo i controlli che cambiano con l'ordine delle celle o con i giri. `controlli/controlli.h` dichiara le
+funzioni che la traccia, le potature e il controllo in avanti chiamano per nome. `in-avanti` ha uno stato suo e non usa
+`comuni.h`. Tutti accettano la stessa
 riga di comando di `main` (`--input`, `--traccia`, `-n`, `--txt`, `--max-backtrack`, `--max-nodi`, `--ferma-nodi`,
 `--progresso`) e scrivono la stessa traccia, quindi il sito li usa senza cambiare: nel modulo del test ci sono le
 caselle dei solver da non usare: gli altri girano insieme, ognuno nella sua tab. Il sito li compila dai `.c` del loro

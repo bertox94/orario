@@ -123,7 +123,9 @@ def dati_da_file_caricato(config, f):
 
 class _Registro:
     """Riceve la traccia del solver mentre arriva e la scrive nel database: i backtrack a gruppi (al massimo ogni
-    mezzo secondo), i dati subito (la pagina li usa per i nomi)."""
+    mezzo secondo), i dati subito (la pagina li usa per i nomi). Una connessione sola per tutta l'esecuzione (aprirne
+    una a ogni gruppo costava piu' dell'inserimento, soprattutto dal Raspberry, con il database sul Mac), chiusa da
+    chiudi()."""
 
     def __init__(self, url, eid):
         self.url, self.eid = url, eid
@@ -131,17 +133,36 @@ class _Registro:
         self.attesa_nodi = []
         self.ultimo = time.time()
         self.lock = threading.Lock()
+        self._lock_db = threading.Lock()
+        self._c = None
         self.dati = None
         self.orari = []
         self.backtrack = 0
+
+    def _scrivi(self, f):
+        """f(cursore) nella connessione dell'esecuzione, poi commit (la connessione si apre la prima volta)."""
+        with self._lock_db:
+            if self._c is None or self._c.closed:
+                self._c = db.connetti(self.url)
+            try:
+                with self._c.cursor() as cur:
+                    f(cur)
+                self._c.commit()
+            except Exception:
+                self._c.close()  # la prossima volta se ne apre una nuova
+                raise
+
+    def chiudi(self):
+        with self._lock_db:
+            if self._c is not None:
+                self._c.close()
 
     def ricevi(self, x):
         tipo = x.get('tipo')
         if tipo == 'dati':
             self.dati = x
-            with db.connetti(self.url) as c:
-                c.execute('update esecuzioni set risultato = %s where id = %s', (_json({'dati': x}), self.eid))
-                c.commit()
+            self._scrivi(lambda cur: cur.execute('update esecuzioni set risultato = %s where id = %s',
+                                                 (_json({'dati': x}), self.eid)))
         elif tipo == 'backtrack':
             with self.lock:
                 self.attesa.append(x)
@@ -163,16 +184,19 @@ class _Registro:
             self.ultimo = time.time()
         if not righe and not nodi:
             return
-        with db.connetti(self.url) as c:
-            for x in nodi:
-                c.execute('insert into nodi (esecuzione_id, da, quanti, passi) values (%s, %s, %s, %s) '
-                          'on conflict do nothing', (self.eid, x['da'], len(x['passi']), _json(x['passi'])))
-            for x in righe:
-                c.execute('insert into backtrack (esecuzione_id, n, nodo, pos, giorno, ora, classe, buca_dopo, '
-                          'riassunto, record) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) on conflict do nothing',
-                          (self.eid, x['n'], x['nodo'], x['pos'], x['giorno'], x['ora'], x['classe'],
-                           bool(x['buca_dopo']), _json(riassunto_backtrack(x)), _json(x)))
-            c.commit()
+
+        def inserisci(cur):  # tutte le righe del gruppo insieme (executemany: meno andate e ritorni col database)
+            if nodi:
+                cur.executemany('insert into nodi (esecuzione_id, da, quanti, passi) values (%s, %s, %s, %s) '
+                                'on conflict do nothing',
+                                [(self.eid, x['da'], len(x['passi']), _json(x['passi'])) for x in nodi])
+            if righe:
+                cur.executemany('insert into backtrack (esecuzione_id, n, nodo, pos, giorno, ora, classe, buca_dopo, '
+                                'riassunto, record) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) '
+                                'on conflict do nothing',
+                                [(self.eid, x['n'], x['nodo'], x['pos'], x['giorno'], x['ora'], x['classe'],
+                                  bool(x['buca_dopo']), _json(riassunto_backtrack(x)), _json(x)) for x in righe])
+        self._scrivi(inserisci)
 
 
 def riassunto_backtrack(x):
@@ -282,6 +306,7 @@ def _esegui(config, pid, eid, nome, dati, opzioni, pronto):
             c.execute(_FINE_PROVA, ('errore', _json({'esito': 'errore'}), str(ex), pid, pid))
             c.commit()
     finally:
+        registro.chiudi()
         pronto.set()
         shutil.rmtree(cartella, ignore_errors=True)
 

@@ -15,18 +15,7 @@
 #include "../../ingresso_uscita/traccia.h"
 #include "../../potature/potature.h"
 #include "../../controllo_in_avanti/controllo_in_avanti.h"
-
-#define SCHEDULES_PER_GB 55000  // orari completi per GB di orario.txt; senza -n se ne cercano un quinto (circa 200 MB)
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-
-long long int n_gen = 0;                        // orari completi trovati
-long long int n_gen_max = SCHEDULES_PER_GB / 5; // quanti cercarne al massimo (-n)
-// l'orario: una cella per (giorno, ora, classe), con i due docenti (-1: nessuno)
-teaching_slot orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
-    [0 ... GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1] = (teaching_slot){-1, -1}
-};
-int orario_len;  // quante celle ha l'orario (giorni x ore x classi)
-FILE *f;         // orario.txt (NULL con --txt /dev/null)
+#include "../../controlli/comuni.h"  // lo stato e i controlli comuni (con le definizioni)
 
 // ---- l'ordine delle celle: dentro il giorno una classe alla volta ----
 #define N_CELLE (GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ)
@@ -41,27 +30,6 @@ static void prepara_ordine(void) {
                 cella_di[s] = cella;
                 indice_di[cella] = s++;
             }
-}
-
-// ---- le celle: pos = (giorno * ore + ora) * classi + classe ----
-
-int g_giorno(const int p) { return p / actual_classi_sezione / actual_ore_giornaliere % actual_giorni_settimana; }
-
-int g_ora(const int p) { return p / actual_classi_sezione % actual_ore_giornaliere; }
-
-int g_classe(const int p) { return p % actual_classi_sezione; }
-
-// la cella dell'ora prima della stessa classe
-static const teaching_slot *cella_prima(const int pos) { return &orario[pos - actual_classi_sezione]; }
-
-// le ore che restano al docente p nella classe (base2d_ci = classe * INSEGNANTE_SZ)
-static int ore_rimaste(const int base2d_ci, const int p) {
-    return ore_classi_docenti[base2d_ci + p] - ore_classi_docenti_svolte[base2d_ci + p];
-}
-
-// l'indice di (giorno, classe, docente) in ore_fatte_da_un_prof_in_una_classe_in_giorno
-static int idx_oggi(const int giorno, const int cla, const int p) {
-    return giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + p;
 }
 
 // ---- i controlli sulla classe (la cella) ----
@@ -102,32 +70,7 @@ int sabato_esaurisci_priorita_subito_cod(int pos, int giorno, int ora, int base2
     return 1;
 }
 
-int sabato_esaurisci_priorita_subito(int pos, int giorno, int ora, int base2d_ci, int prof) {
-    return sabato_esaurisci_priorita_subito_cod(pos, giorno, ora, base2d_ci, prof, -1);
-}
-
 // ---- i controlli sul singolo docente ----
-
-int prof_è_disponibile(const int base3d_goi, int p1) {
-    return !prof_gia_impegnato_giorno_ora[base3d_goi + p1];
-}
-
-int deve_ancora_svolgere_ore_in_questa_classe(const int base2d_ci, const int p1) {
-    return ore_classi_docenti_svolte[base2d_ci + p1] < ore_classi_docenti[base2d_ci + p1];
-}
-
-// oggi in questa classe ha fatto meno di MAX_ORE_PROF_IN_UNA_CLASSE ore
-int prof_fa_al_max_n_ore(int giorno, int ora, int cla, int prof) {
-    return ore_fatte_da_un_prof_in_una_classe_in_giorno[idx_oggi(giorno, cla, prof)] < MAX_ORE_PROF_IN_UNA_CLASSE;
-}
-
-// se oggi ha gia' fatto ore in questa classe, c'era anche nell'ora prima (il blocco continua); altrimenti il suo blocco
-// e' finito e oggi non puo' tornare
-int prof_fa_ore_contigue(int giorno, int ora, int cla, int prof) {
-    if (!ore_fatte_da_un_prof_in_una_classe_in_giorno[idx_oggi(giorno, cla, prof)]) return 1;
-    const teaching_slot *prima = &orario[(giorno * actual_ore_giornaliere + ora - 1) * actual_classi_sezione + cla];
-    return prima->insegnante1 == prof || prima->insegnante2 == prof;
-}
 
 // Mettendo il docente nella classe cla, oggi resta entro MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO classi diverse?
 // s e' il passo: le celle gia' decise di oggi sono quelle del giorno con un passo prima di s (in tutto il giorno,
@@ -147,74 +90,6 @@ int ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(int s, int giorno, int cla,
         }
     }
     return 1;
-}
-
-int verifica_ora_ingresso(const int prof, const int ora) {
-    return ora >= ora_di_entrata_prof[prof];
-}
-
-// ---- i controlli sulla coppia e sul docente da solo ----
-
-int docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(const int cla, int p1, int p2) {
-    return get_ore_insegnanti_codocenza_svolte_in_una_classe(cla, p1, p2) <
-           get_ore_insegnanti_codocenza_in_una_classe(cla, p1, p2);
-}
-
-int deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(const int base2d_ci, const int prof) {
-    return ore_classi_docenti_alone_svolte[base2d_ci + prof] < ore_classi_docenti_alone[base2d_ci + prof];
-}
-
-// ---- mettere e togliere un docente dalla cella (lo stato della ricerca) ----
-
-// verso: +1 mette il docente nella cella (priorita' -1, occupato in quest'ora, un'ora in piu' nella classe e oggi),
-// -1 lo toglie
-static void segna(const int base2d_ci, const int base3d_goi, QueueItem *it, const int giorno, const int cla,
-                  const int verso) {
-    it->priority -= verso;
-    prof_gia_impegnato_giorno_ora[base3d_goi + it->teacher] = verso > 0;
-    ore_classi_docenti_svolte[base2d_ci + it->teacher] += verso;
-    ore_fatte_da_un_prof_in_una_classe_in_giorno[idx_oggi(giorno, cla, it->teacher)] += verso;
-}
-
-void prep_chiamata_ricorsiva(const int base2d_ci, const int base3d_goi, QueueItem *it, int giorno, int cla, int prof) {
-    segna(base2d_ci, base3d_goi, it, giorno, cla, +1);
-    ore_classi_docenti_alone_svolte[base2d_ci + it->teacher]++;
-}
-
-void post_chiamata_ricorsiva(const int base2d_ci, const int base3d_goi, QueueItem *it, int giorno, int cla, int prof) {
-    segna(base2d_ci, base3d_goi, it, giorno, cla, -1);
-    ore_classi_docenti_alone_svolte[base2d_ci + it->teacher]--;
-}
-
-void prep_chiamata_ricorsiva_insieme(const int base2d_ci, const int base3d_goi, const int cla, QueueItem *it,
-                                     QueueItem *jt, int giorno) {
-    segna(base2d_ci, base3d_goi, it, giorno, cla, +1);
-    segna(base2d_ci, base3d_goi, jt, giorno, cla, +1);
-    increment_ore_classi_codocenza_svolte(cla, it->teacher, jt->teacher);
-}
-
-void post_chiamata_ricorsiva_insieme(const int base2d_ci, const int base3d_goi, const int cla, QueueItem *it,
-                                     QueueItem *jt, int giorno) {
-    segna(base2d_ci, base3d_goi, it, giorno, cla, -1);
-    segna(base2d_ci, base3d_goi, jt, giorno, cla, -1);
-    decrement_ore_classi_codocenza_svolte(cla, it->teacher, jt->teacher);
-}
-
-// ---- la coda dei docenti ----
-
-// priorita' piu' alta prima; a parita' decide l'indice del docente (prima il piu' basso): senza, l'ordine dei pari lo
-// sceglierebbe qsort, che su Linux (glibc) e su macOS li mette in modo diverso, e la ricerca cambierebbe da una
-// macchina all'altra
-int compare_queue_items(const void *a, const void *b) {
-    const QueueItem *itemA = *(const QueueItem **) a;
-    const QueueItem *itemB = *(const QueueItem **) b;
-    if (itemA->priority < itemB->priority) return 1;
-    if (itemA->priority > itemB->priority) return -1;
-    return (itemA->teacher > itemB->teacher) - (itemA->teacher < itemB->teacher);
-}
-
-void sort_queue_mul(size_t start, size_t n) {
-    qsort(&queue_mul[start], n, sizeof(QueueItem *), compare_queue_items);
 }
 
 // ---- la ricerca ----

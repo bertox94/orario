@@ -9,27 +9,8 @@
 #include <string.h>
 #include <time.h>
 
-// ---- quello che serve di main.c (la ricerca e i suoi controlli: si richiamano, non si copiano) ----
-extern teaching_slot orario[];
-extern int orario_len;
-extern long long int n_gen;
-extern long long int n_gen_max;
-
-int g_ora(int p);
-int g_classe(int p);
-int activities_for_this_class_and_hour(int pos, int gio, int ora, int cla);
-int sabato_esaurisci_priorita_subito_cod(int pos, int giorno, int ora, int base2d_ci, int prof1, int prof2);
-int sabato_esaurisci_priorita_subito(int pos, int giorno, int ora, int base2d_ci, int prof);
-int prof_fa_al_max_n_ore(int giorno, int ora, int cla, int prof);
-int prof_fa_ore_contigue(int giorno, int ora, int cla, int prof);
-int prof_è_disponibile(int base3d_goi, int p1);
-int deve_ancora_svolgere_ore_in_questa_classe(int base2d_ci, int p1);
-int docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(int cla, int p1, int p2);
-int deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(int base2d_ci, int prof);
-int ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(int pos, int giorno, int cla, int prof);
-int verifica_ora_ingresso(int prof, int ora);
-
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
+// la ricerca e i suoi controlli, del solver con cui si compila: si richiamano, non si copiano
+#include "../controlli/controlli.h"
 
 // ---- l'ordine delle celle (solver che non decidono le celle in ordine di indice, vedi traccia_imposta_ordine) ----
 // Nella traccia "pos" e' il passo s della ricerca; la cella decisa al passo s e' cella(s). Senza ordine, cella(s) = s.

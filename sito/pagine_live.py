@@ -40,9 +40,10 @@ _DA_VERIFICARE = '''
 @bp.route('/')
 def indice():
     righe = conn().execute('''
-        select p.*, e.id as eid, coalesce(e.opzioni->>'solutore', 'main') as solutore, e.esito, e.marce, e.secondi,
-            e.diagnosi
-        from (select * from prove where tipo = 'live' and scuola_id = %s order by id desc limit 60) p
+        select p.id, p.nome, p.creata, p.stato, p.messaggio, e.id as eid,
+            coalesce(e.opzioni->>'solutore', 'main') as solutore, e.esito, e.marce, e.secondi, e.diagnosi
+        from (select id, nome, creata, stato, messaggio from prove where tipo = 'live' and scuola_id = %s
+              order by id desc limit 60) p
         left join esecuzioni e on e.prova_id = p.id order by p.id desc, e.id''', (g.scuola['id'],)).fetchall()
     # una riga per test; un test con piu' solver si apre con una riga per solver
     prove = []
@@ -138,7 +139,8 @@ def avvia():
 def prova(pid):
     """Un test: con un solo solver la sua pagina; con piu' solver una tab per ognuno (?scheda=id dell'esecuzione da
     aprire), ognuna con la pagina del suo solver, che segue la ricerca mentre gira: le ricerche vanno in parallelo."""
-    p = conn().execute('select * from prove where id = %s and scuola_id = %s', (pid, g.scuola['id'])).fetchone()
+    p = conn().execute('select id, nome, opzioni from prove where id = %s and scuola_id = %s',
+                       (pid, g.scuola['id'])).fetchone()
     esecuzioni = conn().execute("select id, esito, coalesce(opzioni->>'solutore', 'main') as solutore "
                                 "from esecuzioni where prova_id = %s order by id", (pid,)).fetchall()
     if not p or not esecuzioni:
@@ -149,10 +151,9 @@ def prova(pid):
     if scheda not in [e['id'] for e in esecuzioni]:
         scheda = esecuzioni[0]['id']
     # quanti solver di questo test non sono ancora tra i test notturni
-    da_aggiungere = [t for t in (notturni.da_esecuzione(conn(), g.scuola['id'], e['id']) for e in esecuzioni)
-                     if t and not t['presente']]
+    da_aggiungere = sum(1 for e in esecuzioni if notturni.nei_notturni(conn(), g.scuola['id'], e['id']) is False)
     return render_template('live/prova.html', p=p, esecuzioni=esecuzioni, scheda=scheda,
-                           descrizioni=solver.DESCRIZIONI, da_aggiungere=len(da_aggiungere))
+                           descrizioni=solver.DESCRIZIONI, da_aggiungere=da_aggiungere)
 
 
 @bp.route('/verificato/<int:eid>', methods=['POST'])

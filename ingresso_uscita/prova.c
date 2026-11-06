@@ -1,9 +1,6 @@
 #include "prova.h"
 
-// quello che serve del solver (main.c): mettere e togliere un docente dalla cella
-extern teaching_slot orario[];
-void prep_chiamata_ricorsiva(int base2d_ci, int base3d_goi, QueueItem *it, int giorno, int cla, int prof);
-void prep_chiamata_ricorsiva_insieme(int base2d_ci, int base3d_goi, int cla, QueueItem *it, QueueItem *jt, int giorno);
+#include "../controlli/controlli.h"  // mettere un docente nella cella: come fa il solver
 
 static int idx_oggi(const int giorno, const int cla, const int p) {
     return giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + cla * INSEGNANTE_SZ + p;

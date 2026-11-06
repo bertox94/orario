@@ -78,6 +78,25 @@ def presente(c, scuola_id, solutore, dati, opzioni):
     return r['id'] if r else None
 
 
+def nei_notturni(c, scuola_id, eid):
+    """Il test in tempo reale eid e' gia' tra i test notturni (stessi dati, solver e opzioni, con il suo limite di
+    nodi)? L'id del test notturno, False se non c'e', None se il test non ha i dati. Il confronto dei dati si fa nel
+    database: i dati di un test non arrivano a Python."""
+    r = c.execute("""
+        select p.dati_scuola is not null as con_dati,
+               (select t.id from test_notturni t
+                where t.scuola_id = p.scuola_id and t.attivo and t.dati = p.dati_scuola
+                  and t.solutore = coalesce(e.opzioni->>'solutore', 'main')
+                  and t.opzioni = jsonb_build_object('orari', coalesce((e.opzioni->>'orari')::int, 1),
+                                                     'ferma_nodi', coalesce((e.opzioni->>'ferma_nodi')::bigint, %s))
+                limit 1) as tid
+        from esecuzioni e join prove p on p.id = e.prova_id where e.id = %s and p.scuola_id = %s""",
+                  (FERMA_NODI, eid, scuola_id)).fetchone()
+    if not r or not r['con_dati']:
+        return None
+    return r['tid'] or False
+
+
 def da_esecuzione(c, scuola_id, eid, ferma_nodi=None):
     """Il test notturno che si fa da un test in tempo reale (stessi dati e stesso solver; il limite di nodi del test, o
     quello di default), come argomenti di aggiungi, piu' 'presente': l'id se c'e' gia'. None se non ci sono i dati."""

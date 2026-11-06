@@ -6,7 +6,9 @@ codice del sito e messaggi di commit sono in italiano.
 ## Cosa c'è
 
 - **Il solver** (C, radice del repository): ricerca con backtracking dell'orario. `main.c` contiene la ricerca
-  (`print_orario`) e i controlli; i dati di prova sono in `data_initialization/database_initializers.c`
+  (`print_orario`) e i controlli che dipendono dall'ordine delle celle; lo stato e gli altri controlli sono in
+  `controlli/comuni.h` (definizioni, condivise con i solver di `solutori/`), le dichiarazioni per la traccia e le
+  potature in `controlli/controlli.h`; i dati di prova sono in `data_initialization/database_initializers.c`
   (`inizializza_dati()`). `ingresso_uscita/` è solo ingresso e uscita per il sito: `--input` (dati da JSON),
   `--traccia` (un JSON per riga: dati, backtrack con i controlli, nodi, orari trovati, fine), `-n`, `--txt`, `--max-nodi`,
   `--max-backtrack`, `--progresso`, `--ferma-nodi` (ferma la ricerca esattamente dopo N nodi, sempre allo stesso punto: test in tempo reale e notturni). Senza opzioni il solver fa esattamente quello che faceva prima.
