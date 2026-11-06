@@ -22,6 +22,7 @@
 
 extern long long int traccia_nodi;        // nodi visitati (chiamate di print_orario)
 extern long long int traccia_backtrack_n; // backtrack incontrati
+extern int traccia_pos_max;               // la posizione piu' avanti raggiunta dalla ricerca
 extern int traccia_con_nodi;              // la ricerca chiama traccia_nodo (finche' non si supera un limite)
 
 // Apre la traccia; max_backtrack = quanti backtrack registrare per esteso (gli altri si contano soltanto);
