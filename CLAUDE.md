@@ -14,7 +14,7 @@ codice del sito e messaggi di commit sono in italiano.
   reale. A ogni backtrack la pagina del test mostra l'orario fino a quel punto e, per ogni docente, i controlli della
   ricerca con ingressi ed esito. Vedi `sito/INSTALLAZIONE.md`.
 - **I solver alternativi** (cartella `solutori/`, nel branch del sito): `per-classe`, `in-avanti`, `due-livelli`,
-  `giorni-liberi`.
+  `giorni-liberi`, `ordini-classi`.
   Ognuno ha solo la sua ricerca (`main.c`) e, se serve, la sua parte di traccia; data layer, stampa, JSON, coda,
   costanti e potature sono i file della radice (`../../` nel suo `CMakeLists.txt`). Stessa riga di comando e stessa
   traccia di `main`. Il sito li compila dai `.c` del loro `CMakeLists.txt` e li offre come caselle nel modulo del

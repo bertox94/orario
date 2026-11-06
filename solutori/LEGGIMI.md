@@ -85,6 +85,21 @@ controlli che hanno senso solo lì: le quote del giorno di `due-livelli` e i gio
     fine ha `giri`. Si registrano i primi `--max-backtrack` backtrack di ogni giro. I nodi (`--max-nodi`) solo del primo giro. Nella pagina del test i gruppi di backtrack finiscono
     col giro.
 
+- **`ordini-classi`**: la ricerca di `main` a giri, con le classi di ogni ora in un ordine diverso a ogni giro (il
+  primo giro: l'ordine di `main`) e un limite di nodi per giro, che segue la successione di Luby (`--nodi-base N`,
+  default 10.000: N, N, 2N, N, N, 2N, 4N...). Se un giro arriva al limite si riparte da capo con un altro ordine; un
+  giro che finisce prima del limite ha provato tutto (se non ha trovato, nessuna soluzione).
+  - Da dove viene: l'idea di Alb di far partire la ricerca da giorni diversi (un thread per giorno). Provata: con i
+    giorni ruotati la ricerca è identica (stessi nodi, stessi backtrack, stesso esito su tutti i casi provati), perché
+    i giorni sono tutti uguali nei dati. L'ordine delle classi dentro l'ora invece cambia molto dove la ricerca si
+    incastra: su 19 casi in cui `main` si ferma a 2 milioni di nodi, con 5 altri ordini l'orario si trova in 15, quasi
+    sempre in poche centinaia di nodi. Quindi i giri cambiano l'ordine delle classi, uno dopo l'altro (non in
+    parallelo: cosi' i nodi e il limite --ferma-nodi restano gli stessi su ogni computer).
+  - Sui 144 casi di prova (2 milioni di nodi): trova 126 orari (`main` 110, `giorni-liberi` 118), 7 che nessun altro
+    trova, e sui casi che `main` risolve usa un quinto dei nodi.
+  - Nella traccia ogni backtrack ha `giro` e `classi` (l'ordine delle classi di ogni ora nel giro); il resto come
+    `giorni-liberi`.
+
 ## Le potature (in tutti i solver)
 
 Le due potature del solver precedente (`archivio/2026-11-04`, `ricerca/vincoli.c`) e il controllo in avanti sono in

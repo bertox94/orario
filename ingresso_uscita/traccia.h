@@ -70,6 +70,10 @@ FILE *traccia_file(void);
 // quell'ordine. La regola dell'ultimo giorno e le ore obbligatorie contano i giorni in quell'ordine; gli orari trovati
 // sono in ordine di calendario (come in main).
 extern const int *traccia_giorni, *traccia_posti;
+// Un solver che dentro ogni ora decide le classi in un ordine che cambia durante la ricerca (ordini-classi):
+// traccia_classi[k] e' la classe decisa per k-esima in ogni ora (NULL: in ordine di indice). Va con traccia_giorni:
+// ogni backtrack ha in piu' "classi" (l'ordine), e "pos" e' il passo in quell'ordine.
+extern const int *traccia_classi;
 extern int traccia_giro, traccia_fissati;
 // All'inizio di ogni giro: si registrano di nuovo fino a max_backtrack backtrack (per ogni giro i primi).
 void traccia_nuovo_giro(void);

@@ -43,17 +43,19 @@ function testoPos(d, pos) { const s = slotDi(d, pos); return `${d.giorni[s.giorn
 const testoBacktrack = (d, b) => b.giorno !== undefined
   ? `${d.giorni[b.giorno]} ${d.ore[b.ora]} ${nomeClasse(d, b.classe)}` : testoPos(d, b.pos);
 
-// giorni-liberi: l'ordine delle celle cambia a ogni giro e ogni backtrack ha il suo ("giorni": i giorni nell'ordine in
-// cui si riempiono, dentro il giorno come main). I dati del test con l'ordine di quel giro.
+// giorni-liberi e ordini-classi: l'ordine delle celle cambia a ogni giro e ogni backtrack ha il suo ("giorni": i giorni
+// nell'ordine in cui si riempiono; "classi", se c'e': le classi di ogni ora in quell'ordine; se no come main). I dati
+// del test con l'ordine di quel giro.
 const datiDelGiro = new WeakMap();
 function datiPerBacktrack(d, b) {
   if (!b.giorni) return d;
-  const chiave = b.giorni.join(',');
+  const chiave = b.giorni.join(',') + '/' + (b.classi || []).join(',');
   let m = datiDelGiro.get(d);
   if (!m) { m = new Map(); datiDelGiro.set(d, m); }
   if (!m.has(chiave)) {
     const C = d.classi.length, O = d.ore.length, ordine = [];
-    for (const g of b.giorni) for (let o = 0; o < O; o++) for (let c = 0; c < C; c++) ordine.push((g * O + o) * C + c);
+    const classi = b.classi || [...Array(C).keys()];  // ordini-classi: le classi di ogni ora in quell'ordine
+    for (const g of b.giorni) for (let o = 0; o < O; o++) for (const c of classi) ordine.push((g * O + o) * C + c);
     m.set(chiave, {...d, ordine, posizioni: undefined});
   }
   return m.get(chiave);
@@ -402,7 +404,9 @@ function disegnaBacktrack(contenitore, d, b, filtro, sopra, prima, passo) {
         ? 'La classe deve fare lezione in quest\'ora (le ore che le restano non starebbero nei giorni dopo): la ' +
           'ricerca torna indietro e cambia una scelta precedente.'
         : 'Siamo nelle ore obbligatorie: la ricerca torna indietro e cambia una scelta precedente.',
-      b.giorni ? ` Giro ${numeroIt(b.giro)}: i giorni si riempiono in quest'ordine: ` +
+      b.classi ? ` Giro ${numeroIt(b.giro)}: dentro ogni ora le classi si decidono in quest'ordine: ` +
+        b.classi.map(c => nomeClasse(d, c)).join(', ') + '.'
+      : b.giorni ? ` Giro ${numeroIt(b.giro)}: i giorni si riempiono in quest'ordine: ` +
         b.giorni.map((g, r) => d.giorni[g] + (r < b.fissati ? ' (fissato)' : '')).join(', ') + '.' : '']));
   if (b.incoerente) parti.push(el('div', {class: 'avviso errore'},
     'Attenzione: secondo la traccia una combinazione passerebbe tutti i controlli, ma la ricerca non l\'ha messa. ' +
@@ -821,7 +825,7 @@ function paginaTest(cfg) {
 
   function comeFinisce(g) {
     if (g.risoltoDa !== null) return ['risolto', 'ok'];
-    if (g.fineGiro) return ['fine del giro: si riparte con un altro ordine dei giorni', 'attenzione'];
+    if (g.fineGiro) return ['fine del giro: si riparte con un altro ordine', 'attenzione'];
     if (cfg.inCorso) return ['in corso', ''];
     if (fineTrovato()) return ['risolto: orario trovato', 'ok'];
     if (cfg.totaleBacktrack > numeri.length && numeri.length >= cfg.maxBacktrack)
