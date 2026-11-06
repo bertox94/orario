@@ -261,9 +261,13 @@ label.titolo-sezione { font-weight: 600; font-size: 14px; cursor: pointer; }
 .pagine-solver { position: relative; overflow: hidden; }
 /* le pagine delle altre tab restano aperte (seguono la loro ricerca), ma fuori dalla vista */
 /* width 1px + min-width 100%: Safari su iPad non allarga l'iframe fino al contenuto */
-.pagine-solver iframe { display: block; width: 1px; min-width: 100%; height: 80vh; border: none; }
+.pagine-solver iframe { display: block; width: 1px; min-width: 100%; height: 80vh; border: none; overflow: hidden; }
 .pagine-solver iframe.nascosta { position: absolute; left: -10000px; top: 0; visibility: hidden; }
 body.incorporata main { padding-top: 12px; }
+/* una pagina incorporata non scorre (e' alta quanto il contenuto): le altezze massime si misurano sulla finestra vera,
+   che la pagina con le tab passa in --vh-finestra */
+body.incorporata .scorre.alta { max-height: calc(var(--vh-finestra, 1vh) * 60); }
+body.incorporata #elenco-backtrack { max-height: calc(var(--vh-finestra, 1vh) * 40) !important; }
 [hidden] { display: none !important; }  /* anche sui bottoni, che hanno un display loro */
 
 /* i contatori in grande della pagina del test */
