@@ -111,7 +111,7 @@ function descrizioneControllo(nome, d) {
     sabato_esaurisci_priorita_subito_cod: "regola del sabato: chi c'era nell'ora prima e ha ancora ore deve restare (in coppia)",
     sabato_esaurisci_priorita_subito: "regola del sabato: chi c'era nell'ora prima e ha ancora ore deve restare",
     deve_svolgere_ancora_ora_in_questa_classe_senza_codocente: 'ha ancora ore da solo in questa classe',
-    lascia_un_docente_alle_celle_di_oggi: 'lascia almeno un docente possibile a ogni cella obbligatoria di oggi',
+    lascia_un_docente_alle_celle_di_oggi: 'lascia un docente a ogni cella obbligatoria di oggi e abbastanza lezioni alle classi',
     lascia_spazio_alle_ore_di_oggi_della_classe: 'lascia spazio alle ore di oggi degli altri docenti della classe',
   })[nome] || nome;
 }
@@ -130,7 +130,7 @@ function motivoBreve(nome) {
     verifica_ora_ingresso: 'non ancora entrato',
     deve_svolgere_ancora_ora_in_questa_classe_senza_codocente: 'ore da solo finite',
     sabato_esaurisci_priorita_subito: 'regola del sabato',
-    lascia_un_docente_alle_celle_di_oggi: 'lascerebbe una cella senza docenti',
+    lascia_un_docente_alle_celle_di_oggi: 'lascerebbe una cella senza docenti o senza abbastanza lezioni',
     lascia_spazio_alle_ore_di_oggi_della_classe: 'toglierebbe spazio a un altro docente',
   })[n] || n;
   return solo ? 'coppie e da solo: ' + t : t;
@@ -170,8 +170,9 @@ function descriviIngressi(nome, i, d) {
       return `ore da solo fatte: ${i.ore_da_solo_svolte} su ${i.ore_da_solo}`;
     case 'lascia_un_docente_alle_celle_di_oggi':
       if (i.non_calcolato) return 'non calcolato: la ricerca si ferma prima';
-      return i.cella_bloccata < 0 ? 'nessuna cella di oggi resta senza docenti'
-        : `resterebbe senza docenti: ${d.giorni[i.giorno]} ${nomeOra(d, i.ora)} ${nomeClasse(d, i.classe)}`;
+      if (i.cella_bloccata < 0) return 'nessuna cella di oggi resta senza docenti e le lezioni possibili bastano';
+      return (i.motivo === 'ore' ? 'non bastano le lezioni possibili fino a ' : 'resterebbe senza docenti: ') +
+        `${d.giorni[i.giorno]} ${nomeOra(d, i.ora)} ${nomeClasse(d, i.classe)}`;
     case 'lascia_spazio_alle_ore_di_oggi_della_classe':
       if (i.non_calcolato) return 'non calcolato: la ricerca si ferma prima';
       return i.docente_senza_spazio < 0 ? 'c\'è spazio per tutti' : `non ci sarebbe spazio per ${nomeDoc(d, i.docente_senza_spazio)}`;
