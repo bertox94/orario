@@ -362,3 +362,21 @@ def elimina(tid):
     conn().execute('delete from test_notturni where id = %s', (tid,))
     flash('Test eliminato, con le sue esecuzioni.', 'ok')
     return redirect(url_for('.indice'))
+
+
+@bp.route('/togli', methods=['POST'])
+def togli():
+    """Elimina i test scelti nella tabella (per ogni caso spuntato i suoi test, uno per solver), con le esecuzioni: i
+    giri dopo eseguono solo quelli rimasti. Il test che sta girando resta."""
+    ids = set()
+    for v in request.form.getlist('tid'):
+        ids.update(int(x) for x in v.split(',') if x.strip().isdigit())
+    in_corso = notturni.test_in_corso()
+    restano = {in_corso} & ids
+    ids -= restano
+    n = conn().execute('delete from test_notturni where scuola_id = %s and id = any(%s)',
+                       (g.scuola['id'], sorted(ids))).rowcount if ids else 0
+    flash('Eliminat%s %d test.' % ('o' if n == 1 else 'i', n), 'ok')
+    if restano:
+        flash('Un test sta girando e non è stato eliminato: fermalo o aspetta la fine del giro.', 'errore')
+    return redirect(url_for('.indice'))
