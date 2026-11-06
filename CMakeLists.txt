@@ -24,4 +24,6 @@ add_executable(untitled main.c
         ingresso_uscita/prova.c
         potature/potature.h
         potature/potature.c
+        controllo_in_avanti/controllo_in_avanti.h
+        controllo_in_avanti/controllo_in_avanti.c
 )

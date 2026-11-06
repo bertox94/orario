@@ -14,6 +14,7 @@
 #include "../../ingresso_uscita/dati_json.h"
 #include "../../ingresso_uscita/traccia.h"
 #include "../../potature/potature.h"
+#include "../../controllo_in_avanti/controllo_in_avanti.h"
 
 #define SCHEDULES_PER_GB 55000  // orari completi per GB di orario.txt; senza -n se ne cercano un quinto (circa 200 MB)
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -229,6 +230,8 @@ void print_orario(const int s) {
     if (traccia_con_nodi) traccia_nodo(s);
 
     if (s == orario_len) {  // tutte le celle decise: un orario
+        // ogni classe ha fatto tutte le sue ore (con ora_buca_possibile non dovrebbe mai scattare: per sicurezza)
+        for (int c = 0; c < actual_classi_sezione; c++) if (ore_classe_svolte[c] != ore_classi[c]) return;
         n_gen++;
         if (f) print(orario, orario_len, n_gen, f);
         traccia_orario_trovato();
@@ -370,6 +373,14 @@ int main(int argc, char **argv) {
     prepara_potature(cella_di);
 
     traccia_dati();
+    {  // la verifica dei dati (controllo_in_avanti/): se una condizione necessaria non vale, la ricerca non parte
+        char errore[512];
+        if (!verifica_fattibilita(errore, sizeof errore)) {
+            traccia_errore(errore);
+            traccia_chiudi();
+            return 2;
+        }
+    }
     // con --txt /dev/null orario.txt non si scrive per niente: la ricerca e' la stessa, ma non perde tempo a formattare
     // la griglia a ogni backtrack (dal sito era quasi tutto il tempo)
     f = strcmp(file_txt, "/dev/null") ? fopen(file_txt, "w") : NULL;

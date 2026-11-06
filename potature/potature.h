@@ -26,7 +26,12 @@
 //        dal suo ingresso, dove non insegna gia' e c'e' ancora una classe da decidere; poi tutte le ore dal suo
 //        ingresso dei giorni dopo).
 //
-// (Le verifiche sui soli dati, prima della ricerca, e i controlli in avanti di in-avanti sono nei solver che li hanno.)
+//   A OGNI CELLA, alla fine (se le altre passano):
+//     A. il controllo in avanti (controllo_in_avanti/controllo_in_avanti.h): le celle obbligatorie di oggi hanno ancora
+//        un docente possibile, le lezioni delle classi bastano, i docenti hanno abbastanza tempo. Il solver in-avanti
+//        lo fa invece prima di scendere (potature_in_avanti(0)).
+//
+// (La verifica sui soli dati, prima della ricerca, e' in controllo_in_avanti/: verifica_fattibilita.)
 //
 // Si scrivono sulle celle gia' decise, quindi valgono per qualunque ordine della ricerca (main: un'ora alla volta;
 // per-classe: una classe alla volta dentro il giorno): per ogni classe conta la sua prima cella non ancora decisa.
@@ -42,16 +47,19 @@ void potature_ordine_giorni(const int *giorno_di_posto, const int *posto_di_gior
 
 // All'ingresso del passo s (s > 0): ritorna 0 se il resto e' ancora possibile, altrimenti quale controllo non vale
 // (POTATURA_ORE_DOCENTI per C e T, POTATURA_LEZIONI_CLASSE per L), con i numeri in `potatura`.
-enum { POTATURA_ORE_DOCENTI = 1, POTATURA_LEZIONI_CLASSE = 2 };
+enum { POTATURA_ORE_DOCENTI = 1, POTATURA_LEZIONI_CLASSE = 2, POTATURA_IN_AVANTI = 3 };
+// 0: senza A, il controllo in avanti (in-avanti lo fa da se', prima di scendere). Di default c'e'.
+void potature_in_avanti(int attivo);
 int potatura_dopo(int s);
 
 // I numeri dell'ultima potatura scattata (per la traccia).
 typedef struct {
-    int controllo;              // POTATURA_ORE_DOCENTI o POTATURA_LEZIONI_CLASSE
+    int controllo;              // POTATURA_ORE_DOCENTI, POTATURA_LEZIONI_CLASSE o POTATURA_IN_AVANTI
     int docente, classe;        // ore dei docenti: il docente, la classe (-1: in tutto); lezioni: la classe
     int restano, possibili;     // ore che restano al docente / ore che puo' ancora fare; lezioni: da riempire / possibili
     int fino_ora;               // lezioni: l'ora (fino a questa, ogni giorno) per cui le lezioni non bastano
-    int giorno, ora;            // la prima cella non decisa della classe (L, C); T: il giorno, ora -1
+    int giorno, ora;            // la prima cella non decisa della classe (L, C); T: il giorno, ora -1; A: la cella
+    int cella, motivo;          // A: la cella che non si potra' riempire e il motivo (vedi controllo_in_avanti.h)
 } Potatura;
 extern Potatura potatura;
 

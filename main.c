@@ -2,7 +2,9 @@
 //
 // In ogni cella prova i docenti della classe in ordine di priorita' (la coda), prima in coppia con un codocente e poi
 // da solo; chi passa i controlli si mette nella cella e la ricerca scende alla cella dopo. Se nessuno va, torna
-// indietro (backtrack). Le potature (potature/) scartano prima i rami senza soluzioni. L'ingresso e l'uscita per il
+// indietro (backtrack). Le potature (potature/, con il controllo in avanti di controllo_in_avanti/) scartano prima i
+// rami senza soluzioni; prima della ricerca la verifica dei dati (controllo_in_avanti/) dice se l'orario non puo'
+// esistere. L'ingresso e l'uscita per il
 // sito (dati da JSON, traccia della ricerca) sono in ingresso_uscita/.
 #include <stdlib.h>
 #include <string.h>
@@ -14,6 +16,7 @@
 #include "ingresso_uscita/dati_json.h"
 #include "ingresso_uscita/traccia.h"
 #include "potature/potature.h"
+#include "controllo_in_avanti/controllo_in_avanti.h"
 
 #define SCHEDULES_PER_GB 55000  // orari completi per GB di orario.txt; senza -n se ne cercano un quinto (circa 200 MB)
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -214,6 +217,8 @@ void print_orario(const int pos) {
     if (traccia_con_nodi) traccia_nodo(pos);
 
     if (pos == orario_len) {  // tutte le celle decise: un orario
+        // ogni classe ha fatto tutte le sue ore (con ora_buca_possibile non dovrebbe mai scattare: per sicurezza)
+        for (int c = 0; c < actual_classi_sezione; c++) if (ore_classe_svolte[c] != ore_classi[c]) return;
         n_gen++;
         if (f) print(orario, pos, n_gen, f);
         traccia_orario_trovato();
@@ -352,6 +357,14 @@ int main(int argc, char **argv) {
     prepara_potature(NULL);
 
     traccia_dati();
+    {  // la verifica dei dati (controllo_in_avanti/): se una condizione necessaria non vale, la ricerca non parte
+        char errore[512];
+        if (!verifica_fattibilita(errore, sizeof errore)) {
+            traccia_errore(errore);
+            traccia_chiudi();
+            return 2;
+        }
+    }
     // con --txt /dev/null orario.txt non si scrive per niente: la ricerca e' la stessa, ma non perde tempo a formattare
     // la griglia a ogni backtrack (dal sito era quasi tutto il tempo)
     f = strcmp(file_txt, "/dev/null") ? fopen(file_txt, "w") : NULL;

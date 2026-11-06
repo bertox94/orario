@@ -2,6 +2,7 @@
 
 #include "../data_initialization/database_initializers.h"
 #include "../priority_queue/prio_queue.h"
+#include "../controllo_in_avanti/controllo_in_avanti.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -476,6 +477,19 @@ void traccia_slot_chiuso(const int s, const int giorno, const int ora, const int
 void traccia_potatura(const int s, const int giorno, const int ora, const int cla, const Potatura *p) {
     if (!registra()) return;
     testa_backtrack(s, giorno, ora, cla, 0);
+    if (p->controllo == POTATURA_IN_AVANTI) {  // come il controllo di in-avanti, ma entrando nella cella dopo la scelta
+        fprintf(t, "\"slot\":{\"nome\":\"situazione_risolvibile\",\"ingressi\":{\"cella_bloccata\":%d,"
+                "\"motivo\":\"%s\",\"giorno\":%d,\"ora\":%d,\"classe\":%d", p->cella, nome_motivo_in_avanti(p->motivo),
+                p->giorno, p->ora, g_classe(p->cella));
+        if (p->motivo >= 2)
+            fprintf(t, ",\"docente\":%d,\"classe_conto\":%d,\"restano\":%d,\"possibili\":%d", p->docente, p->classe,
+                    p->restano, p->possibili);
+        fprintf(t, "},\"uscita\":0},\"docenti\":[],\"altri_docenti\":0,\"incoerente\":0,");
+        orario_fino_a(s);
+        fprintf(t, "}\n");
+        fflush(t);
+        return;
+    }
     fprintf(t, "\"slot\":{\"nome\":\"%s\",\"ingressi\":{\"docente\":%d,\"classe\":%d,\"restano\":%d,"
             "\"possibili\":%d,\"fino_ora\":%d,\"giorno\":%d,\"ora\":%d},\"uscita\":0}",
             p->controllo == POTATURA_ORE_DOCENTI ? "ore_dei_docenti_stanno_nel_tempo" : "lezioni_della_classe_bastano",

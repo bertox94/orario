@@ -9,5 +9,6 @@ add_executable(solutore_giorni_liberi main.c
         ../../ingresso_uscita/json.c
         ../../ingresso_uscita/dati_json.c
         ../../potature/potature.c
+        ../../controllo_in_avanti/controllo_in_avanti.c
         ../../ingresso_uscita/traccia.c
 )

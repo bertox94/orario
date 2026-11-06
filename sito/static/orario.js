@@ -189,14 +189,14 @@ const CONTROLLI = {
   sabato_esaurisci_priorita_subito: {
     descrizione: "regola del sabato: l'ultimo giorno chi c'era nell'ora prima e ha ancora ore in questa classe deve restare (da solo: è lui)",
     breve: 'regola del sabato', ingressi: ingressiSabato},
-  // i controlli in piu' dei solver di solutori/
+  // il controllo in avanti (tutti i solver): in-avanti lo fa prima di scendere, gli altri entrando nella cella dopo
   lascia_un_docente_alle_celle_di_oggi: {  // in-avanti, prima di scendere
     descrizione: 'controllo in avanti: lascia un docente a ogni cella obbligatoria di oggi, abbastanza lezioni alle classi e abbastanza tempo ai docenti',
     breve: 'lascerebbe una cella senza docenti, senza lezioni o un docente senza tempo', ingressi: ingressiInAvanti},
-  situazione_risolvibile: {  // in-avanti-dopo (solver tolto; i test vecchi restano)
-    descrizione: 'la scelta nella cella prima lascia un docente a ogni cella di oggi, abbastanza lezioni alle classi e abbastanza tempo ai docenti',
+  situazione_risolvibile: {  // potatura A: gli altri solver, entrando nella cella dopo la scelta
+    descrizione: 'potatura (controllo in avanti): la scelta nella cella prima lascia un docente a ogni cella di oggi, abbastanza lezioni alle classi e abbastanza tempo ai docenti',
     breve: 'la scelta di prima rende il resto impossibile', ingressi: ingressiInAvanti},
-  ore_dei_docenti_stanno_nel_tempo: {  // potatura (main, per-classe, due-livelli)
+  ore_dei_docenti_stanno_nel_tempo: {  // potatura (tutti i solver)
     descrizione: 'potatura: dopo la scelta nella cella prima, le ore che restano a ogni docente stanno nel tempo che gli resta',
     breve: 'potatura: a un docente non basterebbe il tempo',
     ingressi: (i, d) => i.classe >= 0

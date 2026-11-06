@@ -1,6 +1,7 @@
 #include "potature.h"
 
 #include "../data_initialization/database_initializers.h"
+#include "../controllo_in_avanti/controllo_in_avanti.h"
 
 // Le potature (vedi potature.h: cosa sono, perche' sono necessarie, quando avvengono). Sono scritte sullo stato di
 // questo solver e per qualunque ordine delle celle: per ogni classe conta la sua prima cella non decisa (giorno, ora).
@@ -48,7 +49,11 @@ static int giorni_dopo_il(const int g) {
 void potature_ordine_giorni(const int *giorno_di_posto, const int *posto_di_giorno) {
     giorno_al_posto = giorno_di_posto;
     posto_del_giorno = posto_di_giorno;
+    controllo_in_avanti_ordine_giorni(giorno_di_posto, posto_di_giorno);
 }
+
+static int con_in_avanti = 1;  // A, il controllo in avanti (in-avanti lo fa da se', prima di scendere)
+void potature_in_avanti(const int attivo) { con_in_avanti = attivo; }
 
 static int docente_nella_cella(const int pos, const int p) {
     return orario[pos].insegnante1 == p || orario[pos].insegnante2 == p;
@@ -57,6 +62,7 @@ static int docente_nella_cella(const int pos, const int p) {
 void prepara_potature(const int *cella_di) {
     ordine = cella_di;
     for (int s = 0; s < orario_len; s++) rango[cella_al_passo(s)] = s;
+    prepara_controllo_in_avanti(cella_di, cella_di ? rango : NULL);
     voci_complete = 1;
     for (int c = 0; c < actual_classi_sezione; c++) {
         n_voci[c] = 0;
@@ -217,11 +223,24 @@ int potatura_dopo(const int s) {
     int ora_chiusa = 1;
     for (int cc = 0; cc < actual_classi_sezione && ora_chiusa; cc++) ora_chiusa = rango[cella(g, h, cc)] < s;
     const int buca = orario[decisa].insegnante1 < 0 && orario[decisa].insegnante2 < 0;
-    if (!ora_chiusa && !buca) return 0;
-    Classe tutte[CLASSE_SEZIONE_SZ];
-    for (int cc = 0; cc < actual_classi_sezione; cc++) {
-        tutte[cc] = stato_classe(cc, s);
-        if (!ore_in_classe_stanno(&tutte[cc], cc)) return POTATURA_ORE_DOCENTI;
+    if (ora_chiusa || buca) {
+        Classe tutte[CLASSE_SEZIONE_SZ];
+        for (int cc = 0; cc < actual_classi_sezione; cc++) {
+            tutte[cc] = stato_classe(cc, s);
+            if (!ore_in_classe_stanno(&tutte[cc], cc)) return POTATURA_ORE_DOCENTI;
+        }
+        if (!ore_totali_stanno(tutte, s)) return POTATURA_ORE_DOCENTI;
     }
-    return ore_totali_stanno(tutte, s) ? 0 : POTATURA_ORE_DOCENTI;
+    // a ogni cella, alla fine: A, il controllo in avanti
+    if (con_in_avanti) {
+        const int q = controllo_in_avanti(s);
+        if (q >= 0) {
+            potatura = (Potatura){POTATURA_IN_AVANTI, -1, -1, 0, 0, -1, g_giorno(q), g_ora(q)};
+            numeri_in_avanti(&potatura.docente, &potatura.classe, &potatura.restano, &potatura.possibili);
+            potatura.cella = q;
+            potatura.motivo = motivo_in_avanti;
+            return POTATURA_IN_AVANTI;
+        }
+    }
+    return 0;
 }

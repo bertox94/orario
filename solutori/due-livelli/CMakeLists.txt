@@ -9,6 +9,7 @@ add_executable(solutore_due_livelli main.c
         ../../ingresso_uscita/json.c
         ../../ingresso_uscita/dati_json.c
         ../../potature/potature.c
+        ../../controllo_in_avanti/controllo_in_avanti.c
         ../../ingresso_uscita/traccia.c
         ../../ingresso_uscita/prova.c
 )

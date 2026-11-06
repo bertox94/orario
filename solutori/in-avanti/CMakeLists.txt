@@ -11,4 +11,5 @@ add_executable(solutore_in_avanti main.c traccia_in_avanti.c
         ../../potature/potature.c
         ../../ingresso_uscita/traccia.c
         ../../ingresso_uscita/prova.c
+        ../../controllo_in_avanti/controllo_in_avanti.c
 )

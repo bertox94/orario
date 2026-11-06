@@ -36,10 +36,11 @@ codice del sito e messaggi di commit sono in italiano.
 
 - **Non cambiare come il solver calcola gli orari** (ricerca, ordine della coda, controlli) se Alb non lo chiede
   esplicitamente. Ingresso, uscita e traccia si possono toccare: non devono cambiare il percorso della ricerca.
-- I controlli sono solo quelli di `main`; gli altri (dall'archivio) si aggiungono **uno alla volta**, quando lei lo
-  chiede. Le due potature dell'archivio (ore dei docenti nel tempo rimasto, lezioni delle classi) sono in
-  `potature/`, uguale in `main` e in ogni solver di `solutori/`; nel commento di `potature.h` quando avvengono e
-  perché sono necessarie. Un controllo nuovo va anche nella traccia (`ingresso_uscita/traccia.c`), nello stesso ordine in cui la
+- I controlli sono gli stessi in tutti i solver, `main` compreso: quelli di `main`, le potature (`potature/`: ore dei
+  docenti nel tempo rimasto, lezioni delle classi, e il controllo in avanti), la verifica dei dati prima della ricerca
+  (`controllo_in_avanti/`) e il controllo finale delle ore. Nel commento di `potature.h` quando avvengono e perché
+  sono necessarie. Altri controlli (dall'archivio) si aggiungono **uno alla volta**, quando lei lo chiede, e a tutti
+  i solver. Un controllo nuovo va anche nella traccia (`ingresso_uscita/traccia.c`), nello stesso ordine in cui la
   ricerca lo valuta, e nelle descrizioni della pagina (`sito/static/orario.js`, `descrizioneControllo`,
   `descriviIngressi`, `motivoBreve`).
 - Ogni modifica al solver: branch separato da `main`, PR su GitHub, merge in `main`, poi `git merge origin/main` nel
@@ -49,13 +50,15 @@ codice del sito e messaggi di commit sono in italiano.
 
 ```bash
 gcc -O2 -std=gnu11 -w main.c data_initialization/database_initializers.c printer/printer.c \
-    priority_queue/prio_queue.c ingresso_uscita/*.c potature/potature.c -o /tmp/solver -lm
+    priority_queue/prio_queue.c ingresso_uscita/*.c potature/potature.c controllo_in_avanti/controllo_in_avanti.c \
+    -o /tmp/solver -lm
 cd /tmp && rm -f orario.txt && /tmp/solver > /dev/null && grep -v '^Current time:' orario.txt | md5sum
 ```
 
 Riferimento (dati di `inizializza_dati()`, 11.000 orari): `b7e8ad1800ea16bc0fc8be628c926fe6`, uguale su Mac e su
 Linux (il Raspberry): a parità di priorità la coda è ordinata per indice del docente, quindi l'ordine non dipende da
-`qsort`. Prima non era così: lo stesso solver dava `1f200e…` su Linux e `777dc…` su macOS. Una modifica che
+`qsort`. Il controllo in avanti e la verifica dei dati (6 novembre 2026) non lo cambiano: su questi dati non
+scartano niente (la ricerca è solo più lenta, circa 4 secondi invece di 2). Prima non era così: lo stesso solver dava `1f200e…` su Linux e `777dc…` su macOS. Una modifica che
 non deve cambiare la ricerca deve dare lo stesso valore. Se Alb chiede di cambiare la ricerca (per esempio un
 controllo nuovo), il valore cambia: si annota il nuovo riferimento qui.
 
