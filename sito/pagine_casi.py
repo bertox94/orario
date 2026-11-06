@@ -67,8 +67,10 @@ def dati(eid):
 def elenco_backtrack(eid):
     """I backtrack registrati, in breve (?da=N per avere solo quelli dopo il numero N)."""
     da = request.args.get('da', 0, type=int)
-    righe = conn().execute('select n, nodo, pos, giorno, ora, classe, buca_dopo, riassunto from backtrack '
-                           'where esecuzione_id = %s and n > %s order by n limit 5000', (eid, da)).fetchall()
+    # giro: solo giorni-liberi (l'ordine delle celle cambia a ogni giro), null per gli altri solver
+    righe = conn().execute("select n, nodo, pos, giorno, ora, classe, buca_dopo, riassunto, "
+                           "(record->>'giro')::int as giro from backtrack "
+                           "where esecuzione_id = %s and n > %s order by n limit 5000", (eid, da)).fetchall()
     return jsonify([dict(r) for r in righe])
 
 

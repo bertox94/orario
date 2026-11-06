@@ -74,7 +74,7 @@
 <h2>Backtrack</h2>
 <p class="tenue piccolo">Un backtrack è uno slot in cui la ricerca non è riuscita a mettere nessun docente.
   Registrati: <strong id="n-registrati">{{ n_registrati|numero }}</strong>{% if fine %} su {{ fine.backtrack|numero }}
-  in tutto{% endif %} (al massimo {{ (e.opzioni or {}).get('max_backtrack', 1000)|numero }}), in
+  in tutto{% endif %} (al massimo {{ (e.opzioni or {}).get('max_backtrack', 1000)|numero }}{% if (e.opzioni or {}).get('solutore') == 'giorni-liberi' %} per giro{% endif %}), in
   <strong id="n-gruppi">0</strong> gruppi. <span id="spiega-gruppi"></span> Scegli un gruppo: il cursore qui sotto
   scorre i suoi backtrack e, se il gruppo è risolto, alla fine mostra come si risolve; ← e → passano al backtrack
   precedente e al successivo.</p>

@@ -44,6 +44,11 @@ void traccia_imposta_ordine(const int *cella_di, const int *indice_di) {
 
 traccia_controllo_fn traccia_controllo_extra = NULL;
 
+const int *traccia_giorni = NULL, *traccia_posti = NULL;
+int traccia_giro = 0, traccia_fissati = 0;
+// il posto del giorno g nell'ordine in cui si riempiono i giorni (senza traccia_posti: il calendario)
+static int posto(const int g) { return traccia_posti ? traccia_posti[g] : g; }
+
 long long int traccia_nodi = 0;
 long long int traccia_ferma_nodi = 0;
 long long int traccia_prossimo = 0x10000;
@@ -300,8 +305,9 @@ static int c_insieme(const int cla, const int p1, const int p2, int *fermato_a, 
 
 // ingressi comuni alle due regole del sabato: chi c'era nell'ora prima e quante ore gli restano nella classe
 static void ingressi_sabato(const int pos, const int giorno, const int ora, const int base2d_ci) {
-    fprintf(t, "\"ultimo_giorno\":%d,\"ora\":%d", giorno == actual_giorni_settimana - 1, ora);
-    if (giorno == actual_giorni_settimana - 1 && ora > 0) {
+    const int ultimo = posto(giorno) == actual_giorni_settimana - 1;
+    fprintf(t, "\"ultimo_giorno\":%d,\"ora\":%d", ultimo, ora);
+    if (ultimo && ora > 0) {
         const teaching_slot *s = &orario[pos - actual_classi_sezione];
         fprintf(t, ",\"ora_precedente\":[%d,%d],\"ore_rimaste\":[", s->insegnante1, s->insegnante2);
         const int pp[2] = {s->insegnante1, s->insegnante2};
@@ -343,22 +349,33 @@ static int c_senza_cod(const int base2d_ci, const int p, int *fermato_a, const i
 
 static void controllo_slot(const int pos, const int giorno, const int ora, const int cla) {
     const int ore_rimanenti = ore_classi[cla] - ore_classe_svolte[cla];
-    const int occupati = giorno * PRIME_N_ORE_OBBLIGATORIE + MIN(ora, PRIME_N_ORE_OBBLIGATORIE - 1);
+    const int occupati = posto(giorno) * PRIME_N_ORE_OBBLIGATORIE + MIN(ora, PRIME_N_ORE_OBBLIGATORIE - 1);
     const int mancanti = PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana - occupati;
     fprintf(t, "\"slot\":{\"nome\":\"activities_for_this_class_and_hour\",\"ingressi\":{\"ore_rimanenti\":%d,"
             "\"slot_obbligatori_mancanti\":%d,\"ore_buche_oggi\":%d},\"uscita\":%d}", ore_rimanenti, mancanti,
             n_ore_buche[giorno * CLASSE_SEZIONE_SZ + cla], activities_for_this_class_and_hour(pos, giorno, ora, cla));
 }
 
+static long long int registrati = 0, primo_del_giro = 0;  // backtrack registrati; il primo del giro (giorni-liberi)
+
 static int registra(void) {
     traccia_backtrack_n++;
-    return t && traccia_backtrack_n <= max_registrati;
+    if (!t || traccia_backtrack_n - primo_del_giro > max_registrati) return 0;
+    registrati++;
+    return 1;
 }
+
+void traccia_nuovo_giro(void) { primo_del_giro = traccia_backtrack_n; }
 
 static void testa_backtrack(const int pos, const int giorno, const int ora, const int cla, const int buca_dopo) {
     scrivi_nodi();
     fprintf(t, "{\"tipo\":\"backtrack\",\"n\":%lld,\"nodo\":%lld,\"pos\":%d,\"giorno\":%d,\"ora\":%d,\"classe\":%d,"
             "\"buca_dopo\":%d,", traccia_backtrack_n, traccia_nodi, pos, giorno, ora, cla, buca_dopo);
+    if (traccia_giorni) {
+        fprintf(t, "\"giro\":%d,\"fissati\":%d,\"giorni\":[", traccia_giro, traccia_fissati);
+        for (int r = 0; r < actual_giorni_settimana; r++) fprintf(t, "%s%d", r ? "," : "", traccia_giorni[r]);
+        fprintf(t, "],");
+    }
 }
 
 // ---- i record ----
@@ -468,9 +485,22 @@ void traccia_orario_trovato(void) {
     orari_scritti++;
     scrivi_nodi();
     fprintf(t, "{\"tipo\":\"orario\",\"n\":%lld,\"nodo\":%lld,", n_gen, traccia_nodi);
-    orario_fino_a(orario_len);
+    if (traccia_giorni) {  // in ordine di calendario
+        fprintf(t, "\"giro\":%d,\"orario\":[", traccia_giro);
+        for (int i = 0; i < orario_len; i++)
+            fprintf(t, "%s[%d,%d]", i ? "," : "", orario[i].insegnante1, orario[i].insegnante2);
+        fputc(']', t);
+    } else orario_fino_a(orario_len);
     fprintf(t, "}\n");
     fflush(t);
+}
+
+// ",\"giri\":N" nella fine, per giorni-liberi (vuoto per gli altri solver)
+static const char *giri(void) {
+    static char testo[32];
+    testo[0] = 0;
+    if (traccia_giorni) snprintf(testo, sizeof testo, ",\"giri\":%d", traccia_giro);
+    return testo;
 }
 
 // Con --ferma-nodi N la ricerca si ferma qui, esattamente al nodo N (o prima, se finisce prima): la ricerca chiama
@@ -481,9 +511,9 @@ static void ferma_per_limite(void) {
     if (t) {
         scrivi_nodi();
         fprintf(t, "{\"tipo\":\"fine\",\"esito\":\"limite di nodi\",\"orari\":%lld,\"orari_massimi\":%lld,"
-                "\"nodi\":%lld,\"backtrack\":%lld,\"backtrack_registrati\":%lld,\"pos_max\":%d,\"secondi\":%.3f}\n",
-                n_gen, n_gen_max, traccia_nodi, traccia_backtrack_n, MIN(traccia_backtrack_n, max_registrati),
-                traccia_pos_max, (double) (clock() - inizio) / CLOCKS_PER_SEC);
+                "\"nodi\":%lld,\"backtrack\":%lld,\"backtrack_registrati\":%lld,\"pos_max\":%d,\"secondi\":%.3f%s}\n",
+                n_gen, n_gen_max, traccia_nodi, traccia_backtrack_n, registrati,
+                traccia_pos_max, (double) (clock() - inizio) / CLOCKS_PER_SEC, giri());
         fclose(t);
     }
     printf("Fermato dopo %lld nodi (--ferma-nodi)\n", traccia_nodi);
@@ -509,9 +539,9 @@ void traccia_fine(const double secondi) {
     if (!t) return;
     scrivi_nodi();
     fprintf(t, "{\"tipo\":\"fine\",\"esito\":\"%s\",\"orari\":%lld,\"orari_massimi\":%lld,\"nodi\":%lld,"
-            "\"backtrack\":%lld,\"backtrack_registrati\":%lld,\"pos_max\":%d,\"secondi\":%.3f}\n",
+            "\"backtrack\":%lld,\"backtrack_registrati\":%lld,\"pos_max\":%d,\"secondi\":%.3f%s}\n",
             n_gen > 0 ? "trovato" : "nessuna soluzione", n_gen, n_gen_max, traccia_nodi, traccia_backtrack_n,
-            MIN(traccia_backtrack_n, max_registrati), traccia_pos_max, secondi);
+            registrati, traccia_pos_max, secondi, giri());
     fflush(t);
 }
 

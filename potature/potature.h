@@ -35,6 +35,11 @@
 // cella s, come in main).
 void prepara_potature(const int *cella_di);
 
+// Per un solver che riempie i giorni in un altro ordine (giorni-liberi): giorno_di_posto[r] e' il giorno che si
+// riempie per r-esimo, posto_di_giorno[g] il suo posto. I "giorni dopo" sono quelli che si riempiono dopo. Senza
+// chiamarla (o con NULL) e' l'ordine del calendario, come in main.
+void potature_ordine_giorni(const int *giorno_di_posto, const int *posto_di_giorno);
+
 // All'ingresso del passo s (s > 0): ritorna 0 se il resto e' ancora possibile, altrimenti quale controllo non vale
 // (POTATURA_ORE_DOCENTI per C e T, POTATURA_LEZIONI_CLASSE per L), con i numeri in `potatura`.
 enum { POTATURA_ORE_DOCENTI = 1, POTATURA_LEZIONI_CLASSE = 2 };

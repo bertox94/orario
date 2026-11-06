@@ -39,6 +39,25 @@ function slotDi(d, pos) {
 }
 // "Ven 12 C06"
 function testoPos(d, pos) { const s = slotDi(d, pos); return `${d.giorni[s.giorno]} ${d.ore[s.ora]} ${nomeClasse(d, s.classe)}`; }
+// la cella di un backtrack (il record ha giorno, ora e classe: valgono per ogni solver, anche se l'ordine cambia)
+const testoBacktrack = (d, b) => b.giorno !== undefined
+  ? `${d.giorni[b.giorno]} ${d.ore[b.ora]} ${nomeClasse(d, b.classe)}` : testoPos(d, b.pos);
+
+// giorni-liberi: l'ordine delle celle cambia a ogni giro e ogni backtrack ha il suo ("giorni": i giorni nell'ordine in
+// cui si riempiono, dentro il giorno come main). I dati del test con l'ordine di quel giro.
+const datiDelGiro = new WeakMap();
+function datiPerBacktrack(d, b) {
+  if (!b.giorni) return d;
+  const chiave = b.giorni.join(',');
+  let m = datiDelGiro.get(d);
+  if (!m) { m = new Map(); datiDelGiro.set(d, m); }
+  if (!m.has(chiave)) {
+    const C = d.classi.length, O = d.ore.length, ordine = [];
+    for (const g of b.giorni) for (let o = 0; o < O; o++) for (let c = 0; c < C; c++) ordine.push((g * O + o) * C + c);
+    m.set(chiave, {...d, ordine, posizioni: undefined});
+  }
+  return m.get(chiave);
+}
 
 // ---- la griglia dell'orario ----
 
@@ -121,7 +140,7 @@ function ingressiInAvanti(i, d) {
 }
 
 function ingressiSabato(i, d) {
-  if (!i.ultimo_giorno) return "non è l'ultimo giorno: non vale";
+  if (!i.ultimo_giorno) return "non è l'ultimo giorno (quello che si riempie per ultimo): non vale";
   if (!i.ora_precedente) return "è la prima ora: non vale";
   return `nell'ora prima: ${coppia(d, i.ora_precedente)}; ore che restano loro in questa classe: ` +
     i.ore_rimaste.filter(x => x !== null).join(' e ');
@@ -193,6 +212,11 @@ const CONTROLLI = {
       (i.fino_ora === d.ore.length - 1 ? `restano ${i.restano} ore da fare`
         : `fino alle ${nomeOra(d, i.fino_ora)} di ogni giorno vanno riempite ${i.restano} celle`) +
       `, ma le lezioni che le restano ne possono riempire al massimo ${i.possibili}`},
+  cella_del_giorno_fissato: {  // giorni-liberi
+    descrizione: 'giorni liberi: in un giorno fissato da un giro prima va solo la scelta di quel giro',
+    breve: 'non è la scelta del giorno fissato',
+    ingressi: (i, d) => !i.giorno_fissato ? 'il giorno non è fissato: vale qualunque scelta'
+      : `giorno fissato, la sua scelta: ${i.scelta_fissata[0] < 0 && i.scelta_fissata[1] < 0 ? "l'ora buca" : coppia(d, i.scelta_fissata)}`},
   lascia_spazio_alle_ore_di_oggi_della_classe: {  // due-livelli
     descrizione: 'lascia spazio alle ore di oggi degli altri docenti della classe', breve: 'toglierebbe spazio a un altro docente',
     ingressi: (i, d) => i.non_calcolato ? 'non calcolato: la ricerca si ferma prima'
@@ -355,6 +379,8 @@ function testaSezione(chiave, titolo) {
 // passo (passo passo): {didascalia, bordata, ritorno}: la didascalia al posto di quella solita e, se ci sono, la cella
 // bordata (quella messa nello stesso record del backtrack) e quella in cui e' finito l'ultimo backtracking.
 function disegnaBacktrack(contenitore, d, b, filtro, sopra, prima, passo) {
+  d = datiPerBacktrack(d, b);
+  if (prima && prima.giro !== b.giro) prima = null;  // un altro giro: un altro ordine, non si confronta
   const s = slotDi(d, b.pos);
   const parti = [];
   // il titolo e la frase vanno sopra il cursore, tra l'elenco dei gruppi e il cursore
@@ -375,7 +401,9 @@ function disegnaBacktrack(contenitore, d, b, filtro, sopra, prima, passo) {
       : b.ora >= (d.parametri || {}).ore_obbligatorie
         ? 'La classe deve fare lezione in quest\'ora (le ore che le restano non starebbero nei giorni dopo): la ' +
           'ricerca torna indietro e cambia una scelta precedente.'
-        : 'Siamo nelle ore obbligatorie: la ricerca torna indietro e cambia una scelta precedente.']));
+        : 'Siamo nelle ore obbligatorie: la ricerca torna indietro e cambia una scelta precedente.',
+      b.giorni ? ` Giro ${numeroIt(b.giro)}: i giorni si riempiono in quest'ordine: ` +
+        b.giorni.map((g, r) => d.giorni[g] + (r < b.fissati ? ' (fissato)' : '')).join(', ') + '.' : '']));
   if (b.incoerente) parti.push(el('div', {class: 'avviso errore'},
     'Attenzione: secondo la traccia una combinazione passerebbe tutti i controlli, ma la ricerca non l\'ha messa. ' +
     'La traccia non rispecchia la ricerca: va segnalato.'));
@@ -604,7 +632,7 @@ function paginaTest(cfg) {
   function celleBacktrack(b) {
     const motivi = Object.entries(b.riassunto).sort((a, b) => b[1] - a[1])
       .map(([k, v]) => el('span', {class: 'motivo', title: k}, `${v} × ${motivoBreve(k)}`));
-    return [td(numeroIt(b.n), true), td(numeroIt(b.nodo), true), td(testoSlot(b.pos)),
+    return [td(numeroIt(b.n), true), td(numeroIt(b.nodo), true), td(testoBacktrack(d, b)),
             td(b.buca_dopo ? 'segue ora buca' : 'torna indietro'), el('td', {}, motivi)];
   }
 
@@ -627,8 +655,8 @@ function paginaTest(cfg) {
   let inRisoluzione = false;    // il cursore e' sull'ultima posizione: come si risolve il gruppo
 
   function nuovoGruppo(b, livello) {
-    const g = {k: gruppi.length, inizio: b.pos, membri: [], celle: new Map(), primo: b.n, nodoPrimo: b.nodo, livello,
-               risoltoDa: null, tr: null, sotto: []};
+    const g = {k: gruppi.length, inizio: b.pos, testo: testoBacktrack(d, b), membri: [], celle: new Map(), primo: b.n,
+               nodoPrimo: b.nodo, livello, risoltoDa: null, fineGiro: false, tr: null, sotto: []};
     gruppi.push(g);
     return g;
   }
@@ -637,7 +665,7 @@ function paginaTest(cfg) {
     g.ultimo = b.n;
     g.nodoUltimo = b.nodo;
     // per ogni cella del gruppo: quanti backtrack e il primo
-    if (!g.celle.has(b.pos)) g.celle.set(b.pos, {quanti: 0, primo: b.n});
+    if (!g.celle.has(b.pos)) g.celle.set(b.pos, {quanti: 0, primo: b.n, testo: testoBacktrack(d, b)});
     g.celle.get(b.pos).quanti++;
     gruppoDi.set(b.n, g);
   }
@@ -712,7 +740,17 @@ function paginaTest(cfg) {
   try { const m = localStorage.getItem('modo-gruppi'); if (MODI[m]) sceltaModo.value = m; } catch (e) { /* niente */ }
   let modo = MODI[sceltaModo.value] || MODI.annidati;
   let statoModo = modo.stato();
-  const assegna = (b, toccati) => modo.assegna(statoModo, b, toccati);
+  // giorni-liberi: a ogni giro l'ordine delle celle cambia e la ricerca riparte; i gruppi ancora aperti finiscono col
+  // giro, e i gruppi ripartono da capo
+  let giroCorrente;
+  const assegna = (b, toccati) => {
+    if (b.giro != null && giroCorrente != null && b.giro !== giroCorrente) {
+      for (const g of gruppi) if (g.risoltoDa === null && !g.fineGiro) { g.fineGiro = true; toccati.add(g); }
+      statoModo = modo.stato();
+    }
+    if (b.giro != null) giroCorrente = b.giro;
+    modo.assegna(statoModo, b, toccati);
+  };
   const SPIEGA_CURSORE = $('spiega-cursore').textContent;
   function mostraModo() {
     $('spiega-gruppi').textContent = modo.spiega;
@@ -749,23 +787,25 @@ function paginaTest(cfg) {
     inRisoluzione = true;
     scelto = g.ultimo;
     aggiornaCursore();
-    const cella = testoSlot(g.inizio);
+    const cella = g.testo;
     $('posizione').textContent = `come si risolve il gruppo ${numeroIt(g.k + 1)}`;
     rigaAttuale([td('✓', true), td('–', true), td(cella), td('risolta'), td('caricamento…')], 'risoluzione');
     const ultimoBt = await caricaRecord(g.ultimo);
-    const dopo = g.risoltoDa !== null ? (await caricaRecord(g.risoltoDa)).orario : cfg.orario;
+    const dd = datiPerBacktrack(d, ultimoBt);  // giorni-liberi: l'ordine del giro (l'orario trovato e' in calendario)
+    const dopo = g.risoltoDa !== null ? (await caricaRecord(g.risoltoDa)).orario
+      : ultimoBt.giorni ? dd.ordine.map(c => cfg.orario[c]) : cfg.orario;
     if (!inRisoluzione || gruppoScelto !== g) return;
     const fino = g.inizio + 1;
     const cambiate = new Set();
     for (let p = 0; p < fino; p++)
       if (p >= ultimoBt.orario.length || JSON.stringify(dopo[p]) !== JSON.stringify(ultimoBt.orario[p])) cambiate.add(p);
     const buca = !dopo[g.inizio] || (dopo[g.inizio][0] < 0 && dopo[g.inizio][1] < 0);
-    const messo = buca ? "un'ora buca" : coppia(d, dopo[g.inizio]);
+    const messo = buca ? "un'ora buca" : coppia(dd, dopo[g.inizio]);
     rigaAttuale([td('✓', true), td('–', true), td(cella), td('risolta'),
       td(`${cella}: ${messo} · ${numeroIt(cambiate.size)} cell${cambiate.size === 1 ? 'a cambiata' : 'e cambiate'} ` +
          `dall'ultimo backtrack del gruppo (n. ${numeroIt(g.ultimo)})`)], 'risoluzione');
     const griglia = el('div');
-    disegnaOrario(griglia, d, dopo, {fino, cambiate, risolta: g.inizio});
+    disegnaOrario(griglia, dd, dopo, {fino, cambiate, risolta: g.inizio});
     mettiGriglia(raggiunto, el('p', {class: 'tenue piccolo didascalia'},
       `Come si risolve il gruppo ${numeroIt(g.k + 1)}: la ricerca supera ${cella} ` +
       (buca ? "con un'ora buca. " : `mettendo ${messo}. `) +
@@ -781,6 +821,7 @@ function paginaTest(cfg) {
 
   function comeFinisce(g) {
     if (g.risoltoDa !== null) return ['risolto', 'ok'];
+    if (g.fineGiro) return ['fine del giro: si riparte con un altro ordine dei giorni', 'attenzione'];
     if (cfg.inCorso) return ['in corso', ''];
     if (fineTrovato()) return ['risolto: orario trovato', 'ok'];
     if (cfg.totaleBacktrack > numeri.length && numeri.length >= cfg.maxBacktrack)
@@ -794,13 +835,13 @@ function paginaTest(cfg) {
                          onclick: () => { centraProssima = true; scegliGruppo(g); }}, [
       el('td', {class: 'num', testo: numeroIt(g.k + 1)}),
       el('td', {style: g.livello ? `padding-left: ${10 + g.livello * 18}px` : null},
-        (g.livello ? '↳ ' : '') + testoSlot(g.inizio)),
+        (g.livello ? '↳ ' : '') + g.testo),
       el('td', {class: 'num', testo: g.primo === g.ultimo ? numeroIt(g.primo) : `${numeroIt(g.primo)}–${numeroIt(g.ultimo)}`}),
       el('td', {class: 'num', testo: numeroIt(g.membri.length)}),
       el('td', {class: 'num', testo: g.nodoPrimo === g.nodoUltimo ? numeroIt(g.nodoPrimo) :
         `${numeroIt(g.nodoPrimo)}–${numeroIt(g.nodoUltimo)}`}),
       el('td', {class: 'col-celle', testo: modo.conCelle ?
-        celleOrdinate(g).map(([p, c]) => `${testoSlot(p)} (${numeroIt(c.quanti)})`).join(', ') : ''}),
+        celleOrdinate(g).map(([p, c]) => `${c.testo} (${numeroIt(c.quanti)})`).join(', ') : ''}),
       el('td', {}, el('span', {class: 'esito-gruppo ' + tipo, testo: fine})),
     ]);
     if (g.tr) g.tr.replaceWith(tr);
@@ -812,7 +853,7 @@ function paginaTest(cfg) {
     g.sotto = !modo.conCelle || g.celle.size < 2 ? [] : celleOrdinate(g).map(([p, c]) => el('tr', {class: 'sottoriga',
         onclick: ev => { ev.stopPropagation(); centraProssima = true; scegliGruppo(g, c.primo); }}, [
       el('td'),
-      el('td', {}, [el('span', {class: 'pallino c' + colori.get(p)}), testoSlot(p) +
+      el('td', {}, [el('span', {class: 'pallino c' + colori.get(p)}), c.testo +
         (p === g.inizio ? ' (partenza)' : '')]),
       el('td', {class: 'num', testo: `dal ${numeroIt(c.primo)}`}),
       el('td', {class: 'num', testo: numeroIt(c.quanti)}),
@@ -885,14 +926,14 @@ function paginaTest(cfg) {
     if (chiave && modo.passi) {
       for (const [nodo, n] of P.bt) {
         const x = riassunti.get(n);
-        tacca(passoDelNodo(nodo), x.pos === g.inizio ? 'c0' : 'c1', `backtrack ${numeroIt(n)}: ${testoSlot(x.pos)}`);
+        tacca(passoDelNodo(nodo), x.pos === g.inizio ? 'c0' : 'c1', `backtrack ${numeroIt(n)}: ${testoBacktrack(d, x)}`);
       }
       if (P.ris >= 0) tacca(P.primo[P.ris], 'cris', 'la ricerca supera la cella');
     } else if (chiave) {
       const colori = coloriCelle(g);
       lista.forEach((n, i) => {
-        const p = riassunti.get(n).pos;
-        if (p !== g.inizio) tacca(i, 'c' + colori.get(p), `${numeroIt(n)}: ${testoSlot(p)}`);
+        const x = riassunti.get(n), p = x.pos;
+        if (p !== g.inizio) tacca(i, 'c' + colori.get(p), `${numeroIt(n)}: ${testoBacktrack(d, x)}`);
       });
     }
     tacche.replaceChildren(...parti);
@@ -1246,6 +1287,7 @@ function paginaTest(cfg) {
     gruppi.length = 0;
     gruppoDi.clear();
     statoModo = modo.stato();
+    giroCorrente = undefined;
     P = null;
     caricaId++;
     gruppoScelto = null;

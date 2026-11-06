@@ -38,6 +38,8 @@ DESCRIZIONI = {
     'per-classe': 'per classe: dentro ogni giorno una classe alla volta',
     'in-avanti': 'con controllo in avanti: scarta subito le scelte che rendono il resto impossibile',
     'due-livelli': 'a due livelli: prima le ore di ogni giorno per docente e classe, poi l\'orario del giorno',
+    'giorni-liberi': 'giorni liberi: se si blocca in un giorno, libera il primo, tiene fissati quelli in mezzo e lo '
+                     'riempie per ultimo (a giri)',
 }
 
 

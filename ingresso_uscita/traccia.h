@@ -64,6 +64,15 @@ extern traccia_controllo_fn traccia_controllo_extra;
 void traccia_inizia_controllo(const char *nome);
 void traccia_fine_controllo(int uscita, int *fermato_a, int k);
 FILE *traccia_file(void);
+// Un solver che riempie i giorni in un ordine che cambia durante la ricerca (giorni-liberi): traccia_giorni[r] e' il
+// giorno riempito per r-esimo, traccia_posti[g] il posto del giorno g (NULL: calendario). Ogni backtrack ha in piu'
+// "giro", "fissati" (quanti giorni all'inizio dell'ordine sono fissati) e "giorni" (l'ordine): "pos" e' il passo in
+// quell'ordine. La regola dell'ultimo giorno e le ore obbligatorie contano i giorni in quell'ordine; gli orari trovati
+// sono in ordine di calendario (come in main).
+extern const int *traccia_giorni, *traccia_posti;
+extern int traccia_giro, traccia_fissati;
+// All'inizio di ogni giro: si registrano di nuovo fino a max_backtrack backtrack (per ogni giro i primi).
+void traccia_nuovo_giro(void);
 
 void traccia_orario_trovato(void);
 

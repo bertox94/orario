@@ -7,7 +7,7 @@ non deve cambiare la ricerca deve dare gli stessi valori. Ogni orario trovato pa
 orario.txt, come in CLAUDE.md.
 
 Uso, dalla radice del repository:
-    python3 tests/non_regressione.py                  tutti i casi, i solver main, per-classe e in-avanti
+    python3 tests/non_regressione.py                  tutti i casi, i solver main, per-classe, in-avanti e giorni-liberi
     python3 tests/non_regressione.py --solver main    un solver solo (anche piu' volte; due-livelli solo se chiesto)
     python3 tests/non_regressione.py --aggiorna       riscrive tests/attesi.json con i valori di adesso (dopo una
                                                       modifica voluta della ricerca: va detto nel commit)
@@ -31,7 +31,7 @@ RADICE = os.path.dirname(QUI)
 sys.path.insert(0, QUI)
 from verifica_orario import verifica  # noqa: E402
 
-SOLVER_PREDEFINITI = ['main', 'per-classe', 'in-avanti']
+SOLVER_PREDEFINITI = ['main', 'per-classe', 'in-avanti', 'giorni-liberi']
 TEMPO_MASSIMO = 60  # secondi per (solver, caso): i casi scelti finiscono in pochi secondi
 MD5_RIFERIMENTO = 'b7e8ad1800ea16bc0fc8be628c926fe6'  # orario.txt di main sui dati di prova (CLAUDE.md)
 

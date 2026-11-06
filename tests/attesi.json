@@ -1,4 +1,142 @@
 {
+ "giorni-liberi": {
+  "fattibilita_1_classe": {
+   "backtrack": 1,
+   "esito": "nessuna soluzione",
+   "nodi": 2
+  },
+  "fattibilita_2_totale": {
+   "backtrack": 8,
+   "esito": "nessuna soluzione",
+   "nodi": 15
+  },
+  "fattibilita_3_classi": {
+   "esito": "tempo scaduto"
+  },
+  "fattibilita_4_classe_presto": {
+   "backtrack": 1,
+   "esito": "nessuna soluzione",
+   "nodi": 2
+  },
+  "fattibilita_5_ora": {
+   "backtrack": 1,
+   "esito": "nessuna soluzione",
+   "nodi": 2
+  },
+  "piccolo_fattibile": {
+   "backtrack": 0,
+   "esito": "trovato",
+   "nodi": 37,
+   "orario": "ea7390b9224a"
+  },
+  "seme_1_8": {
+   "backtrack": 2,
+   "esito": "trovato",
+   "nodi": 290,
+   "orario": "3b1e661ab02b"
+  },
+  "seme_2_12": {
+   "backtrack": 0,
+   "esito": "trovato",
+   "nodi": 433,
+   "orario": "6f8500f32303"
+  },
+  "seme_2_16": {
+   "backtrack": 9,
+   "esito": "trovato",
+   "nodi": 586,
+   "orario": "a6aaa9cff544"
+  },
+  "seme_2_8": {
+   "backtrack": 1,
+   "esito": "trovato",
+   "nodi": 290,
+   "orario": "56a57c327c3c"
+  },
+  "seme_2_8_ritardi": {
+   "backtrack": 0,
+   "esito": "trovato",
+   "nodi": 289,
+   "orario": "5695c9ae7992"
+  },
+  "seme_3_8": {
+   "backtrack": 12,
+   "esito": "trovato",
+   "nodi": 301,
+   "orario": "5ee348f82470"
+  },
+  "seme_4_12_ritardi": {
+   "backtrack": 0,
+   "esito": "trovato",
+   "nodi": 433,
+   "orario": "fa4a84970fe7"
+  },
+  "seme_4_16": {
+   "backtrack": 3453,
+   "esito": "trovato",
+   "nodi": 5255,
+   "orario": "7496c22f150e"
+  },
+  "seme_4_8": {
+   "backtrack": 13,
+   "esito": "trovato",
+   "nodi": 304,
+   "orario": "6200695420a9"
+  },
+  "seme_5_12": {
+   "backtrack": 1,
+   "esito": "trovato",
+   "nodi": 433,
+   "orario": "f56e8b239c63"
+  },
+  "seme_5_12_ritardi": {
+   "backtrack": 14643,
+   "esito": "trovato",
+   "nodi": 65096,
+   "orario": "fa47a7a8a325"
+  },
+  "seme_5_16": {
+   "backtrack": 8,
+   "esito": "trovato",
+   "nodi": 586,
+   "orario": "8da36c166899"
+  },
+  "seme_5_16_ritardi": {
+   "backtrack": 5411,
+   "esito": "nessuna soluzione",
+   "nodi": 6928
+  },
+  "seme_5_8": {
+   "backtrack": 3,
+   "esito": "trovato",
+   "nodi": 292,
+   "orario": "6875cdc2d18c"
+  },
+  "seme_5_8_ritardi": {
+   "backtrack": 2,
+   "esito": "trovato",
+   "nodi": 291,
+   "orario": "d60d291317cd"
+  },
+  "seme_6_16": {
+   "backtrack": 1,
+   "esito": "trovato",
+   "nodi": 578,
+   "orario": "656b42b89ee8"
+  },
+  "seme_6_8": {
+   "backtrack": 14,
+   "esito": "trovato",
+   "nodi": 347,
+   "orario": "6bf19002979b"
+  },
+  "seme_6_8_ritardi": {
+   "backtrack": 26,
+   "esito": "trovato",
+   "nodi": 349,
+   "orario": "1f4cacc00879"
+  }
+ },
  "in-avanti": {
   "fattibilita_1_classe": {
    "errore": "Thranduil in X: 19 ore, ma entrando alle 11 ne puo' fare al massimo 18 (3 al giorno per 6 giorni)",
