@@ -8,10 +8,10 @@
     <label title="il seme finale: da 0 a questo (vuoto: solo 0). Anche un intervallo col trattino (5-9)">Semi da 0 a <input name="semi" value="" placeholder="0" size="6"></label>
     <label title="il numero di classi finale: da 8 a questo (vuoto: solo 8). Anche un intervallo col trattino (10-12)">Classi da 8 a <input name="classi" value="" placeholder="8" size="6"></label>
     <label title="l'ordine finale: da 0 a questo (vuoto: solo 0). 0: le classi come le genera il seme; 1, 2...: le stesse classi in un altro ordine (dentro ogni ora la ricerca le decide in quell'ordine)">Ordine delle classi da 0 a <input name="ordini" value="" placeholder="0" size="6"></label>
-    {% else %}
-    <label title="un numero o un intervallo col trattino (1-6); più di uno separati da virgole">Semi <input name="semi" value="{{ semi }}" size="8"></label>
-    <label title="un numero o un intervallo col trattino (8-12), come i semi; più di uno separati da virgole">Classi <input name="classi" value="{{ classi }}" size="10"></label>
-    <label title="un numero o un intervallo col trattino (0-3), come i semi. 0: le classi come le genera il seme; 1, 2...: le stesse classi in un altro ordine (dentro ogni ora la ricerca le decide in quell'ordine)">Ordine delle classi <input name="ordini" value="0" size="6"></label>
+    {% else %}{# test in tempo reale: il numero scritto e' solo quello (vuoto: seme 0, 8 classi, ordine 0) #}
+    <label title="il seme (vuoto: 0). Con un intervallo col trattino (1-6) una serie di test">Seme <input name="semi" value="" placeholder="0" size="8"></label>
+    <label title="il numero di classi (vuoto: 8). Con un intervallo col trattino (8-12) una serie di test">Classi <input name="classi" value="" placeholder="8" size="8"></label>
+    <label title="l'ordine delle classi (vuoto: 0). 0: le classi come le genera il seme; 1, 2...: le stesse classi in un altro ordine (dentro ogni ora la ricerca le decide in quell'ordine)">Ordine delle classi <input name="ordini" value="" placeholder="0" size="6"></label>
     {% endif %}
     <label>Docenti in ritardo <select name="ritardi">
       {% for v, testo in [('entrambi', 'senza e con'), ('senza', 'senza'), ('con', 'con')] %}

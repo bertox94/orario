@@ -91,9 +91,11 @@ def avvia():
     else:
         # semi, classi e ordini come nei test notturni: un numero o un intervallo col trattino, anche piu' di uno
         try:
-            semi = notturni.intervallo(f.get('semi', '') or '1', 0, 10 ** 9)
-            classi = notturni.intervallo(f.get('classi', '') or '8', 1, 120)
-            ordini = notturni.intervallo(f.get('ordini', '') or '0', 0, 10 ** 6)
+            # il numero scritto e' solo quello (vuoto: seme 0, 8 classi, ordine 0); un intervallo col trattino o piu'
+            # numeri separati da virgole fanno ancora una serie
+            semi = notturni.intervallo(f.get('semi', '').strip() or '0', 0, 10 ** 9)
+            classi = notturni.intervallo(f.get('classi', '').strip() or '8', 1, 120)
+            ordini = notturni.intervallo(f.get('ordini', '').strip() or '0', 0, 10 ** 6)
         except ValueError:
             flash('Seme, classi e ordine delle classi: un numero o un intervallo col trattino, anche più di uno separati '
                   'da virgole, per esempio «1-6», «8-12» e «0-3» (classi da 1 a 120; ordine 0: come generato).', 'errore')
