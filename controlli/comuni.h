@@ -125,6 +125,23 @@ void post_chiamata_ricorsiva_insieme(const int base2d_ci, const int base3d_goi, 
     decrement_ore_classi_codocenza_svolte(cla, it->teacher, jt->teacher);
 }
 
+// ---- l'elenco delle scelte di una cella (la fase 1 della ricerca) ----
+// Ogni cella, prima di provare qualcosa, mette qui le scelte che passano tutti i controlli (fase 1) e poi le prova una
+// alla volta (fase 2). Una pila sola per tutta la ricerca: una scelta sono due posti nella coda della cella (il docente
+// e il codocente; da solo il secondo e' -1); la cella le toglie quando ha finito. Cresce quando serve: si legge sempre
+// per indice, mai con un puntatore tenuto da una cella all'altra.
+static int *scelte = NULL;
+static size_t scelte_cima = 0, scelte_spazio = 0;
+
+static void aggiungi_scelta(const int ii, const int jj) {
+    if (scelte_cima + 2 > scelte_spazio) {
+        scelte_spazio = scelte_spazio ? 2 * scelte_spazio : 4096;
+        scelte = realloc(scelte, scelte_spazio * sizeof *scelte);
+    }
+    scelte[scelte_cima++] = ii;
+    scelte[scelte_cima++] = jj;
+}
+
 // ---- la coda dei docenti ----
 // In ogni cella si provano prima i docenti con meno margine: il margine e' quante ore il docente puo' ancora fare da
 // quest'ora alla fine della settimana (oggi da adesso, o dal suo ingresso se entra dopo; nei giorni dopo dal suo
