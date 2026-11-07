@@ -439,8 +439,20 @@ function disegnaControlli(contenitore, d, b, filtro) {
 }
 
 // le sezioni dei docenti di un backtrack o dei controlli di un nodo: controlli base, in coppia, da solo, e lo slot
+const POTATURE = ['situazione_risolvibile', 'ore_dei_docenti_stanno_nel_tempo', 'lezioni_della_classe_bastano'];
 function partiDocenti(d, b, filtro) {
   const parti = [];
+  // una potatura: la ricerca scarta la cella appena ci entra, senza provare nessun docente. Non ci sono controlli dei
+  // docenti da mostrare: il motivo (con i suoi numeri) e' il controllo dello slot
+  if (POTATURE.includes(b.slot.nome) && !b.docenti.length) {
+    parti.push(el('h4', {testo: 'Perché la ricerca torna indietro'}));
+    parti.push(el('p', {class: 'tenue piccolo'}, 'In questa cella la ricerca non prova nessun docente: appena ci entra, ' +
+      'una potatura dice che la scelta fatta nella cella prima rende il resto impossibile, e torna indietro. Qui ' +
+      'sotto il controllo che lo dice, con i suoi numeri. Per vedere i controlli dei docenti della cella prima, ' +
+      'quella da cambiare, usa il passo passo per cella.'));
+    parti.push(tabellaControlli([b.slot], b.slot.uscita ? -1 : 0, d));
+    return parti;
+  }
   const mostrati = b.docenti.filter(x => passaFiltro(filtro, haEsauritoOre(x)));
   // Tre sezioni, ognuna con la sua casella (accesa di default; spenta, la sezione non si vede): i controlli base, in
   // coppia, da solo. Con «controlli incrementali» coppie e da solo ci sono solo per chi passa i controlli base (come
