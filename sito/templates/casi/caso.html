@@ -82,8 +82,8 @@
   Registrati: <strong id="n-registrati">{{ n_registrati|numero }}</strong>{% if fine %} su {{ fine.backtrack|numero }}
   in tutto{% endif %} (al massimo {{ (e.opzioni or {}).get('max_backtrack', 1000)|numero }}{% if (e.opzioni or {}).get('solutore') == 'giorni-liberi' %} per giro{% endif %}), in
   <strong id="n-gruppi">0</strong> gruppi. <span id="spiega-gruppi"></span> Scegli un gruppo: il cursore qui sotto
-  scorre i suoi backtrack e «Mostra soluzione» fa vedere come si risolve; ← e → passano al backtrack
-  precedente e al successivo.</p>
+  scorre i suoi backtrack e «Mostra soluzione» fa vedere come si risolve; ← e → passano al backtrack (o al passo)
+  precedente e al successivo dentro il gruppo, senza cambiare gruppo.</p>
 <div class="barra-comandi">
   <label class="spunta">Raggruppa i backtrack
     <select id="modo-gruppi">

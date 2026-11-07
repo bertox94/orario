@@ -1386,14 +1386,9 @@ function paginaTest(cfg) {
     }
   }
 
-  // ← e →: il backtrack precedente e il successivo in ordine di tempo (passando da un gruppo all'altro)
-  function sposta(k) {
-    if (modo.passi) return passo(k);
-    const i = numeri.indexOf(scelto);
-    if (i < 0) return;
-    const j = Math.min(numeri.length - 1, Math.max(0, i + k));
-    if (j !== i) apri(numeri[j]);
-  }
+  // ← e →: il backtrack (o il passo) precedente e il successivo dentro il gruppo scelto, tra «Da» e «a»: il gruppo
+  // nell'elenco non cambia (per cambiarlo si sceglie un'altra riga)
+  const sposta = k => passo(k);
   $('precedente').addEventListener('click', () => sposta(-1));
   $('successivo').addEventListener('click', () => sposta(1));
   document.addEventListener('keydown', ev => {
