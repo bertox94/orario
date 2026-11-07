@@ -18,7 +18,7 @@
   </form>
   {% if da_aggiungere %}
   <form method="post" action="{{ url_for('notturni.da_prova', pid=p.id) }}" class="in-linea"
-        title="Un test notturno per ogni solver che non c'è già: stessi dati e stesso limite di nodi">
+        title="Un test notturno per ogni solver che non c'è già: stessi dati, con il limite di nodi dei test notturni">
     <input type="hidden" name="_gettone" value="{{ gettone }}"><input type="hidden" name="poi" value="{{ request.full_path }}">
     <button class="secondario">Aggiungi ai test notturni{{ ' (%d solver)'|format(da_aggiungere) if da_aggiungere < esecuzioni|length }}</button>
   </form>

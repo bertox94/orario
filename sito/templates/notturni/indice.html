@@ -46,6 +46,12 @@
       <label>Ogni notte alle <input name="ora" value="{{ ora }}" size="5" title="hh:mm, oppure «mai»"></label>
       <button class="secondario">Salva</button>
     </form>
+    <form method="post" action="{{ url_for('notturni.limite') }}" class="in-linea">
+      <input type="hidden" name="_gettone" value="{{ gettone }}">
+      <label title="Vale per tutti i test notturni: ogni test lo legge quando parte. Con un limite diverso il primo risultato di ogni test diventa il suo nuovo riferimento.">Fermati dopo
+        <input type="number" name="milioni" min="1" max="100" step="1" value="{{ [1, [100, (ferma_nodi / 1000000)|round|int]|min]|max }}" style="width: 5em"> milioni di nodi</label>
+      <button class="secondario">Salva</button>
+    </form>
   </div>
 </div>
 
@@ -116,7 +122,7 @@
                  value="{{ c.per_solver.values()|map(attribute='id')|join(',') }}"
                  title="Seleziona questo caso ({{ c.per_solver|length }} test, uno per solver)"></td>
       <td class="apri-caso"><span class="freccia">▸</span> {{ c.nome }}
-        <div class="tenue piccolo">{{ c.per_solver|length }} solver · fermo dopo {{ primo.opzioni.get('ferma_nodi')|numero }} nodi</div>
+        <div class="tenue piccolo">{{ c.per_solver|length }} solver</div>
         <div class="riepilogo-caso">{% if n_trovato %}<span class="esito esito-trovato" title="all'ultima esecuzione">almeno uno trovato ({{ n_trovato }} su {{ esiti|length }})</span>{% endif %}
           {% if 'errore nei dati' in esiti %}<span class="esito esito-errore-nei-dati" title="all'ultima esecuzione">errore nei dati</span>{% endif %}
           {% if not n_trovato and 'errore nei dati' not in esiti %}<span class="tenue piccolo">nessun orario trovato</span>{% endif %}</div></td>
@@ -219,7 +225,7 @@
     classi, per ogni solver scelto (di default tutti). I dati si generano adesso e si salvano: restano gli stessi anche se cambia il generatore. Un test che c'è
     già (stessi dati, solver e opzioni) non si aggiunge due volte. Si può anche aggiungere un test in tempo reale dalla
     sua pagina.</p>
-  {{ campi(ferma_nodi, semi='1-6', classi='8-12', ritardi='entrambi') }}
+  {{ campi(None, semi='1-6', classi='8-12', ritardi='entrambi', con_orari=False) }}
   <div class="riga" style="display: flex; flex-direction: column; gap: 2px; margin-top: 10px">
     {{ scelta_solver(solutori) }}
     <label class="spunta" style="margin-top: 6px"><input type="checkbox" name="repository" value="1">

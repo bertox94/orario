@@ -251,7 +251,7 @@ def indice():
                            in_corso=notturni.giro_in_corso(), test_in_corso=notturni.test_in_corso(),
                            ora=notturni.ora_impostata(conn()), nomi_campi=notturni.NOMI_CAMPI,
                            solutori=[(n, solver.DESCRIZIONI.get(n, n)) for n in solver.solutori()],
-                           ferma_nodi=notturni.FERMA_NODI)
+                           ferma_nodi=notturni.ferma_nodi_impostato(conn()))
 
 
 _VARIAZIONI = '''
@@ -302,14 +302,8 @@ def genera():
     if len(semi) * len(classi) * len(ritardi) * len(ordini) * len(solutori) > 20000:
         flash('Troppi test in una volta (al massimo 20.000).', 'errore')
         return redirect(url_for('.indice'))
-    try:
-        ferma_nodi = max(1, int(f.get('ferma_nodi') or notturni.FERMA_NODI))
-        orari = min(1000, max(1, int(f.get('orari') or 1)))
-    except ValueError:
-        flash('Limite di nodi e orari: numeri interi.', 'errore')
-        return redirect(url_for('.indice'))
-    aggiunti, gia, problemi, ids = notturni.genera(conn(), g.scuola['id'], semi, classi, ritardi, solutori, ferma_nodi,
-                                                   orari, casi_repository=bool(f.get('repository')), ordini=ordini)
+    aggiunti, gia, problemi, ids = notturni.genera(conn(), g.scuola['id'], semi, classi, ritardi, solutori, 1,
+                                                   casi_repository=bool(f.get('repository')), ordini=ordini)
     flash('Test aggiunti: %d%s.' % (aggiunti, ' (%d c\'era%s già)' % (gia, '' if gia == 1 else 'no') if gia else ''), 'ok')
     for p in problemi[:10]:
         flash('Non generato: %s' % p, 'errore')
@@ -330,13 +324,9 @@ def _avvia(soli):
 
 def _aggiungi_esecuzioni(eids):
     """Le esecuzioni di un test in tempo reale diventano test notturni (quelle che non lo sono gia')."""
-    try:
-        ferma_nodi = max(1, int(request.form['ferma_nodi'])) if request.form.get('ferma_nodi') else None
-    except ValueError:
-        ferma_nodi = None
     nuovi = gia = 0
     for eid in eids:
-        t = notturni.da_esecuzione(conn(), g.scuola['id'], eid, ferma_nodi)
+        t = notturni.da_esecuzione(conn(), g.scuola['id'], eid)
         if not t:
             continue
         if not t['presente'] and notturni.aggiungi(conn(), g.scuola['id'], t['nome'], t['solutore'], t['caso'],
@@ -408,6 +398,23 @@ def accetta_tutti():
     return redirect(url_for('.indice'))
 
 
+@bp.route('/limite', methods=['POST'])
+def limite():
+    """Il limite di nodi di tutti i test notturni, in milioni (da 1 a 100): ogni test lo legge quando parte."""
+    try:
+        milioni = int(request.form.get('milioni', '').strip())
+        assert 1 <= milioni <= 100
+    except (ValueError, AssertionError):
+        flash('Limite di nodi: un numero intero di milioni, da 1 a 100.', 'errore')
+        return redirect(url_for('.indice'))
+    v = milioni * 1000000
+    conn().execute("insert into impostazioni (nome, valore) values ('ferma_nodi_notturni', %s) "
+                   "on conflict (nome) do update set valore = excluded.valore", (str(v),))
+    flash('I test notturni si fermano dopo %d milion%s di nodi (dal prossimo test che parte). Con un limite diverso il '
+          'primo risultato di ogni test diventa il suo nuovo riferimento.' % (milioni, 'e' if milioni == 1 else 'i'), 'ok')
+    return redirect(url_for('.indice'))
+
+
 @bp.route('/ora', methods=['POST'])
 def ora():
     v = request.form.get('ora', '').strip()
@@ -427,18 +434,19 @@ def test(tid):
                                 'join giri_notturni gi on gi.id = n.giro_id where n.test_id = %s order by n.id desc '
                                 'limit 200', (tid,)).fetchall()
     return render_template('notturni/test.html', t=t, esecuzioni=esecuzioni, totale=celle(t['dati']),
+                           ferma_nodi=notturni.ferma_nodi_impostato(conn()),
                            nomi_campi=notturni.NOMI_CAMPI, in_corso=notturni.giro_in_corso(),
                            descrizione=solver.DESCRIZIONI.get(t['solutore'], t['solutore']))
 
 
 @bp.route('/<int:tid>/ritesta', methods=['POST'])
 def ritesta(tid):
-    """Lo stesso test in tempo reale: stessi dati, solver, orari e limite di nodi, con i backtrack registrati."""
+    """Lo stesso test in tempo reale: stessi dati, solver e orari, il limite di nodi dei test notturni, con i backtrack
+    registrati."""
     t = _test(tid)
     caso = {'tipo': 'input', 'nome': 'notturno: %s' % t['nome'], 'dati': t['dati'], 'notturno': tid}
-    opzioni = {'orari': t['opzioni'].get('orari', 1), 'max_backtrack': 1000}
-    if t['opzioni'].get('ferma_nodi'):
-        opzioni['ferma_nodi'] = t['opzioni']['ferma_nodi']
+    opzioni = {'orari': t['opzioni'].get('orari', 1), 'max_backtrack': 1000,
+               'ferma_nodi': notturni.ferma_nodi_impostato(conn())}
     try:
         pid, _ = esecutore.avvia_live(_config(), g.scuola['id'], caso, opzioni, [t['solutore']])
     except ValueError as ex:

@@ -90,17 +90,16 @@ def nei_notturni(c, scuola_id, eid):
                 where d.scuola_id = p.scuola_id and d.impronta = md5(p.dati_scuola::text)
                   and t.scuola_id = p.scuola_id and t.attivo
                   and t.solutore = coalesce(e.opzioni->>'solutore', 'main')
-                  and t.opzioni = jsonb_build_object('orari', coalesce((e.opzioni->>'orari')::int, 1),
-                                                     'ferma_nodi', coalesce((e.opzioni->>'ferma_nodi')::bigint, %s))
+                  and t.opzioni = jsonb_build_object('orari', coalesce((e.opzioni->>'orari')::int, 1))
                 limit 1) as tid
         from esecuzioni e join prove p on p.id = e.prova_id where e.id = %s and p.scuola_id = %s""",
-                  (FERMA_NODI, eid, scuola_id)).fetchone()
+                  (eid, scuola_id)).fetchone()
     if not r or not r['con_dati']:
         return None
     return r['tid'] or False
 
 
-def da_esecuzione(c, scuola_id, eid, ferma_nodi=None):
+def da_esecuzione(c, scuola_id, eid):
     """Il test notturno che si fa da un test in tempo reale (stessi dati e stesso solver; il limite di nodi del test, o
     quello di default), come argomenti di aggiungi, piu' 'presente': l'id se c'e' gia'. None se non ci sono i dati."""
     e = c.execute('select e.caso, e.opzioni, p.dati_scuola, p.opzioni as opzioni_prova from esecuzioni e '
@@ -110,7 +109,7 @@ def da_esecuzione(c, scuola_id, eid, ferma_nodi=None):
     o = e['opzioni'] or {}
     t = {'nome': e['caso'], 'solutore': o.get('solutore', 'main'),
          'caso': dict((e['opzioni_prova'] or {}).get('caso') or {}, da_test=eid), 'dati': e['dati_scuola'],
-         'opzioni': {'orari': o.get('orari', 1), 'ferma_nodi': ferma_nodi or o.get('ferma_nodi') or FERMA_NODI}}
+         'opzioni': {'orari': o.get('orari', 1)}}  # il limite di nodi e' quello della pagina (ferma_nodi_impostato)
     t['presente'] = presente(c, scuola_id, t['solutore'], t['dati'], t['opzioni'])
     return t
 
@@ -152,11 +151,11 @@ def pulisci_dati(c, scuola_id):
               '(select 1 from test_notturni t where t.dati_id = d.id)', (scuola_id,))
 
 
-def genera(c, scuola_id, semi, classi, ritardi, solutori, ferma_nodi, orari=1, casi_repository=False, ordini=(0,)):
+def genera(c, scuola_id, semi, classi, ritardi, solutori, orari=1, casi_repository=False, ordini=(0,)):
     """I test di tutte le combinazioni (seme x classi x ritardi x ordine delle classi) per ogni solver, piu' (se
     chiesto) i casi di tests/casi. Ritorna (aggiunti, gia' presenti, [messaggi per i casi che il generatore non sa
     fare], [id di tutti i test chiesti, nuovi e gia' presenti])."""
-    opzioni = {'orari': orari, 'ferma_nodi': ferma_nodi}
+    opzioni = {'orari': orari}  # il limite di nodi e' quello della pagina, letto a ogni esecuzione
     casi, problemi = [], []
     for seme in semi:
         for n in classi:
@@ -223,14 +222,14 @@ _AGGIUNGI_TANTI = '''
 
 # ---- eseguire un test ----
 
-def esegui_test(config, test):
+def esegui_test(config, test, ferma_nodi):
     """Il solver sul test, senza registrare backtrack ne' nodi. Ritorna i numeri della ricerca (vedi CAMPI) e i
     secondi. Si ferma prima se il giro viene fermato (esito 'fermato')."""
     cartella = tempfile.mkdtemp(prefix='n-', dir=_cartella(config))
     try:
         exe = solver.compila(config.cartella_bin, test['solutore'])
         opzioni = {'solutore': test['solutore'], 'orari': test['opzioni'].get('orari', 1), 'max_backtrack': 0,
-                   'max_nodi': 0, 'ferma_nodi': test['opzioni'].get('ferma_nodi')}
+                   'max_nodi': 0, 'ferma_nodi': ferma_nodi}
         e = solver.Esecuzione(exe, test['dati'], opzioni, cartella)
         with _lock:
             _giro['esecuzione'] = e
@@ -331,16 +330,17 @@ def _esegui_giro(config, gid, ids):
                                  'where t.id = %s', (tid,)).fetchone()
                 if not test:
                     continue
-                nid = c.execute('insert into esecuzioni_notturne (giro_id, test_id) values (%s, %s) returning id',
-                                (gid, tid)).fetchone()['id']
+                ferma_nodi = ferma_nodi_impostato(c)  # ogni test legge il limite della pagina quando parte
+                nid = c.execute('insert into esecuzioni_notturne (giro_id, test_id, ferma_nodi) values (%s, %s, %s) '
+                                'returning id', (gid, tid, ferma_nodi)).fetchone()['id']
                 pulisci_esecuzioni(c, gid, tid)  # anche mentre gira: 5 esecuzioni, compresa quella in corso
                 c.commit()
             try:
-                r = esegui_test(config, test)
+                r = esegui_test(config, test, ferma_nodi)
             except Exception as ex:  # il test risulta in errore, il giro continua
                 traceback.print_exc()
                 r = {'esito': 'errore', 'errore': str(ex), 'secondi': None}
-            _registra(config, nid, test, r)
+            _registra(config, nid, test, r, ferma_nodi)
             # subito, test per test: peggiorato o migliorato, e di questo test restano le ultime 5 esecuzioni
             try:
                 with db.connetti(config.database_url) as c:
@@ -380,6 +380,7 @@ def _valore_esecuzione(n):
 
 def _numeri(n):
     return {'inizio': n['inizio'].isoformat() if n['inizio'] else None, 'esito': n['esito'], 'nodi': n['nodi'],
+            'ferma_nodi': n['ferma_nodi'],
             'backtrack': n['backtrack'], 'secondi': n['secondi'], 'giro_id': n['giro_id']}
 
 
@@ -400,7 +401,8 @@ def registra_variazioni(c, gid, tid=None):
     for n in righe:
         per_test.setdefault(n['test_id'], []).append(n)
     for tid, lista in per_test.items():
-        ultima, prima = lista[-1], lista[:-1]
+        ultima = lista[-1]
+        prima = [n for n in lista[:-1] if n['ferma_nodi'] == ultima['ferma_nodi']]  # solo con lo stesso limite di nodi
         if ultima['giro_id'] != gid or not prima:
             continue
         v = _valore_esecuzione(ultima)
@@ -436,11 +438,13 @@ def pulisci_esecuzioni(c, gid, tid=None):
               (gid,))
 
 
-def _registra(config, nid, test, r):
-    """Scrive l'esecuzione e il confronto: senza riferimento i numeri diventano il riferimento (confronto 'nuovo')."""
+def _registra(config, nid, test, r, ferma_nodi):
+    """Scrive l'esecuzione e il confronto: senza riferimento, o con un riferimento fissato con un altro limite di nodi,
+    i numeri diventano il riferimento (confronto 'nuovo')."""
+    rif = test['riferimento']
     if r['esito'] in ('fermato', 'errore') or r['esito'] is None:
         confronto, diff = 'errore', None  # un test fermato a mano o in errore non dice niente sulla ricerca
-    elif test['riferimento'] is None:
+    elif rif is None or rif.get('ferma_nodi') != ferma_nodi:
         confronto, diff = 'nuovo', None
     else:
         diff = confronta(test['riferimento'], r)
@@ -451,8 +455,9 @@ def _registra(config, nid, test, r):
                   (r.get('secondi'), r['esito'], r.get('nodi'), r.get('backtrack'), r.get('pos_max'), r.get('orario'),
                    r.get('errore'), confronto, _json(diff) if diff else None, nid))
         if confronto == 'nuovo':
-            c.execute("update test_notturni set riferimento = %s, accettato = now(), accettato_da = 'prima esecuzione' "
-                      "where id = %s", (_json(valori(r)), test['id']))
+            c.execute("update test_notturni set riferimento = %s, accettato = now(), accettato_da = %s where id = %s",
+                      (_json(dict(valori(r), ferma_nodi=ferma_nodi)),
+                       'prima esecuzione' if rif is None else 'nuovo limite di nodi', test['id']))
         c.commit()
 
 
@@ -467,7 +472,7 @@ def accetta(c, nid, chi):
     if not n or n['confronto'] not in ('diverso', 'accettato'):
         return False
     c.execute('update test_notturni set riferimento = %s, accettato = now(), accettato_da = %s where id = %s',
-              (_json(valori(n)), chi, n['test_id']))
+              (_json(dict(valori(n), ferma_nodi=n['ferma_nodi'])), chi, n['test_id']))
     c.execute("update esecuzioni_notturne set confronto = 'accettato' where id = %s", (nid,))
     return True
 
@@ -485,6 +490,15 @@ def avvia_sorveglianza(config):
         c.execute("update giri_notturni set stato = 'interrotto', fine = now() where stato = 'in corso'")
         c.commit()
     threading.Thread(target=_sorveglia, args=(config,), daemon=True, name='notturni-sorveglianza').start()
+
+
+def ferma_nodi_impostato(c):
+    """Il limite di nodi dei test notturni (uno per tutti, in alto nella pagina, in milioni da 1 a 100)."""
+    r = c.execute("select valore from impostazioni where nome = 'ferma_nodi_notturni'").fetchone()
+    try:
+        return max(1, int(r['valore'])) if r and r['valore'] else FERMA_NODI
+    except ValueError:
+        return FERMA_NODI
 
 
 def ora_impostata(c):
