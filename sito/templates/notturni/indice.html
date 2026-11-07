@@ -84,7 +84,7 @@
   {% set esiti = c.per_solver.values()|map(attribute='esito')|list %}
   {% set n_trovato = esiti|select('equalto', 'trovato')|list|length %}
   <tbody class="caso" data-gruppo="{{ ig }}" data-errore="{{ 1 if 'errore nei dati' in esiti else 0 }}"
-         data-trovato="{{ 1 if n_trovato else 0 }}" data-trovati="{{ n_trovato }}" data-solver="{{ esiti|length }}">
+         data-trovato="{{ 1 if n_trovato else 0 }}" data-trovati="{{ n_trovato }}" data-aperto="{{ 0 if c.concluso else 1 }}" data-solver="{{ esiti|length }}">
     <tr class="riga-caso{{ ' riga-diversa' if c.per_solver.values()|selectattr('confronto', 'equalto', 'diverso')|list }}">
       <td><input type="checkbox" class="seleziona-caso" name="tid" form="togli-test"
                  value="{{ c.per_solver.values()|map(attribute='id')|join(',') }}"
@@ -169,6 +169,7 @@
     <option value="">tutti i casi</option>
     <option value="errore">errore nei dati</option>
     <option value="trovato">almeno un orario trovato</option>
+    <option value="aperto">nessun solver arrivato a una conclusione</option>
   </select></label>
   <label>Orario trovato da <select id="filtro-trovati"><option value="">qualsiasi numero di solver</option></select></label>
   <label class="spunta"><input type="checkbox" id="nascondi-errori"> Nascondi i casi con errore nei dati</label>
@@ -179,11 +180,7 @@
   <span class="meglio">In verde</span> quello che va meglio dell'esecuzione prima dello stesso test,
   <span class="peggio">in rosso</span> quello che va peggio; nella riga del caso la casella del giro è rossa se
   almeno un solver va peggio, verde se qualcosa va solo meglio. La × accanto alla data elimina quel giro.</p>
-<h3>Conclusi <span class="tenue piccolo">i casi in cui almeno un solver ha trovato l'orario, dimostrato che non c'è o riconosciuto un errore nei dati; una riga per caso ({{ conclusi|sum(attribute='casi', start=[])|length }} casi)</span></h3>
-{% if conclusi %}{{ tabella_casi(conclusi, 'casi-conclusi') }}{% else %}<p class="tenue">Nessuno.</p>{% endif %}
-
-<h3>Da parte: non terminati <span class="tenue piccolo">i casi in cui nessun solver è arrivato a una conclusione (limite di nodi, fermati a mano, in errore, non ancora eseguiti), da rivedere ({{ da_parte|sum(attribute='casi', start=[])|length }} casi)</span></h3>
-{% if da_parte %}{{ tabella_casi(da_parte, 'casi-da-parte') }}{% else %}<p class="tenue">Nessuno.</p>{% endif %}
+{% if gruppi %}{{ tabella_casi(gruppi, 'casi') }}{% endif %}
 
 {% if disattivati %}
 <h3>Disattivati</h3>

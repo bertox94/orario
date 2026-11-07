@@ -56,7 +56,7 @@ _ULTIME = '''
     order by t.attivo desc, t.nome, t.solutore, t.id'''
 
 
-# esiti di una ricerca che non e' arrivata a una conclusione: questi test si mettono da parte
+# esiti di una ricerca che non e' arrivata a una conclusione (il filtro «nessuno concluso»)
 NON_TERMINATI = ('limite di nodi', 'fermato', 'interrotto', 'errore')
 
 
@@ -179,9 +179,8 @@ def riassunto_giro(c, colonne, celle):
 
 def raggruppa(righe, ordine_solver, per='seme'):
     """I test raggruppati per caso (stesso nome): una riga per caso (la data dell'ultima esecuzione, poi per ogni solver
-    esito, nodi e durata). Ritorna (solver, casi conclusi, casi da parte, test disattivati, riepilogo per solver). Un
-    caso va da parte se nessun solver e' arrivato a una conclusione (tutti al limite di nodi, fermati, in errore o mai
-    eseguiti); ogni caso sta in una riga sola."""
+    esito, nodi e durata). Ritorna (solver, gruppi dei casi, test disattivati, riepilogo per solver). Tutti i casi
+    stanno nella stessa tabella; 'concluso' dice se almeno un solver e' arrivato a una conclusione (per il filtro)."""
     attivi = [r for r in righe if r['attivo']]
     solver = [s for s in ordine_solver if any(r['solutore'] == s for r in attivi)]
     solver += sorted({r['solutore'] for r in attivi} - set(solver))
@@ -196,9 +195,7 @@ def raggruppa(righe, ordine_solver, per='seme'):
         c['concluso'] = any(not aperto(r) for r in c['per_solver'].values())
         date = [r['inizio'] for r in c['per_solver'].values() if r['inizio']]
         c['data'] = max(date) if date else None  # l'ultima esecuzione del caso
-    # una riga per caso: tra i conclusi se almeno un solver e' arrivato a una conclusione, se no da parte
-    conclusi = _gruppi([c for c in casi if c['concluso']], per, 'per_solver', solver)
-    da_parte = _gruppi([c for c in casi if not c['concluso']], per, 'per_solver', solver)
+    gruppi = _gruppi(casi, per, 'per_solver', solver)  # una riga per caso, tutti insieme
     riepilogo = []
     for s in solver:
         mie = [r for r in attivi if r['solutore'] == s]
@@ -216,14 +213,14 @@ def raggruppa(righe, ordine_solver, per='seme'):
             'solo_lui': sum(1 for c in casi if (c['per_solver'].get(s) or {}).get('esito') == 'trovato' and
                             not any(t != s and r['esito'] == 'trovato' for t, r in c['per_solver'].items())),
         })
-    return solver, conclusi, da_parte, [r for r in righe if not r['attivo']], riepilogo
+    return solver, gruppi, [r for r in righe if not r['attivo']], riepilogo
 
 
 @bp.route('/')
 def indice():
     righe = conn().execute(_ULTIME, (g.scuola['id'],)).fetchall()
     per = request.args.get('per') if request.args.get('per') in RAGGRUPPAMENTI else 'seme'
-    solver_colonne, conclusi, da_parte, disattivati, riepilogo = raggruppa(righe, list(solver.solutori()), per)
+    solver_colonne, gruppi, disattivati, riepilogo = raggruppa(righe, list(solver.solutori()), per)
     giri = conn().execute('''
         select gi.*, count(n.id) as quanti,
                count(*) filter (where n.confronto in ('diverso', 'accettato')) as diversi,
@@ -235,12 +232,12 @@ def indice():
         where gi.scuola_id = %s group by gi.id order by gi.id desc limit 15''', (g.scuola['id'],)).fetchall()
     diversi = [r for r in righe if r['confronto'] == 'diverso']
     colonne, celle_giri = storia(conn(), g.scuola['id'], [r['id'] for r in righe if r['attivo']])
-    for gr in conclusi + da_parte:
+    for gr in gruppi:
         for c in gr['casi']:
             c['giri'] = riassunto_giro(c, colonne, celle_giri)
     return render_template('notturni/indice.html', righe=righe, giri=giri, diversi=diversi,
                            colonne=colonne, celle_giri=celle_giri,
-                           solver_colonne=solver_colonne, conclusi=conclusi, da_parte=da_parte,
+                           solver_colonne=solver_colonne, gruppi=gruppi,
                            disattivati=disattivati, riepilogo=riepilogo, per=per,
                            raggruppamenti=list(RAGGRUPPAMENTI),
                            in_corso=notturni.giro_in_corso(), test_in_corso=notturni.test_in_corso(),
