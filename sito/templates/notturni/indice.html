@@ -82,15 +82,15 @@
   {% for c in gr.casi %}
   {% set primo = (c.per_solver.values()|list)[0] %}
   {% set esiti = c.per_solver.values()|map(attribute='esito')|list %}
+  {% set n_trovato = esiti|select('equalto', 'trovato')|list|length %}
   <tbody class="caso" data-gruppo="{{ ig }}" data-errore="{{ 1 if 'errore nei dati' in esiti else 0 }}"
-         data-trovato="{{ 1 if 'trovato' in esiti else 0 }}">
+         data-trovato="{{ 1 if n_trovato else 0 }}" data-trovati="{{ n_trovato }}" data-solver="{{ esiti|length }}">
     <tr class="riga-caso{{ ' riga-diversa' if c.per_solver.values()|selectattr('confronto', 'equalto', 'diverso')|list }}">
       <td><input type="checkbox" class="seleziona-caso" name="tid" form="togli-test"
                  value="{{ c.per_solver.values()|map(attribute='id')|join(',') }}"
                  title="Seleziona questo caso ({{ c.per_solver|length }} test, uno per solver)"></td>
       <td class="apri-caso"><span class="freccia">▸</span> {{ c.nome }}
         <div class="tenue piccolo">{{ c.per_solver|length }} solver · fermo dopo {{ primo.opzioni.get('ferma_nodi')|numero }} nodi</div>
-        {% set n_trovato = esiti|select('equalto', 'trovato')|list|length %}
         <div class="riepilogo-caso">{% if n_trovato %}<span class="esito esito-trovato" title="all'ultima esecuzione">almeno uno trovato ({{ n_trovato }} su {{ esiti|length }})</span>{% endif %}
           {% if 'errore nei dati' in esiti %}<span class="esito esito-errore-nei-dati" title="all'ultima esecuzione">errore nei dati</span>{% endif %}
           {% if not n_trovato and 'errore nei dati' not in esiti %}<span class="tenue piccolo">nessun orario trovato</span>{% endif %}</div></td>
@@ -170,6 +170,7 @@
     <option value="errore">errore nei dati</option>
     <option value="trovato">almeno un orario trovato</option>
   </select></label>
+  <label>Orario trovato da <select id="filtro-trovati"><option value="">qualsiasi numero di solver</option></select></label>
   <label class="spunta"><input type="checkbox" id="nascondi-errori"> Nascondi i casi con errore nei dati</label>
   <span class="tenue piccolo" id="conto-filtro"></span>
 </div>
@@ -240,21 +241,34 @@ document.getElementById('chiudi-tutti').addEventListener('click', () =>
 // «Nascondi i casi con errore nei dati» si aggiunge al filtro e resta scelto (in questo browser).
 const filtro = document.getElementById('filtro-casi');
 const nascondiErrori = document.getElementById('nascondi-errori');
+// «orario trovato da»: le scelte sono i numeri di solver che ci sono davvero (0 = da nessuno)
+const filtroTrovati = document.getElementById('filtro-trovati');
+(() => {
+  const casi = [...document.querySelectorAll('tbody.caso')];
+  const max = Math.max(0, ...casi.map(t => +t.dataset.solver));
+  const quanti = [...new Set(casi.map(t => +t.dataset.trovati))].sort((a, b) => a - b);
+  for (const n of quanti) {
+    const conto = casi.filter(t => +t.dataset.trovati === n).length;
+    filtroTrovati.add(new Option(`${n === 0 ? 'nessun solver' : n === max ? `tutti i solver (${n})` : `${n} solver`} — ${conto} casi`, n));
+  }
+})();
 try { nascondiErrori.checked = localStorage.getItem('notturni-nascondi-errori') === '1'; } catch (e) {}
 function filtra() {
-  const v = filtro.value, senza = nascondiErrori.checked, casi = [...document.querySelectorAll('tbody.caso')];
+  const v = filtro.value, senza = nascondiErrori.checked, nt = filtroTrovati.value;
+  const casi = [...document.querySelectorAll('tbody.caso')];
   let n = 0;
   for (const t of casi) {
-    const si = (!v || t.dataset[v] === '1') && !(senza && t.dataset.errore === '1');
+    const si = (!v || t.dataset[v] === '1') && !(senza && t.dataset.errore === '1') && (nt === '' || t.dataset.trovati === nt);
     t.hidden = !si;
     n += si;
   }
   document.querySelectorAll('tbody.titolo-gruppo').forEach(t => {
     t.hidden = !casi.some(c => c.dataset.gruppo === t.dataset.gruppo && !c.hidden);
   });
-  document.getElementById('conto-filtro').textContent = v || senza ? `${n} casi su ${casi.length}` : '';
+  document.getElementById('conto-filtro').textContent = v || senza || nt !== '' ? `${n} casi su ${casi.length}` : '';
 }
 filtro.addEventListener('change', filtra);
+filtroTrovati.addEventListener('change', () => filtro.dispatchEvent(new Event('change')));
 nascondiErrori.addEventListener('change', () => {
   try { localStorage.setItem('notturni-nascondi-errori', nascondiErrori.checked ? '1' : ''); } catch (e) {}
   filtro.dispatchEvent(new Event('change'));
