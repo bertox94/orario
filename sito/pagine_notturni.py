@@ -270,8 +270,8 @@ def genera():
     if not solutori:
         flash('Scegli almeno un solver.', 'errore')
         return redirect(url_for('.indice'))
-    if len(semi) * len(classi) * len(ritardi) * len(ordini) * len(solutori) > 2000:
-        flash('Troppi test in una volta (al massimo 2.000).', 'errore')
+    if len(semi) * len(classi) * len(ritardi) * len(ordini) * len(solutori) > 20000:
+        flash('Troppi test in una volta (al massimo 20.000).', 'errore')
         return redirect(url_for('.indice'))
     try:
         ferma_nodi = max(1, int(f.get('ferma_nodi') or notturni.FERMA_NODI))

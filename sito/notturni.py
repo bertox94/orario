@@ -73,8 +73,10 @@ def nome_casuale(seme, classi, ritardi, ordine=0):
 
 def presente(c, scuola_id, solutore, dati, opzioni):
     """L'id del test notturno attivo con gli stessi dati, solver e opzioni, o None."""
-    r = c.execute('select id from test_notturni where scuola_id = %s and solutore = %s and dati = %s::jsonb '
-                  'and opzioni = %s::jsonb and attivo', (scuola_id, solutore, _json(dati), _json(opzioni))).fetchone()
+    j = _json(dati)
+    r = c.execute('select id from test_notturni where scuola_id = %s and solutore = %s and md5(dati::text) = '
+                  'md5(%s::jsonb::text) and dati = %s::jsonb and opzioni = %s::jsonb and attivo',
+                  (scuola_id, solutore, j, j, _json(opzioni))).fetchone()
     return r['id'] if r else None
 
 
@@ -150,15 +152,38 @@ def genera(c, scuola_id, semi, classi, ritardi, solutori, ferma_nodi, orari=1, c
                     casi.append(('tests/casi/' + f[:-5], {'tipo': 'file', 'nome': 'tests/casi/' + f}, json.load(fh)))
     aggiunti = gia = 0
     ids = []
-    for nome, caso, dati in casi:
-        for s in solutori:
-            tid, nuovo = aggiungi(c, scuola_id, nome, s, caso, dati, opzioni)
-            ids.append(tid)
-            if nuovo:
+    test = [{'nome': nome, 'solutore': s, 'caso': caso, 'dati': dati} for nome, caso, dati in casi for s in solutori]
+    for k, i in enumerate(range(0, len(test), _PER_VOLTA)):
+        if k and k & (k - 1) == 0:
+            # dopo 1, 2, 4, 8... blocchi: il database rifa' le statistiche, se no crede che la tabella sia ancora
+            # piccola, non usa l'indice e confronta ogni test con tutti quelli della scuola
+            c.execute('analyze test_notturni')
+        for r in c.execute(_AGGIUNGI_TANTI, (_json(test[i:i + _PER_VOLTA]), scuola_id, _json(opzioni), scuola_id,
+                                             _json(opzioni))).fetchall():
+            ids.append(r['id'])
+            if r['nuovo']:
                 aggiunti += 1
             else:
                 gia += 1
     return aggiunti, gia, problemi, ids
+
+
+# Aggiungere tanti test in una volta: una query ogni _PER_VOLTA test (invece di due per test), con il confronto dei
+# dati fatto nel database sull'impronta (l'indice test_notturni_stessi_dati) e poi sui dati. Prima ogni test era un
+# confronto con i dati di tutti i test della scuola e due andate e ritorno con il database (dal Raspberry al Mac:
+# la rete): con migliaia di test, minuti.
+_PER_VOLTA = 200
+_AGGIUNGI_TANTI = '''
+    with r as (select x.* from jsonb_to_recordset(%s::jsonb) as x(nome text, solutore text, caso jsonb, dati jsonb)),
+    gia as (select r.solutore, r.dati, t.id from r cross join lateral (
+                select id from test_notturni t where t.scuola_id = %s and t.solutore = r.solutore
+                and md5(t.dati::text) = md5(r.dati::text) and t.dati = r.dati and t.opzioni = %s::jsonb and t.attivo
+                order by id limit 1) t),
+    nuovi as (insert into test_notturni (scuola_id, nome, solutore, caso, dati, opzioni)
+              select %s, r.nome, r.solutore, r.caso, r.dati, %s::jsonb from r
+              where not exists (select 1 from gia where gia.solutore = r.solutore and gia.dati = r.dati)
+              returning id)
+    select id, true as nuovo from nuovi union all select id, false from gia'''
 
 
 # ---- eseguire un test ----
