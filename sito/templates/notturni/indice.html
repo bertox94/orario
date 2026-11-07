@@ -70,12 +70,15 @@
     </tr>
   </thead>
   {% for gr in gruppi %}
-  <tbody>
+  {% set ig = id ~ '-' ~ loop.index %}
+  <tbody class="titolo-gruppo" data-gruppo="{{ ig }}">
     <tr class="sottotitolo"><th colspan="{{ 3 + [colonne|length, 1]|max }}">{{ gr.titolo }} <span class="tenue piccolo">({{ gr.casi|length }} cas{{ 'o' if gr.casi|length == 1 else 'i' }})</span></th></tr>
   </tbody>
   {% for c in gr.casi %}
   {% set primo = (c.per_solver.values()|list)[0] %}
-  <tbody class="caso">
+  {% set esiti = c.per_solver.values()|map(attribute='esito')|list %}
+  <tbody class="caso" data-gruppo="{{ ig }}" data-errore="{{ 1 if 'errore nei dati' in esiti else 0 }}"
+         data-trovato="{{ 1 if 'trovato' in esiti else 0 }}">
     <tr class="riga-caso{{ ' riga-diversa' if c.per_solver.values()|selectattr('confronto', 'equalto', 'diverso')|list }}">
       <td><input type="checkbox" class="seleziona-caso" name="tid" form="togli-test"
                  value="{{ c.per_solver.values()|map(attribute='id')|join(',') }}"
@@ -150,8 +153,17 @@
     dopo, compreso quello della notte, eseguono solo quelli rimasti. Un solo solver di un caso si toglie dalla pagina
     del suo test.</span>
 </form>
-<p class="tenue piccolo">Ogni caso si apre con un clic (<button type="button" class="link" id="apri-tutti">apri tutti</button> ·
-  <button type="button" class="link" id="chiudi-tutti">chiudi tutti</button>): una riga per solver, con in ogni
+<div class="barra-comandi" style="margin: 10px 0 0">
+  <button type="button" class="secondario" id="apri-tutti">Espandi tutti</button>
+  <button type="button" class="secondario" id="chiudi-tutti">Chiudi tutti</button>
+  <label>Filtra <select id="filtro-casi">
+    <option value="">tutti i casi</option>
+    <option value="errore">errore nei dati</option>
+    <option value="trovato">almeno un orario trovato</option>
+  </select></label>
+  <span class="tenue piccolo" id="conto-filtro"></span>
+</div>
+<p class="tenue piccolo">Ogni caso si apre con un clic sul nome: una riga per solver, con in ogni
   colonna un giro (il più recente a destra, gli ultimi {{ colonne|length }}): tempo, esito, nodi e backtrack.
   <span class="meglio">In verde</span> quello che va meglio dell'esecuzione prima dello stesso test,
   <span class="peggio">in rosso</span> quello che va peggio; nella riga del caso la casella del giro è rossa se
@@ -208,13 +220,30 @@
 {% endblock %}
 {% block script %}
 <script>
-// i casi si aprono con un clic sul nome (una riga per solver); «apri tutti» e «chiudi tutti»
+// i casi si aprono con un clic sul nome (una riga per solver); «espandi tutti» e «chiudi tutti»
 document.querySelectorAll('.apri-caso').forEach(td => td.addEventListener('click', () =>
   td.closest('tbody').classList.toggle('aperto')));
-document.getElementById('apri-tutti').addEventListener('click', () =>
-  document.querySelectorAll('tbody.caso').forEach(t => t.classList.add('aperto')));
 document.getElementById('chiudi-tutti').addEventListener('click', () =>
   document.querySelectorAll('tbody.caso').forEach(t => t.classList.remove('aperto')));
+// il filtro dei casi (sull'ultima esecuzione di ogni solver): errore nei dati, almeno un orario trovato. Un gruppo
+// (seme, classi...) senza casi visibili si nasconde anche lui; «espandi tutti» apre solo i casi visibili.
+const filtro = document.getElementById('filtro-casi');
+function filtra() {
+  const v = filtro.value, casi = [...document.querySelectorAll('tbody.caso')];
+  let n = 0;
+  for (const t of casi) {
+    const si = !v || t.dataset[v] === '1';
+    t.hidden = !si;
+    n += si;
+  }
+  document.querySelectorAll('tbody.titolo-gruppo').forEach(t => {
+    t.hidden = !casi.some(c => c.dataset.gruppo === t.dataset.gruppo && !c.hidden);
+  });
+  document.getElementById('conto-filtro').textContent = v ? `${n} casi su ${casi.length}` : '';
+}
+filtro.addEventListener('change', filtra);
+document.getElementById('apri-tutti').addEventListener('click', () =>
+  document.querySelectorAll('tbody.caso:not([hidden])').forEach(t => t.classList.add('aperto')));
 // le caselle dei casi: «seleziona tutti» per tabella e il conto sul pulsante
 (() => {
   const caselle = () => [...document.querySelectorAll('.seleziona-caso')];
@@ -225,7 +254,8 @@ document.getElementById('chiudi-tutti').addEventListener('click', () =>
     pulsante.disabled = !scelti.length;
     pulsante.textContent = scelti.length ? `Elimina i casi selezionati (${scelti.length}: ${n} test)` : 'Elimina i casi selezionati';
     document.querySelectorAll('.tabella-casi').forEach(t => {
-      const tutte = [...t.querySelectorAll('.seleziona-caso')], si = tutte.filter(c => c.checked).length;
+      const tutte = [...t.querySelectorAll('tbody.caso:not([hidden]) .seleziona-caso')];
+      const si = tutte.filter(c => c.checked).length;
       const s = t.querySelector('.seleziona-tutti');
       s.checked = tutte.length > 0 && si === tutte.length;
       s.indeterminate = si > 0 && si < tutte.length;
@@ -233,9 +263,15 @@ document.getElementById('chiudi-tutti').addEventListener('click', () =>
   };
   document.querySelectorAll('.tabella-casi').forEach(t => t.addEventListener('change', ev => {
     if (ev.target.classList.contains('seleziona-tutti'))
-      t.querySelectorAll('.seleziona-caso').forEach(c => c.checked = ev.target.checked);
+      // solo i casi visibili (con il filtro, quelli filtrati)
+      t.querySelectorAll('tbody.caso:not([hidden]) .seleziona-caso').forEach(c => c.checked = ev.target.checked);
     aggiorna();
   }));
+  // cambiando il filtro, i casi che si nascondono non restano selezionati
+  filtro.addEventListener('change', () => {
+    document.querySelectorAll('tbody.caso[hidden] .seleziona-caso').forEach(c => c.checked = false);
+    aggiorna();
+  });
   aggiorna();
 })();
 </script>
