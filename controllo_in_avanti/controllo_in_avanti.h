@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-// Il controllo in avanti e la verifica dei dati (venivano dal solver in-avanti; ora li hanno tutti i solver).
+// Il controllo in avanti e la verifica dei dati (venivano dal solver in-avanti, tolto; li hanno tutti i solver).
 //
 // CONTROLLO IN AVANTI, dopo ogni scelta (una coppia, un docente da solo o un'ora buca): il resto e' ancora
 // risolvibile? Sono condizioni necessarie: se dicono "no" l'orario non si puo' completare e la scelta si scarta; se
@@ -16,8 +16,7 @@
 //  3. le ore dei docenti: in ogni classe le ore che restano al docente stanno in quelle che puo' ancora fare (oggi dopo
 //     l'ultima ora decisa, se il suo blocco non si e' chiuso; poi al massimo 3 al giorno dal suo ingresso), e in tutto
 //     stanno nelle ore libere che gli restano.
-// Quando: in-avanti lo fa prima di scendere alla cella dopo; gli altri solver all'ingresso della cella dopo, con le
-// potature (potature/potature.h, POTATURA_IN_AVANTI). Lo stato e' lo stesso: cambia solo se il nodo si conta.
+// Quando: all'ingresso della cella dopo la scelta, con le potature (potature/potature.h, POTATURA_IN_AVANTI).
 //
 // Vale per qualunque ordine delle celle (main: un'ora alla volta; per-classe: dentro il giorno una
 // classe alla volta) e dei giorni (giorni-liberi): i solver si decidono un giorno alla volta, e dentro il giorno ogni

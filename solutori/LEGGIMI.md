@@ -5,8 +5,7 @@ costanti, potature e traccia sono i file della radice (`../../` nel suo `CMakeLi
 controlli uguali a `main` (sul docente, sulla coppia, mettere e togliere un docente, la coda) sono in
 `controlli/comuni.h`, incluso dal `main.c` di `main`, `per-classe`, `giorni-liberi` e `ordini-classi`: nel `main.c` di un
 solver restano solo i controlli che cambiano con l'ordine delle celle o con i giri. `controlli/controlli.h` dichiara le
-funzioni che la traccia, le potature e il controllo in avanti chiamano per nome. `in-avanti` ha uno stato suo e non usa
-`comuni.h`. Tutti accettano la stessa
+funzioni che la traccia, le potature e il controllo in avanti chiamano per nome. Tutti accettano la stessa
 riga di comando di `main` (`--input`, `--traccia`, `-n`, `--txt`, `--max-backtrack`, `--max-nodi`, `--ferma-nodi`,
 `--progresso`) e scrivono la stessa traccia, quindi il sito li usa senza cambiare: nel modulo del test ci sono le
 caselle dei solver da non usare: gli altri girano insieme, ognuno nella sua tab. Il sito li compila dai `.c` del loro
@@ -23,40 +22,22 @@ gcc -O2 -std=gnu11 -w main.c ../../data_initialization/database_initializers.c .
 
 Dal 6 novembre 2026 tutti i solver, `main` compreso, hanno gli stessi controlli (richiesta di Alb): quelli di `main`, le
 potature L, C e T, il controllo in avanti A e la verifica dei dati prima della ricerca (`controllo_in_avanti/`, prima
-solo in `in-avanti`), e alla fine il controllo «ogni classe ha fatto tutte le sue ore». Cambia solo come cercano
-(l'ordine delle celle, i giri) e quando: `in-avanti` fa A prima di scendere alla cella dopo, gli altri
-entrando nella cella dopo (una potatura: nella traccia `situazione_risolvibile`). Restano propri di un solver solo i
+solo nel solver `in-avanti`), e alla fine il controllo «ogni classe ha fatto tutte le sue ore». Cambia solo come cercano
+(l'ordine delle celle, i giri); A si fa entrando nella cella dopo (una potatura: nella traccia
+`situazione_risolvibile`). Restano propri di un solver solo i
 controlli che hanno senso solo lì: i giorni fissati di `giorni-liberi`.
 
 ## I solver (oltre a main)
+
+Il solver `in-avanti` (la ricerca di `main` con A fatto prima di scendere alla cella dopo) è stato tolto il 7
+novembre 2026 (richiesta di Alb): da quando A è in tutti i solver trovava gli stessi orari di `main`, più lentamente.
+I suoi test notturni restano nel database, ma i giri li saltano (come quelli di `due-livelli`).
 
 - **`per-classe`**: la ricerca di `main`, ma dentro ogni giorno riempie una classe alla volta (tutte le ore di C01,
   poi C02...) invece di un'ora alla volta. Le regole di una classe (ore contigue, massimo di ore, ingresso) si vedono
   subito; i conflitti tra classi alla stessa ora si vedono più tardi. L'orario resta indicizzato per cella come in
   `main`; la traccia ha in più `"ordine"` nei dati (la cella decisa a ogni passo) e scrive posizioni e orari in
   quell'ordine.
-- **`in-avanti`**: la ricerca di `main` (identica: stessi controlli, stesso ordine), con il controllo in avanti fatto
-  dopo ogni scelta prima di scendere (gli altri solver lo fanno entrando nella cella dopo). Il controllo, in
-  `controllo_in_avanti/` (uguale per tutti):
-  1. ogni cella obbligatoria che resta oggi deve avere ancora almeno un docente possibile (ha ancora ore nella
-     classe, è libero a quell'ora, è già entrato, non ha già il massimo di ore oggi nella classe, il suo blocco non è
-     chiuso, non ha già il massimo di classi oggi);
-  2. il conteggio delle lezioni di ogni classe: per ogni ora obbligatoria h, le lezioni possibili fino a h (oggi e in
-     ognuno dei giorni che restano) devono bastare. Le lezioni si contano per voce, come le fa la ricerca: un docente
-     da solo, o una coppia (una lezione con due docenti, possibile solo quando tutti e due sono entrati); ogni voce
-     al massimo le ore che le restano e 3 al giorno. Esempio (test 309, seme 5, 8 classi, ritardi): alla C07 restano
-     Kakashi da solo e Hinata con Zoro, e Zoro entra alle 11; le ore 08–10 dei giorni che restano non hanno abbastanza
-     lezioni possibili, e la scelta che porta lì si scarta subito.
-  3. fino all'ultima ora di ogni giorno le lezioni bastano per tutte le ore che restano alla classe;
-  4. le ore dei docenti (le potature del solver precedente): in ogni classe le ore che restano stanno in quelle che il
-     docente può ancora fare lì, e in tutto nelle ore libere che gli restano dal suo ingresso.
-
-  Si controllano dopo ogni scelta, anche dopo un'ora buca. Se uno non va, la scelta si scarta subito. Nella traccia è
-  un controllo in più, alla fine delle coppie e del «da solo»: `lascia_un_docente_alle_celle_di_oggi` (con `motivo`:
-  `cella`, `ore`, `ore_classe` o `ore_docente`, e per gli ultimi due i numeri). Sui dati di
-  `inizializza_dati()` l'orario è lo stesso di `main`.
-  Con `--txt /dev/null` (come dal sito) `orario.txt` non si scrive per niente: la ricerca è la stessa, ma non formatta
-  la griglia a ogni backtrack, che era quasi tutto il tempo (circa 14 volte più veloce).
 - **`giorni-liberi`** (idea di Alb): la ricerca di `main` (stessi controlli, stessa coda, stesse potature) a giri.
   Quando la ricerca resta bloccata in un giorno, per esempio il sabato, si libera il primo giorno (il lunedì), si
   tengono fissati i giorni in mezzo (da martedì a venerdì, come li aveva riempiti la ricerca nel punto più avanti), si
@@ -97,7 +78,7 @@ controlli che hanno senso solo lì: i giorni fissati di `giorni-liberi`.
 
 Le due potature del solver precedente (`archivio/2026-11-04`, `ricerca/vincoli.c`) e il controllo in avanti sono in
 `potature/`, lo stesso file in tutti i solver (`giorni-liberi` le chiama con il suo ordine dei giorni,
-`potature_ordine_giorni`; `in-avanti` senza A, che fa prima di scendere: `potature_in_avanti(0)`). Sono condizioni
+`potature_ordine_giorni`). Sono condizioni
 necessarie: scartano solo rami senza soluzioni, quindi il primo orario trovato non cambia; cambia quanto presto la
 ricerca torna indietro. Si controllano all'ingresso della cella dopo una scelta:
 
@@ -106,7 +87,19 @@ ricerca torna indietro. Si controllano all'ingresso della cella dopo una scelta:
   stanno in quelle che può ancora fare lì (oggi dal suo ingresso e se il suo blocco non si è chiuso, poi 3 al giorno);
 - **a ogni ora chiusa e dopo ogni ora buca**, per tutti: le ore di ogni docente in ogni classe, e in tutto nelle ore
   libere che gli restano dal suo ingresso;
-- **a ogni cella, alla fine**: A, il controllo in avanti (vedi `in-avanti` sopra).
+- **a ogni cella, alla fine**: A, il controllo in avanti:
+  1. ogni cella obbligatoria che resta oggi deve avere ancora almeno un docente possibile (ha ancora ore nella
+     classe, è libero a quell'ora, è già entrato, non ha già il massimo di ore oggi nella classe, il suo blocco non è
+     chiuso, non ha già il massimo di classi oggi);
+  2. il conteggio delle lezioni di ogni classe: per ogni ora obbligatoria h, le lezioni possibili fino a h (oggi e in
+     ognuno dei giorni che restano) devono bastare. Le lezioni si contano per voce, come le fa la ricerca: un docente
+     da solo, o una coppia (una lezione con due docenti, possibile solo quando tutti e due sono entrati); ogni voce
+     al massimo le ore che le restano e 3 al giorno. Esempio (test 309, seme 5, 8 classi, ritardi): alla C07 restano
+     Kakashi da solo e Hinata con Zoro, e Zoro entra alle 11; le ore 08–10 dei giorni che restano non hanno abbastanza
+     lezioni possibili, e la scelta che porta lì si scarta subito;
+  3. fino all'ultima ora di ogni giorno le lezioni bastano per tutte le ore che restano alla classe;
+  4. le ore dei docenti: in ogni classe le ore che restano stanno in quelle che il docente può ancora fare lì, e in
+     tutto nelle ore libere che gli restano dal suo ingresso.
 
 Sono scritte sulle celle già decise (per ogni classe la sua prima cella non decisa), quindi valgono anche per l'ordine
 di `per-classe`. Nella traccia una potatura è un backtrack nella cella dopo la scelta, con il

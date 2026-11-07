@@ -126,7 +126,7 @@ const doveCella = (d, i) => `${d.giorni[i.giorno]} ${nomeOra(d, i.ora)} ${nomeCl
 const maxOre = d => (d.parametri || {}).max_ore_prof_in_una_classe || 3;
 const maxClassi = d => (d.parametri || {}).max_classi_diverse_al_giorno || 3;
 
-// il controllo in avanti di in-avanti (prima di scendere) e lo stesso fatto entrando nella cella dopo (in-avanti-dopo)
+// il controllo in avanti (entrando nella cella dopo; prima di scendere nei test vecchi del solver in-avanti, tolto)
 function ingressiInAvanti(i, d) {
   if (i.non_calcolato) return 'non calcolato: la ricerca si ferma prima';
   if (i.cella_bloccata < 0) return 'nessuna cella di oggi resta senza docenti, le lezioni possibili bastano e i docenti hanno tempo';
@@ -191,8 +191,8 @@ const CONTROLLI = {
   sabato_esaurisci_priorita_subito: {
     descrizione: "regola del sabato: l'ultimo giorno chi c'era nell'ora prima e ha ancora ore in questa classe deve restare (da solo: è lui)",
     breve: 'regola del sabato', ingressi: ingressiSabato},
-  // il controllo in avanti (tutti i solver): in-avanti lo fa prima di scendere, gli altri entrando nella cella dopo
-  lascia_un_docente_alle_celle_di_oggi: {  // in-avanti, prima di scendere
+  // il controllo in avanti: nei test vecchi del solver in-avanti (tolto), prima di scendere
+  lascia_un_docente_alle_celle_di_oggi: {
     descrizione: 'controllo in avanti: lascia un docente a ogni cella obbligatoria di oggi, abbastanza lezioni alle classi e abbastanza tempo ai docenti',
     breve: 'lascerebbe una cella senza docenti, senza lezioni o un docente senza tempo', ingressi: ingressiInAvanti},
   situazione_risolvibile: {  // potatura A: gli altri solver, entrando nella cella dopo la scelta

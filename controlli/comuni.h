@@ -4,8 +4,7 @@
 // (il compilatore le espande come prima: stessa velocita') e restano visibili alla traccia, alle potature e al
 // controllo in avanti, che le chiamano per nome. Ogni solver aggiunge i controlli che dipendono dall'ordine delle celle
 // o dai suoi giri (activities_for_this_class_and_hour, ora_buca_possibile, sabato_esaurisci_priorita_subito_cod,
-// ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno) e la sua ricerca. solutori/in-avanti ha uno stato diverso e non lo
-// usa.
+// ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno) e la sua ricerca.
 #ifndef CONTROLLI_COMUNI_H
 #define CONTROLLI_COMUNI_H
 

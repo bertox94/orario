@@ -458,7 +458,7 @@ void traccia_slot_chiuso(const int s, const int giorno, const int ora, const int
 void traccia_potatura(const int s, const int giorno, const int ora, const int cla, const Potatura *p) {
     if (!registra()) return;
     testa_backtrack(s, giorno, ora, cla, 0);
-    if (p->controllo == POTATURA_IN_AVANTI) {  // come il controllo di in-avanti, ma entrando nella cella dopo la scelta
+    if (p->controllo == POTATURA_IN_AVANTI) {  // il controllo in avanti, entrando nella cella dopo la scelta
         fprintf(t, "\"slot\":{\"nome\":\"situazione_risolvibile\",\"ingressi\":{\"cella_bloccata\":%d,"
                 "\"motivo\":\"%s\",\"giorno\":%d,\"ora\":%d,\"classe\":%d", p->cella, nome_motivo_in_avanti(p->motivo),
                 p->giorno, p->ora, g_classe(p->cella));

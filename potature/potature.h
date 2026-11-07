@@ -28,8 +28,7 @@
 //
 //   A OGNI CELLA, alla fine (se le altre passano):
 //     A. il controllo in avanti (controllo_in_avanti/controllo_in_avanti.h): le celle obbligatorie di oggi hanno ancora
-//        un docente possibile, le lezioni delle classi bastano, i docenti hanno abbastanza tempo. Il solver in-avanti
-//        lo fa invece prima di scendere (potature_in_avanti(0)).
+//        un docente possibile, le lezioni delle classi bastano, i docenti hanno abbastanza tempo.
 //
 // (La verifica sui soli dati, prima della ricerca, e' in controllo_in_avanti/: verifica_fattibilita.)
 //
@@ -48,8 +47,6 @@ void potature_ordine_giorni(const int *giorno_di_posto, const int *posto_di_gior
 // All'ingresso del passo s (s > 0): ritorna 0 se il resto e' ancora possibile, altrimenti quale controllo non vale
 // (POTATURA_ORE_DOCENTI per C e T, POTATURA_LEZIONI_CLASSE per L), con i numeri in `potatura`.
 enum { POTATURA_ORE_DOCENTI = 1, POTATURA_LEZIONI_CLASSE = 2, POTATURA_IN_AVANTI = 3 };
-// 0: senza A, il controllo in avanti (in-avanti lo fa da se', prima di scendere). Di default c'e'.
-void potature_in_avanti(int attivo);
 int potatura_dopo(int s);
 
 // I numeri dell'ultima potatura scattata (per la traccia).

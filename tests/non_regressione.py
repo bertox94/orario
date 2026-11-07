@@ -7,14 +7,13 @@ non deve cambiare la ricerca deve dare gli stessi valori. Ogni orario trovato pa
 orario.txt, come in CLAUDE.md.
 
 Uso, dalla radice del repository:
-    python3 tests/non_regressione.py                  tutti i casi, i solver main, per-classe, in-avanti, giorni-liberi e
-                                                      ordini-classi
+    python3 tests/non_regressione.py                  tutti i casi, i solver main, per-classe, giorni-liberi e ordini-classi
     python3 tests/non_regressione.py --solver main    un solver solo (anche piu' volte)
     python3 tests/non_regressione.py --aggiorna       riscrive tests/attesi.json con i valori di adesso (dopo una
                                                       modifica voluta della ricerca: va detto nel commit)
     python3 tests/non_regressione.py --caso seme_3_8  solo i casi il cui nome contiene il testo
 Esce con 1 se qualcosa non torna. I casi sono file JSON nel formato di --input (tests/casi/*.json): quelli costruiti
-apposta (fattibilita_*: dati impossibili, che devono finire con «errore nei dati» in in-avanti) e quelli del
+apposta (fattibilita_*: dati impossibili, che devono finire con «errore nei dati») e quelli del
 generatore del sito (seme_*: gli stessi del modulo del test, salvati qui cosi' il test non dipende dal sito).
 """
 import argparse
@@ -32,7 +31,7 @@ RADICE = os.path.dirname(QUI)
 sys.path.insert(0, QUI)
 from verifica_orario import verifica  # noqa: E402
 
-SOLVER_PREDEFINITI = ['main', 'per-classe', 'in-avanti', 'giorni-liberi', 'ordini-classi']
+SOLVER_PREDEFINITI = ['main', 'per-classe', 'giorni-liberi', 'ordini-classi']
 TEMPO_MASSIMO = 60  # secondi per (solver, caso): i casi scelti finiscono in pochi secondi
 MD5_RIFERIMENTO = 'b7e8ad1800ea16bc0fc8be628c926fe6'  # orario.txt di main sui dati di prova (CLAUDE.md)
 
