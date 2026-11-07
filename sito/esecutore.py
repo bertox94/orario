@@ -34,6 +34,7 @@ def avvia(app):
         return
     _avviato = True
     riprendi_dopo_riavvio(app.config['SITO'])
+    solver.compila_tutti(app.config['SITO'].cartella_bin)
 
 
 def riprendi_dopo_riavvio(config):
@@ -123,7 +124,9 @@ def dati_da_file_caricato(config, f):
 
 class _Registro:
     """Riceve la traccia del solver mentre arriva e la scrive nel database: i backtrack a gruppi (al massimo ogni
-    mezzo secondo), i dati subito (la pagina li usa per i nomi)."""
+    mezzo secondo), i dati subito (la pagina li usa per i nomi). Una connessione sola per tutta l'esecuzione (aprirne
+    una a ogni gruppo costava piu' dell'inserimento, soprattutto dal Raspberry, con il database sul Mac), chiusa da
+    chiudi()."""
 
     def __init__(self, url, eid):
         self.url, self.eid = url, eid
@@ -131,17 +134,36 @@ class _Registro:
         self.attesa_nodi = []
         self.ultimo = time.time()
         self.lock = threading.Lock()
+        self._lock_db = threading.Lock()
+        self._c = None
         self.dati = None
         self.orari = []
         self.backtrack = 0
+
+    def _scrivi(self, f):
+        """f(cursore) nella connessione dell'esecuzione, poi commit (la connessione si apre la prima volta)."""
+        with self._lock_db:
+            if self._c is None or self._c.closed:
+                self._c = db.connetti(self.url)
+            try:
+                with self._c.cursor() as cur:
+                    f(cur)
+                self._c.commit()
+            except Exception:
+                self._c.close()  # la prossima volta se ne apre una nuova
+                raise
+
+    def chiudi(self):
+        with self._lock_db:
+            if self._c is not None:
+                self._c.close()
 
     def ricevi(self, x):
         tipo = x.get('tipo')
         if tipo == 'dati':
             self.dati = x
-            with db.connetti(self.url) as c:
-                c.execute('update esecuzioni set risultato = %s where id = %s', (_json({'dati': x}), self.eid))
-                c.commit()
+            self._scrivi(lambda cur: cur.execute('update esecuzioni set risultato = %s where id = %s',
+                                                 (_json({'dati': x}), self.eid)))
         elif tipo == 'backtrack':
             with self.lock:
                 self.attesa.append(x)
@@ -163,16 +185,19 @@ class _Registro:
             self.ultimo = time.time()
         if not righe and not nodi:
             return
-        with db.connetti(self.url) as c:
-            for x in nodi:
-                c.execute('insert into nodi (esecuzione_id, da, quanti, passi) values (%s, %s, %s, %s) '
-                          'on conflict do nothing', (self.eid, x['da'], len(x['passi']), _json(x['passi'])))
-            for x in righe:
-                c.execute('insert into backtrack (esecuzione_id, n, nodo, pos, giorno, ora, classe, buca_dopo, '
-                          'riassunto, record) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) on conflict do nothing',
-                          (self.eid, x['n'], x['nodo'], x['pos'], x['giorno'], x['ora'], x['classe'],
-                           bool(x['buca_dopo']), _json(riassunto_backtrack(x)), _json(x)))
-            c.commit()
+
+        def inserisci(cur):  # tutte le righe del gruppo insieme (executemany: meno andate e ritorni col database)
+            if nodi:
+                cur.executemany('insert into nodi (esecuzione_id, da, quanti, passi) values (%s, %s, %s, %s) '
+                                'on conflict do nothing',
+                                [(self.eid, x['da'], len(x['passi']), _json(x['passi'])) for x in nodi])
+            if righe:
+                cur.executemany('insert into backtrack (esecuzione_id, n, nodo, pos, giorno, ora, classe, buca_dopo, '
+                                'riassunto, record) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) '
+                                'on conflict do nothing',
+                                [(self.eid, x['n'], x['nodo'], x['pos'], x['giorno'], x['ora'], x['classe'],
+                                  bool(x['buca_dopo']), _json(riassunto_backtrack(x)), _json(x)) for x in righe])
+        self._scrivi(inserisci)
 
 
 def riassunto_backtrack(x):
@@ -282,8 +307,51 @@ def _esegui(config, pid, eid, nome, dati, opzioni, pronto):
             c.execute(_FINE_PROVA, ('errore', _json({'esito': 'errore'}), str(ex), pid, pid))
             c.commit()
     finally:
+        registro.chiudi()
         pronto.set()
         shutil.rmtree(cartella, ignore_errors=True)
+
+
+# ---- i controlli a un nodo qualunque (il passo passo) ----
+# La traccia ha i controlli dei docenti solo ai backtrack. Per un altro nodo si rifa' la ricerca, con gli stessi dati e
+# lo stesso solver, fino a quel nodo (la ricerca e' sempre la stessa: si ferma esattamente li') e il solver scrive i
+# controlli della cella in cui entra (--controlli-nodo). Costa quanto arrivare a quel nodo: per un milione di nodi
+# qualche secondo. Gli ultimi risultati restano in memoria.
+_CONTROLLI = {}
+_lock_controlli = threading.Lock()
+
+
+def controlli_al_nodo(config, eid, nodo):
+    """Il record dei controlli (come un backtrack, con tipo «controlli») al nodo dell'esecuzione eid, o None se a quel
+    nodo la ricerca non entra in una cella da decidere (fine dell'orario, potatura)."""
+    with _lock_controlli:
+        if (eid, nodo) in _CONTROLLI:
+            return _CONTROLLI[eid, nodo]
+    with db.connetti(config.database_url) as c:
+        r = c.execute('select e.opzioni, p.dati_scuola from esecuzioni e join prove p on p.id = e.prova_id '
+                      'where e.id = %s', (eid,)).fetchone()
+    if not r or not r['dati_scuola']:
+        return None
+    o = r['opzioni'] or {}
+    nome = o.get('solutore', 'main')
+    exe = solver.compila(config.cartella_bin, nome)
+    cartella = _cartella_lavoro(config)
+    try:
+        opzioni = {'solutore': nome, 'orari': o.get('orari', 1), 'max_backtrack': 0, 'max_nodi': 0,
+                   'ferma_nodi': nodo + 1, 'controlli_nodo': nodo}
+        solver.Esecuzione(exe, r['dati_scuola'], opzioni, cartella).attendi()
+        record = None
+        with open(os.path.join(cartella, solver.TRACCIA)) as f:
+            for riga in f:
+                if '"tipo":"controlli"' in riga:
+                    record = json.loads(riga)
+    finally:
+        shutil.rmtree(cartella, ignore_errors=True)
+    with _lock_controlli:
+        if len(_CONTROLLI) > 500:
+            _CONTROLLI.clear()
+        _CONTROLLI[eid, nodo] = record
+    return record
 
 
 def in_corso(esecuzione_id):

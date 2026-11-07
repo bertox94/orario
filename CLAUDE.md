@@ -6,15 +6,17 @@ codice del sito e messaggi di commit sono in italiano.
 ## Cosa c'è
 
 - **Il solver** (C, radice del repository): ricerca con backtracking dell'orario. `main.c` contiene la ricerca
-  (`print_orario`) e i controlli; i dati di prova sono in `data_initialization/database_initializers.c`
+  (`print_orario`) e i controlli che dipendono dall'ordine delle celle; lo stato e gli altri controlli sono in
+  `controlli/comuni.h` (definizioni, condivise con i solver di `solutori/`), le dichiarazioni per la traccia e le
+  potature in `controlli/controlli.h`; i dati di prova sono in `data_initialization/database_initializers.c`
   (`inizializza_dati()`). `ingresso_uscita/` è solo ingresso e uscita per il sito: `--input` (dati da JSON),
   `--traccia` (un JSON per riga: dati, backtrack con i controlli, nodi, orari trovati, fine), `-n`, `--txt`, `--max-nodi`,
-  `--max-backtrack`, `--progresso`, `--ferma-nodi` (ferma la ricerca esattamente dopo N nodi, sempre allo stesso punto: test in tempo reale e notturni). Senza opzioni il solver fa esattamente quello che faceva prima.
+  `--max-backtrack`, `--progresso`, `--ferma-nodi` (ferma la ricerca esattamente dopo N nodi, sempre allo stesso punto: test in tempo reale e notturni), `--controlli-nodo`
+  (al nodo N scrive i controlli dei docenti della sua cella e finisce: il passo passo del sito ai nodi che non sono backtrack). Senza opzioni il solver fa esattamente quello che faceva prima.
 - **Il sito** (Flask + Postgres, cartella `sito/`, in `main`; si lavora in `sito/terza-versione`): dati della scuola e test in tempo
   reale. A ogni backtrack la pagina del test mostra l'orario fino a quel punto e, per ogni docente, i controlli della
   ricerca con ingressi ed esito. Vedi `sito/INSTALLAZIONE.md`.
-- **I solver alternativi** (cartella `solutori/`, nel branch del sito): `per-classe`, `in-avanti`,
-  `giorni-liberi`, `ordini-classi`.
+- **I solver alternativi** (cartella `solutori/`, nel branch del sito): `giorni-liberi`, `ordini-classi`.
   Ognuno ha solo la sua ricerca (`main.c`) e, se serve, la sua parte di traccia; data layer, stampa, JSON, coda,
   costanti e potature sono i file della radice (`../../` nel suo `CMakeLists.txt`). Stessa riga di comando e stessa
   traccia di `main`. Il sito li compila dai `.c` del loro `CMakeLists.txt` e li offre come caselle nel modulo del
@@ -28,8 +30,8 @@ codice del sito e messaggi di commit sono in italiano.
 - `main`: il solver, i solver alternativi di `solutori/`, il sito e i test di non regressione (la terza versione, unita
   in `main` il 6 novembre 2026 su richiesta di Alb).
 - `sito/terza-versione`: il ramo di lavoro del sito. Le modifiche al sito si fanno direttamente qui, con push diretto;
-  in `main` si portano con una PR quando Alb lo chiede. Il Raspberry segue `main` (dal 6 novembre 2026 sera), quindi
-  una modifica arriva sul Pi solo dopo la PR.
+  in `main` si portano con una PR quando Alb lo chiede. Il Raspberry segue `sito/terza-versione` (dal 7 novembre 2026,
+  richiesta di Alb): una modifica arriva sul Pi con il push e un aggiornamento del Pi.
 - `sito/seconda-versione`: la versione precedente del sito.
 - `archivio/2026-11-04`: tutto il lavoro precedente (solver avanzato, vecchio sito, esperimenti). Non si tocca.
 - `prototipo/scheletro-accoppiamenti`: prototipo in Python (accoppiamenti, Monte Carlo, SAT), non unito.
@@ -57,10 +59,14 @@ gcc -O2 -std=gnu11 -w main.c data_initialization/database_initializers.c printer
 cd /tmp && rm -f orario.txt && /tmp/solver > /dev/null && grep -v '^Current time:' orario.txt | md5sum
 ```
 
-Riferimento (dati di `inizializza_dati()`, 11.000 orari): `b7e8ad1800ea16bc0fc8be628c926fe6`, uguale su Mac e su
-Linux (il Raspberry): a parità di priorità la coda è ordinata per indice del docente, quindi l'ordine non dipende da
-`qsort`. Il controllo in avanti e la verifica dei dati (6 novembre 2026) non lo cambiano: su questi dati non
-scartano niente (la ricerca è solo più lenta, circa 4 secondi invece di 2). Prima non era così: lo stesso solver dava `1f200e…` su Linux e `777dc…` su macOS. Una modifica che
+Riferimento (dati di `inizializza_dati()`, 11.000 orari): `8e39aec451cd1a75ddd35c266ecad126`, uguale su Mac e su
+Linux (il Raspberry): a parità la coda è ordinata per indice del docente, quindi l'ordine non dipende da `qsort`. Dal
+7 novembre 2026 (richiesta di Alb) la coda mette prima il docente con meno margine (ore che può ancora fare da adesso,
+dal suo ingresso, meno ore che gli restano: `sort_queue_mul` in `controlli/comuni.h`), in tutti i solver; senza
+ritardi l'ordine è quello di prima, ma i dati di prova hanno docenti che entrano tardi: il riferimento con la coda di
+prima era `b7e8ad1800ea16bc0fc8be628c926fe6`. Il controllo in avanti e la verifica dei dati (6 novembre 2026) non
+lo cambiano: su questi dati non scartano niente. Prima dell'ordine per indice a parità lo stesso solver dava
+`1f200e…` su Linux e `777dc…` su macOS. Una modifica che
 non deve cambiare la ricerca deve dare lo stesso valore. Se Alb chiede di cambiare la ricerca (per esempio un
 controllo nuovo), il valore cambia: si annota il nuovo riferimento qui.
 
@@ -82,8 +88,10 @@ esecuzioni fino allo stesso byte. Cancellare `orario.txt` dopo l'uso.
 
 ## Raspberry
 
-- `raspberry@192.168.1.5`, servizio `orario-sito`, repository `~/orario` (ramo `main`), ambiente Python `~/orario-venv`. Il sito usa
-  il database del Mac.
+- `raspberry@192.168.1.5`, servizio `orario-sito`, repository `~/orario` (ramo `sito/terza-versione`), ambiente Python `~/orario-venv`. Il database
+  si sposta dal Mac al Pi (Postgres 18, richiesta di Alb del 7 novembre 2026) con `bash sito/sposta-database-sul-pi.sh`
+  lanciato dal Mac (vedi `sito/INSTALLAZIONE.md`); prima il sito usava il database del Mac. Copia del database sul Pi:
+  `pg_dump -Fc orario > ~/orario-copia.dump`.
 - Aggiornare: `ssh -t raspberry@192.168.1.5 'cd ~/orario && git pull && sudo systemctl restart orario-sito'`, poi nel
   browser Ctrl+F5. Log: `journalctl -u orario-sito -n 50 --no-pager`.
 - Mai `pkill -f` nello stesso comando che riavvia il sito (la riga di comando contiene il testo cercato e il comando

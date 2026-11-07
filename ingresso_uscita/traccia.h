@@ -25,6 +25,7 @@
 
 extern long long int traccia_nodi;        // nodi visitati (chiamate di print_orario)
 extern long long int traccia_ferma_nodi;  // --ferma-nodi: fermarsi dopo tanti nodi (0: mai)
+extern long long int traccia_controlli_nodo;  // --controlli-nodo N: al nodo N i controlli dei docenti della cella, poi fine
 extern long long int traccia_prossimo;    // a questo nodo la ricerca chiama traccia_progresso
 extern long long int traccia_backtrack_n; // backtrack incontrati
 extern int traccia_pos_max;               // la posizione piu' avanti raggiunta dalla ricerca
@@ -42,6 +43,11 @@ void traccia_dati(void);
 
 // Nessun docente utilizzabile nello slot (il "Backtrack" che main scrive in orario.txt). buca_dopo: dopo, la ricerca
 // prova comunque l'ora buca (siamo oltre le ore obbligatorie), quindi non e' un vicolo cieco.
+// Il passo passo del sito, ai nodi che non sono backtrack: al nodo traccia_controlli_nodo (entrando nella cella, dopo le
+// potature e con la coda gia' ordinata) un record come un backtrack ma con "tipo":"controlli", poi la traccia si chiude e
+// il programma esce. Lo stato all'ingresso della cella e' lo stesso di quando la ricerca la lascia (le scelte sono
+// tolte), quindi i controlli sono quelli che la ricerca fa in quella cella; il percorso fino a li' non cambia.
+void traccia_controlli(int pos, int giorno, int ora, int cla, int base2d_ci, int base3d_goi, int base4d_queue);
 void traccia_backtrack(int pos, int giorno, int ora, int cla, int base2d_ci, int base3d_goi, int base4d_queue,
                        int buca_dopo);
 

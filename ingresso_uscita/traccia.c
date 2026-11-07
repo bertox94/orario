@@ -9,27 +9,8 @@
 #include <string.h>
 #include <time.h>
 
-// ---- quello che serve di main.c (la ricerca e i suoi controlli: si richiamano, non si copiano) ----
-extern teaching_slot orario[];
-extern int orario_len;
-extern long long int n_gen;
-extern long long int n_gen_max;
-
-int g_ora(int p);
-int g_classe(int p);
-int activities_for_this_class_and_hour(int pos, int gio, int ora, int cla);
-int sabato_esaurisci_priorita_subito_cod(int pos, int giorno, int ora, int base2d_ci, int prof1, int prof2);
-int sabato_esaurisci_priorita_subito(int pos, int giorno, int ora, int base2d_ci, int prof);
-int prof_fa_al_max_n_ore(int giorno, int ora, int cla, int prof);
-int prof_fa_ore_contigue(int giorno, int ora, int cla, int prof);
-int prof_è_disponibile(int base3d_goi, int p1);
-int deve_ancora_svolgere_ore_in_questa_classe(int base2d_ci, int p1);
-int docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(int cla, int p1, int p2);
-int deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(int base2d_ci, int prof);
-int ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(int pos, int giorno, int cla, int prof);
-int verifica_ora_ingresso(int prof, int ora);
-
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
+// la ricerca e i suoi controlli, del solver con cui si compila: si richiamano, non si copiano
+#include "../controlli/controlli.h"
 
 // ---- l'ordine delle celle (solver che non decidono le celle in ordine di indice, vedi traccia_imposta_ordine) ----
 // Nella traccia "pos" e' il passo s della ricerca; la cella decisa al passo s e' cella(s). Senza ordine, cella(s) = s.
@@ -53,6 +34,8 @@ static int posto(const int g) { return traccia_posti ? traccia_posti[g] : g; }
 
 long long int traccia_nodi = 0;
 long long int traccia_ferma_nodi = 0;
+long long int traccia_controlli_nodo = 0;
+static int solo_controlli = 0;  // traccia_controlli: il record e' "controlli", non un backtrack
 long long int traccia_prossimo = 0x10000;
 int traccia_pos_max = 0;
 long long int traccia_backtrack_n = 0;
@@ -371,8 +354,8 @@ void traccia_nuovo_giro(void) { primo_del_giro = traccia_backtrack_n; }
 
 static void testa_backtrack(const int pos, const int giorno, const int ora, const int cla, const int buca_dopo) {
     scrivi_nodi();
-    fprintf(t, "{\"tipo\":\"backtrack\",\"n\":%lld,\"nodo\":%lld,\"pos\":%d,\"giorno\":%d,\"ora\":%d,\"classe\":%d,"
-            "\"buca_dopo\":%d,", traccia_backtrack_n, traccia_nodi, pos, giorno, ora, cla, buca_dopo);
+    fprintf(t, "{\"tipo\":\"%s\",\"n\":%lld,\"nodo\":%lld,\"pos\":%d,\"giorno\":%d,\"ora\":%d,\"classe\":%d,"
+            "\"buca_dopo\":%d,", solo_controlli ? "controlli" : "backtrack", traccia_backtrack_n, traccia_nodi, pos, giorno, ora, cla, buca_dopo);
     if (traccia_giorni) {
         fprintf(t, "\"giro\":%d,\"fissati\":%d,\"giorni\":[", traccia_giro, traccia_fissati);
         for (int r = 0; r < actual_giorni_settimana; r++) fprintf(t, "%s%d", r ? "," : "", traccia_giorni[r]);
@@ -387,9 +370,29 @@ static void testa_backtrack(const int pos, const int giorno, const int ora, cons
 
 // ---- i record ----
 
+static void scrivi_cella(int s, int giorno, int ora, int cla, int base2d_ci, int base3d_goi, int base4d_queue,
+                         int buca_dopo);
+
 void traccia_backtrack(const int s, const int giorno, const int ora, const int cla, const int base2d_ci,
                        const int base3d_goi, const int base4d_queue, const int buca_dopo) {
     if (!registra()) return;
+    scrivi_cella(s, giorno, ora, cla, base2d_ci, base3d_goi, base4d_queue, buca_dopo);
+}
+
+void traccia_controlli(const int s, const int giorno, const int ora, const int cla, const int base2d_ci,
+                       const int base3d_goi, const int base4d_queue) {
+    if (t) {
+        solo_controlli = 1;
+        scrivi_cella(s, giorno, ora, cla, base2d_ci, base3d_goi, base4d_queue, 0);
+        solo_controlli = 0;
+    }
+    traccia_chiudi();
+    exit(0);
+}
+
+// i docenti della cella con i loro controlli (un backtrack, o i controlli di un nodo: traccia_controlli)
+static void scrivi_cella(const int s, const int giorno, const int ora, const int cla, const int base2d_ci,
+                         const int base3d_goi, const int base4d_queue, const int buca_dopo) {
     const int pos = cella(s);  // la cella; nella traccia "pos" e' il passo s
     s_traccia = s;
     testa_backtrack(s, giorno, ora, cla, buca_dopo);
@@ -405,7 +408,8 @@ void traccia_backtrack(const int s, const int giorno, const int ora, const int c
             altri++; // nessuna ora in questa classe: si ferma al primo o al secondo controllo
             continue;
         }
-        fprintf(t, "%s{\"docente\":%d,\"priorita\":%.0f,\"controlli\":[", primo ? "" : ",", p1, it->priority);
+        fprintf(t, "%s{\"docente\":%d,\"priorita\":%.0f,\"margine\":%.0f,\"controlli\":[", primo ? "" : ",", p1,
+                it->priority, margine_docente(it, ora, actual_giorni_settimana - 1 - posto(giorno)));
         primo = 0;
         // i controlli del primo docente, nell'ordine di main (che si ferma al primo falso)
         int fermato = -1;
@@ -477,13 +481,24 @@ void traccia_slot_chiuso(const int s, const int giorno, const int ora, const int
 void traccia_potatura(const int s, const int giorno, const int ora, const int cla, const Potatura *p) {
     if (!registra()) return;
     testa_backtrack(s, giorno, ora, cla, 0);
-    if (p->controllo == POTATURA_IN_AVANTI) {  // come il controllo di in-avanti, ma entrando nella cella dopo la scelta
+    if (p->controllo == POTATURA_IN_AVANTI) {  // il controllo in avanti, entrando nella cella dopo la scelta
         fprintf(t, "\"slot\":{\"nome\":\"situazione_risolvibile\",\"ingressi\":{\"cella_bloccata\":%d,"
                 "\"motivo\":\"%s\",\"giorno\":%d,\"ora\":%d,\"classe\":%d", p->cella, nome_motivo_in_avanti(p->motivo),
                 p->giorno, p->ora, g_classe(p->cella));
         if (p->motivo >= 2)
             fprintf(t, ",\"docente\":%d,\"classe_conto\":%d,\"restano\":%d,\"possibili\":%d", p->docente, p->classe,
                     p->restano, p->possibili);
+        if (p->motivo == 0) {  // la cella senza docenti: i docenti della sua classe, con perche' non possono starci
+            static DocenteCella dc[INSEGNANTE_SZ];
+            const int n = docenti_della_cella(s, p->cella, dc, INSEGNANTE_SZ);
+            fprintf(t, ",\"docenti_cella\":[");
+            for (int k = 0; k < n; k++)
+                fprintf(t, "%s{\"docente\":%d,\"restano\":%d,\"ingresso\":%d,\"occupato\":%d,\"fatte_oggi\":%d,"
+                        "\"blocco_chiuso\":%d,\"classi_oggi\":%d,\"massimo_oggi\":%d}", k ? "," : "", dc[k].docente,
+                        dc[k].restano, dc[k].ingresso, dc[k].occupato, dc[k].fatte_oggi, dc[k].blocco_chiuso,
+                        dc[k].classi_oggi, dc[k].massimo_oggi);
+            fputc(']', t);
+        }
         fprintf(t, "},\"uscita\":0},\"docenti\":[],\"altri_docenti\":0,\"incoerente\":0,");
         orario_fino_a(s);
         fprintf(t, "}\n");

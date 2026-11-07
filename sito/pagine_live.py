@@ -40,9 +40,10 @@ _DA_VERIFICARE = '''
 @bp.route('/')
 def indice():
     righe = conn().execute('''
-        select p.*, e.id as eid, coalesce(e.opzioni->>'solutore', 'main') as solutore, e.esito, e.marce, e.secondi,
-            e.diagnosi
-        from (select * from prove where tipo = 'live' and scuola_id = %s order by id desc limit 60) p
+        select p.id, p.nome, p.creata, p.stato, p.messaggio, e.id as eid,
+            coalesce(e.opzioni->>'solutore', 'main') as solutore, e.esito, e.marce, e.secondi, e.diagnosi
+        from (select id, nome, creata, stato, messaggio from prove where tipo = 'live' and scuola_id = %s
+              order by id desc limit 60) p
         left join esecuzioni e on e.prova_id = p.id order by p.id desc, e.id''', (g.scuola['id'],)).fetchall()
     # una riga per test; un test con piu' solver si apre con una riga per solver
     prove = []
@@ -88,28 +89,53 @@ def avvia():
             return redirect(url_for('.indice'))
         caso = {'tipo': 'input', 'nome': p['nome'], 'dati': p['dati_scuola']}
     else:
-        # semi, classi e ordini come nei test notturni: un numero o un intervallo col trattino, anche piu' di uno
+        # un caso solo (gli intervalli sono dei test notturni): il numero scritto e' solo quello; vuoto: seme 0,
+        # 8 classi, ordine 0
+        def numero(nome, vuoto, minimo, massimo):
+            v = int(f.get(nome, '').strip() or vuoto)
+            if not minimo <= v <= massimo:
+                raise ValueError(nome)
+            return [v]
         try:
-            semi = notturni.intervallo(f.get('semi', '') or '1', 0, 10 ** 9)
-            classi = notturni.intervallo(f.get('classi', '') or '8', 1, 120)
-            ordini = notturni.intervallo(f.get('ordini', '') or '0', 0, 10 ** 6)
+            semi = numero('semi', 0, 0, 10 ** 9)
+            classi = numero('classi', 8, 1, 120)
+            ordini = numero('ordini', 0, 0, 10 ** 6)
         except ValueError:
-            flash('Seme, classi e ordine delle classi: un numero o un intervallo col trattino, anche più di uno separati '
-                  'da virgole, per esempio «1-6», «8-12» e «0-3» (classi da 1 a 120; ordine 0: come generato).', 'errore')
+            flash('Seme, classi e ordine delle classi: un numero solo (classi da 1 a 120; ordine 0: come generato). '
+                  'Per più casi insieme ci sono i test notturni.', 'errore')
             return redirect(url_for('.indice'))
-        ritardi = {'senza': [False], 'con': [True], 'entrambi': [False, True]}.get(f.get('ritardi'), [False])
+        ritardi = [f.get('ritardi') == 'con']
         casi = [dict({'tipo': 'casuale', 'seme': s, 'classi': n, 'ritardi': r}, **({'ordine': k} if k else {}))
                 for s in semi for n in classi for r in ritardi for k in ordini]
         if len(casi) > MAX_SERIE:
             flash('Troppi test in una volta: %d (al massimo %d).' % (len(casi), MAX_SERIE), 'errore')
             return redirect(url_for('.indice'))
+        if f.get('solo_possibili'):  # come nei test notturni: niente casi con errore nei dati
+            buoni, dati = [], []
+            for x in casi:
+                try:
+                    dati.append(esecutore.dati_del_caso(conn(), g.scuola['id'], x))
+                    buoni.append(x)
+                except ValueError:  # il generatore non sa fare questo caso
+                    pass
+            ok = notturni.dati_possibili(_config(), dati)
+            scartati = len(casi) - ok.count(True)
+            casi = [x for x, si in zip(buoni, ok) if si]
+            if not casi:
+                flash('Nessun caso possibile: %s (errore nei dati). Per provarl%s lo stesso togli «Solo i casi '
+                      'possibili».' % ('il caso è impossibile' if scartati == 1 else 'tutti i %d casi sono impossibili'
+                                       % scartati, 'o' if scartati == 1 else 'i'), 'errore')
+                return redirect(url_for('.indice'))
+            if scartati:
+                flash('Casi saltati perché impossibili (errore nei dati): %d.' % scartati, 'ok')
         caso = casi[0] if len(casi) == 1 else None
     # niente limite di tempo: la ricerca si ferma dopo un numero di nodi (sempre allo stesso punto, qualunque sia il
     # computer), quando trova gli orari o prova tutto, oppure col pulsante
     opzioni = {'orari': _intero('orari', 1, 1, 1000),
                'max_backtrack': _intero('max_backtrack', 1000, 0, 100000)}
-    ferma_nodi = _intero('ferma_nodi', FERMA_NODI, 0)
-    if ferma_nodi:  # 0: senza limite, si ferma col pulsante
+    # il limite si scrive in milioni di nodi (0: senza limite, si ferma col pulsante)
+    ferma_nodi = _intero('ferma_milioni', FERMA_NODI // 1000000, 0, 1000) * 1000000
+    if ferma_nodi:
         opzioni['ferma_nodi'] = ferma_nodi
     disponibili = list(solver.solutori())
     if f.getlist('solutore') or sorgente != 'esecuzione':  # dal modulo, o «Rifai solo con»: quelli scelti
@@ -138,7 +164,8 @@ def avvia():
 def prova(pid):
     """Un test: con un solo solver la sua pagina; con piu' solver una tab per ognuno (?scheda=id dell'esecuzione da
     aprire), ognuna con la pagina del suo solver, che segue la ricerca mentre gira: le ricerche vanno in parallelo."""
-    p = conn().execute('select * from prove where id = %s and scuola_id = %s', (pid, g.scuola['id'])).fetchone()
+    p = conn().execute('select id, nome, opzioni from prove where id = %s and scuola_id = %s',
+                       (pid, g.scuola['id'])).fetchone()
     esecuzioni = conn().execute("select id, esito, coalesce(opzioni->>'solutore', 'main') as solutore "
                                 "from esecuzioni where prova_id = %s order by id", (pid,)).fetchall()
     if not p or not esecuzioni:
@@ -149,10 +176,9 @@ def prova(pid):
     if scheda not in [e['id'] for e in esecuzioni]:
         scheda = esecuzioni[0]['id']
     # quanti solver di questo test non sono ancora tra i test notturni
-    da_aggiungere = [t for t in (notturni.da_esecuzione(conn(), g.scuola['id'], e['id']) for e in esecuzioni)
-                     if t and not t['presente']]
+    da_aggiungere = sum(1 for e in esecuzioni if notturni.nei_notturni(conn(), g.scuola['id'], e['id']) is False)
     return render_template('live/prova.html', p=p, esecuzioni=esecuzioni, scheda=scheda,
-                           descrizioni=solver.DESCRIZIONI, da_aggiungere=len(da_aggiungere))
+                           descrizioni=solver.DESCRIZIONI, da_aggiungere=da_aggiungere)
 
 
 @bp.route('/verificato/<int:eid>', methods=['POST'])

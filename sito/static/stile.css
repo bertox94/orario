@@ -294,3 +294,30 @@ button.piccolo, .bottone.piccolo { padding: 2px 8px; font-size: 13px; }
 table.dati tr.sottotitolo th { background: var(--sfondo); text-align: left; font-size: 13px; padding-top: 8px; }
 table.tabella-casi td { white-space: nowrap; }
 table.tabella-casi .inizio-solver { border-left: 1px solid var(--bordo); }
+
+/* test notturni: un caso per gruppo (si apre con una riga per solver), un giro per colonna */
+table.tabella-casi tbody.caso tr.riga-solver { display: none; }
+table.tabella-casi tbody.caso.aperto tr.riga-solver { display: table-row; }
+table.tabella-casi .apri-caso { cursor: pointer; }
+table.tabella-casi .freccia { display: inline-block; transition: transform .15s; color: var(--tenue); }
+table.tabella-casi tbody.caso.aperto .freccia { transform: rotate(90deg); }
+table.tabella-casi tr.riga-solver td { background: var(--sfondo); }
+table.tabella-casi td.colonna-giro, table.tabella-casi th.colonna-giro { border-left: 1px solid var(--bordo); white-space: nowrap; }
+table.tabella-casi td.valori div { line-height: 1.5; text-align: right; }
+.meglio { color: var(--ok); font-weight: 600; }
+.peggio { color: var(--male); font-weight: 600; }
+button.elimina-giro { border: 0; background: none; color: var(--tenue); font-size: 16px; padding: 0 4px; cursor: pointer; }
+button.elimina-giro:hover { color: var(--male); }
+table.tabella-casi td.valori div.meglio .esito { outline: 2px solid var(--ok); }
+table.tabella-casi td.valori div.peggio .esito { outline: 2px solid var(--male); }
+table.tabella-casi td.cella-peggio { background: var(--male-tenue); }
+table.tabella-casi td.cella-meglio { background: var(--ok-tenue); }
+table.tabella-casi .riepilogo-caso { margin-top: 3px; display: flex; gap: 4px; flex-wrap: wrap; }
+
+/* le potature di un backtrack, una riga per regola (pagina del test) */
+table.tabella-potature td { vertical-align: top; }
+table.tabella-potature td.segno { font-weight: 700; text-align: center; width: 1.5em; }
+table.tabella-potature tr.si td.segno { color: var(--ok); }
+table.tabella-potature tr.no td.segno { color: var(--male); }
+table.tabella-potature tr.no { background: color-mix(in srgb, var(--male) 8%, transparent); }
+table.tabella-potature tr.non-valutato td { opacity: .6; }

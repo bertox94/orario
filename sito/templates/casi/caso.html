@@ -55,10 +55,10 @@
     <a class="bottone secondario" href="{{ url_for('casi.scarica_dati', eid=e.id) }}">Scarica i dati</a>
     {% if nei_notturni %}
     <a class="bottone secondario" href="{{ url_for('notturni.test', tid=nei_notturni) }}" target="_top"
-       title="C'è già un test notturno con gli stessi dati, lo stesso solver e lo stesso limite di nodi">✓ Nei test notturni</a>
+       title="C'è già un test notturno con gli stessi dati e lo stesso solver">✓ Nei test notturni</a>
     {% elif si_aggiunge %}
     <form method="post" action="{{ url_for('notturni.da_test', eid=e.id) }}" class="in-linea"
-          title="Stessi dati, stesso solver e stesso limite di nodi, ogni notte, fermo sempre allo stesso nodo">
+          title="Stessi dati e stesso solver, ogni notte, con il limite di nodi dei test notturni">
       <input type="hidden" name="_gettone" value="{{ gettone }}"><input type="hidden" name="poi" value="{{ request.full_path }}">
       <button class="secondario">Aggiungi ai test notturni</button>
     </form>
@@ -82,8 +82,8 @@
   Registrati: <strong id="n-registrati">{{ n_registrati|numero }}</strong>{% if fine %} su {{ fine.backtrack|numero }}
   in tutto{% endif %} (al massimo {{ (e.opzioni or {}).get('max_backtrack', 1000)|numero }}{% if (e.opzioni or {}).get('solutore') == 'giorni-liberi' %} per giro{% endif %}), in
   <strong id="n-gruppi">0</strong> gruppi. <span id="spiega-gruppi"></span> Scegli un gruppo: il cursore qui sotto
-  scorre i suoi backtrack e, se il gruppo è risolto, alla fine mostra come si risolve; ← e → passano al backtrack
-  precedente e al successivo.</p>
+  scorre i suoi backtrack e «Mostra soluzione» fa vedere come si risolve; ← e → passano al backtrack (o al passo)
+  precedente e al successivo dentro il gruppo, senza cambiare gruppo.</p>
 <div class="barra-comandi">
   <label class="spunta">Raggruppa i backtrack
     <select id="modo-gruppi">
@@ -130,7 +130,7 @@
       <option value="15">velocissimo</option>
     </select>
     <span class="tenue piccolo" id="spiega-cursore">Il cursore va dal backtrack «Da» al backtrack «a»: scegliendo un gruppo, dal suo primo
-      backtrack all'ultimo (solo i suoi). Come si risolve il gruppo è nella sezione qui sotto. Con i
+      backtrack all'ultimo (solo i suoi). Come si risolve il gruppo: «Mostra soluzione». Con i
       gruppi consecutivi, le tacche sotto il cursore sono i backtrack in celle diverse da quella di partenza, del colore
       della cella.</span>
   </div>
@@ -138,6 +138,8 @@
 <div class="barra-comandi">
   <button type="button" class="secondario" id="precedente">← Precedente</button>
   <button type="button" class="secondario" id="successivo">Successivo →</button>
+  <button type="button" class="secondario" id="mostra-soluzione" disabled
+          title="Nell'orario raggiunto, come la ricerca supera la cella del gruppo">Mostra soluzione</button>
   <span class="tenue piccolo" id="posizione"></span>
   <label class="spunta" style="margin-left: auto" title="Mostra anche i controlli dopo il primo che ferma la ricerca, con il loro esito invece che in grigio">
     <input type="checkbox" id="tutti-i-motivi"> Tutti i motivi</label>
@@ -150,10 +152,6 @@
       <option value="esauriti">solo chi ha esaurito le ore in questa classe</option>
     </select></label>
 </div>
-<details id="soluzione-gruppo" class="scheda" style="margin-top: 10px">
-  <summary><strong>Come si risolve il gruppo</strong><span id="soluzione-titolo" class="tenue"></span></summary>
-  <div id="soluzione-contenuto"></div>
-</details>
 <h2>L'orario raggiunto</h2>
 <div id="orario-raggiunto"><p class="tenue piccolo">Scegli un backtrack nell'elenco qui sopra per vedere l'orario
   fino a quel punto.</p></div>
@@ -177,6 +175,7 @@ paginaTest({
   urlElenco: {{ url_for('casi.elenco_backtrack', eid=e.id)|tojson }},
   urlBacktrack: {{ url_for('casi.un_backtrack', eid=e.id, n=0)|tojson }},
   urlNodi: {{ url_for('casi.nodi', eid=e.id)|tojson }},
+  urlControlli: {{ url_for('casi.controlli', eid=e.id, nodo=0)|tojson }},
   urlFerma: {{ url_for('casi.ferma', eid=e.id)|tojson }},
 });
 </script>

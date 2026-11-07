@@ -126,7 +126,7 @@ const doveCella = (d, i) => `${d.giorni[i.giorno]} ${nomeOra(d, i.ora)} ${nomeCl
 const maxOre = d => (d.parametri || {}).max_ore_prof_in_una_classe || 3;
 const maxClassi = d => (d.parametri || {}).max_classi_diverse_al_giorno || 3;
 
-// il controllo in avanti di in-avanti (prima di scendere) e lo stesso fatto entrando nella cella dopo (in-avanti-dopo)
+// il controllo in avanti (entrando nella cella dopo; prima di scendere nei test vecchi del solver in-avanti, tolto)
 function ingressiInAvanti(i, d) {
   if (i.non_calcolato) return 'non calcolato: la ricerca si ferma prima';
   if (i.cella_bloccata < 0) return 'nessuna cella di oggi resta senza docenti, le lezioni possibili bastano e i docenti hanno tempo';
@@ -191,8 +191,8 @@ const CONTROLLI = {
   sabato_esaurisci_priorita_subito: {
     descrizione: "regola del sabato: l'ultimo giorno chi c'era nell'ora prima e ha ancora ore in questa classe deve restare (da solo: è lui)",
     breve: 'regola del sabato', ingressi: ingressiSabato},
-  // il controllo in avanti (tutti i solver): in-avanti lo fa prima di scendere, gli altri entrando nella cella dopo
-  lascia_un_docente_alle_celle_di_oggi: {  // in-avanti, prima di scendere
+  // il controllo in avanti: nei test vecchi del solver in-avanti (tolto), prima di scendere
+  lascia_un_docente_alle_celle_di_oggi: {
     descrizione: 'controllo in avanti: lascia un docente a ogni cella obbligatoria di oggi, abbastanza lezioni alle classi e abbastanza tempo ai docenti',
     breve: 'lascerebbe una cella senza docenti, senza lezioni o un docente senza tempo', ingressi: ingressiInAvanti},
   situazione_risolvibile: {  // potatura A: gli altri solver, entrando nella cella dopo la scelta
@@ -220,6 +220,94 @@ const CONTROLLI = {
     ingressi: (i, d) => !i.giorno_fissato ? 'il giorno non è fissato: vale qualunque scelta'
       : `giorno fissato, la sua scelta: ${i.scelta_fissata[0] < 0 && i.scelta_fissata[1] < 0 ? "l'ora buca" : coppia(d, i.scelta_fissata)}`},
 };
+
+// Le potature, una riga per regola, nell'ordine in cui la ricerca le controlla entrando nella cella dopo una scelta
+// (potature/potature.h e controllo_in_avanti/controllo_in_avanti.h). Si ferma alla prima che non vale: quelle prima
+// sono passate, quelle dopo non si controllano. Per un backtrack che e' una potatura (lo slot); null per gli altri.
+const REGOLE_POTATURE = [
+  {sigla: 'L1', nome: 'Lezioni della classe fino alle ore obbligatorie', quando: 'a ogni cella, per la classe appena decisa',
+   cosa: "le lezioni che restano alla classe (un docente da solo o una coppia) bastano a riempire le sue ore " +
+     "obbligatorie, oggi e in ognuno dei giorni che restano"},
+  {sigla: 'L2', nome: 'Lezioni della classe per tutte le ore', quando: 'a ogni cella, per la classe appena decisa',
+   cosa: "fino all'ultima ora di ogni giorno, le lezioni che restano alla classe bastano per tutte le ore che le restano"},
+  {sigla: 'C', nome: 'Ore dei docenti nella classe', quando: "a ogni cella per la classe appena decisa; a ogni ora " +
+     "chiusa e dopo un'ora buca per tutte le classi",
+   cosa: d => `a ogni docente le ore che gli restano nella classe stanno in quelle che può ancora fare lì: oggi dal ` +
+     `suo ingresso, se il suo blocco di oggi non si è chiuso, poi al massimo ${maxOre(d)} al giorno`},
+  {sigla: 'T', nome: 'Ore dei docenti in tutto', quando: "a ogni ora chiusa (decisa in tutte le classi) e dopo un'ora buca",
+   cosa: "a ogni docente le ore che gli restano in tutto stanno nelle ore libere che gli restano, dal suo ingresso"},
+  {sigla: 'A1', nome: 'Controllo in avanti: le celle di oggi', quando: 'a ogni cella, alla fine',
+   cosa: "ogni cella obbligatoria che resta oggi ha ancora almeno un docente possibile (ha ore nella classe, è libero " +
+     "a quell'ora, è già entrato, può ancora fare ore oggi lì)"},
+  {sigla: 'A2', nome: 'Controllo in avanti: lezioni fino alle ore obbligatorie', quando: 'a ogni cella, alla fine',
+   cosa: "per ogni classe, fino a ogni ora obbligatoria le lezioni possibili bastano per le celle da riempire, oggi " +
+     "e in ognuno dei giorni che restano"},
+  {sigla: 'A3', nome: 'Controllo in avanti: lezioni per tutte le ore', quando: 'a ogni cella, alla fine',
+   cosa: "per ogni classe, fino all'ultima ora di ogni giorno le lezioni possibili bastano per tutte le ore che le restano"},
+  {sigla: 'A4', nome: 'Controllo in avanti: ore dei docenti', quando: 'a ogni cella, alla fine',
+   cosa: d => `in ogni classe le ore che restano a un docente stanno in quelle che può ancora fare (oggi dopo l'ultima ` +
+     `ora decisa, poi al massimo ${maxOre(d)} al giorno dal suo ingresso), e in tutto nelle ore libere che gli restano`},
+];
+function tabellaPotature(slot, d) {
+  const i = slot.ingressi || {};
+  const quale = slot.nome === 'lezioni_della_classe_bastano' ? (i.fino_ora === d.ore.length - 1 ? 'L2' : 'L1')
+    : slot.nome === 'ore_dei_docenti_stanno_nel_tempo' ? (i.classe >= 0 ? 'C' : 'T')
+    : slot.nome === 'situazione_risolvibile' ? ({cella: 'A1', ore: 'A2', ore_classe: 'A3', ore_docente: 'A4'}[i.motivo])
+    : null;
+  if (!quale) return null;
+  const k = REGOLE_POTATURE.findIndex(r => r.sigla === quale);
+  return el('table', {class: 'dati tabella-potature'}, [
+    el('thead', {}, el('tr', {}, ['', 'Regola', 'Cosa controlla', 'Quando', 'Esito'].map(t => el('th', {testo: t})))),
+    el('tbody', {}, REGOLE_POTATURE.map((r, j) => {
+      const esito = j < k ? (r.sigla === 'T' ? "passa (o non toccava: si controlla solo a ora chiusa e dopo un'ora buca)"
+                                             : 'passa')
+        : j === k ? descriviIngressi(slot.nome, i, d)
+        : 'non controllata: la ricerca si ferma alla prima regola che non vale';
+      return el('tr', {class: j < k ? 'si' : j === k ? 'no' : 'non-valutato'}, [
+        el('td', {class: 'segno', testo: j < k ? '✓' : j === k ? '✗' : '–'}),
+        el('td', {}, [el('strong', {testo: r.sigla}), ' ' + r.nome]),
+        el('td', {class: 'piccolo', testo: typeof r.cosa === 'function' ? r.cosa(d) : r.cosa}),
+        el('td', {class: 'piccolo tenue', testo: r.quando}),
+        el('td', {class: 'piccolo' + (j === k ? ' testo-male' : j > k ? ' tenue' : ''), testo: esito}),
+      ]);
+    })),
+  ]);
+}
+
+// A1 «resterebbe senza docenti»: per ogni docente della classe della cella, i numeri che decidono se puo' starci (ha
+// ancora ore nella classe, e' entrato, e' libero a quell'ora, oggi puo' ancora fare ore nella classe) e perche' no.
+function tabellaDocentiCella(i, d) {
+  const cl = nomeClasse(d, i.classe), ora = nomeOra(d, i.ora);
+  const casella = (testo, male) => el('td', {class: male ? 'testo-male' : null, testo: (male ? '✗ ' : '✓ ') + testo});
+  const righe = i.docenti_cella.map(x => {
+    const motivi = [];
+    if (x.restano <= 0) motivi.push(`ha finito le ore in ${cl}`);
+    if (x.ingresso > i.ora) motivi.push(`entra alle ${nomeOra(d, x.ingresso)}`);
+    if (x.occupato >= 0) motivi.push(`alle ${ora} è già in ${nomeClasse(d, x.occupato)}`);
+    const pieno = x.fatte_oggi >= maxOre(d);
+    if (x.fatte_oggi > 0 && pieno) motivi.push(`oggi ha già ${x.fatte_oggi} ore in ${cl}`);
+    else if (x.blocco_chiuso) motivi.push(`oggi ha già fatto ${x.fatte_oggi} ${x.fatte_oggi === 1 ? 'ora' : 'ore'} in ${cl} ` +
+      'ma non nell\'ultima ora decisa: le sue ore di oggi devono essere di seguito, non può tornare');
+    const troppeClassi = x.fatte_oggi === 0 && x.classi_oggi >= maxClassi(d);
+    if (troppeClassi) motivi.push(`oggi è già in ${x.classi_oggi} classi diverse`);
+    return el('tr', {}, [
+      el('td', {}, el('strong', {testo: nomeDoc(d, x.docente)})),
+      casella(`${x.restano}`, x.restano <= 0),
+      casella(nomeOra(d, x.ingresso), x.ingresso > i.ora),
+      casella(x.occupato >= 0 ? `in ${nomeClasse(d, x.occupato)}` : 'libero', x.occupato >= 0),
+      casella(x.fatte_oggi ? `${x.fatte_oggi} ${x.fatte_oggi === 1 ? 'ora' : 'ore'}` +
+        (pieno ? ' (il massimo)' : x.blocco_chiuso ? ', blocco chiuso' : ', può continuare') : 'nessuna',
+        x.fatte_oggi > 0 && (pieno || x.blocco_chiuso)),
+      casella(`${x.classi_oggi}`, troppeClassi),
+      el('td', {class: motivi.length ? 'testo-male piccolo' : 'piccolo',
+        testo: motivi.length ? motivi.join('; ') : 'potrebbe starci'}),
+    ]);
+  });
+  return el('div', {class: 'scorre'}, el('table', {class: 'dati tabella-docenti-cella'}, [
+    el('thead', {}, el('tr', {}, ['Docente', `Ore che gli restano in ${cl}`, 'Entra alle', `Alle ${ora}`,
+      `Oggi in ${cl}`, `Classi oggi (max ${maxClassi(d)})`, 'Perché non può starci'].map(t => el('th', {testo: t})))),
+    el('tbody', {}, righe)]));
+}
 
 function descrizioneControllo(nome, d) {
   const c = CONTROLLI[nome];
@@ -297,7 +385,7 @@ function tabellaOrizzontale(colonne, d) {
 }
 
 function tabellaDocenti(docenti, d) {
-  return tabellaOrizzontale(docenti.map(x => ({titolo: nomeDoc(d, x.docente), sotto: `priorità ${x.priorita}`,
+  return tabellaOrizzontale(docenti.map(x => ({titolo: nomeDoc(d, x.docente), sotto: x.margine !== undefined ? `margine ${x.margine} · ${x.priorita} ore` : `priorità ${x.priorita}`,
     controlli: x.controlli, fermato_a: x.fermato_a})), d);
 }
 
@@ -421,6 +509,26 @@ function disegnaBacktrack(contenitore, d, b, filtro, sopra, prima, passo) {
       `fin lì e ha cambiato scelta.`;
   mettiGriglia(sopra, el('p', {class: 'tenue piccolo didascalia'}, passo ? passo.didascalia
     : `Al backtrack n. ${numeroIt(b.n)}: ${testoPos(d, b.pos)} (in rosso).` + testoCambi), griglia, 'td.blocco');
+  parti.push(...partiDocenti(d, b, filtro));
+  sostituisci(contenitore, ...parti);
+}
+
+// Nel passo passo, a un nodo che non e' un backtrack: i controlli dei docenti della cella in cui la ricerca entra a quel
+// nodo (b: il record «controlli», calcolato rifacendo la ricerca fino a li'). Solo le sezioni dei docenti: l'orario e'
+// quello del passo.
+function disegnaControlli(contenitore, d, b, filtro) {
+  d = datiPerBacktrack(d, b);
+  const passano = b.docenti.filter(x => x.fermato_a < 0).length;
+  sostituisci(contenitore, el('p', {class: 'tenue piccolo'},
+    `Al nodo ${numeroIt(b.nodo)} la ricerca entra in ${testoPos(d, b.pos)} e prova i docenti della classe in quest'` +
+    `ordine (${numeroIt(passano)} ${passano === 1 ? 'passa' : 'passano'} i controlli base; poi, per chi li passa, le ` +
+    'coppie e il «da solo»). Questi controlli si ricalcolano rifacendo la ricerca fino a questo nodo.'),
+    ...partiDocenti(d, b, filtro));
+}
+
+// le sezioni dei docenti di un backtrack o dei controlli di un nodo: controlli base, in coppia, da solo, e lo slot
+function partiDocenti(d, b, filtro) {
+  const parti = [];
   const mostrati = b.docenti.filter(x => passaFiltro(filtro, haEsauritoOre(x)));
   // Tre sezioni, ognuna con la sua casella (accesa di default; spenta, la sezione non si vede): i controlli base, in
   // coppia, da solo. Con «controlli incrementali» coppie e da solo ci sono solo per chi passa i controlli base (come
@@ -468,7 +576,12 @@ function disegnaBacktrack(contenitore, d, b, filtro, sopra, prima, passo) {
   // la classe (lo slot), dopo i docenti
   parti.push(el('h4', {testo: 'Lo slot'}));
   parti.push(tabellaControlli([b.slot], b.slot.uscita ? -1 : 0, d));
-  sostituisci(contenitore, ...parti);
+  const potature = tabellaPotature(b.slot, d);
+  if (potature) parti.push(el('h4', {testo: 'Le potature, nell\'ordine in cui la ricerca le controlla'}), potature);
+  const cella = b.slot.ingressi && b.slot.ingressi.docenti_cella ? tabellaDocentiCella(b.slot.ingressi, d) : null;
+  if (cella) parti.push(el('h4', {testo: `Perché nessun docente può stare in ${doveCella(d, b.slot.ingressi)}: i ` +
+    `docenti di ${nomeClasse(d, b.slot.ingressi.classe)}`}), cella);
+  return parti;
 }
 
 // ---- i dati del test: classi, docenti e codocenze ----
@@ -588,13 +701,16 @@ function paginaTest(cfg) {
   let aperto = null;        // il backtrack disegnato, per ridisegnarlo quando cambia il filtro
   let apertoPrima = null;   // il backtrack precedente sul cursore (per le celle cambiate)
   let apertoPasso = null;   // nel passo passo: cosa ha messo la ricerca nello stesso nodo del backtrack
+  let apertiControlli = null;  // nel passo passo, a un nodo che non e' un backtrack: i controlli di quel nodo
   try { const f = localStorage.getItem('orario.filtroDocenti'); if (f) sceltaFiltro.value = f; } catch (e) {}
   sceltaFiltro.addEventListener('change', () => {
     try { localStorage.setItem('orario.filtroDocenti', sceltaFiltro.value); } catch (e) {}
     if (aperto) disegnaBacktrack(dettaglio, d, aperto, sceltaFiltro.value, raggiunto, apertoPrima, apertoPasso);
+    else if (apertiControlli) disegnaControlli(dettaglio, d, apertiControlli, sceltaFiltro.value);
   });
   ridisegnaBacktrack = () => {
     if (aperto) disegnaBacktrack(dettaglio, d, aperto, sceltaFiltro.value, raggiunto, apertoPrima, apertoPasso);
+    else if (apertiControlli) disegnaControlli(dettaglio, d, apertiControlli, sceltaFiltro.value);
   };
   const sceltaTutti = $('tutti-i-motivi'), sceltaIncrementali = $('controlli-incrementali');
   try {
@@ -757,15 +873,15 @@ function paginaTest(cfg) {
       $('spiega-cursore').textContent = "Passo passo per cella: il cursore va dal nodo «Da» al nodo «a». Nell'orario " +
         "raggiunto, in azzurro la cella di questo passo (in rosso se nessun docente ci sta: il backtrack); bordata in " +
         "verde la cella in cui è finito l'ultimo backtracking, cioè dove la ricerca è tornata a cambiare scelta. Le " +
-        "tacche sotto il cursore sono i backtrack. Il cursore si ferma prima della soluzione, che è nella sezione «Come " +
-        "si risolve il gruppo».";
+        "tacche sotto il cursore sono i backtrack. Il cursore si ferma prima della soluzione: per vederla, «Mostra " +
+        "soluzione».";
       $('tabella-gruppi').classList.toggle('con-celle', false);
       return;
     }
     $('spiega-cursore').textContent = modo.passi ? "Passo passo: il cursore va dal nodo «Da» al nodo «a» della " +
       "ricerca; a ogni passo, nell'orario raggiunto, è bordata la cella appena messa. Le tacche sotto il cursore sono " +
-      "i backtrack (grigie nella cella di partenza, colorate nelle altre). Il cursore si ferma prima della soluzione, " +
-      "che è nella sezione «Come si risolve il gruppo»." : SPIEGA_CURSORE;
+      "i backtrack (grigie nella cella di partenza, colorate nelle altre). Il cursore si ferma prima della soluzione: " +
+      "per vederla, «Mostra soluzione»." : SPIEGA_CURSORE;
     $('tabella-gruppi').classList.toggle('con-celle', !!modo.conCelle);
   }
   mostraModo();
@@ -780,27 +896,29 @@ function paginaTest(cfg) {
     return record.get(n);
   }
 
-  // «Come si risolve il gruppo» (la sezione espandibile sotto il cursore): l'orario subito dopo che la ricerca ha
-  // superato la cella del gruppo. Viene dal backtrack che ha risolto il gruppo (o dall'orario trovato), fino alla
-  // cella; in verde le celle cambiate rispetto all'ultimo backtrack del gruppo. Il cursore scorre solo i passaggi
-  // prima della soluzione; la soluzione si disegna solo quando la sezione e' aperta.
-  const soluzione = $('soluzione-gruppo'), soluzioneContenuto = $('soluzione-contenuto');
+  // «Mostra soluzione»: nell'orario raggiunto, al posto del backtrack, l'orario subito dopo che la ricerca ha superato
+  // la cella del gruppo. Viene dal backtrack che ha risolto il gruppo (o dall'orario trovato), fino alla cella; in
+  // verde le celle cambiate rispetto all'ultimo backtrack del gruppo. Il cursore scorre solo i passaggi prima della
+  // soluzione; muovendolo (o con «Torna al backtrack») si torna al backtrack.
+  const bottoneSoluzione = $('mostra-soluzione');
+  let soluzioneMostrata = false;
+  function aggiornaBottoneSoluzione() {
+    const g = gruppoScelto, si = g && !g.fineGiro && risolto(g);  // un gruppo finito col giro non ha soluzione
+    bottoneSoluzione.disabled = !si;
+    bottoneSoluzione.textContent = soluzioneMostrata ? 'Torna al backtrack' : 'Mostra soluzione';
+    bottoneSoluzione.title = !g ? 'Scegli un gruppo' : si ? `Come la ricerca supera ${g.testo}`
+      : `Il gruppo non è risolto: ${comeFinisce(g)[0]}`;
+  }
   async function mostraSoluzione() {
     const g = gruppoScelto;
-    $('soluzione-titolo').textContent = g ? ` ${numeroIt(g.k + 1)} (${g.testo})` : '';
-    if (!soluzione.open) return;
-    if (!g) { soluzioneContenuto.replaceChildren(el('p', {class: 'tenue piccolo'}, 'Scegli un gruppo.')); return; }
-    if (!risolto(g)) {
-      soluzioneContenuto.replaceChildren(el('p', {class: 'tenue piccolo'},
-        `Il gruppo non è risolto: ${comeFinisce(g)[0]}.`));
-      return;
-    }
-    soluzioneContenuto.replaceChildren(el('p', {class: 'tenue piccolo'}, 'Caricamento…'));
+    if (!g || g.fineGiro || !risolto(g)) return;
+    soluzioneMostrata = true;
+    aggiornaBottoneSoluzione();
     const ultimoBt = await caricaRecord(g.ultimo);
     const dd = datiPerBacktrack(d, ultimoBt);  // giorni-liberi: l'ordine del giro (l'orario trovato e' in calendario)
     const dopo = g.risoltoDa !== null ? (await caricaRecord(g.risoltoDa)).orario
       : ultimoBt.giorni ? dd.ordine.map(c => cfg.orario[c]) : cfg.orario;
-    if (gruppoScelto !== g || !soluzione.open) return;
+    if (gruppoScelto !== g || !soluzioneMostrata) return;
     const fino = g.inizio + 1, cella = g.testo;
     const cambiate = new Set();
     for (let p = 0; p < fino; p++)
@@ -809,17 +927,22 @@ function paginaTest(cfg) {
     const messo = buca ? "un'ora buca" : coppia(dd, dopo[g.inizio]);
     const griglia = el('div');
     disegnaOrario(griglia, dd, dopo, {fino, cambiate, risolta: g.inizio});
-    soluzioneContenuto.replaceChildren(
-      el('p', {class: 'tenue piccolo didascalia'},
-        `La ricerca supera ${cella} ` + (buca ? "con un'ora buca. " : `mettendo ${messo}. `) +
-        `In verde le ${numeroIt(cambiate.size)} celle cambiate rispetto all'ultimo backtrack del gruppo ` +
-        `(n. ${numeroIt(g.ultimo)}). ` + (g.risoltoDa !== null
-          ? `L'orario viene dal backtrack n. ${numeroIt(g.risoltoDa)}, il primo dopo che la ricerca ha superato la ` +
-            'cella, fino alla cella del gruppo.'
-          : "L'orario è quello trovato, fino alla cella del gruppo.")),
-      griglia);
+    mettiGriglia(raggiunto, el('p', {class: 'tenue piccolo didascalia'},
+      `Soluzione del gruppo ${numeroIt(g.k + 1)}: la ricerca supera ${cella} ` +
+      (buca ? "con un'ora buca. " : `mettendo ${messo}. `) +
+      `In verde le ${numeroIt(cambiate.size)} celle cambiate rispetto all'ultimo backtrack del gruppo ` +
+      `(n. ${numeroIt(g.ultimo)}). ` + (g.risoltoDa !== null
+        ? `L'orario viene dal backtrack n. ${numeroIt(g.risoltoDa)}, il primo dopo che la ricerca ha superato la ` +
+          'cella, fino alla cella del gruppo.'
+        : "L'orario è quello trovato, fino alla cella del gruppo.")), griglia, 'td.risolta');
   }
-  soluzione.addEventListener('toggle', mostraSoluzione);
+  // si torna al backtrack (o al passo) del cursore
+  function tornaAlBacktrack() {
+    soluzioneMostrata = false;
+    aggiornaBottoneSoluzione();
+    if (modo.passi) { if (P && !P.vuoto) mostraPasso(iPasso); } else if (scelto !== null) apri(scelto);
+  }
+  bottoneSoluzione.addEventListener('click', () => soluzioneMostrata ? tornaAlBacktrack() : mostraSoluzione());
 
   function comeFinisce(g) {
     if (g.risoltoDa !== null) return ['risolto', 'ok'];
@@ -874,19 +997,19 @@ function paginaTest(cfg) {
     gruppoScelto = g;
     if (prima && prima.tr) prima.tr.classList.remove('scelto');
     g.tr.classList.add('scelto');
-    if (prima !== g) mostraSoluzione();
+    if (prima !== g) { soluzioneMostrata = false; aggiornaBottoneSoluzione(); }
     // scorre solo l'elenco, non la pagina
     const rr = g.tr.getBoundingClientRect(), re = elenco.getBoundingClientRect();
     const testa = elenco.querySelector('thead').offsetHeight;
     if (rr.top < re.top + testa) elenco.scrollTop -= re.top + testa - rr.top;
     else if (rr.bottom > re.top + elenco.clientHeight) elenco.scrollTop += rr.bottom - re.top - elenco.clientHeight;
-    if (modo.passi) { apriGruppoPassi(g, n); return; }
+    if (modo.passi) return apriGruppoPassi(g, n);
     cursoreDa.value = g.primo;
     cursoreA.value = g.ultimo;
     apri(n === undefined ? g.primo : n);
   }
 
-  // ---- il cursore: scorre i backtrack del gruppo scelto, da «Da» ad «a» (la soluzione e' nella sezione a parte) ----
+  // ---- il cursore: scorre i backtrack del gruppo scelto, da «Da» ad «a» (la soluzione: «Mostra soluzione») ----
   const cursore = $('cursore-backtrack'), cursoreDa = $('cursore-da'), cursoreA = $('cursore-a');
   let lista = [];      // i backtrack del gruppo tra «Da» e «a»
   function aggiornaCursore() {
@@ -1059,7 +1182,7 @@ function paginaTest(cfg) {
     let {pos, p1, p2, L} = await leggiNodi(da, fineRis !== null ? fineRis : da + 2000000);
     if (id !== caricaId) return;
     // fino alla soluzione esclusa: dopo l'ultimo backtrack del gruppo, il primo nodo oltre la cella di partenza e' la
-    // soluzione (nella sezione a parte), e i passi si fermano prima
+    // soluzione («Mostra soluzione»), e i passi si fermano prima
     for (let i = g.nodoUltimo - da + 1; i < L; i++) if (pos[i] > g.inizio) { L = i; break; }
     // per cella: si parte da prima, dall'ultimo ingresso nella cella piu' indietro in cui il gruppo torna
     let celleDa = Infinity;  // da questa cella in poi l'orario del primo backtrack non vale piu'
@@ -1201,6 +1324,8 @@ function paginaTest(cfg) {
     if (!P || P.vuoto) return;
     iPasso = k;
     cursore.value = k;
+    soluzioneMostrata = false;
+    aggiornaBottoneSoluzione();
     const i = P.er[k], nodo = P.da + i, pos = P.pos[i], g = P.g;
     const nBt = P.et[k] === 1 ? P.bt.get(nodo) : undefined;
     const chi = modo.perCella && nBt === undefined && P.dec[k] >= 0 ? P.da + P.dec[k] : nodo;
@@ -1214,6 +1339,7 @@ function paginaTest(cfg) {
       const b = await caricaRecord(nBt);
       if (iPasso !== k || !modo.passi) return;
       aperto = b;
+      apertiControlli = null;
       apertoPrima = null;
       apertoPasso = modo.perCella
         ? {didascalia: `Il nodo ${numeroIt(nodo)} decide ${testoSlot(pos)}: nessun docente passa i controlli, ` +
@@ -1240,8 +1366,29 @@ function paginaTest(cfg) {
       : `Al nodo ${numeroIt(nodo)} la ricerca riparte dalla prima cella.`;
     mettiGriglia(raggiunto, el('p', {class: 'tenue piccolo didascalia'}, testo), griglia,
                  modo.perCella ? 'td.attuale' : 'td.tornata');
-    dettaglio.replaceChildren(el('p', {class: 'tenue piccolo'}, 'I controlli dei docenti ci sono solo ai nodi in cui ' +
-      'la ricerca si blocca (i backtrack, le tacche sotto il cursore).'));
+    // i controlli dei docenti a questo nodo: la traccia li ha solo ai backtrack, qui si chiedono al sito, che rifa' la
+    // ricerca fino al nodo (per cella: il nodo che decide la cella del passo; passo passo: il nodo che entra nella
+    // cella dopo)
+    apertiControlli = null;
+    const nodoControlli = modo.perCella ? (P.dec[k] >= 0 ? P.da + P.dec[k] : null) : (poi ? nodo : null);
+    if (nodoControlli === null) {
+      dettaglio.replaceChildren(el('p', {class: 'tenue piccolo'}, modo.perCella
+        ? 'La cella è stata decisa da un nodo prima di quelli di questo gruppo: i suoi controlli sono al nodo che la decide.'
+        : 'Orario completo: non c\'è una cella da decidere.'));
+      return;
+    }
+    dettaglio.replaceChildren(el('p', {class: 'tenue piccolo'}, `I controlli dei docenti al nodo ` +
+      `${numeroIt(nodoControlli)}: caricamento (la ricerca si rifà fino a questo nodo)…`));
+    let b = null;
+    try { b = await (await fetch(cfg.urlControlli.replace(/0$/, nodoControlli))).json(); } catch (e) { /* rete */ }
+    if (iPasso !== k || !modo.passi || aperto) return;  // nel frattempo il cursore si e' spostato
+    if (!b) {
+      dettaglio.replaceChildren(el('p', {class: 'tenue piccolo'}, 'I controlli dei docenti di questo nodo non si ' +
+        'possono ricalcolare (la ricerca non entra in una cella da decidere, o i dati del test non ci sono).'));
+      return;
+    }
+    apertiControlli = b;
+    disegnaControlli(dettaglio, d, b, sceltaFiltro.value);
   }
 
   // mette i backtrack nei gruppi e aggiorna l'elenco
@@ -1255,7 +1402,7 @@ function paginaTest(cfg) {
       if (!daCapo) { riassunti.set(b.n, b); numeri.push(b.n); }
       assegna(b, toccati);
     }
-    if (gruppoScelto && toccati.has(gruppoScelto)) mostraSoluzione();  // il gruppo scelto puo' essersi appena risolto
+    if (gruppoScelto && toccati.has(gruppoScelto)) aggiornaBottoneSoluzione();  // puo' essersi appena risolto
     const righe = [];
     for (const g of [...toccati].sort((x, y) => x.k - y.k)) {
       const tr = rigaGruppo(g);
@@ -1268,7 +1415,9 @@ function paginaTest(cfg) {
     // il gruppo scelto e' cresciuto: se il cursore arrivava alla sua fine, ci arriva ancora
     if (gruppoScelto && ultimoScelto !== null && +cursoreA.value === ultimoScelto) cursoreA.value = gruppoScelto.ultimo;
     aggiornaCursore();
-    if (scelto === null && gruppi.length) scegliGruppo(gruppi[0]);
+    // il primo gruppo si sceglie da solo solo se non ce n'e' ancora uno scelto: nel passo passo «scelto» (il backtrack)
+    // resta vuoto sui passi che non sono backtrack, e prima a ogni aggiornamento la pagina tornava al primo gruppo
+    if (!gruppoScelto && gruppi.length) scegliGruppo(gruppi[0]);
   }
 
   // un altro modo di raggruppare: si rifanno i gruppi con i backtrack gia' arrivati, restando sullo stesso backtrack
@@ -1288,7 +1437,8 @@ function paginaTest(cfg) {
     gruppoScelto = null;
     scelto = null;
     ultimeTacche = null;
-    mostraSoluzione();
+    soluzioneMostrata = false;
+    aggiornaBottoneSoluzione();
     elenco.querySelector('tbody').replaceChildren();
     inserisci(numeri.map(x => riassunti.get(x)), true);
     if (n !== null && gruppoDi.has(n)) scegliGruppo(gruppoDi.get(n), n);
@@ -1313,6 +1463,8 @@ function paginaTest(cfg) {
     if (g !== gruppoScelto) { scegliGruppo(g, n); return; }  // un backtrack di un altro gruppo: si passa a quel gruppo
     if (modo.passi) return vaiANodo(riassunti.get(n).nodo);
     scelto = n;
+    soluzioneMostrata = false;
+    aggiornaBottoneSoluzione();
     if (n < +cursoreDa.value || n > +cursoreA.value) { cursoreDa.value = g.primo; cursoreA.value = g.ultimo; }
     aggiornaCursore();
     $('posizione').textContent = `backtrack ${numeroIt(n)} · ${numeroIt(g.membri.indexOf(n) + 1)}° di ` +
@@ -1322,19 +1474,14 @@ function paginaTest(cfg) {
     const i = lista.indexOf(n);
     const [b, prima] = await Promise.all([caricaRecord(n), i > 0 ? caricaRecord(lista[i - 1]) : null]);
     if (scelto === n) {
-      aperto = b; apertoPrima = prima; apertoPasso = null;
+      aperto = b; apertoPrima = prima; apertoPasso = null; apertiControlli = null;
       disegnaBacktrack(dettaglio, d, b, sceltaFiltro.value, raggiunto, prima);
     }
   }
 
-  // ← e →: il backtrack precedente e il successivo in ordine di tempo (passando da un gruppo all'altro)
-  function sposta(k) {
-    if (modo.passi) return passo(k);
-    const i = numeri.indexOf(scelto);
-    if (i < 0) return;
-    const j = Math.min(numeri.length - 1, Math.max(0, i + k));
-    if (j !== i) apri(numeri[j]);
-  }
+  // ← e →: il backtrack (o il passo) precedente e il successivo dentro il gruppo scelto, tra «Da» e «a»: il gruppo
+  // nell'elenco non cambia (per cambiarlo si sceglie un'altra riga)
+  const sposta = k => passo(k);
   $('precedente').addEventListener('click', () => sposta(-1));
   $('successivo').addEventListener('click', () => sposta(1));
   document.addEventListener('keydown', ev => {
@@ -1380,7 +1527,7 @@ function paginaTest(cfg) {
         contatori(p);
       }
       await aggiungiBacktrack();
-      if (!s.in_corso && s.esito) { location.reload(); return; }
+      if (!s.in_corso && s.esito) { salvaPosizione(); location.reload(); return; }
     } catch (e) { /* rete: si riprova */ }
     setTimeout(segui, 1000);
   }
@@ -1389,8 +1536,29 @@ function paginaTest(cfg) {
     ferma.disabled = true;
     await fetch(cfg.urlFerma, {method: 'POST', headers: {'X-Gettone': window.GETTONE}});
   });
+  // Alla fine del test la pagina si ricarica (per l'esito e l'orario trovato): prima si salva dove si era (gruppo,
+  // backtrack o passo, scorrimento) e dopo il caricamento ci si torna, cosi' chi stava guardando un passo non lo perde.
+  const chiavePosizione = 'orario.posizione.' + cfg.urlDati;
+  function salvaPosizione() {
+    try {
+      sessionStorage.setItem(chiavePosizione, JSON.stringify({modo: sceltaModo.value, k: gruppoScelto ? gruppoScelto.k : null,
+        scelto, passo: modo.passi && P && !P.vuoto ? iPasso : null, y: window.scrollY}));
+    } catch (e) { /* niente */ }
+  }
+  async function ripristinaPosizione() {
+    let x = null;
+    try { x = JSON.parse(sessionStorage.getItem(chiavePosizione)); sessionStorage.removeItem(chiavePosizione); } catch (e) { return; }
+    if (!x || x.modo !== sceltaModo.value || x.k === null || !gruppi[x.k]) return;
+    const g = gruppi[x.k];
+    if (modo.passi) {
+      await scegliGruppo(g);
+      if (P && !P.vuoto && x.passo !== null && x.passo >= P.lo && x.passo <= P.hi) mostraPasso(x.passo);
+    } else scegliGruppo(g, x.scelto !== null && gruppoDi.get(x.scelto) === g ? x.scelto : undefined);
+    window.scrollTo(window.scrollX, x.y);
+  }
+
   if (cfg.inCorso) segui();
-  else aggiungiBacktrack();
+  else aggiungiBacktrack().then(ripristinaPosizione);
 }
 
 // ---- tabelle larghe: un cursore in fondo allo schermo per scorrerle ----

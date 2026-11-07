@@ -23,10 +23,10 @@ def _esecuzione(eid):
 def caso(eid):
     e = _esecuzione(eid)
     n = conn().execute('select count(*) as n from backtrack where esecuzione_id = %s', (eid,)).fetchone()['n']
-    da_aggiungere = notturni.da_esecuzione(conn(), e['scuola_id'], eid) if e.get('scuola_id') else None
+    tid = notturni.nei_notturni(conn(), e['scuola_id'], eid)
     return render_template('casi/caso.html', e=e, r=e['risultato'] or {}, n_registrati=n,
                            in_corso=esecutore.in_corso(eid), notturno=_confronto_notturno(e),
-                           nei_notturni=da_aggiungere and da_aggiungere['presente'], si_aggiunge=bool(da_aggiungere))
+                           nei_notturni=tid or None, si_aggiunge=tid is not None)
 
 
 def _confronto_notturno(e):
@@ -50,11 +50,11 @@ def _confronto_notturno(e):
 @bp.route('/<int:eid>/stato')
 def stato(eid):
     """Interrogato ogni secondo dalla pagina mentre il test gira."""
-    e = conn().execute('select esito, risultato is not null and risultato ? %s as con_dati from esecuzioni '
-                       'where id = %s', ('dati', eid)).fetchone()
-    n = conn().execute('select count(*) as n from backtrack where esecuzione_id = %s', (eid,)).fetchone()['n']
+    e = conn().execute('select esito, risultato is not null and risultato ? %s as con_dati, '
+                       '(select count(*) from backtrack where esecuzione_id = %s) as n from esecuzioni where id = %s',
+                       ('dati', eid, eid)).fetchone()
     return jsonify({'esito': e['esito'], 'in_corso': esecutore.in_corso(eid), 'progresso': esecutore.progresso(eid),
-                    'registrati': n, 'con_dati': e['con_dati']})
+                    'registrati': e['n'], 'con_dati': e['con_dati']})
 
 
 @bp.route('/<int:eid>/dati')
@@ -95,6 +95,15 @@ def nodi(eid):
     ultimo = conn().execute('select max(da + quanti) - 1 as u from nodi where esecuzione_id = %s',
                             (eid,)).fetchone()['u']
     return jsonify({'pezzi': [[p['da'], p['passi']] for p in pezzi], 'ultimo': ultimo})
+
+
+@bp.route('/<int:eid>/controlli/<int:nodo>')
+def controlli(eid, nodo):
+    """I controlli dei docenti al nodo (il passo passo, ai nodi che non sono backtrack): la ricerca rifatta fino a li'."""
+    _esecuzione(eid)
+    from flask import current_app
+    r = esecutore.controlli_al_nodo(current_app.config['SITO'], eid, nodo)
+    return jsonify(r)
 
 
 @bp.route('/<int:eid>/ferma', methods=['POST'])

@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-// Il controllo in avanti e la verifica dei dati (venivano dal solver in-avanti; ora li hanno tutti i solver).
+// Il controllo in avanti e la verifica dei dati (venivano dal solver in-avanti, tolto; li hanno tutti i solver).
 //
 // CONTROLLO IN AVANTI, dopo ogni scelta (una coppia, un docente da solo o un'ora buca): il resto e' ancora
 // risolvibile? Sono condizioni necessarie: se dicono "no" l'orario non si puo' completare e la scelta si scarta; se
@@ -16,8 +16,7 @@
 //  3. le ore dei docenti: in ogni classe le ore che restano al docente stanno in quelle che puo' ancora fare (oggi dopo
 //     l'ultima ora decisa, se il suo blocco non si e' chiuso; poi al massimo 3 al giorno dal suo ingresso), e in tutto
 //     stanno nelle ore libere che gli restano.
-// Quando: in-avanti lo fa prima di scendere alla cella dopo; gli altri solver all'ingresso della cella dopo, con le
-// potature (potature/potature.h, POTATURA_IN_AVANTI). Lo stato e' lo stesso: cambia solo se il nodo si conta.
+// Quando: all'ingresso della cella dopo la scelta, con le potature (potature/potature.h, POTATURA_IN_AVANTI).
 //
 // Vale per qualunque ordine delle celle (main: un'ora alla volta; per-classe: dentro il giorno una
 // classe alla volta) e dei giorni (giorni-liberi): i solver si decidono un giorno alla volta, e dentro il giorno ogni
@@ -44,6 +43,20 @@ extern int motivo_in_avanti;
 const char *nome_motivo_in_avanti(int motivo);
 // i numeri dei motivi 2 e 3: il docente (-1 per 2), la classe (-1: in tutto), quante ore restano, quante possibili
 void numeri_in_avanti(int *docente, int *classe, int *restano, int *possibili);
+
+// Per la traccia (motivo 0, la cella q senza docenti, dopo le prime s celle): i docenti della classe di q, uno per
+// elemento, con quello che serve per vedere perche' nessuno puo' starci. Ritorna quanti sono (al massimo n).
+typedef struct {
+    int docente;
+    int restano;        // ore che gli restano nella classe
+    int ingresso;       // la sua ora di ingresso (deve essere <= l'ora della cella)
+    int occupato;       // a quell'ora insegna gia' in un'altra classe: quale (-1: libero)
+    int fatte_oggi;     // ore gia' fatte oggi in questa classe
+    int blocco_chiuso;  // le ha fatte, ma non nell'ultima ora decisa: oggi nella classe non puo' piu' tornare
+    int classi_oggi;    // classi diverse in cui ha gia' insegnato oggi
+    int massimo_oggi;   // quante ore puo' ancora dare oggi nella classe (0: non puo')
+} DocenteCella;
+int docenti_della_cella(int s, int q, DocenteCella *dc, int n);
 
 // La verifica dei dati: 1 se tutto va, se no 0 con il motivo in errore.
 int verifica_fattibilita(char *errore, size_t dimensione);

@@ -8,14 +8,7 @@
 // Le celle di una classe si decidono sempre in ordine di tempo, quindi prima di quella cella e' tutto deciso e da li' in
 // poi niente.
 
-extern teaching_slot orario[];
-extern int orario_len;
-int g_giorno(int pos);
-int g_ora(int pos);
-int g_classe(int pos);
-
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#include "../controlli/controlli.h"
 
 #define N_CELLE (GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ)
 static int rango[N_CELLE];      // a quale passo della ricerca si decide ogni cella
@@ -52,8 +45,6 @@ void potature_ordine_giorni(const int *giorno_di_posto, const int *posto_di_gior
     controllo_in_avanti_ordine_giorni(giorno_di_posto, posto_di_giorno);
 }
 
-static int con_in_avanti = 1;  // A, il controllo in avanti (in-avanti lo fa da se', prima di scendere)
-void potature_in_avanti(const int attivo) { con_in_avanti = attivo; }
 
 static int docente_nella_cella(const int pos, const int p) {
     return orario[pos].insegnante1 == p || orario[pos].insegnante2 == p;
@@ -232,15 +223,13 @@ int potatura_dopo(const int s) {
         if (!ore_totali_stanno(tutte, s)) return POTATURA_ORE_DOCENTI;
     }
     // a ogni cella, alla fine: A, il controllo in avanti
-    if (con_in_avanti) {
-        const int q = controllo_in_avanti(s);
-        if (q >= 0) {
-            potatura = (Potatura){POTATURA_IN_AVANTI, -1, -1, 0, 0, -1, g_giorno(q), g_ora(q)};
-            numeri_in_avanti(&potatura.docente, &potatura.classe, &potatura.restano, &potatura.possibili);
-            potatura.cella = q;
-            potatura.motivo = motivo_in_avanti;
-            return POTATURA_IN_AVANTI;
-        }
+    const int q = controllo_in_avanti(s);
+    if (q >= 0) {
+        potatura = (Potatura){POTATURA_IN_AVANTI, -1, -1, 0, 0, -1, g_giorno(q), g_ora(q)};
+        numeri_in_avanti(&potatura.docente, &potatura.classe, &potatura.restano, &potatura.possibili);
+        potatura.cella = q;
+        potatura.motivo = motivo_in_avanti;
+        return POTATURA_IN_AVANTI;
     }
     return 0;
 }

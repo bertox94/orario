@@ -35,8 +35,6 @@ RADICE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 DESCRIZIONI = {
     'main': 'main: la ricerca di oggi',
-    'per-classe': 'per classe: dentro ogni giorno una classe alla volta',
-    'in-avanti': 'con controllo in avanti: scarta subito le scelte che rendono il resto impossibile',
     'ordini-classi': 'ordini delle classi: se non trova entro un limite di nodi, riparte con le classi di ogni ora in '
                      'un altro ordine (a giri, con limiti crescenti)',
     'giorni-liberi': 'giorni liberi: se si blocca in un giorno, libera il primo, tiene fissati quelli in mezzo e lo '
@@ -93,13 +91,17 @@ def impronta_sorgenti(nome='main'):
     return h.hexdigest()[:12]
 
 
-_lock_compila = threading.Lock()
+# un lock per solver: due test con lo stesso solver non lo compilano due volte, ma solver diversi si compilano insieme
+_lock_compila = {}
+_lock_lock = threading.Lock()
 
 
 def compila(cartella_bin, nome='main'):
     """Compila un solver (solver[-nome]-<impronta> in cartella_bin, solo se i sorgenti sono cambiati) e ne ritorna il
     percorso."""
-    with _lock_compila:
+    with _lock_lock:
+        lock = _lock_compila.setdefault(nome or 'main', threading.Lock())
+    with lock:
         os.makedirs(cartella_bin, exist_ok=True)
         prefisso = 'solver-' if (nome or 'main') == 'main' else 'solver-%s-' % nome
         dest = os.path.join(cartella_bin, prefisso + impronta_sorgenti(nome))
@@ -112,6 +114,19 @@ def compila(cartella_bin, nome='main'):
         subprocess.run(cmd, check=True)
         os.replace(provvisorio, dest)
         return dest
+
+
+def compila_tutti(cartella_bin):
+    """All'avvio del sito, in sottofondo: tutti i solver insieme (ognuno nel suo thread). Senza, il primo test dopo un
+    riavvio del Raspberry (la cartella dei solver e' in RAM) o dopo una modifica dei sorgenti li compilava lui, uno
+    dopo l'altro, e partiva dopo mezzo minuto."""
+    def uno(n):
+        try:
+            compila(cartella_bin, n)
+        except Exception as ex:  # il test che lo usa riprova e mostra l'errore
+            print('compilazione di %s: %s' % (n, ex), flush=True)
+    for n in solutori():
+        threading.Thread(target=uno, args=(n,), daemon=True, name='compila-%s' % n).start()
 
 
 def commit_attuale():
@@ -132,20 +147,13 @@ DATI, TRACCIA, USCITA = 'dati.json', 'traccia.jsonl', 'uscita.txt'
 MAX_NODI = 1000000
 
 
-def supporta_nodi(nome='main'):
-    """Il solver sa registrare i nodi (--max-nodi)? Si guarda nei sorgenti, che sono quelli che il sito compila."""
-    try:
-        return '--max-nodi' in open(os.path.join(cartella(nome), 'main.c')).read()
-    except (OSError, ValueError):
-        return False
-
-
 def argomenti(opzioni):
     """La riga di comando (senza l'eseguibile). I file stanno nella cartella dell'esecuzione."""
     return ['--input', DATI, '--traccia', TRACCIA, '-n', str(opzioni.get('orari', 1)),
             '--max-backtrack', str(opzioni.get('max_backtrack', 1000)), '--txt', os.devnull, '--progresso'] + \
-        (['--max-nodi', str(opzioni.get('max_nodi', MAX_NODI))] if supporta_nodi(opzioni.get('solutore')) else []) + \
-        (['--ferma-nodi', str(opzioni['ferma_nodi'])] if opzioni.get('ferma_nodi') else [])
+        ['--max-nodi', str(opzioni.get('max_nodi', MAX_NODI))] + \
+        (['--ferma-nodi', str(opzioni['ferma_nodi'])] if opzioni.get('ferma_nodi') else []) + \
+        (['--controlli-nodo', str(opzioni['controlli_nodo'])] if opzioni.get('controlli_nodo') else [])
 
 
 class Esecuzione:
