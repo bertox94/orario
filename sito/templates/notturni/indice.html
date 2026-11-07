@@ -72,7 +72,12 @@
   {% for gr in gruppi %}
   {% set ig = id ~ '-' ~ loop.index %}
   <tbody class="titolo-gruppo" data-gruppo="{{ ig }}">
-    <tr class="sottotitolo"><th colspan="{{ 3 + [colonne|length, 1]|max }}">{{ gr.titolo }} <span class="tenue piccolo">({{ gr.casi|length }} cas{{ 'o' if gr.casi|length == 1 else 'i' }})</span></th></tr>
+    {% set ns = namespace(trovato=0, errore=0) %}
+    {% for c in gr.casi %}{% set e = c.per_solver.values()|map(attribute='esito')|list %}
+      {% if 'trovato' in e %}{% set ns.trovato = ns.trovato + 1 %}{% endif %}{% if 'errore nei dati' in e %}{% set ns.errore = ns.errore + 1 %}{% endif %}
+    {% endfor %}
+    <tr class="sottotitolo"><th colspan="{{ 3 + [colonne|length, 1]|max }}">{{ gr.titolo }} <span class="tenue piccolo">({{ gr.casi|length }} cas{{ 'o' if gr.casi|length == 1 else 'i' }}:
+      {{ ns.trovato }} con almeno un orario trovato, {{ ns.errore }} con errore nei dati)</span></th></tr>
   </tbody>
   {% for c in gr.casi %}
   {% set primo = (c.per_solver.values()|list)[0] %}
@@ -84,7 +89,11 @@
                  value="{{ c.per_solver.values()|map(attribute='id')|join(',') }}"
                  title="Seleziona questo caso ({{ c.per_solver|length }} test, uno per solver)"></td>
       <td class="apri-caso"><span class="freccia">▸</span> {{ c.nome }}
-        <div class="tenue piccolo">{{ c.per_solver|length }} solver · fermo dopo {{ primo.opzioni.get('ferma_nodi')|numero }} nodi</div></td>
+        <div class="tenue piccolo">{{ c.per_solver|length }} solver · fermo dopo {{ primo.opzioni.get('ferma_nodi')|numero }} nodi</div>
+        {% set n_trovato = esiti|select('equalto', 'trovato')|list|length %}
+        <div class="riepilogo-caso">{% if n_trovato %}<span class="esito esito-trovato" title="all'ultima esecuzione">almeno uno trovato ({{ n_trovato }} su {{ esiti|length }})</span>{% endif %}
+          {% if 'errore nei dati' in esiti %}<span class="esito esito-errore-nei-dati" title="all'ultima esecuzione">errore nei dati</span>{% endif %}
+          {% if not n_trovato and 'errore nei dati' not in esiti %}<span class="tenue piccolo">nessun orario trovato</span>{% endif %}</div></td>
       <td><form method="post" action="{{ url_for('notturni.esegui') }}" class="in-linea">
         <input type="hidden" name="_gettone" value="{{ gettone }}">
         {% for r in c.per_solver.values() %}<input type="hidden" name="tid" value="{{ r.id }}">{% endfor %}
