@@ -88,8 +88,10 @@ esecuzioni fino allo stesso byte. Cancellare `orario.txt` dopo l'uso.
 
 ## Raspberry
 
-- `raspberry@192.168.1.5`, servizio `orario-sito`, repository `~/orario` (ramo `sito/terza-versione`), ambiente Python `~/orario-venv`. Il sito usa
-  il database del Mac.
+- `raspberry@192.168.1.5`, servizio `orario-sito`, repository `~/orario` (ramo `sito/terza-versione`), ambiente Python `~/orario-venv`. Il database
+  si sposta dal Mac al Pi (Postgres 18, richiesta di Alb del 7 novembre 2026) con `bash sito/sposta-database-sul-pi.sh`
+  lanciato dal Mac (vedi `sito/INSTALLAZIONE.md`); prima il sito usava il database del Mac. Copia del database sul Pi:
+  `pg_dump -Fc orario > ~/orario-copia.dump`.
 - Aggiornare: `ssh -t raspberry@192.168.1.5 'cd ~/orario && git pull && sudo systemctl restart orario-sito'`, poi nel
   browser Ctrl+F5. Log: `journalctl -u orario-sito -n 50 --no-pager`.
 - Mai `pkill -f` nello stesso comando che riavvia il sito (la riga di comando contiene il testo cercato e il comando

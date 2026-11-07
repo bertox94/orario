@@ -30,7 +30,31 @@ python3 -m sito avvia
 
 e si apre <http://localhost:8000>. Alla prima connessione Postgres.app chiede il permesso per Python: OK.
 
-## Database: Postgres 18 sul Mac, sito sul Raspberry
+## Database: Postgres 18 sul Raspberry
+
+Dal 7 novembre 2026 il database può stare sul Raspberry, insieme al sito: niente rete tra sito e database (le pagine
+sono più veloci) e il sito funziona anche con il Mac spento. Per spostarlo, dal Mac, nella cartella del repository:
+
+```bash
+bash sito/sposta-database-sul-pi.sh raspberry@192.168.1.5
+```
+
+Ferma il sito sul Pi, copia il database del Mac in `~/orario-AAAAMMGG-HHMM.dump` (resta sul Mac come copia di
+sicurezza), la manda al Pi e lì lancia `sito/database-sul-pi.sh`: installa Postgres 18 dal repository ufficiale
+(apt.postgresql.org), crea l'utente del database con il nome dell'utente del Pi (entra senza password, solo dal Pi
+stesso) e il database `orario`, carica la copia, mette in `/etc/orario-sito.env`
+
+```
+DATABASE_URL=postgresql:///orario?host=/var/run/postgresql&port=5432
+```
+
+(la riga di prima resta in `/etc/orario-sito.env.mac`), fa partire il sito dopo Postgres e lo riavvia. Il database del
+Mac non si tocca: per tornare indietro basta rimettere la riga di `/etc/orario-sito.env.mac` e riavviare il sito.
+
+Con il database sul Pi si scrive sulla scheda: meglio un SSD (USB o NVMe) che una SD. Copia di sicurezza, sul Pi:
+`pg_dump -Fc orario > ~/orario-copia.dump`.
+
+## Database: Postgres 18 sul Mac, sito sul Raspberry (com'era prima)
 
 Il database sta sul Mac (Postgres.app 18) e il sito sul Raspberry, nella stessa rete locale. Se il Mac è spento o in
 stop il sito mostra «Database non raggiungibile» e riprende da solo appena il Mac torna: non serve riavviare nulla.
@@ -107,8 +131,8 @@ python3 -m venv ~/orario-venv
 
 ### 3. Database
 
-Non si installa Postgres sul Pi: il database è sul Mac (sezione «Database: Postgres 18 sul Mac», sopra). Servono
-l'indirizzo del Mac e la password dell'utente `orario`.
+Con il database sul Pi: `sito/database-sul-pi.sh` (sezione «Database: Postgres 18 sul Raspberry», sopra). Con il
+database sul Mac non si installa Postgres sul Pi: servono l'indirizzo del Mac e la password dell'utente `orario`.
 
 ### 4. Configurazione
 
