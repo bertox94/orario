@@ -196,12 +196,6 @@
 <div class="barra-comandi" style="margin: 10px 0 0">
   <button type="button" class="secondario" id="apri-tutti">Espandi tutti</button>
   <button type="button" class="secondario" id="chiudi-tutti">Chiudi tutti</button>
-  <label>Filtra <select id="filtro-casi">
-    <option value="">tutti i casi</option>
-    <option value="errore">errore nei dati</option>
-    <option value="trovato">almeno un orario trovato</option>
-    <option value="aperto">nessun solver arrivato a una conclusione</option>
-  </select></label>
   <label>Risolti <select id="filtro-trovati"><option value="">tutti i casi</option></select></label>
   <span class="tenue piccolo" id="conto-filtro"></span>
 </div>
@@ -263,40 +257,37 @@ document.querySelectorAll('.apri-caso').forEach(td => td.addEventListener('click
   td.closest('tbody').classList.toggle('aperto')));
 document.getElementById('chiudi-tutti').addEventListener('click', () =>
   document.querySelectorAll('tbody.caso').forEach(t => t.classList.remove('aperto')));
-// il filtro dei casi (sull'ultima esecuzione di ogni solver): errore nei dati, almeno un orario trovato. Un gruppo
-// (seme, classi...) senza casi visibili si nasconde anche lui; «espandi tutti» apre solo i casi visibili.
-const filtro = document.getElementById('filtro-casi');
-// «Risolti» (all'ultima esecuzione): errore nei dati o dimostrato impossibile (un solver ha provato tutto: nessuna
+// il filtro dei casi «Risolti» (all'ultima esecuzione): errore nei dati o dimostrato impossibile (un solver ha provato tutto: nessuna
 // soluzione); poi gli altri: risolto da tutti, non risolto da 1, 2... solver, da nessuno; e i casi che nessun solver
-// ha ancora eseguito
-const filtroTrovati = document.getElementById('filtro-trovati');
+// ha ancora eseguito. Un gruppo (seme, classi...) senza casi visibili si nasconde anche lui; «espandi tutti» apre
+// solo i casi visibili.
+const filtro = document.getElementById('filtro-trovati');
 (() => {
   const casi = [...document.querySelectorAll('tbody.caso')];
   const max = Math.max(0, ...casi.map(t => +t.dataset.solver));
   const conto = v => casi.filter(t => t.dataset.risolti === v).length;
-  filtroTrovati.add(new Option(`errore nei dati o dimostrato impossibile — ${conto('dati')} casi`, 'dati'));
-  filtroTrovati.add(new Option(`risolto da tutti i solver — ${conto('tutti')} casi`, 'tutti'));
+  filtro.add(new Option(`errore nei dati o dimostrato impossibile — ${conto('dati')} casi`, 'dati'));
+  filtro.add(new Option(`risolto da tutti i solver — ${conto('tutti')} casi`, 'tutti'));
   for (let k = 1; k < max; k++)
-    filtroTrovati.add(new Option(`non risolto da ${k === 1 ? 'un solver' : k === 2 ? 'due solver' : k + ' solver'} — ${conto(String(k))} casi`, String(k)));
-  filtroTrovati.add(new Option(`non risolto da alcun solver — ${conto('nessuno')} casi`, 'nessuno'));
-  filtroTrovati.add(new Option(`non ancora testato — ${conto('mai')} casi`, 'mai'));
+    filtro.add(new Option(`non risolto da ${k === 1 ? 'un solver' : k === 2 ? 'due solver' : k + ' solver'} — ${conto(String(k))} casi`, String(k)));
+  filtro.add(new Option(`non risolto da alcun solver — ${conto('nessuno')} casi`, 'nessuno'));
+  filtro.add(new Option(`non ancora testato — ${conto('mai')} casi`, 'mai'));
 })();
 function filtra() {
-  const v = filtro.value, nt = filtroTrovati.value;
+  const nt = filtro.value;
   const casi = [...document.querySelectorAll('tbody.caso')];
   let n = 0;
   for (const t of casi) {
-    const si = (!v || t.dataset[v] === '1') && (nt === '' || t.dataset.risolti === nt);
+    const si = nt === '' || t.dataset.risolti === nt;
     t.hidden = !si;
     n += si;
   }
   document.querySelectorAll('tbody.titolo-gruppo').forEach(t => {
     t.hidden = !casi.some(c => c.dataset.gruppo === t.dataset.gruppo && !c.hidden);
   });
-  document.getElementById('conto-filtro').textContent = v || nt !== '' ? `${n} casi su ${casi.length}` : '';
+  document.getElementById('conto-filtro').textContent = nt !== '' ? `${n} casi su ${casi.length}` : '';
 }
 filtro.addEventListener('change', filtra);
-filtroTrovati.addEventListener('change', () => filtro.dispatchEvent(new Event('change')));
 filtra();
 document.getElementById('apri-tutti').addEventListener('click', () =>
   document.querySelectorAll('tbody.caso:not([hidden])').forEach(t => t.classList.add('aperto')));
