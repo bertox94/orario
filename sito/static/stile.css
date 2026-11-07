@@ -310,3 +310,5 @@ button.elimina-giro { border: 0; background: none; color: var(--tenue); font-siz
 button.elimina-giro:hover { color: var(--male); }
 table.tabella-casi td.valori div.meglio .esito { outline: 2px solid var(--ok); }
 table.tabella-casi td.valori div.peggio .esito { outline: 2px solid var(--male); }
+table.tabella-casi td.cella-peggio { background: var(--male-tenue); }
+table.tabella-casi td.cella-meglio { background: var(--ok-tenue); }

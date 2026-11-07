@@ -88,7 +88,8 @@
         <button class="secondario piccolo" {{ 'disabled' if in_corso }} title="Un giro adesso con questo caso, per ogni solver ({{ c.per_solver|length }} test)">Esegui ora</button>
       </form></td>
       {% for x in c.giri %}
-      <td class="colonna-giro piccolo">{% if x %}
+      <td class="colonna-giro piccolo{{ ' cella-peggio' if x and x.peggio else ' cella-meglio' if x and x.meglio }}"
+          {% if x and x.peggio %}title="almeno un solver va peggio dell'esecuzione prima: apri il caso per vedere cosa"{% endif %}>{% if x %}
         <div class="tenue">{{ x.quando|data }}</div>
         <div class="{{ 'peggio' if x.peggio else 'meglio' if x.meglio }}">{{ 'in corso' if x.in_corso else (x.trovati ~ ' trovat' ~ ('o' if x.trovati == 1 else 'i') ~ ' su ' ~ x.test) }}</div>
       {% else %}<span class="tenue">—</span>{% endif %}</td>
@@ -153,7 +154,8 @@
   <button type="button" class="link" id="chiudi-tutti">chiudi tutti</button>): una riga per solver, con in ogni
   colonna un giro (il più recente a destra, gli ultimi {{ colonne|length }}): tempo, esito, nodi e backtrack.
   <span class="meglio">In verde</span> quello che va meglio dell'esecuzione prima dello stesso test,
-  <span class="peggio">in rosso</span> quello che va peggio. La × accanto alla data elimina quel giro.</p>
+  <span class="peggio">in rosso</span> quello che va peggio; nella riga del caso la casella del giro è rossa se
+  almeno un solver va peggio, verde se qualcosa va solo meglio. La × accanto alla data elimina quel giro.</p>
 <h3>Conclusi <span class="tenue piccolo">i casi in cui almeno un solver ha trovato l'orario, dimostrato che non c'è o riconosciuto un errore nei dati; una riga per caso ({{ conclusi|sum(attribute='casi', start=[])|length }} casi)</span></h3>
 {% if conclusi %}{{ tabella_casi(conclusi, 'casi-conclusi') }}{% else %}<p class="tenue">Nessuno.</p>{% endif %}
 

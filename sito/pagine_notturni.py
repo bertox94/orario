@@ -159,8 +159,8 @@ def storia(c, scuola_id, test_ids):
 
 
 def riassunto_giro(c, colonne, celle):
-    """Per ogni caso e ogni giro (colonna): quando ha girato, quanti orari trovati su quanti test, e se un esito e'
-    meglio o peggio dell'esecuzione prima (per la riga del caso)."""
+    """Per ogni caso e ogni giro (colonna): quando ha girato, quanti orari trovati su quanti test, e se qualcosa va
+    peggio (o solo meglio) dell'esecuzione prima (per la riga del caso)."""
     ids = [r['id'] for r in c['per_solver'].values()]
     righe = []
     for gi in colonne:
@@ -168,8 +168,10 @@ def riassunto_giro(c, colonne, celle):
         x = {'giro': gi, 'test': len(mie), 'trovati': sum(1 for n in mie if n['esito'] == 'trovato'),
              'quando': min((n['inizio'] for n in mie), default=None),
              'in_corso': any(not n['esito'] for n in mie),
-             'peggio': any(n['cambia'].get('esito') == 'peggio' for n in mie),
-             'meglio': any(n['cambia'].get('esito') == 'meglio' for n in mie)}
+             # un peggioramento qualunque (esito, nodi, backtrack, tempo) di un solver colora di rosso la casella del
+             # caso; se non ce ne sono, un miglioramento la colora di verde
+             'peggio': any('peggio' in n['cambia'].values() for n in mie)}
+        x['meglio'] = not x['peggio'] and any('meglio' in n['cambia'].values() for n in mie)
         righe.append(x if mie else None)
     return righe
 
