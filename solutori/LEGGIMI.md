@@ -7,7 +7,7 @@ controlli uguali a `main` (sul docente, sulla coppia, mettere e togliere un doce
 solver restano solo i controlli che cambiano con l'ordine delle celle o con i giri. `controlli/controlli.h` dichiara le
 funzioni che la traccia, le potature e il controllo in avanti chiamano per nome. Tutti accettano la stessa
 riga di comando di `main` (`--input`, `--traccia`, `-n`, `--txt`, `--max-backtrack`, `--max-nodi`, `--ferma-nodi`,
-`--progresso`) e scrivono la stessa traccia, quindi il sito li usa senza cambiare: nel modulo del test ci sono le
+`--progresso`, `--controlli-nodo`) e scrivono la stessa traccia, quindi il sito li usa senza cambiare: nel modulo del test ci sono le
 caselle dei solver da non usare: gli altri girano insieme, ognuno nella sua tab. Il sito li compila dai `.c` del loro
 `CMakeLists.txt`; a mano, dalla loro cartella:
 

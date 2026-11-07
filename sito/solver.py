@@ -152,7 +152,8 @@ def argomenti(opzioni):
     return ['--input', DATI, '--traccia', TRACCIA, '-n', str(opzioni.get('orari', 1)),
             '--max-backtrack', str(opzioni.get('max_backtrack', 1000)), '--txt', os.devnull, '--progresso'] + \
         ['--max-nodi', str(opzioni.get('max_nodi', MAX_NODI))] + \
-        (['--ferma-nodi', str(opzioni['ferma_nodi'])] if opzioni.get('ferma_nodi') else [])
+        (['--ferma-nodi', str(opzioni['ferma_nodi'])] if opzioni.get('ferma_nodi') else []) + \
+        (['--controlli-nodo', str(opzioni['controlli_nodo'])] if opzioni.get('controlli_nodo') else [])
 
 
 class Esecuzione:

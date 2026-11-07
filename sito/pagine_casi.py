@@ -97,6 +97,15 @@ def nodi(eid):
     return jsonify({'pezzi': [[p['da'], p['passi']] for p in pezzi], 'ultimo': ultimo})
 
 
+@bp.route('/<int:eid>/controlli/<int:nodo>')
+def controlli(eid, nodo):
+    """I controlli dei docenti al nodo (il passo passo, ai nodi che non sono backtrack): la ricerca rifatta fino a li'."""
+    _esecuzione(eid)
+    from flask import current_app
+    r = esecutore.controlli_al_nodo(current_app.config['SITO'], eid, nodo)
+    return jsonify(r)
+
+
 @bp.route('/<int:eid>/ferma', methods=['POST'])
 def ferma(eid):
     esecutore.ferma_esecuzione(eid)

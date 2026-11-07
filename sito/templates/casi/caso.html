@@ -175,6 +175,7 @@ paginaTest({
   urlElenco: {{ url_for('casi.elenco_backtrack', eid=e.id)|tojson }},
   urlBacktrack: {{ url_for('casi.un_backtrack', eid=e.id, n=0)|tojson }},
   urlNodi: {{ url_for('casi.nodi', eid=e.id)|tojson }},
+  urlControlli: {{ url_for('casi.controlli', eid=e.id, nodo=0)|tojson }},
   urlFerma: {{ url_for('casi.ferma', eid=e.id)|tojson }},
 });
 </script>
