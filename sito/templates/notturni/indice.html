@@ -53,6 +53,31 @@
    colonna, dal piu' vecchio al piu' recente (a destra), con la data in cima e la × per eliminarlo. In ogni casella di
    un solver, in verticale: tempo, esito, nodi, backtrack; in verde se e' meglio dell'esecuzione prima dello stesso
    test, in rosso se e' peggio. #}
+{% macro tabella_variazioni(righe, tipo, titolo, spiegazione) %}
+<h3>{{ titolo }} <span class="tenue piccolo">({{ righe|length }})</span></h3>
+<p class="tenue piccolo">{{ spiegazione }} Restano qui anche quando le esecuzioni vecchie si cancellano (di ogni test se
+  ne tengono le ultime 5): si tolgono solo a mano, con la ×.</p>
+{% if righe %}
+<div class="scorre"><table class="dati tabella-variazioni" id="tabella-{{ tipo }}">
+  <thead><tr><th>Caso</th><th>Solver</th><th>Quando</th><th>Ultima esecuzione</th><th>Confrontata con</th><th></th></tr></thead>
+  <tbody>{% for v in righe %}
+    <tr><td><a href="{{ url_for('notturni.test', tid=v.test_id) }}">{{ v.nome }}</a></td><td>{{ v.solutore }}</td>
+      <td>{{ v.quando|data }}{% if v.commit %}<div class="tenue piccolo">{{ v.commit }}</div>{% endif %}</td>
+      {% for n in (v.dopo, v.prima) %}
+      <td><span class="esito {{ n.esito|classe_esito }}">{{ n.esito }}</span> · {{ n.nodi|numero if n.nodi is not none else '-' }} nodi
+        <div class="tenue piccolo">{{ n.inizio|data }} · {{ n.backtrack|numero if n.backtrack is not none else '-' }} backtrack · {{ n.secondi|durata }}</div></td>
+      {% endfor %}
+      <td><form method="post" action="{{ url_for('notturni.elimina_variazione', vid=v.id) }}" class="in-linea">
+        <input type="hidden" name="_gettone" value="{{ gettone }}">
+        <button class="elimina-giro" title="Togli questo test dalla tabella">×</button></form></td></tr>
+  {% endfor %}</tbody></table></div>
+<form method="post" action="{{ url_for('notturni.elimina_variazioni', tipo=tipo) }}" style="margin-top: 6px"
+      onsubmit="return confirm('Svuotare la tabella? I test e le loro esecuzioni restano.')">
+  <input type="hidden" name="_gettone" value="{{ gettone }}">
+  <button class="secondario piccolo">Svuota la tabella</button></form>
+{% else %}<p class="tenue">Nessuno.</p>{% endif %}
+{% endmacro %}
+
 {% macro tabella_casi(gruppi, id) %}
 <div class="scorre">
 <table class="dati tabella-casi" id="{{ id }}">
@@ -148,6 +173,11 @@
       <td class="num">{{ x.secondi|durata }}</td></tr>
   {% endfor %}</tbody></table></div>
 {% endif %}
+
+{{ tabella_variazioni(variazioni.peggiorato, 'peggiorato', 'Test peggiorati',
+  "L'ultima esecuzione è peggiore di una delle precedenti (confrontata con la migliore): arriva meno lontano (concluso, poi limite di nodi, poi errore) o, a parità, usa più nodi. Il tempo non conta.") }}
+{{ tabella_variazioni(variazioni.migliorato, 'migliorato', 'Test migliorati',
+  "L'ultima esecuzione è migliore di una delle precedenti (confrontata con la peggiore) e non peggiore di nessuna.") }}
 
 <form method="get" class="riga" style="margin: 14px 0 0">
   <label>Raggruppa i casi per <select name="per" onchange="this.form.submit()">

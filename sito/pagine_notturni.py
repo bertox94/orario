@@ -7,6 +7,7 @@ confronto con il riferimento accettato e' nel segno ≠ e nella pagina del test,
 si puo' rifare in tempo reale (stessi dati, stesso solver, stesso limite di nodi: deve dare gli stessi numeri) o
 scaricare come JSON per caricarlo nel modulo del test in tempo reale.
 """
+import datetime
 import json
 import re
 
@@ -236,7 +237,13 @@ def indice():
     for gr in gruppi:
         for c in gr['casi']:
             c['giri'] = riassunto_giro(c, colonne, celle_giri)
-    return render_template('notturni/indice.html', righe=righe, giri=giri, diversi=diversi,
+    variazioni = {'peggiorato': [], 'migliorato': []}
+    for v in conn().execute(_VARIAZIONI, (g.scuola['id'],)).fetchall():
+        for k in ('prima', 'dopo'):
+            if v[k].get('inizio'):
+                v[k]['inizio'] = datetime.datetime.fromisoformat(v[k]['inizio'])
+        variazioni[v['tipo']].append(v)
+    return render_template('notturni/indice.html', righe=righe, giri=giri, diversi=diversi, variazioni=variazioni,
                            colonne=colonne, celle_giri=celle_giri,
                            solver_colonne=solver_colonne, gruppi=gruppi,
                            disattivati=disattivati, riepilogo=riepilogo, per=per,
@@ -245,6 +252,29 @@ def indice():
                            ora=notturni.ora_impostata(conn()), nomi_campi=notturni.NOMI_CAMPI,
                            solutori=[(n, solver.DESCRIZIONI.get(n, n)) for n in solver.solutori()],
                            ferma_nodi=notturni.FERMA_NODI)
+
+
+_VARIAZIONI = '''
+    select v.*, t.nome, t.solutore from variazioni_notturne v join test_notturni t on t.id = v.test_id
+    where v.scuola_id = %s order by v.quando desc, t.nome, t.solutore'''
+
+
+@bp.route('/variazione/<int:vid>/elimina', methods=['POST'])
+def elimina_variazione(vid):
+    """Toglie un test dalla tabella dei peggiorati o dei migliorati (il test e le sue esecuzioni restano)."""
+    conn().execute('delete from variazioni_notturne where id = %s and scuola_id = %s', (vid, g.scuola['id']))
+    return _torna()
+
+
+@bp.route('/variazioni/<tipo>/elimina', methods=['POST'])
+def elimina_variazioni(tipo):
+    """Svuota la tabella dei peggiorati o dei migliorati."""
+    if tipo not in ('peggiorato', 'migliorato'):
+        abort(404)
+    n = conn().execute('delete from variazioni_notturne where scuola_id = %s and tipo = %s',
+                       (g.scuola['id'], tipo)).rowcount
+    flash('Tolt%s %d test dalla tabella dei %si.' % ('o' if n == 1 else 'i', n, tipo[:-1]), 'ok')
+    return _torna()
 
 
 @bp.route('/stato')

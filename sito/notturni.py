@@ -348,6 +348,8 @@ def _esegui_giro(config, gid, ids):
             c.execute('update giri_notturni set stato = %s, fine = now() where id = %s', (stato, gid))
             c.commit()
             try:
+                registra_variazioni(c, gid)
+                c.commit()
                 pulisci_esecuzioni(c, gid)
                 c.commit()
             except Exception:  # la pulizia non deve far perdere il giro
@@ -358,6 +360,55 @@ def _esegui_giro(config, gid, ids):
 
 
 ESECUZIONI_DA_TENERE = 5  # per ogni test notturno restano le sue ultime 5 esecuzioni (richiesta di Alb)
+
+# Peggiorati e migliorati: un'esecuzione e' migliore di un'altra se arriva piu' lontano (concluso: trovato, nessuna
+# soluzione o errore nei dati; poi limite di nodi; poi errore del solver), e a parita' se usa meno nodi. Il tempo non
+# conta (dipende dal carico del computer). Le esecuzioni fermate a mano o interrotte non contano.
+_RANGO = {'trovato': 2, 'nessuna soluzione': 2, 'errore nei dati': 2, 'limite di nodi': 1, 'errore': 0}
+
+
+def _valore_esecuzione(n):
+    return (_RANGO.get(n['esito'], 0), -(n['nodi'] or 0))
+
+
+def _numeri(n):
+    return {'inizio': n['inizio'].isoformat() if n['inizio'] else None, 'esito': n['esito'], 'nodi': n['nodi'],
+            'backtrack': n['backtrack'], 'secondi': n['secondi'], 'giro_id': n['giro_id']}
+
+
+def registra_variazioni(c, gid):
+    """Alla fine del giro gid, per ogni suo test: se l'ultima esecuzione e' peggiore di una delle precedenti ancora
+    tenute, il test e' «peggiorato» (confrontato con la migliore); se no, se e' migliore di una, «migliorato»
+    (confrontato con la peggiore). Una riga per test e tipo in variazioni_notturne, aggiornata se c'era gia'."""
+    giro = c.execute('select scuola_id, commit from giri_notturni where id = %s', (gid,)).fetchone()
+    if not giro:
+        return
+    righe = c.execute('''
+        select n.* from esecuzioni_notturne n
+        where n.test_id in (select test_id from esecuzioni_notturne where giro_id = %s)
+          and n.esito is not null and n.esito not in ('fermato', 'interrotto')
+        order by n.test_id, n.id''', (gid,)).fetchall()
+    per_test = {}
+    for n in righe:
+        per_test.setdefault(n['test_id'], []).append(n)
+    for tid, lista in per_test.items():
+        ultima, prima = lista[-1], lista[:-1]
+        if ultima['giro_id'] != gid or not prima:
+            continue
+        v = _valore_esecuzione(ultima)
+        migliore = max(prima, key=_valore_esecuzione)
+        peggiore = min(prima, key=_valore_esecuzione)
+        if v < _valore_esecuzione(migliore):
+            tipo, confronto = 'peggiorato', migliore
+        elif v > _valore_esecuzione(peggiore):
+            tipo, confronto = 'migliorato', peggiore
+        else:
+            continue
+        c.execute('''insert into variazioni_notturne (scuola_id, test_id, tipo, commit, dopo, prima)
+                     values (%s, %s, %s, %s, %s, %s)
+                     on conflict (test_id, tipo) do update set quando = now(), commit = excluded.commit,
+                         dopo = excluded.dopo, prima = excluded.prima''',
+                  (giro['scuola_id'], tid, tipo, giro['commit'], _json(_numeri(ultima)), _json(_numeri(confronto))))
 
 
 def pulisci_esecuzioni(c, gid):
