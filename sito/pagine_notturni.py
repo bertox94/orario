@@ -1,7 +1,9 @@
 """Sezione "Test notturni": i test che ogni notte devono dare gli stessi numeri (vedi notturni.py).
 
-La pagina mostra, per ogni test, l'ultima esecuzione (data e ora, tempo, nodi, backtrack, posizione massima, risultato)
-e il confronto con il riferimento accettato; le differenze sono in evidenza, con il pulsante per accettarle. Ogni test
+La pagina mostra i casi raggruppati (per seme, classi...): ogni caso e' una riga che si apre con una riga per solver, e
+ogni giro e' una colonna (il piu' recente a destra), con tempo, esito, nodi e backtrack in verticale, in verde o in
+rosso se vanno meglio o peggio dell'esecuzione prima dello stesso test; la × accanto alla data elimina il giro. Il
+confronto con il riferimento accettato e' nel segno ≠ e nella pagina del test, con il pulsante per accettarlo. Ogni test
 si puo' rifare in tempo reale (stessi dati, stesso solver, stesso limite di nodi: deve dare gli stessi numeri) o
 scaricare come JSON per caricarlo nel modulo del test in tempo reale.
 """
@@ -101,6 +103,77 @@ def _gruppi(casi, per, quali, solver):
     return gruppi
 
 
+# ---- la storia: un giro per colonna ----
+GIRI_IN_COLONNA = 8   # quanti giri si mostrano (gli ultimi): ogni giro e' una colonna, il piu' recente a destra
+RANGO_ESITO = {'trovato': 2, 'nessuna soluzione': 2, 'errore nei dati': 2, 'limite di nodi': 1}
+
+
+def _confronta(prima, dopo):
+    """I numeri di un'esecuzione rispetto a quella prima dello stesso test: {campo: 'meglio' | 'peggio'}. Esito:
+    concluso meglio di limite di nodi, meglio di fermato o in errore; nodi, backtrack e tempo: meno e' meglio (il tempo
+    solo se cambia di piu' del 20% e di 0,1 s, perche' dipende dal carico del computer)."""
+    if not prima:
+        return {}
+    v = {}
+    a, b = RANGO_ESITO.get(prima['esito'], 0), RANGO_ESITO.get(dopo['esito'], 0)
+    if a != b:
+        v['esito'] = 'meglio' if b > a else 'peggio'
+    for campo in ('nodi', 'backtrack'):
+        if prima[campo] is not None and dopo[campo] is not None and prima[campo] != dopo[campo]:
+            v[campo] = 'meglio' if dopo[campo] < prima[campo] else 'peggio'
+    x, y = prima['secondi'], dopo['secondi']
+    if x is not None and y is not None and abs(y - x) > max(0.1, 0.2 * x):
+        v['secondi'] = 'meglio' if y < x else 'peggio'
+    return v
+
+
+_GIRI_DEI_TEST = """
+    select gi.id, gi.inizio, gi.stato, gi.motivo, gi.commit from giri_notturni gi
+    where gi.scuola_id = %s and exists (select 1 from esecuzioni_notturne n where n.giro_id = gi.id
+                                        and n.test_id = any(%s))
+    order by gi.id desc limit %s"""
+
+
+def storia(c, scuola_id, test_ids):
+    """Gli ultimi GIRI_IN_COLONNA giri in cui hanno girato questi test, dal piu' vecchio al piu' recente, e per ogni
+    (test, giro) l'esecuzione con il confronto con quella prima dello stesso test (anche di un giro non mostrato)."""
+    giri = c.execute(_GIRI_DEI_TEST, (scuola_id, test_ids, GIRI_IN_COLONNA + 1)).fetchall()[::-1]
+    if not giri:
+        return [], {}
+    esec = c.execute('select * from esecuzioni_notturne where giro_id = any(%s) and test_id = any(%s) order by id',
+                     ([gi['id'] for gi in giri], test_ids)).fetchall()
+    per_test = {}
+    for n in esec:
+        per_test.setdefault(n['test_id'], []).append(n)
+    celle = {}
+    for tid, lista in per_test.items():
+        prima = None
+        for n in lista:
+            if n['esito']:
+                celle[tid, n['giro_id']] = dict(n, cambia=_confronta(prima, n))
+                prima = n
+            else:
+                celle[tid, n['giro_id']] = dict(n, cambia={})  # in corso
+    mostrati = giri[1:] if len(giri) > GIRI_IN_COLONNA else giri  # il primo serve solo per il confronto
+    return mostrati, celle
+
+
+def riassunto_giro(c, colonne, celle):
+    """Per ogni caso e ogni giro (colonna): quando ha girato, quanti orari trovati su quanti test, e se un esito e'
+    meglio o peggio dell'esecuzione prima (per la riga del caso)."""
+    ids = [r['id'] for r in c['per_solver'].values()]
+    righe = []
+    for gi in colonne:
+        mie = [celle[t, gi['id']] for t in ids if (t, gi['id']) in celle]
+        x = {'giro': gi, 'test': len(mie), 'trovati': sum(1 for n in mie if n['esito'] == 'trovato'),
+             'quando': min((n['inizio'] for n in mie), default=None),
+             'in_corso': any(not n['esito'] for n in mie),
+             'peggio': any(n['cambia'].get('esito') == 'peggio' for n in mie),
+             'meglio': any(n['cambia'].get('esito') == 'meglio' for n in mie)}
+        righe.append(x if mie else None)
+    return righe
+
+
 def raggruppa(righe, ordine_solver, per='seme'):
     """I test raggruppati per caso (stesso nome): una riga per caso (la data dell'ultima esecuzione, poi per ogni solver
     esito, nodi e durata). Ritorna (solver, casi conclusi, casi da parte, test disattivati, riepilogo per solver). Un
@@ -158,7 +231,12 @@ def indice():
         from giri_notturni gi left join esecuzioni_notturne n on n.giro_id = gi.id
         where gi.scuola_id = %s group by gi.id order by gi.id desc limit 15''', (g.scuola['id'],)).fetchall()
     diversi = [r for r in righe if r['confronto'] == 'diverso']
+    colonne, celle_giri = storia(conn(), g.scuola['id'], [r['id'] for r in righe if r['attivo']])
+    for gr in conclusi + da_parte:
+        for c in gr['casi']:
+            c['giri'] = riassunto_giro(c, colonne, celle_giri)
     return render_template('notturni/indice.html', righe=righe, giri=giri, diversi=diversi,
+                           colonne=colonne, celle_giri=celle_giri,
                            solver_colonne=solver_colonne, conclusi=conclusi, da_parte=da_parte,
                            disattivati=disattivati, riepilogo=riepilogo, per=per,
                            raggruppamenti=list(RAGGRUPPAMENTI),
@@ -382,3 +460,18 @@ def togli():
     if restano:
         flash('Un test sta girando e non è stato eliminato: fermalo o aspetta la fine del giro.', 'errore')
     return redirect(url_for('.indice'))
+
+
+@bp.route('/giro/<int:gid>/elimina', methods=['POST'])
+def elimina_giro(gid):
+    """Elimina un giro (una sessione di test notturni) con tutte le sue esecuzioni: la sua colonna sparisce. I
+    riferimenti accettati dei test restano."""
+    gi = conn().execute('select * from giri_notturni where id = %s and scuola_id = %s', (gid, g.scuola['id'])).fetchone()
+    if not gi:
+        abort(404)
+    if notturni.giro_in_corso() == gid:
+        flash('Il giro sta girando: prima fermalo.', 'errore')
+        return redirect(url_for('.indice'))
+    conn().execute('delete from giri_notturni where id = %s', (gid,))
+    flash('Giro del %s eliminato, con le sue esecuzioni.' % gi['inizio'].astimezone().strftime('%d/%m/%Y %H:%M'), 'ok')
+    return _torna()

@@ -49,48 +49,69 @@
   </div>
 </div>
 
-{# Una tabella di casi: una riga per caso, una colonna per solver (l'ultima esecuzione di ognuno). #}
+{# Una tabella di casi: ogni caso e' un gruppo (una riga, che si apre con una riga per solver); ogni giro e' una
+   colonna, dal piu' vecchio al piu' recente (a destra), con la data in cima e la × per eliminarlo. In ogni casella di
+   un solver, in verticale: tempo, esito, nodi, backtrack; in verde se e' meglio dell'esecuzione prima dello stesso
+   test, in rosso se e' peggio. #}
 {% macro tabella_casi(gruppi, id) %}
 <div class="scorre">
 <table class="dati tabella-casi" id="{{ id }}">
   <thead>
-    <tr><th rowspan="2"><input type="checkbox" class="seleziona-tutti" title="Seleziona tutti i casi di questa tabella"></th>
-      <th rowspan="2">Caso</th><th rowspan="2">Data</th><th rowspan="2"></th>
-      {% for s in solver_colonne %}<th colspan="3" class="inizio-solver">{{ s }}</th>{% endfor %}</tr>
-    <tr>{% for s in solver_colonne %}<th class="inizio-solver">Esito</th><th class="num">Nodi</th><th class="num">Durata</th>{% endfor %}</tr>
+    <tr><th><input type="checkbox" class="seleziona-tutti" title="Seleziona tutti i casi di questa tabella"></th>
+      <th>Caso <span class="tenue piccolo">(un clic apre i solver)</span></th><th></th>
+      {% for gi in colonne %}
+      <th class="colonna-giro" title="{{ gi.motivo }}{{ ' · ' ~ gi.commit if gi.commit }}">{{ gi.inizio|data }}
+        <form method="post" action="{{ url_for('notturni.elimina_giro', gid=gi.id) }}" class="in-linea"
+              onsubmit="return confirm('Eliminare il giro del {{ gi.inizio|data }} con tutte le sue esecuzioni?')">
+          <input type="hidden" name="_gettone" value="{{ gettone }}">
+          <button class="elimina-giro" title="Elimina questo giro (con tutte le sue esecuzioni)" {{ 'disabled' if in_corso == gi.id }}>×</button>
+        </form></th>
+      {% else %}<th class="tenue">mai eseguiti</th>{% endfor %}
+    </tr>
   </thead>
   {% for gr in gruppi %}
   <tbody>
-    <tr class="sottotitolo"><th colspan="4">{{ gr.titolo }} <span class="tenue piccolo">({{ gr.casi|length }} cas{{ 'o' if gr.casi|length == 1 else 'i' }})</span></th>
-      {% for s in solver_colonne %}{% set n = gr.conto[s] %}
-      <th colspan="3" class="piccolo inizio-solver">{% if n[1] %}{{ n[0] }} trovat{{ 'o' if n[0] == 1 else 'i' }} su {{ n[1] }}{% endif %}</th>{% endfor %}</tr>
+    <tr class="sottotitolo"><th colspan="{{ 3 + [colonne|length, 1]|max }}">{{ gr.titolo }} <span class="tenue piccolo">({{ gr.casi|length }} cas{{ 'o' if gr.casi|length == 1 else 'i' }})</span></th></tr>
+  </tbody>
   {% for c in gr.casi %}
-    {% set primo = (c.per_solver.values()|list)[0] %}
-    <tr class="{{ 'riga-diversa' if c.per_solver.values()|selectattr('confronto', 'equalto', 'diverso')|list }}">
+  {% set primo = (c.per_solver.values()|list)[0] %}
+  <tbody class="caso">
+    <tr class="riga-caso{{ ' riga-diversa' if c.per_solver.values()|selectattr('confronto', 'equalto', 'diverso')|list }}">
       <td><input type="checkbox" class="seleziona-caso" name="tid" form="togli-test"
                  value="{{ c.per_solver.values()|map(attribute='id')|join(',') }}"
                  title="Seleziona questo caso ({{ c.per_solver|length }} test, uno per solver)"></td>
-      <td>{{ c.nome }}<div class="tenue piccolo">fermo dopo {{ primo.opzioni.get('ferma_nodi')|numero }} nodi</div></td>
-      <td class="piccolo">{{ c.data|data if c.data else '-' }}</td>
+      <td class="apri-caso"><span class="freccia">▸</span> {{ c.nome }}
+        <div class="tenue piccolo">{{ c.per_solver|length }} solver · fermo dopo {{ primo.opzioni.get('ferma_nodi')|numero }} nodi</div></td>
       <td><form method="post" action="{{ url_for('notturni.esegui') }}" class="in-linea">
         <input type="hidden" name="_gettone" value="{{ gettone }}">
         {% for r in c.per_solver.values() %}<input type="hidden" name="tid" value="{{ r.id }}">{% endfor %}
         <button class="secondario piccolo" {{ 'disabled' if in_corso }} title="Un giro adesso con questo caso, per ogni solver ({{ c.per_solver|length }} test)">Esegui ora</button>
       </form></td>
-      {% for s in solver_colonne %}{% set r = c.per_solver.get(s) %}
-      {% if not r %}<td class="inizio-solver tenue">—</td><td></td><td></td>
-      {% elif not r.nid %}<td class="inizio-solver"><a class="tenue" href="{{ url_for('notturni.test', tid=r.id) }}">{{ 'in coda' if in_corso else 'mai eseguito' }}</a></td><td></td><td></td>
-      {% else %}
-      <td class="inizio-solver{{ ' in-corso' if test_in_corso == r.id }}">
-        <a href="{{ url_for('notturni.test', tid=r.id) }}" title="{{ r.esito }}{{ ': ' ~ r.errore if r.errore }}"
-           ><span class="esito {{ r.esito|classe_esito }}">{{ {'nessuna soluzione': 'nessuna', 'errore nei dati': 'errore dati', 'limite di nodi': 'limite'}.get(r.esito, r.esito) }}</span></a>
-        {% if r.confronto == 'diverso' %}<span class="esito esito-diverso" title="diverso dal riferimento: {{ campi_diversi(r, nomi_campi) }}">≠</span>{% endif %}</td>
-      <td class="num">{{ r.nodi|numero if r.nodi is not none else '-' }}</td>
-      <td class="num">{{ '%.1f s'|format(r.secondi) if r.secondi is not none else '-' }}</td>
-      {% endif %}{% endfor %}
+      {% for x in c.giri %}
+      <td class="colonna-giro piccolo">{% if x %}
+        <div class="tenue">{{ x.quando|data }}</div>
+        <div class="{{ 'peggio' if x.peggio else 'meglio' if x.meglio }}">{{ 'in corso' if x.in_corso else (x.trovati ~ ' trovat' ~ ('o' if x.trovati == 1 else 'i') ~ ' su ' ~ x.test) }}</div>
+      {% else %}<span class="tenue">—</span>{% endif %}</td>
+      {% else %}<td></td>{% endfor %}
     </tr>
-  {% endfor %}
+    {% for s in solver_colonne %}{% set r = c.per_solver.get(s) %}{% if r %}
+    <tr class="riga-solver{{ ' in-corso' if test_in_corso == r.id }}">
+      <td></td>
+      <td><a href="{{ url_for('notturni.test', tid=r.id) }}">{{ s }}</a>
+        {% if r.confronto == 'diverso' %}<span class="esito esito-diverso" title="l'ultima esecuzione è diversa dal riferimento: {{ campi_diversi(r, nomi_campi) }}">≠</span>{% endif %}</td>
+      <td></td>
+      {% for gi in colonne %}{% set n = celle_giri.get((r.id, gi.id)) %}
+      <td class="colonna-giro valori">{% if n %}{% set m = n.cambia %}
+        <div class="{{ m.get('secondi', '') }}">{{ '%.1f s'|format(n.secondi) if n.secondi is not none else '-' }}</div>
+        <div class="{{ m.get('esito', '') }}">{% if n.esito %}<span class="esito {{ n.esito|classe_esito }}">{{ {'nessuna soluzione': 'nessuna', 'errore nei dati': 'errore dati', 'limite di nodi': 'limite'}.get(n.esito, n.esito) }}</span>{% else %}<span class="esito esito-in-corso">in corso</span>{% endif %}</div>
+        <div class="{{ m.get('nodi', '') }}">{{ n.nodi|numero if n.nodi is not none else '-' }} nodi</div>
+        <div class="{{ m.get('backtrack', '') }}">{{ n.backtrack|numero if n.backtrack is not none else '-' }} backtrack</div>
+      {% else %}<span class="tenue">—</span>{% endif %}</td>
+      {% else %}<td class="tenue">mai eseguito</td>{% endfor %}
+    </tr>
+    {% endif %}{% endfor %}
   </tbody>
+  {% endfor %}
   {% endfor %}
 </table>
 </div>
@@ -128,6 +149,11 @@
     dopo, compreso quello della notte, eseguono solo quelli rimasti. Un solo solver di un caso si toglie dalla pagina
     del suo test.</span>
 </form>
+<p class="tenue piccolo">Ogni caso si apre con un clic (<button type="button" class="link" id="apri-tutti">apri tutti</button> ·
+  <button type="button" class="link" id="chiudi-tutti">chiudi tutti</button>): una riga per solver, con in ogni
+  colonna un giro (il più recente a destra, gli ultimi {{ colonne|length }}): tempo, esito, nodi e backtrack.
+  <span class="meglio">In verde</span> quello che va meglio dell'esecuzione prima dello stesso test,
+  <span class="peggio">in rosso</span> quello che va peggio. La × accanto alla data elimina quel giro.</p>
 <h3>Conclusi <span class="tenue piccolo">i casi in cui almeno un solver ha trovato l'orario, dimostrato che non c'è o riconosciuto un errore nei dati; una riga per caso ({{ conclusi|sum(attribute='casi', start=[])|length }} casi)</span></h3>
 {% if conclusi %}{{ tabella_casi(conclusi, 'casi-conclusi') }}{% else %}<p class="tenue">Nessuno.</p>{% endif %}
 
@@ -180,6 +206,13 @@
 {% endblock %}
 {% block script %}
 <script>
+// i casi si aprono con un clic sul nome (una riga per solver); «apri tutti» e «chiudi tutti»
+document.querySelectorAll('.apri-caso').forEach(td => td.addEventListener('click', () =>
+  td.closest('tbody').classList.toggle('aperto')));
+document.getElementById('apri-tutti').addEventListener('click', () =>
+  document.querySelectorAll('tbody.caso').forEach(t => t.classList.add('aperto')));
+document.getElementById('chiudi-tutti').addEventListener('click', () =>
+  document.querySelectorAll('tbody.caso').forEach(t => t.classList.remove('aperto')));
 // le caselle dei casi: «seleziona tutti» per tabella e il conto sul pulsante
 (() => {
   const caselle = () => [...document.querySelectorAll('.seleziona-caso')];
