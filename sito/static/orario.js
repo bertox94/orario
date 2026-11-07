@@ -221,6 +221,94 @@ const CONTROLLI = {
       : `giorno fissato, la sua scelta: ${i.scelta_fissata[0] < 0 && i.scelta_fissata[1] < 0 ? "l'ora buca" : coppia(d, i.scelta_fissata)}`},
 };
 
+// Le potature, una riga per regola, nell'ordine in cui la ricerca le controlla entrando nella cella dopo una scelta
+// (potature/potature.h e controllo_in_avanti/controllo_in_avanti.h). Si ferma alla prima che non vale: quelle prima
+// sono passate, quelle dopo non si controllano. Per un backtrack che e' una potatura (lo slot); null per gli altri.
+const REGOLE_POTATURE = [
+  {sigla: 'L1', nome: 'Lezioni della classe fino alle ore obbligatorie', quando: 'a ogni cella, per la classe appena decisa',
+   cosa: "le lezioni che restano alla classe (un docente da solo o una coppia) bastano a riempire le sue ore " +
+     "obbligatorie, oggi e in ognuno dei giorni che restano"},
+  {sigla: 'L2', nome: 'Lezioni della classe per tutte le ore', quando: 'a ogni cella, per la classe appena decisa',
+   cosa: "fino all'ultima ora di ogni giorno, le lezioni che restano alla classe bastano per tutte le ore che le restano"},
+  {sigla: 'C', nome: 'Ore dei docenti nella classe', quando: "a ogni cella per la classe appena decisa; a ogni ora " +
+     "chiusa e dopo un'ora buca per tutte le classi",
+   cosa: d => `a ogni docente le ore che gli restano nella classe stanno in quelle che può ancora fare lì: oggi dal ` +
+     `suo ingresso, se il suo blocco di oggi non si è chiuso, poi al massimo ${maxOre(d)} al giorno`},
+  {sigla: 'T', nome: 'Ore dei docenti in tutto', quando: "a ogni ora chiusa (decisa in tutte le classi) e dopo un'ora buca",
+   cosa: "a ogni docente le ore che gli restano in tutto stanno nelle ore libere che gli restano, dal suo ingresso"},
+  {sigla: 'A1', nome: 'Controllo in avanti: le celle di oggi', quando: 'a ogni cella, alla fine',
+   cosa: "ogni cella obbligatoria che resta oggi ha ancora almeno un docente possibile (ha ore nella classe, è libero " +
+     "a quell'ora, è già entrato, può ancora fare ore oggi lì)"},
+  {sigla: 'A2', nome: 'Controllo in avanti: lezioni fino alle ore obbligatorie', quando: 'a ogni cella, alla fine',
+   cosa: "per ogni classe, fino a ogni ora obbligatoria le lezioni possibili bastano per le celle da riempire, oggi " +
+     "e in ognuno dei giorni che restano"},
+  {sigla: 'A3', nome: 'Controllo in avanti: lezioni per tutte le ore', quando: 'a ogni cella, alla fine',
+   cosa: "per ogni classe, fino all'ultima ora di ogni giorno le lezioni possibili bastano per tutte le ore che le restano"},
+  {sigla: 'A4', nome: 'Controllo in avanti: ore dei docenti', quando: 'a ogni cella, alla fine',
+   cosa: d => `in ogni classe le ore che restano a un docente stanno in quelle che può ancora fare (oggi dopo l'ultima ` +
+     `ora decisa, poi al massimo ${maxOre(d)} al giorno dal suo ingresso), e in tutto nelle ore libere che gli restano`},
+];
+function tabellaPotature(slot, d) {
+  const i = slot.ingressi || {};
+  const quale = slot.nome === 'lezioni_della_classe_bastano' ? (i.fino_ora === d.ore.length - 1 ? 'L2' : 'L1')
+    : slot.nome === 'ore_dei_docenti_stanno_nel_tempo' ? (i.classe >= 0 ? 'C' : 'T')
+    : slot.nome === 'situazione_risolvibile' ? ({cella: 'A1', ore: 'A2', ore_classe: 'A3', ore_docente: 'A4'}[i.motivo])
+    : null;
+  if (!quale) return null;
+  const k = REGOLE_POTATURE.findIndex(r => r.sigla === quale);
+  return el('table', {class: 'dati tabella-potature'}, [
+    el('thead', {}, el('tr', {}, ['', 'Regola', 'Cosa controlla', 'Quando', 'Esito'].map(t => el('th', {testo: t})))),
+    el('tbody', {}, REGOLE_POTATURE.map((r, j) => {
+      const esito = j < k ? (r.sigla === 'T' ? "passa (o non toccava: si controlla solo a ora chiusa e dopo un'ora buca)"
+                                             : 'passa')
+        : j === k ? descriviIngressi(slot.nome, i, d)
+        : 'non controllata: la ricerca si ferma alla prima regola che non vale';
+      return el('tr', {class: j < k ? 'si' : j === k ? 'no' : 'non-valutato'}, [
+        el('td', {class: 'segno', testo: j < k ? '✓' : j === k ? '✗' : '–'}),
+        el('td', {}, [el('strong', {testo: r.sigla}), ' ' + r.nome]),
+        el('td', {class: 'piccolo', testo: typeof r.cosa === 'function' ? r.cosa(d) : r.cosa}),
+        el('td', {class: 'piccolo tenue', testo: r.quando}),
+        el('td', {class: 'piccolo' + (j === k ? ' testo-male' : j > k ? ' tenue' : ''), testo: esito}),
+      ]);
+    })),
+  ]);
+}
+
+// A1 «resterebbe senza docenti»: per ogni docente della classe della cella, i numeri che decidono se puo' starci (ha
+// ancora ore nella classe, e' entrato, e' libero a quell'ora, oggi puo' ancora fare ore nella classe) e perche' no.
+function tabellaDocentiCella(i, d) {
+  const cl = nomeClasse(d, i.classe), ora = nomeOra(d, i.ora);
+  const casella = (testo, male) => el('td', {class: male ? 'testo-male' : null, testo: (male ? '✗ ' : '✓ ') + testo});
+  const righe = i.docenti_cella.map(x => {
+    const motivi = [];
+    if (x.restano <= 0) motivi.push(`ha finito le ore in ${cl}`);
+    if (x.ingresso > i.ora) motivi.push(`entra alle ${nomeOra(d, x.ingresso)}`);
+    if (x.occupato >= 0) motivi.push(`alle ${ora} è già in ${nomeClasse(d, x.occupato)}`);
+    const pieno = x.fatte_oggi >= maxOre(d);
+    if (x.fatte_oggi > 0 && pieno) motivi.push(`oggi ha già ${x.fatte_oggi} ore in ${cl}`);
+    else if (x.blocco_chiuso) motivi.push(`oggi ha già fatto ${x.fatte_oggi} ${x.fatte_oggi === 1 ? 'ora' : 'ore'} in ${cl} ` +
+      'ma non nell\'ultima ora decisa: le sue ore di oggi devono essere di seguito, non può tornare');
+    const troppeClassi = x.fatte_oggi === 0 && x.classi_oggi >= maxClassi(d);
+    if (troppeClassi) motivi.push(`oggi è già in ${x.classi_oggi} classi diverse`);
+    return el('tr', {}, [
+      el('td', {}, el('strong', {testo: nomeDoc(d, x.docente)})),
+      casella(`${x.restano}`, x.restano <= 0),
+      casella(nomeOra(d, x.ingresso), x.ingresso > i.ora),
+      casella(x.occupato >= 0 ? `in ${nomeClasse(d, x.occupato)}` : 'libero', x.occupato >= 0),
+      casella(x.fatte_oggi ? `${x.fatte_oggi} ${x.fatte_oggi === 1 ? 'ora' : 'ore'}` +
+        (pieno ? ' (il massimo)' : x.blocco_chiuso ? ', blocco chiuso' : ', può continuare') : 'nessuna',
+        x.fatte_oggi > 0 && (pieno || x.blocco_chiuso)),
+      casella(`${x.classi_oggi}`, troppeClassi),
+      el('td', {class: motivi.length ? 'testo-male piccolo' : 'piccolo',
+        testo: motivi.length ? motivi.join('; ') : 'potrebbe starci'}),
+    ]);
+  });
+  return el('div', {class: 'scorre'}, el('table', {class: 'dati tabella-docenti-cella'}, [
+    el('thead', {}, el('tr', {}, ['Docente', `Ore che gli restano in ${cl}`, 'Entra alle', `Alle ${ora}`,
+      `Oggi in ${cl}`, `Classi oggi (max ${maxClassi(d)})`, 'Perché non può starci'].map(t => el('th', {testo: t})))),
+    el('tbody', {}, righe)]));
+}
+
 function descrizioneControllo(nome, d) {
   const c = CONTROLLI[nome];
   return !c ? nome : typeof c.descrizione === 'function' ? c.descrizione(d) : c.descrizione;
@@ -488,6 +576,11 @@ function partiDocenti(d, b, filtro) {
   // la classe (lo slot), dopo i docenti
   parti.push(el('h4', {testo: 'Lo slot'}));
   parti.push(tabellaControlli([b.slot], b.slot.uscita ? -1 : 0, d));
+  const potature = tabellaPotature(b.slot, d);
+  if (potature) parti.push(el('h4', {testo: 'Le potature, nell\'ordine in cui la ricerca le controlla'}), potature);
+  const cella = b.slot.ingressi && b.slot.ingressi.docenti_cella ? tabellaDocentiCella(b.slot.ingressi, d) : null;
+  if (cella) parti.push(el('h4', {testo: `Perché nessun docente può stare in ${doveCella(d, b.slot.ingressi)}: i ` +
+    `docenti di ${nomeClasse(d, b.slot.ingressi.classe)}`}), cella);
   return parti;
 }
 

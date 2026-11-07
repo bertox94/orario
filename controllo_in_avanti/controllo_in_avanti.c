@@ -263,6 +263,31 @@ void numeri_in_avanti(int *docente, int *classe, int *restano, int *possibili) {
     *possibili = blocco.possibili;
 }
 
+int docenti_della_cella(const int s, const int q, DocenteCella *dc, const int n) {
+    static Oggi o;
+    calcola_oggi(s, &o);
+    const int h = g_ora(q), c = g_classe(q), C = actual_classi_sezione;
+    int k = 0;
+    for (int i = 0; i < n_docenti_di_classe[c] && k < n; i++) {
+        const int p = docenti_di_classe[c][i];
+        DocenteCella *x = &dc[k++];
+        x->docente = p;
+        x->restano = ore_rimaste(c, p);
+        x->ingresso = ora_di_entrata_prof[p];
+        x->occupato = -1;
+        if (prof_gia_impegnato_giorno_ora[o.giorno * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + h * INSEGNANTE_SZ + p])
+            for (int cc = 0; cc < C; cc++) {
+                const teaching_slot *t = &orario[cella(o.giorno, h, cc)];
+                if (h < o.da[cc] && (t->insegnante1 == p || t->insegnante2 == p)) x->occupato = cc;
+            }
+        x->fatte_oggi = ore_fatte_da_un_prof_in_una_classe_in_giorno[idx_oggi(o.giorno, c, p)];
+        x->massimo_oggi = massimo_oggi(&o, c, p);
+        x->blocco_chiuso = x->fatte_oggi > 0 && x->massimo_oggi == 0;
+        x->classi_oggi = o.classi_oggi[p];
+    }
+    return k;
+}
+
 int controllo_in_avanti(const int s) {
     static Oggi o;
     calcola_oggi(s, &o);

@@ -313,3 +313,11 @@ table.tabella-casi td.valori div.peggio .esito { outline: 2px solid var(--male);
 table.tabella-casi td.cella-peggio { background: var(--male-tenue); }
 table.tabella-casi td.cella-meglio { background: var(--ok-tenue); }
 table.tabella-casi .riepilogo-caso { margin-top: 3px; display: flex; gap: 4px; flex-wrap: wrap; }
+
+/* le potature di un backtrack, una riga per regola (pagina del test) */
+table.tabella-potature td { vertical-align: top; }
+table.tabella-potature td.segno { font-weight: 700; text-align: center; width: 1.5em; }
+table.tabella-potature tr.si td.segno { color: var(--ok); }
+table.tabella-potature tr.no td.segno { color: var(--male); }
+table.tabella-potature tr.no { background: color-mix(in srgb, var(--male) 8%, transparent); }
+table.tabella-potature tr.non-valutato td { opacity: .6; }

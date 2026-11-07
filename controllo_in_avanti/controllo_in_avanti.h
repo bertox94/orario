@@ -44,6 +44,20 @@ const char *nome_motivo_in_avanti(int motivo);
 // i numeri dei motivi 2 e 3: il docente (-1 per 2), la classe (-1: in tutto), quante ore restano, quante possibili
 void numeri_in_avanti(int *docente, int *classe, int *restano, int *possibili);
 
+// Per la traccia (motivo 0, la cella q senza docenti, dopo le prime s celle): i docenti della classe di q, uno per
+// elemento, con quello che serve per vedere perche' nessuno puo' starci. Ritorna quanti sono (al massimo n).
+typedef struct {
+    int docente;
+    int restano;        // ore che gli restano nella classe
+    int ingresso;       // la sua ora di ingresso (deve essere <= l'ora della cella)
+    int occupato;       // a quell'ora insegna gia' in un'altra classe: quale (-1: libero)
+    int fatte_oggi;     // ore gia' fatte oggi in questa classe
+    int blocco_chiuso;  // le ha fatte, ma non nell'ultima ora decisa: oggi nella classe non puo' piu' tornare
+    int classi_oggi;    // classi diverse in cui ha gia' insegnato oggi
+    int massimo_oggi;   // quante ore puo' ancora dare oggi nella classe (0: non puo')
+} DocenteCella;
+int docenti_della_cella(int s, int q, DocenteCella *dc, int n);
+
 // La verifica dei dati: 1 se tutto va, se no 0 con il motivo in errore.
 int verifica_fattibilita(char *errore, size_t dimensione);
 

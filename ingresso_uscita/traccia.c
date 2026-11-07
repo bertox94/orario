@@ -488,6 +488,17 @@ void traccia_potatura(const int s, const int giorno, const int ora, const int cl
         if (p->motivo >= 2)
             fprintf(t, ",\"docente\":%d,\"classe_conto\":%d,\"restano\":%d,\"possibili\":%d", p->docente, p->classe,
                     p->restano, p->possibili);
+        if (p->motivo == 0) {  // la cella senza docenti: i docenti della sua classe, con perche' non possono starci
+            static DocenteCella dc[INSEGNANTE_SZ];
+            const int n = docenti_della_cella(s, p->cella, dc, INSEGNANTE_SZ);
+            fprintf(t, ",\"docenti_cella\":[");
+            for (int k = 0; k < n; k++)
+                fprintf(t, "%s{\"docente\":%d,\"restano\":%d,\"ingresso\":%d,\"occupato\":%d,\"fatte_oggi\":%d,"
+                        "\"blocco_chiuso\":%d,\"classi_oggi\":%d,\"massimo_oggi\":%d}", k ? "," : "", dc[k].docente,
+                        dc[k].restano, dc[k].ingresso, dc[k].occupato, dc[k].fatte_oggi, dc[k].blocco_chiuso,
+                        dc[k].classi_oggi, dc[k].massimo_oggi);
+            fputc(']', t);
+        }
         fprintf(t, "},\"uscita\":0},\"docenti\":[],\"altri_docenti\":0,\"incoerente\":0,");
         orario_fino_a(s);
         fprintf(t, "}\n");
