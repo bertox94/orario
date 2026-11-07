@@ -297,7 +297,7 @@ function tabellaOrizzontale(colonne, d) {
 }
 
 function tabellaDocenti(docenti, d) {
-  return tabellaOrizzontale(docenti.map(x => ({titolo: nomeDoc(d, x.docente), sotto: `priorità ${x.priorita}`,
+  return tabellaOrizzontale(docenti.map(x => ({titolo: nomeDoc(d, x.docente), sotto: x.margine !== undefined ? `margine ${x.margine} · ${x.priorita} ore` : `priorità ${x.priorita}`,
     controlli: x.controlli, fermato_a: x.fermato_a})), d);
 }
 

@@ -59,10 +59,14 @@ gcc -O2 -std=gnu11 -w main.c data_initialization/database_initializers.c printer
 cd /tmp && rm -f orario.txt && /tmp/solver > /dev/null && grep -v '^Current time:' orario.txt | md5sum
 ```
 
-Riferimento (dati di `inizializza_dati()`, 11.000 orari): `b7e8ad1800ea16bc0fc8be628c926fe6`, uguale su Mac e su
-Linux (il Raspberry): a parità di priorità la coda è ordinata per indice del docente, quindi l'ordine non dipende da
-`qsort`. Il controllo in avanti e la verifica dei dati (6 novembre 2026) non lo cambiano: su questi dati non
-scartano niente (la ricerca è solo più lenta, circa 4 secondi invece di 2). Prima non era così: lo stesso solver dava `1f200e…` su Linux e `777dc…` su macOS. Una modifica che
+Riferimento (dati di `inizializza_dati()`, 11.000 orari): `8e39aec451cd1a75ddd35c266ecad126`, uguale su Mac e su
+Linux (il Raspberry): a parità la coda è ordinata per indice del docente, quindi l'ordine non dipende da `qsort`. Dal
+7 novembre 2026 (richiesta di Alb) la coda mette prima il docente con meno margine (ore che può ancora fare da adesso,
+dal suo ingresso, meno ore che gli restano: `sort_queue_mul` in `controlli/comuni.h`), in tutti i solver; senza
+ritardi l'ordine è quello di prima, ma i dati di prova hanno docenti che entrano tardi: il riferimento con la coda di
+prima era `b7e8ad1800ea16bc0fc8be628c926fe6`. Il controllo in avanti e la verifica dei dati (6 novembre 2026) non
+lo cambiano: su questi dati non scartano niente. Prima dell'ordine per indice a parità lo stesso solver dava
+`1f200e…` su Linux e `777dc…` su macOS. Una modifica che
 non deve cambiare la ricerca deve dare lo stesso valore. Se Alb chiede di cambiare la ricerca (per esempio un
 controllo nuovo), il valore cambia: si annota il nuovo riferimento qui.
 

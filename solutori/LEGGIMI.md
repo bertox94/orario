@@ -18,6 +18,16 @@ gcc -O2 -std=gnu11 -w main.c ../../data_initialization/database_initializers.c .
     ../../controllo_in_avanti/controllo_in_avanti.c -o /tmp/solver-giorni-liberi -lm
 ```
 
+## La coda dei docenti
+
+In ogni cella tutti i solver provano prima il docente con meno margine: le ore che può ancora fare da quest'ora alla
+fine della settimana (oggi da adesso o dal suo ingresso, poi dal suo ingresso ogni giorno) meno le ore che gli restano
+in tutto; a parità chi ha più ore che restano, poi l'indice. Senza ritardi è l'ordine di prima (più ore che restano
+prima); con i ritardi chi entra tardi va prima. Provato il 7 novembre 2026 contro altri 7 ordini (più ore nella
+classe, chi continua il blocco, il margine nella classe...): sui 342 casi di prova (2 milioni di nodi) trova 140 orari
+invece di 126, con circa metà dei nodi sui casi che risolvono tutti e due. `giorni-liberi` conta i giorni che restano
+nell'ordine del giro.
+
 ## Gli stessi controlli in tutti i solver
 
 Dal 6 novembre 2026 tutti i solver, `main` compreso, hanno gli stessi controlli (richiesta di Alb): quelli di `main`, le

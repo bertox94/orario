@@ -33,7 +33,7 @@ from verifica_orario import verifica  # noqa: E402
 
 SOLVER_PREDEFINITI = ['main', 'per-classe', 'giorni-liberi', 'ordini-classi']
 TEMPO_MASSIMO = 60  # secondi per (solver, caso): i casi scelti finiscono in pochi secondi
-MD5_RIFERIMENTO = 'b7e8ad1800ea16bc0fc8be628c926fe6'  # orario.txt di main sui dati di prova (CLAUDE.md)
+MD5_RIFERIMENTO = '8e39aec451cd1a75ddd35c266ecad126'  # orario.txt di main sui dati di prova (CLAUDE.md)
 
 
 def cartella_solver(nome):

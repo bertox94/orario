@@ -125,7 +125,7 @@ void print_orario(const int s) {
     const int base3d_goi = giorno * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + ora * INSEGNANTE_SZ;    // giorno, ora, docente
     const int base4d_queue = ((giorno * ORA_GIORNALIERA_SZ + ora) * CLASSE_SEZIONE_SZ + cla) * INSEGNANTE_SZ;  // la coda
 
-    sort_queue_mul(base4d_queue, queue_sz);
+    sort_queue_mul(base4d_queue, queue_sz, ora, actual_giorni_settimana - 1 - giorno);
     if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
         int found_prof = 0;
         ore_classe_svolte[cla]++;

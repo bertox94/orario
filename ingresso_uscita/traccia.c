@@ -386,7 +386,8 @@ void traccia_backtrack(const int s, const int giorno, const int ora, const int c
             altri++; // nessuna ora in questa classe: si ferma al primo o al secondo controllo
             continue;
         }
-        fprintf(t, "%s{\"docente\":%d,\"priorita\":%.0f,\"controlli\":[", primo ? "" : ",", p1, it->priority);
+        fprintf(t, "%s{\"docente\":%d,\"priorita\":%.0f,\"margine\":%.0f,\"controlli\":[", primo ? "" : ",", p1,
+                it->priority, margine_docente(it, ora, actual_giorni_settimana - 1 - posto(giorno)));
         primo = 0;
         // i controlli del primo docente, nell'ordine di main (che si ferma al primo falso)
         int fermato = -1;

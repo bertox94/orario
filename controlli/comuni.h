@@ -126,19 +126,40 @@ void post_chiamata_ricorsiva_insieme(const int base2d_ci, const int base3d_goi, 
 }
 
 // ---- la coda dei docenti ----
+// In ogni cella si provano prima i docenti con meno margine: il margine e' quante ore il docente puo' ancora fare da
+// quest'ora alla fine della settimana (oggi da adesso, o dal suo ingresso se entra dopo; nei giorni dopo dal suo
+// ingresso) meno le ore che gli restano in tutto (la priorita' della coda). A parita' di margine prima chi ha piu' ore
+// che restano, poi l'indice del docente (prima il piu' basso): senza, l'ordine dei pari lo sceglierebbe qsort, che su
+// Linux (glibc) e su macOS li mette in modo diverso, e la ricerca cambierebbe da una macchina all'altra.
+// Senza ritardi (tutti entrano alla prima ora) il margine e' lo stesso numero meno la priorita', quindi l'ordine e'
+// quello di prima (piu' ore che restano prima). Con i ritardi chi entra tardi ha meno ore a disposizione e va prima: sui
+// casi di prova con ritardi trova molti piu' orari (7 novembre 2026, richiesta di Alb: 140 su 342 casi invece di 126).
+static double margine_coda[INSEGNANTE_SZ];
 
-// priorita' piu' alta prima; a parita' decide l'indice del docente (prima il piu' basso): senza, l'ordine dei pari lo
-// sceglierebbe qsort, che su Linux (glibc) e su macOS li mette in modo diverso, e la ricerca cambierebbe da una
-// macchina all'altra
+// il margine del docente all'ora `ora`, con `giorni_dopo` giorni ancora da riempire dopo questo (anche per la traccia)
+double margine_docente(const QueueItem *it, const int ora, const int giorni_dopo) {
+    const int O = actual_ore_giornaliere, ingresso = ora_di_entrata_prof[it->teacher];
+    const int oggi = O - (ora > ingresso ? ora : ingresso);
+    return (oggi > 0 ? oggi : 0) + giorni_dopo * (O - ingresso) - it->priority;
+}
+
 int compare_queue_items(const void *a, const void *b) {
     const QueueItem *itemA = *(const QueueItem **) a;
     const QueueItem *itemB = *(const QueueItem **) b;
+    const double ma = margine_coda[itemA->teacher], mb = margine_coda[itemB->teacher];
+    if (ma < mb) return -1;
+    if (ma > mb) return 1;
     if (itemA->priority < itemB->priority) return 1;
     if (itemA->priority > itemB->priority) return -1;
     return (itemA->teacher > itemB->teacher) - (itemA->teacher < itemB->teacher);
 }
 
-void sort_queue_mul(size_t start, size_t n) {
+// la coda della cella (start, n docenti) all'ora `ora`, con `giorni_dopo` giorni ancora da riempire dopo questo
+void sort_queue_mul(size_t start, size_t n, const int ora, const int giorni_dopo) {
+    for (size_t i = 0; i < n; i++) {
+        const QueueItem *it = queue_mul[start + i];
+        margine_coda[it->teacher] = margine_docente(it, ora, giorni_dopo);
+    }
     qsort(&queue_mul[start], n, sizeof(QueueItem *), compare_queue_items);
 }
 

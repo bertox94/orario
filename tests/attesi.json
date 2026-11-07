@@ -24,7 +24,7 @@
    "backtrack": 0,
    "esito": "trovato",
    "nodi": 37,
-   "orario": "ea7390b9224a"
+   "orario": "520cd4bd6d0e"
   },
   "seme_1_8": {
    "backtrack": 2,
@@ -51,10 +51,10 @@
    "orario": "56a57c327c3c"
   },
   "seme_2_8_ritardi": {
-   "backtrack": 0,
+   "backtrack": 3,
    "esito": "trovato",
-   "nodi": 289,
-   "orario": "5695c9ae7992"
+   "nodi": 292,
+   "orario": "1b376cf9d3e8"
   },
   "seme_3_8": {
    "backtrack": 12,
@@ -66,7 +66,7 @@
    "backtrack": 0,
    "esito": "trovato",
    "nodi": 433,
-   "orario": "fa4a84970fe7"
+   "orario": "073f893901e7"
   },
   "seme_4_16": {
    "backtrack": 2,
@@ -87,10 +87,10 @@
    "orario": "f56e8b239c63"
   },
   "seme_5_12_ritardi": {
-   "backtrack": 14585,
+   "backtrack": 1,
    "esito": "trovato",
-   "nodi": 64994,
-   "orario": "fa47a7a8a325"
+   "nodi": 434,
+   "orario": "06c13a56d22b"
   },
   "seme_5_16": {
    "backtrack": 3,
@@ -109,10 +109,10 @@
    "orario": "6875cdc2d18c"
   },
   "seme_5_8_ritardi": {
-   "backtrack": 2,
+   "backtrack": 37,
    "esito": "trovato",
-   "nodi": 291,
-   "orario": "d60d291317cd"
+   "nodi": 402,
+   "orario": "9be7279c1018"
   },
   "seme_6_16": {
    "backtrack": 1,
@@ -127,14 +127,14 @@
    "orario": "6bf19002979b"
   },
   "seme_6_8_ritardi": {
-   "backtrack": 17,
+   "backtrack": 10,
    "esito": "trovato",
-   "nodi": 330,
-   "orario": "1f4cacc00879"
+   "nodi": 336,
+   "orario": "564d5bda5533"
   }
  },
  "main": {
-  "dati_di_prova": "b7e8ad1800ea16bc0fc8be628c926fe6",
+  "dati_di_prova": "8e39aec451cd1a75ddd35c266ecad126",
   "fattibilita_1_classe": {
    "errore": "Thranduil in X: 19 ore, ma entrando alle 11 ne puo' fare al massimo 18 (3 al giorno per 6 giorni)",
    "esito": "errore nei dati"
@@ -159,7 +159,7 @@
    "backtrack": 0,
    "esito": "trovato",
    "nodi": 37,
-   "orario": "ea7390b9224a"
+   "orario": "520cd4bd6d0e"
   },
   "seme_1_8": {
    "backtrack": 2,
@@ -186,10 +186,10 @@
    "orario": "56a57c327c3c"
   },
   "seme_2_8_ritardi": {
-   "backtrack": 0,
+   "backtrack": 3,
    "esito": "trovato",
-   "nodi": 289,
-   "orario": "5695c9ae7992"
+   "nodi": 292,
+   "orario": "1b376cf9d3e8"
   },
   "seme_3_8": {
    "backtrack": 12,
@@ -201,7 +201,7 @@
    "backtrack": 0,
    "esito": "trovato",
    "nodi": 433,
-   "orario": "fa4a84970fe7"
+   "orario": "073f893901e7"
   },
   "seme_4_16": {
    "backtrack": 2,
@@ -222,10 +222,10 @@
    "orario": "f56e8b239c63"
   },
   "seme_5_12_ritardi": {
-   "backtrack": 14585,
+   "backtrack": 1,
    "esito": "trovato",
-   "nodi": 64994,
-   "orario": "fa47a7a8a325"
+   "nodi": 434,
+   "orario": "06c13a56d22b"
   },
   "seme_5_16": {
    "backtrack": 3,
@@ -244,10 +244,10 @@
    "orario": "6875cdc2d18c"
   },
   "seme_5_8_ritardi": {
-   "backtrack": 2,
+   "backtrack": 37,
    "esito": "trovato",
-   "nodi": 291,
-   "orario": "d60d291317cd"
+   "nodi": 402,
+   "orario": "9be7279c1018"
   },
   "seme_6_16": {
    "backtrack": 1,
@@ -262,10 +262,10 @@
    "orario": "6bf19002979b"
   },
   "seme_6_8_ritardi": {
-   "backtrack": 17,
+   "backtrack": 10,
    "esito": "trovato",
-   "nodi": 330,
-   "orario": "1f4cacc00879"
+   "nodi": 336,
+   "orario": "564d5bda5533"
   }
  },
  "ordini-classi": {
@@ -293,7 +293,7 @@
    "backtrack": 0,
    "esito": "trovato",
    "nodi": 37,
-   "orario": "ea7390b9224a"
+   "orario": "520cd4bd6d0e"
   },
   "seme_1_8": {
    "backtrack": 2,
@@ -320,10 +320,10 @@
    "orario": "56a57c327c3c"
   },
   "seme_2_8_ritardi": {
-   "backtrack": 0,
+   "backtrack": 3,
    "esito": "trovato",
-   "nodi": 289,
-   "orario": "5695c9ae7992"
+   "nodi": 292,
+   "orario": "1b376cf9d3e8"
   },
   "seme_3_8": {
    "backtrack": 12,
@@ -335,7 +335,7 @@
    "backtrack": 0,
    "esito": "trovato",
    "nodi": 433,
-   "orario": "fa4a84970fe7"
+   "orario": "073f893901e7"
   },
   "seme_4_16": {
    "backtrack": 2,
@@ -356,10 +356,10 @@
    "orario": "f56e8b239c63"
   },
   "seme_5_12_ritardi": {
-   "backtrack": 2172,
+   "backtrack": 1,
    "esito": "trovato",
-   "nodi": 10434,
-   "orario": "f37fd7ead299"
+   "nodi": 434,
+   "orario": "06c13a56d22b"
   },
   "seme_5_16": {
    "backtrack": 3,
@@ -378,10 +378,10 @@
    "orario": "6875cdc2d18c"
   },
   "seme_5_8_ritardi": {
-   "backtrack": 2,
+   "backtrack": 37,
    "esito": "trovato",
-   "nodi": 291,
-   "orario": "d60d291317cd"
+   "nodi": 402,
+   "orario": "9be7279c1018"
   },
   "seme_6_16": {
    "backtrack": 1,
@@ -396,10 +396,10 @@
    "orario": "6bf19002979b"
   },
   "seme_6_8_ritardi": {
-   "backtrack": 17,
+   "backtrack": 10,
    "esito": "trovato",
-   "nodi": 330,
-   "orario": "1f4cacc00879"
+   "nodi": 336,
+   "orario": "564d5bda5533"
   }
  },
  "per-classe": {
@@ -427,7 +427,7 @@
    "backtrack": 0,
    "esito": "trovato",
    "nodi": 37,
-   "orario": "ea7390b9224a"
+   "orario": "520cd4bd6d0e"
   },
   "seme_1_8": {
    "backtrack": 5,
@@ -454,10 +454,10 @@
    "orario": "53056dec4dbb"
   },
   "seme_2_8_ritardi": {
-   "backtrack": 1,
+   "backtrack": 5,
    "esito": "trovato",
-   "nodi": 289,
-   "orario": "d0b27cf3015b"
+   "nodi": 295,
+   "orario": "4f55a1e90adc"
   },
   "seme_3_8": {
    "backtrack": 27,
@@ -466,7 +466,10 @@
    "orario": "7cc16ab73888"
   },
   "seme_4_12_ritardi": {
-   "esito": "tempo scaduto"
+   "backtrack": 8,
+   "esito": "trovato",
+   "nodi": 444,
+   "orario": "ab01d8ae9786"
   },
   "seme_4_16": {
    "backtrack": 6,
@@ -487,10 +490,10 @@
    "orario": "a950d081cbc6"
   },
   "seme_5_12_ritardi": {
-   "backtrack": 3907588,
+   "backtrack": 1,
    "esito": "trovato",
-   "nodi": 9516322,
-   "orario": "49cc26f7cfa4"
+   "nodi": 434,
+   "orario": "a4e96f30ccc0"
   },
   "seme_5_16": {
    "backtrack": 13,
@@ -509,7 +512,10 @@
    "orario": "6db95a12ac3f"
   },
   "seme_5_8_ritardi": {
-   "esito": "tempo scaduto"
+   "backtrack": 44,
+   "esito": "trovato",
+   "nodi": 352,
+   "orario": "69e5e2810012"
   },
   "seme_6_16": {
    "backtrack": 10,
@@ -524,10 +530,10 @@
    "orario": "b865cba65b2c"
   },
   "seme_6_8_ritardi": {
-   "backtrack": 4,
+   "backtrack": 5,
    "esito": "trovato",
-   "nodi": 295,
-   "orario": "40e1597eb554"
+   "nodi": 294,
+   "orario": "baba9e96b6d1"
   }
  }
 }

@@ -20,6 +20,7 @@ extern teaching_slot orario[];   // una cella per (giorno, ora, classe), con i d
 extern int orario_len;           // quante celle ha l'orario (giorni x ore x classi)
 extern long long int n_gen;      // orari completi trovati
 extern long long int n_gen_max;  // quanti cercarne al massimo (-n)
+double margine_docente(const QueueItem *it, int ora, int giorni_dopo);  // il margine nella coda (controlli/comuni.h)
 
 // ---- le celle: pos = (giorno * ore + ora) * classi + classe ----
 int g_giorno(int pos);
