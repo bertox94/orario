@@ -8,13 +8,13 @@
     <label title="il seme finale: da 0 a questo (vuoto: solo 0). Anche un intervallo col trattino (5-9)">Semi da 0 a <input name="semi" value="" placeholder="0" size="6"></label>
     <label title="il numero di classi finale: da 8 a questo (vuoto: solo 8). Anche un intervallo col trattino (10-12)">Classi da 8 a <input name="classi" value="" placeholder="8" size="6"></label>
     <label title="l'ordine finale: da 0 a questo (vuoto: solo 0). 0: le classi come le genera il seme; 1, 2...: le stesse classi in un altro ordine (dentro ogni ora la ricerca le decide in quell'ordine)">Ordine delle classi da 0 a <input name="ordini" value="" placeholder="0" size="6"></label>
-    {% else %}{# test in tempo reale: il numero scritto e' solo quello (vuoto: seme 0, 8 classi, ordine 0) #}
-    <label title="il seme (vuoto: 0). Con un intervallo col trattino (1-6) una serie di test">Seme <input name="semi" value="" placeholder="0" size="8"></label>
-    <label title="il numero di classi (vuoto: 8). Con un intervallo col trattino (8-12) una serie di test">Classi <input name="classi" value="" placeholder="8" size="8"></label>
-    <label title="l'ordine delle classi (vuoto: 0). 0: le classi come le genera il seme; 1, 2...: le stesse classi in un altro ordine (dentro ogni ora la ricerca le decide in quell'ordine)">Ordine delle classi <input name="ordini" value="" placeholder="0" size="6"></label>
+    {% else %}{# test in tempo reale: un caso solo, il numero scritto e' solo quello (vuoto: seme 0, 8 classi, ordine 0) #}
+    <label title="il seme (vuoto: 0)">Seme <input name="semi" type="number" min="0" value="" placeholder="0" style="width: 7em"></label>
+    <label title="il numero di classi (vuoto: 8)">Classi <input name="classi" type="number" min="1" max="120" value="" placeholder="8" style="width: 5em"></label>
+    <label title="l'ordine delle classi (vuoto: 0). 0: le classi come le genera il seme; 1, 2...: le stesse classi in un altro ordine (dentro ogni ora la ricerca le decide in quell'ordine)">Ordine delle classi <input name="ordini" type="number" min="0" value="" placeholder="0" style="width: 5em"></label>
     {% endif %}
     <label>Docenti in ritardo <select name="ritardi">
-      {% for v, testo in [('entrambi', 'senza e con'), ('senza', 'senza'), ('con', 'con')] %}
+      {% for v, testo in ([('entrambi', 'senza e con')] if fino_a else []) + [('senza', 'senza'), ('con', 'con')] %}
       <option value="{{ v }}" {{ 'selected' if v == ritardi }}>{{ testo }}</option>{% endfor %}
     </select></label>
     {% if ferma_nodi is not none %}{# i test notturni hanno un limite solo, in alto nella loro pagina #}

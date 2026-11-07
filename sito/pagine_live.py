@@ -89,18 +89,22 @@ def avvia():
             return redirect(url_for('.indice'))
         caso = {'tipo': 'input', 'nome': p['nome'], 'dati': p['dati_scuola']}
     else:
-        # semi, classi e ordini come nei test notturni: un numero o un intervallo col trattino, anche piu' di uno
+        # un caso solo (gli intervalli sono dei test notturni): il numero scritto e' solo quello; vuoto: seme 0,
+        # 8 classi, ordine 0
+        def numero(nome, vuoto, minimo, massimo):
+            v = int(f.get(nome, '').strip() or vuoto)
+            if not minimo <= v <= massimo:
+                raise ValueError(nome)
+            return [v]
         try:
-            # il numero scritto e' solo quello (vuoto: seme 0, 8 classi, ordine 0); un intervallo col trattino o piu'
-            # numeri separati da virgole fanno ancora una serie
-            semi = notturni.intervallo(f.get('semi', '').strip() or '0', 0, 10 ** 9)
-            classi = notturni.intervallo(f.get('classi', '').strip() or '8', 1, 120)
-            ordini = notturni.intervallo(f.get('ordini', '').strip() or '0', 0, 10 ** 6)
+            semi = numero('semi', 0, 0, 10 ** 9)
+            classi = numero('classi', 8, 1, 120)
+            ordini = numero('ordini', 0, 0, 10 ** 6)
         except ValueError:
-            flash('Seme, classi e ordine delle classi: un numero o un intervallo col trattino, anche più di uno separati '
-                  'da virgole, per esempio «1-6», «8-12» e «0-3» (classi da 1 a 120; ordine 0: come generato).', 'errore')
+            flash('Seme, classi e ordine delle classi: un numero solo (classi da 1 a 120; ordine 0: come generato). '
+                  'Per più casi insieme ci sono i test notturni.', 'errore')
             return redirect(url_for('.indice'))
-        ritardi = {'senza': [False], 'con': [True], 'entrambi': [False, True]}.get(f.get('ritardi'), [False])
+        ritardi = [f.get('ritardi') == 'con']
         casi = [dict({'tipo': 'casuale', 'seme': s, 'classi': n, 'ritardi': r}, **({'ordine': k} if k else {}))
                 for s in semi for n in classi for r in ritardi for k in ordini]
         if len(casi) > MAX_SERIE:

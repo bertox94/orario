@@ -17,12 +17,11 @@
   </div>
   <div style="margin-top: 10px">{{ campi(ferma_nodi, ferma_min=0) }}</div>
   <label class="spunta" style="margin-top: 8px"><input type="checkbox" name="solo_possibili" value="1" checked>
-    Solo i casi possibili: salta i casi con errore nei dati (la verifica dei dati del solver, prima della ricerca; un
+    Solo i casi possibili: non parte se il caso ha errore nei dati (la verifica dei dati del solver, prima della ricerca; un
     caso che la passa può comunque non avere soluzione)</label>
   <p class="tenue piccolo">Il seme decide <em>quale scuola inventare</em>: classi, docenti, lezioni e codocenze (stesso seme
-    = stessi dati). Seme, classi e ordine delle classi: il numero scritto è solo quello (vuoti: seme 0, 8 classi, ordine
-    0); con un intervallo col trattino («1-6») o più numeri separati da virgole parte una <strong>serie</strong>: un
-    test per combinazione, uno dopo l'altro, ognuno con i suoi solver in parallelo. Il file JSON è un file esportato dai
+    = stessi dati). Un test è un caso solo: seme, classi e ordine delle classi sono un numero (vuoti: seme 0, 8 classi,
+    ordine 0); per più casi insieme ci sono i test notturni. Il file JSON è un file esportato dai
     dati della scuola o i dati di un test: il test li usa senza toccare quelli della scuola.</p>
 
   <h2>Ricerca</h2>
