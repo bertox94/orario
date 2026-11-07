@@ -168,17 +168,13 @@ void print_orario(const int s) {
     // traccia: al nodo di --controlli-nodo i controlli dei docenti di questa cella, poi il programma esce (il passo passo)
     if (traccia_nodi == traccia_controlli_nodo)
         traccia_controlli(s, giorno, ora, cla, base2d_ci, base3d_goi, base4d_queue);
-    // ---- FASE 1: i controlli ----
-    // Le potature sono gia' passate (sopra, entrando nella cella). Qui l'elenco delle scelte che passano i controlli
-    // dei docenti, nell'ordine della coda: per ogni docente le coppie con quelli dopo di lui, poi lui da solo. Lo stato
-    // e' quello di adesso: provare una scelta e tornare indietro lo rimette esattamente com'e', quindi i controlli
-    // fatti qui sono gli stessi che la ricerca farebbe prima di ogni scelta.
-    const int puo_fare_lezione = activities_for_this_class_and_hour(pos, giorno, ora, cla);
-    const size_t prima_scelta = scelte_cima;
-    if (puo_fare_lezione) {
-        const int fine_coda = base4d_queue + queue_sz;
-        for (int ii = base4d_queue; ii < fine_coda; ii++) {
-            const int p1 = queue_mul[ii]->teacher;
+    if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
+        int found_prof = 0;
+        ore_classe_svolte[cla]++;
+        const long long int queue_size = base4d_queue + queue_sz;
+        for (int ii = base4d_queue; ii < queue_size; ii++) {
+            QueueItem *it = queue_mul[ii];
+            const int p1 = it->teacher;
             // i controlli base del docente
             if (!(prof_è_disponibile(base3d_goi, p1)
                   && deve_ancora_svolgere_ore_in_questa_classe(base2d_ci, p1)
@@ -188,49 +184,39 @@ void print_orario(const int s) {
                   && verifica_ora_ingresso(p1, ora)))
                 continue;
             // in coppia, con i docenti dopo di lui nella coda
-            for (int jj = ii + 1; jj < fine_coda; jj++) {
-                const int p2 = queue_mul[jj]->teacher;
-                if (prof_è_disponibile(base3d_goi, p2)
-                    && docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(cla, p1, p2)
-                    && prof_fa_al_max_n_ore(giorno, ora, cla, p2)
-                    && prof_fa_ore_contigue(giorno, ora, cla, p2)
-                    && sabato_esaurisci_priorita_subito_cod(pos, giorno, ora, base2d_ci, p1, p2)
-                    && ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(s, giorno, cla, p2)
-                    && verifica_ora_ingresso(p2, ora))
-                    aggiungi_scelta(ii, jj);
-            }
-            // da solo
-            if (deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(base2d_ci, p1)
-                && sabato_esaurisci_priorita_subito(pos, giorno, ora, base2d_ci, p1))
-                aggiungi_scelta(ii, -1);
-        }
-    }
-    const size_t dopo_scelte = scelte_cima;
-
-    // ---- FASE 2: le scelte, una alla volta (si mette, si scende alla cella dopo, si toglie) ----
-    if (puo_fare_lezione) {
-        ore_classe_svolte[cla]++;
-        for (size_t k = prima_scelta; k < dopo_scelte; k += 2) {
-            QueueItem *it = queue_mul[scelte[k]];
-            const int jj = scelte[k + 1];
-            if (jj >= 0) {  // in coppia
+            for (int jj = ii + 1; jj < queue_size; jj++) {
                 QueueItem *jt = queue_mul[jj];
+                const int p2 = jt->teacher;
+                if (!(prof_è_disponibile(base3d_goi, p2)
+                      && docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(cla, p1, p2)
+                      && prof_fa_al_max_n_ore(giorno, ora, cla, p2)
+                      && prof_fa_ore_contigue(giorno, ora, cla, p2)
+                      && sabato_esaurisci_priorita_subito_cod(pos, giorno, ora, base2d_ci, p1, p2)
+                      && ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(s, giorno, cla, p2)
+                      && verifica_ora_ingresso(p2, ora)))
+                    continue;
                 prep_chiamata_ricorsiva_insieme(base2d_ci, base3d_goi, cla, it, jt, giorno);
-                orario[pos] = (teaching_slot){it->teacher, jt->teacher};
+                found_prof = 1;
+                orario[pos] = (teaching_slot){p1, p2};
                 print_orario(s + 1);
                 post_chiamata_ricorsiva_insieme(base2d_ci, base3d_goi, cla, it, jt, giorno);
-            } else {  // da solo
-                prep_chiamata_ricorsiva(base2d_ci, base3d_goi, it, giorno, cla, it->teacher);
-                orario[pos] = (teaching_slot){it->teacher, -1};
-                print_orario(s + 1);
-                post_chiamata_ricorsiva(base2d_ci, base3d_goi, it, giorno, cla, it->teacher);
+                if (fermato) break;
             }
             if (fermato) break;
+            // da solo
+            if (deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(base2d_ci, p1)
+                && sabato_esaurisci_priorita_subito(pos, giorno, ora, base2d_ci, p1)) {
+                prep_chiamata_ricorsiva(base2d_ci, base3d_goi, it, giorno, cla, p1);
+                found_prof = 1;
+                orario[pos] = (teaching_slot){p1, -1};
+                print_orario(s + 1);
+                post_chiamata_ricorsiva(base2d_ci, base3d_goi, it, giorno, cla, p1);
+                if (fermato) break;
+            }
         }
         ore_classe_svolte[cla]--;
-        scelte_cima = prima_scelta;  // le scelte di questa cella non servono piu'
         if (fermato) return;
-        if (dopo_scelte == prima_scelta) {  // backtrack: nessuna scelta possibile in questa cella
+        if (!found_prof) {  // backtrack: nessuna scelta possibile in questa cella
             if (f) {  // in orario.txt tutta la griglia: e' la parte piu' lenta, per questo con --txt /dev/null si salta
                 fprintf(f, "Backtrack, non si è potuto scegiere alcun insegnante nel giorno: %s, ora: %s, classe: %s\n",
                         giorni_settimana[giorno], ore_giornaliere[ora], classe_sezione[cla]);
