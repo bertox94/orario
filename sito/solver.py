@@ -35,7 +35,6 @@ RADICE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 DESCRIZIONI = {
     'main': 'main: la ricerca di oggi',
-    'per-classe': 'per classe: dentro ogni giorno una classe alla volta',
     'ordini-classi': 'ordini delle classi: se non trova entro un limite di nodi, riparte con le classi di ogni ora in '
                      'un altro ordine (a giri, con limiti crescenti)',
     'giorni-liberi': 'giorni liberi: se si blocca in un giorno, libera il primo, tiene fissati quelli in mezzo e lo '

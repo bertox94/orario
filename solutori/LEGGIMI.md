@@ -3,7 +3,7 @@
 Ogni cartella ha solo la sua ricerca (`main.c`) e, se serve, la sua parte di traccia; data layer, stampa, JSON, coda,
 costanti, potature e traccia sono i file della radice (`../../` nel suo `CMakeLists.txt`). Lo stato della ricerca e i
 controlli uguali a `main` (sul docente, sulla coppia, mettere e togliere un docente, la coda) sono in
-`controlli/comuni.h`, incluso dal `main.c` di `main`, `per-classe`, `giorni-liberi` e `ordini-classi`: nel `main.c` di un
+`controlli/comuni.h`, incluso dal `main.c` di `main`, `giorni-liberi` e `ordini-classi`: nel `main.c` di un
 solver restano solo i controlli che cambiano con l'ordine delle celle o con i giri. `controlli/controlli.h` dichiara le
 funzioni che la traccia, le potature e il controllo in avanti chiamano per nome. Tutti accettano la stessa
 riga di comando di `main` (`--input`, `--traccia`, `-n`, `--txt`, `--max-backtrack`, `--max-nodi`, `--ferma-nodi`,
@@ -41,13 +41,12 @@ controlli che hanno senso solo lì: i giorni fissati di `giorni-liberi`.
 
 Il solver `in-avanti` (la ricerca di `main` con A fatto prima di scendere alla cella dopo) è stato tolto il 7
 novembre 2026 (richiesta di Alb): da quando A è in tutti i solver trovava gli stessi orari di `main`, più lentamente.
-I suoi test notturni restano nel database, ma i giri li saltano (come quelli di `due-livelli`).
+I suoi test notturni restano nel database, ma i giri li saltano (come quelli di `due-livelli`). Lo stesso giorno è
+stato tolto `per-classe` (dentro ogni giorno una classe alla volta): sui 144 casi di prova trovava 85 orari contro i 94
+di `main`, con quasi il triplo dei nodi, e i 2 casi che risolveva solo lui rispetto a `main` li risolvono anche
+`giorni-liberi` e `ordini-classi`. Le funzioni per un ordine delle celle diverso (`cella_di`, `indice_di` nella traccia,
+nelle potature e nel controllo in avanti) restano.
 
-- **`per-classe`**: la ricerca di `main`, ma dentro ogni giorno riempie una classe alla volta (tutte le ore di C01,
-  poi C02...) invece di un'ora alla volta. Le regole di una classe (ore contigue, massimo di ore, ingresso) si vedono
-  subito; i conflitti tra classi alla stessa ora si vedono più tardi. L'orario resta indicizzato per cella come in
-  `main`; la traccia ha in più `"ordine"` nei dati (la cella decisa a ogni passo) e scrive posizioni e orari in
-  quell'ordine.
 - **`giorni-liberi`** (idea di Alb): la ricerca di `main` (stessi controlli, stessa coda, stesse potature) a giri.
   Quando la ricerca resta bloccata in un giorno, per esempio il sabato, si libera il primo giorno (il lunedì), si
   tengono fissati i giorni in mezzo (da martedì a venerdì, come li aveva riempiti la ricerca nel punto più avanti), si
@@ -111,8 +110,8 @@ ricerca torna indietro. Si controllano all'ingresso della cella dopo una scelta:
   4. le ore dei docenti: in ogni classe le ore che restano stanno in quelle che il docente può ancora fare lì, e in
      tutto nelle ore libere che gli restano dal suo ingresso.
 
-Sono scritte sulle celle già decise (per ogni classe la sua prima cella non decisa), quindi valgono anche per l'ordine
-di `per-classe`. Nella traccia una potatura è un backtrack nella cella dopo la scelta, con il
+Sono scritte sulle celle già decise (per ogni classe la sua prima cella non decisa), quindi valgono anche per un altro ordine
+delle celle (come quello del solver `per-classe`, tolto). Nella traccia una potatura è un backtrack nella cella dopo la scelta, con il
 controllo `ore_dei_docenti_stanno_nel_tempo`, `lezioni_della_classe_bastano` o `situazione_risolvibile` (A) e i suoi
 numeri.
 

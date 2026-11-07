@@ -7,7 +7,7 @@ non deve cambiare la ricerca deve dare gli stessi valori. Ogni orario trovato pa
 orario.txt, come in CLAUDE.md.
 
 Uso, dalla radice del repository:
-    python3 tests/non_regressione.py                  tutti i casi, i solver main, per-classe, giorni-liberi e ordini-classi
+    python3 tests/non_regressione.py                  tutti i casi, i solver main, giorni-liberi e ordini-classi
     python3 tests/non_regressione.py --solver main    un solver solo (anche piu' volte)
     python3 tests/non_regressione.py --aggiorna       riscrive tests/attesi.json con i valori di adesso (dopo una
                                                       modifica voluta della ricerca: va detto nel commit)
@@ -31,7 +31,7 @@ RADICE = os.path.dirname(QUI)
 sys.path.insert(0, QUI)
 from verifica_orario import verifica  # noqa: E402
 
-SOLVER_PREDEFINITI = ['main', 'per-classe', 'giorni-liberi', 'ordini-classi']
+SOLVER_PREDEFINITI = ['main', 'giorni-liberi', 'ordini-classi']
 TEMPO_MASSIMO = 60  # secondi per (solver, caso): i casi scelti finiscono in pochi secondi
 MD5_RIFERIMENTO = '8e39aec451cd1a75ddd35c266ecad126'  # orario.txt di main sui dati di prova (CLAUDE.md)
 
@@ -139,7 +139,7 @@ def main():
             lavoro = os.path.join(tmp, nome)
             os.makedirs(lavoro)
             risultati = attesi.setdefault(nome, {}) if args.aggiorna else {}
-            if not args.caso and nome == 'main':  # gli altri solver non hanno un riferimento (e per-classe e' lento qui)
+            if not args.caso and nome == 'main':  # gli altri solver non hanno un riferimento (i dati di prova)
                 md5 = md5_dati_di_prova(exe, lavoro)
                 atteso = attesi.get(nome, {}).get('dati_di_prova')
                 if args.aggiorna:

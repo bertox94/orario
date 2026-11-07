@@ -1,5 +1,5 @@
 // Lo stato e i controlli della ricerca uguali in main e nei solver che decidono le celle una alla volta con la stessa
-// coda (solutori/per-classe, giorni-liberi, ordini-classi). Non e' un header normale: contiene definizioni e va incluso
+// coda (solutori/giorni-liberi, ordini-classi). Non e' un header normale: contiene definizioni e va incluso
 // una volta sola, nel main.c del solver, dopo gli altri #include. Cosi' le funzioni sono nello stesso file della ricerca
 // (il compilatore le espande come prima: stessa velocita') e restano visibili alla traccia, alle potature e al
 // controllo in avanti, che le chiamano per nome. Ogni solver aggiunge i controlli che dipendono dall'ordine delle celle
