@@ -106,6 +106,24 @@ def avvia():
         if len(casi) > MAX_SERIE:
             flash('Troppi test in una volta: %d (al massimo %d).' % (len(casi), MAX_SERIE), 'errore')
             return redirect(url_for('.indice'))
+        if f.get('solo_possibili'):  # come nei test notturni: niente casi con errore nei dati
+            buoni, dati = [], []
+            for x in casi:
+                try:
+                    dati.append(esecutore.dati_del_caso(conn(), g.scuola['id'], x))
+                    buoni.append(x)
+                except ValueError:  # il generatore non sa fare questo caso
+                    pass
+            ok = notturni.dati_possibili(_config(), dati)
+            scartati = len(casi) - ok.count(True)
+            casi = [x for x, si in zip(buoni, ok) if si]
+            if not casi:
+                flash('Nessun caso possibile: %s (errore nei dati). Per provarl%s lo stesso togli «Solo i casi '
+                      'possibili».' % ('il caso è impossibile' if scartati == 1 else 'tutti i %d casi sono impossibili'
+                                       % scartati, 'o' if scartati == 1 else 'i'), 'errore')
+                return redirect(url_for('.indice'))
+            if scartati:
+                flash('Casi saltati perché impossibili (errore nei dati): %d.' % scartati, 'ok')
         caso = casi[0] if len(casi) == 1 else None
     # niente limite di tempo: la ricerca si ferma dopo un numero di nodi (sempre allo stesso punto, qualunque sia il
     # computer), quando trova gli orari o prova tutto, oppure col pulsante
