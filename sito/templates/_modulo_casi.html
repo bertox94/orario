@@ -2,11 +2,17 @@
    numero o un intervallo col trattino, anche più di uno separati da virgole), ritardi, limite di nodi (ferma_nodi None:
    senza, come nei test notturni), orari (con_orari False: senza, come nei test notturni: un orario) e solver.
    I valori iniziali li sceglie la pagina. #}
-{% macro campi(ferma_nodi, semi='1', classi='8', ritardi='senza', ferma_min=1, con_orari=True) %}
+{% macro campi(ferma_nodi, semi='1', classi='8', ritardi='senza', ferma_min=1, con_orari=True, fino_a=False) %}
   <div class="riga" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
+    {% if fino_a %}{# test notturni: il numero finale; si parte da 0 (semi, ordini) o da 8 (classi) #}
+    <label title="il seme finale: da 0 a questo (vuoto: solo 0). Anche un intervallo col trattino (5-9)">Semi da 0 a <input name="semi" value="" placeholder="0" size="6"></label>
+    <label title="il numero di classi finale: da 8 a questo (vuoto: solo 8). Anche un intervallo col trattino (10-12)">Classi da 8 a <input name="classi" value="" placeholder="8" size="6"></label>
+    <label title="l'ordine finale: da 0 a questo (vuoto: solo 0). 0: le classi come le genera il seme; 1, 2...: le stesse classi in un altro ordine (dentro ogni ora la ricerca le decide in quell'ordine)">Ordine delle classi da 0 a <input name="ordini" value="" placeholder="0" size="6"></label>
+    {% else %}
     <label title="un numero o un intervallo col trattino (1-6); più di uno separati da virgole">Semi <input name="semi" value="{{ semi }}" size="8"></label>
     <label title="un numero o un intervallo col trattino (8-12), come i semi; più di uno separati da virgole">Classi <input name="classi" value="{{ classi }}" size="10"></label>
     <label title="un numero o un intervallo col trattino (0-3), come i semi. 0: le classi come le genera il seme; 1, 2...: le stesse classi in un altro ordine (dentro ogni ora la ricerca le decide in quell'ordine)">Ordine delle classi <input name="ordini" value="0" size="6"></label>
+    {% endif %}
     <label>Docenti in ritardo <select name="ritardi">
       {% for v, testo in [('entrambi', 'senza e con'), ('senza', 'senza'), ('con', 'con')] %}
       <option value="{{ v }}" {{ 'selected' if v == ritardi }}>{{ testo }}</option>{% endfor %}

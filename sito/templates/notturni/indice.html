@@ -225,7 +225,7 @@
     classi, per ogni solver scelto (di default tutti). I dati si generano adesso e si salvano: restano gli stessi anche se cambia il generatore. Un test che c'è
     già (stessi dati, solver e opzioni) non si aggiunge due volte. Si può anche aggiungere un test in tempo reale dalla
     sua pagina.</p>
-  {{ campi(None, semi='1-6', classi='8-12', ritardi='entrambi', con_orari=False) }}
+  {{ campi(None, ritardi='entrambi', con_orari=False, fino_a=True) }}
   <div class="riga" style="display: flex; flex-direction: column; gap: 2px; margin-top: 10px">
     {{ scelta_solver(solutori) }}
     <label class="spunta" style="margin-top: 6px"><input type="checkbox" name="solo_possibili" value="1" checked>

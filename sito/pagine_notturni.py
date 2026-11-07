@@ -287,12 +287,13 @@ def stato():
 def genera():
     f = request.form
     try:
-        semi = notturni.intervallo(f.get('semi', ''), 0, 10 ** 9)
-        classi = notturni.intervallo(f.get('classi', ''), 1, 120)
-        ordini = notturni.intervallo(f.get('ordini', '') or '0', 0, 10 ** 6)
+        # un numero solo e' l'ultimo valore: semi da 0, classi da 8, ordini da 0 (vuoto: solo il primo)
+        semi = notturni.fino_a(f.get('semi', ''), 0, 0, 10 ** 9)
+        classi = notturni.fino_a(f.get('classi', ''), 8, 1, 120)
+        ordini = notturni.fino_a(f.get('ordini', ''), 0, 0, 10 ** 6)
     except ValueError:
-        flash('Semi, classi e ordini delle classi: un numero o un intervallo col trattino, anche più di uno separati da '
-              'virgole, per esempio «1-6», «8-16» e «0-3» (classi da 1 a 120; ordine 0: come generato).', 'errore')
+        flash('Semi, classi e ordine delle classi: il numero finale (i semi e gli ordini partono da 0, le classi da 8), '
+              'oppure un intervallo col trattino, per esempio «1-6» (classi da 1 a 120).', 'errore')
         return redirect(url_for('.indice'))
     ritardi = {'senza': [False], 'con': [True], 'entrambi': [False, True]}.get(f.get('ritardi'), [False])
     solutori = [s for s in solver.solutori() if s in f.getlist('solutore')]

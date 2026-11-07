@@ -67,6 +67,21 @@ def intervallo(testo, minimo, massimo):
     return sorted(set(valori))
 
 
+def fino_a(testo, inizio, minimo, massimo):
+    """Il modulo dei test notturni: un numero solo e' l'ultimo valore, e si parte da inizio (semi e ordini da 0,
+    classi da 8): «5» -> [0..5]; se e' piu' piccolo di inizio, solo lui. Vuoto: solo inizio. Un intervallo col trattino
+    o piu' numeri separati da virgole si leggono come prima (intervallo)."""
+    testo = testo.strip()
+    if not testo:
+        return [inizio]
+    if re.search(r'[-–—,;\s]', testo):
+        return intervallo(testo, minimo, massimo)
+    n = int(testo)
+    if not minimo <= n <= massimo:
+        raise ValueError(testo)
+    return list(range(min(inizio, n), n + 1))
+
+
 def nome_casuale(seme, classi, ritardi, ordine=0):
     nome = 'seme %d, %d classi%s' % (seme, classi, ', ritardi' if ritardi else '')
     return nome + (', ordine %d' % ordine if ordine else '')
