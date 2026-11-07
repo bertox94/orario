@@ -30,8 +30,8 @@ codice del sito e messaggi di commit sono in italiano.
 - `main`: il solver, i solver alternativi di `solutori/`, il sito e i test di non regressione (la terza versione, unita
   in `main` il 6 novembre 2026 su richiesta di Alb).
 - `sito/terza-versione`: il ramo di lavoro del sito. Le modifiche al sito si fanno direttamente qui, con push diretto;
-  in `main` si portano con una PR quando Alb lo chiede. Il Raspberry segue `main` (dal 6 novembre 2026 sera), quindi
-  una modifica arriva sul Pi solo dopo la PR.
+  in `main` si portano con una PR quando Alb lo chiede. Il Raspberry segue `sito/terza-versione` (dal 7 novembre 2026,
+  richiesta di Alb): una modifica arriva sul Pi con il push e un aggiornamento del Pi.
 - `sito/seconda-versione`: la versione precedente del sito.
 - `archivio/2026-11-04`: tutto il lavoro precedente (solver avanzato, vecchio sito, esperimenti). Non si tocca.
 - `prototipo/scheletro-accoppiamenti`: prototipo in Python (accoppiamenti, Monte Carlo, SAT), non unito.
@@ -84,7 +84,7 @@ esecuzioni fino allo stesso byte. Cancellare `orario.txt` dopo l'uso.
 
 ## Raspberry
 
-- `raspberry@192.168.1.5`, servizio `orario-sito`, repository `~/orario` (ramo `main`), ambiente Python `~/orario-venv`. Il sito usa
+- `raspberry@192.168.1.5`, servizio `orario-sito`, repository `~/orario` (ramo `sito/terza-versione`), ambiente Python `~/orario-venv`. Il sito usa
   il database del Mac.
 - Aggiornare: `ssh -t raspberry@192.168.1.5 'cd ~/orario && git pull && sudo systemctl restart orario-sito'`, poi nel
   browser Ctrl+F5. Log: `journalctl -u orario-sito -n 50 --no-pager`.
