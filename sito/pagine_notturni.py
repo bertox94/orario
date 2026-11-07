@@ -105,7 +105,8 @@ def _gruppi(casi, per, quali, solver):
 
 
 # ---- la storia: un giro per colonna ----
-GIRI_IN_COLONNA = 8   # quanti giri si mostrano (gli ultimi): ogni giro e' una colonna, il piu' recente a destra
+GIRI_IN_COLONNA = 5   # quanti giri si mostrano (gli ultimi): ogni giro e' una colonna, il piu' recente a destra
+# (di ogni test restano le ultime 5 esecuzioni: notturni.ESECUZIONI_DA_TENERE)
 RANGO_ESITO = {'trovato': 2, 'nessuna soluzione': 2, 'errore nei dati': 2, 'limite di nodi': 1}
 
 

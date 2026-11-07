@@ -347,8 +347,32 @@ def _esegui_giro(config, gid, ids):
         with db.connetti(config.database_url) as c:
             c.execute('update giri_notturni set stato = %s, fine = now() where id = %s', (stato, gid))
             c.commit()
+            try:
+                pulisci_esecuzioni(c, gid)
+                c.commit()
+            except Exception:  # la pulizia non deve far perdere il giro
+                traceback.print_exc()
+                c.rollback()
         with _lock:
             _giro.update(id=None, esecuzione=None, fermare=False, test=None)
+
+
+ESECUZIONI_DA_TENERE = 5  # per ogni test notturno restano le sue ultime 5 esecuzioni (richiesta di Alb)
+
+
+def pulisci_esecuzioni(c, gid):
+    """Alla fine di un giro, nella sua scuola: di ogni test restano le ultime ESECUZIONI_DA_TENERE esecuzioni, e i giri
+    rimasti senza esecuzioni si tolgono. Il riferimento accettato di un test resta (e' nel test)."""
+    c.execute('''
+        delete from esecuzioni_notturne n using (
+            select x.id, row_number() over (partition by x.test_id order by x.id desc) as k
+            from esecuzioni_notturne x join test_notturni t on t.id = x.test_id
+            where t.scuola_id = (select scuola_id from giri_notturni where id = %s)) v
+        where n.id = v.id and v.k > %s''', (gid, ESECUZIONI_DA_TENERE))
+    c.execute('''
+        delete from giri_notturni g where g.scuola_id = (select scuola_id from giri_notturni where id = %s)
+          and g.stato <> 'in corso' and not exists (select 1 from esecuzioni_notturne n where n.giro_id = g.id)''',
+              (gid,))
 
 
 def _registra(config, nid, test, r):
