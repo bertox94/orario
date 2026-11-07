@@ -13,6 +13,7 @@ Un giro esegue tutti i test attivi di una scuola uno dopo l'altro (non in parall
 Raspberry non si satura). Parte da solo ogni notte all'ora impostata (thread di sorveglianza, uno per processo del sito)
 o a mano. Un solo giro alla volta.
 """
+import concurrent.futures
 import datetime
 import hashlib
 import json
@@ -151,7 +152,7 @@ def pulisci_dati(c, scuola_id):
               '(select 1 from test_notturni t where t.dati_id = d.id)', (scuola_id,))
 
 
-def genera(c, scuola_id, semi, classi, ritardi, solutori, orari=1, casi_repository=False, ordini=(0,)):
+def genera(c, scuola_id, semi, classi, ritardi, solutori, orari=1, casi_repository=False, ordini=(0,), possibili=None):
     """I test di tutte le combinazioni (seme x classi x ritardi x ordine delle classi) per ogni solver, piu' (se
     chiesto) i casi di tests/casi. Ritorna (aggiunti, gia' presenti, [messaggi per i casi che il generatore non sa
     fare], [id di tutti i test chiesti, nuovi e gia' presenti])."""
@@ -175,6 +176,11 @@ def genera(c, scuola_id, semi, classi, ritardi, solutori, orari=1, casi_reposito
             if f.endswith('.json'):
                 with open(os.path.join(CASI_DEL_REPOSITORY, f)) as fh:
                     casi.append(('tests/casi/' + f[:-5], {'tipo': 'file', 'nome': 'tests/casi/' + f}, json.load(fh)))
+    scartati = 0
+    if possibili:  # solo i casi possibili: possibili(lista di dati) -> [True/False] (vedi dati_possibili)
+        ok = possibili([d for _, _, d in casi])
+        scartati = ok.count(False)
+        casi = [x for x, si in zip(casi, ok) if si]
     aggiunti = gia = 0
     ids = []
     # i dati una volta per caso, poi i test (uno per solver) con l'id dei dati: alla query arrivano solo i nomi
@@ -200,7 +206,28 @@ def genera(c, scuola_id, semi, classi, ritardi, solutori, orari=1, casi_reposito
                 aggiunti += 1
             else:
                 gia += 1
-    return aggiunti, gia, problemi, ids
+    return aggiunti, gia, problemi, ids, scartati
+
+
+def dati_possibili(config, tanti):
+    """Per ogni dati della lista: False se la verifica dei dati del solver (quella che fa prima della ricerca: «errore
+    nei dati») dice che l'orario non puo' esistere, se no True. Il solver si ferma al primo nodo; i casi si verificano
+    in parallelo, uno per processore. Un caso che passa la verifica puo' comunque non avere soluzione: la verifica
+    guarda solo condizioni necessarie."""
+    exe = solver.compila(config.cartella_bin, 'main')
+    base = tempfile.mkdtemp(prefix='v-', dir=_cartella(config))
+    opzioni = {'orari': 1, 'max_backtrack': 0, 'max_nodi': 0, 'ferma_nodi': 1}
+
+    def uno(i_dati):
+        i, dati = i_dati
+        r = solver.Esecuzione(exe, dati, opzioni, os.path.join(base, str(i))).attendi()
+        return not r.get('errore_dati') and r['esito'] != 'errore nei dati'
+
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count() or 2) as ex:
+            return list(ex.map(uno, enumerate(tanti)))
+    finally:
+        shutil.rmtree(base, ignore_errors=True)
 
 
 # Aggiungere tanti test in una volta: una query ogni _PER_VOLTA casi per i dati e una ogni _PER_VOLTA test (invece

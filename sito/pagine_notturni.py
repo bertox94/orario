@@ -302,9 +302,13 @@ def genera():
     if len(semi) * len(classi) * len(ritardi) * len(ordini) * len(solutori) > 20000:
         flash('Troppi test in una volta (al massimo 20.000).', 'errore')
         return redirect(url_for('.indice'))
-    aggiunti, gia, problemi, ids = notturni.genera(conn(), g.scuola['id'], semi, classi, ritardi, solutori, 1,
-                                                   casi_repository=bool(f.get('repository')), ordini=ordini)
+    possibili = (lambda tanti: notturni.dati_possibili(_config(), tanti)) if f.get('solo_possibili') else None
+    aggiunti, gia, problemi, ids, scartati = notturni.genera(
+        conn(), g.scuola['id'], semi, classi, ritardi, solutori, 1, casi_repository=bool(f.get('repository')),
+        ordini=ordini, possibili=possibili)
     flash('Test aggiunti: %d%s.' % (aggiunti, ' (%d c\'era%s già)' % (gia, '' if gia == 1 else 'no') if gia else ''), 'ok')
+    if scartati:
+        flash('Casi non generati perché impossibili (errore nei dati): %d.' % scartati, 'ok')
     for p in problemi[:10]:
         flash('Non generato: %s' % p, 'errore')
     if f.get('esegui') and ids:

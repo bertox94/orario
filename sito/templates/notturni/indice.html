@@ -228,7 +228,10 @@
   {{ campi(None, semi='1-6', classi='8-12', ritardi='entrambi', con_orari=False) }}
   <div class="riga" style="display: flex; flex-direction: column; gap: 2px; margin-top: 10px">
     {{ scelta_solver(solutori) }}
-    <label class="spunta" style="margin-top: 6px"><input type="checkbox" name="repository" value="1">
+    <label class="spunta" style="margin-top: 6px"><input type="checkbox" name="solo_possibili" value="1">
+      Solo i casi possibili: non genera i casi con errore nei dati (la verifica dei dati del solver, prima della ricerca;
+      un caso che la passa può comunque non avere soluzione)</label>
+    <label class="spunta"><input type="checkbox" name="repository" value="1">
       Anche i casi del repository (<code>tests/casi</code>: i dati impossibili costruiti apposta e quelli dei test di non regressione)</label>
   </div>
   <p class="tenue piccolo">Con 50.000.000 di nodi un test che non finisce dura circa 40 secondi sul Mac (main fa circa un milione di nodi al
