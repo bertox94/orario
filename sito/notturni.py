@@ -333,6 +333,7 @@ def _esegui_giro(config, gid, ids):
                     continue
                 nid = c.execute('insert into esecuzioni_notturne (giro_id, test_id) values (%s, %s) returning id',
                                 (gid, tid)).fetchone()['id']
+                pulisci_esecuzioni(c, gid, tid)  # anche mentre gira: 5 esecuzioni, compresa quella in corso
                 c.commit()
             try:
                 r = esegui_test(config, test)
@@ -340,6 +341,14 @@ def _esegui_giro(config, gid, ids):
                 traceback.print_exc()
                 r = {'esito': 'errore', 'errore': str(ex), 'secondi': None}
             _registra(config, nid, test, r)
+            # subito, test per test: peggiorato o migliorato, e di questo test restano le ultime 5 esecuzioni
+            try:
+                with db.connetti(config.database_url) as c:
+                    registra_variazioni(c, gid, tid)
+                    pulisci_esecuzioni(c, gid, tid)
+                    c.commit()
+            except Exception:  # non deve fermare il giro
+                traceback.print_exc()
     except Exception:
         traceback.print_exc()
         stato = 'interrotto'
@@ -348,9 +357,7 @@ def _esegui_giro(config, gid, ids):
             c.execute('update giri_notturni set stato = %s, fine = now() where id = %s', (stato, gid))
             c.commit()
             try:
-                registra_variazioni(c, gid)
-                c.commit()
-                pulisci_esecuzioni(c, gid)
+                pulisci_esecuzioni(c, gid)  # i giri rimasti senza esecuzioni
                 c.commit()
             except Exception:  # la pulizia non deve far perdere il giro
                 traceback.print_exc()
@@ -376,8 +383,8 @@ def _numeri(n):
             'backtrack': n['backtrack'], 'secondi': n['secondi'], 'giro_id': n['giro_id']}
 
 
-def registra_variazioni(c, gid):
-    """Alla fine del giro gid, per ogni suo test: se l'ultima esecuzione e' peggiore di una delle precedenti ancora
+def registra_variazioni(c, gid, tid=None):
+    """Dopo un test (tid; None: tutti i test del giro gid): se l'ultima esecuzione e' peggiore di una delle precedenti ancora
     tenute, il test e' «peggiorato» (confrontato con la migliore); se no, se e' migliore di una, «migliorato»
     (confrontato con la peggiore). Una riga per test e tipo in variazioni_notturne, aggiornata se c'era gia'."""
     giro = c.execute('select scuola_id, commit from giri_notturni where id = %s', (gid,)).fetchone()
@@ -386,8 +393,9 @@ def registra_variazioni(c, gid):
     righe = c.execute('''
         select n.* from esecuzioni_notturne n
         where n.test_id in (select test_id from esecuzioni_notturne where giro_id = %s)
+          and (%s::int is null or n.test_id = %s)
           and n.esito is not null and n.esito not in ('fermato', 'interrotto')
-        order by n.test_id, n.id''', (gid,)).fetchall()
+        order by n.test_id, n.id''', (gid, tid, tid)).fetchall()
     per_test = {}
     for n in righe:
         per_test.setdefault(n['test_id'], []).append(n)
@@ -411,15 +419,17 @@ def registra_variazioni(c, gid):
                   (giro['scuola_id'], tid, tipo, giro['commit'], _json(_numeri(ultima)), _json(_numeri(confronto))))
 
 
-def pulisci_esecuzioni(c, gid):
-    """Alla fine di un giro, nella sua scuola: di ogni test restano le ultime ESECUZIONI_DA_TENERE esecuzioni, e i giri
-    rimasti senza esecuzioni si tolgono. Il riferimento accettato di un test resta (e' nel test)."""
+def pulisci_esecuzioni(c, gid, tid=None):
+    """Dopo ogni test di un giro (tid) e alla fine del giro (tutti i test della sua scuola): di ogni test restano le
+    ultime ESECUZIONI_DA_TENERE esecuzioni, e i giri rimasti senza esecuzioni si tolgono. Il riferimento accettato di
+    un test resta (e' nel test)."""
     c.execute('''
         delete from esecuzioni_notturne n using (
             select x.id, row_number() over (partition by x.test_id order by x.id desc) as k
             from esecuzioni_notturne x join test_notturni t on t.id = x.test_id
-            where t.scuola_id = (select scuola_id from giri_notturni where id = %s)) v
-        where n.id = v.id and v.k > %s''', (gid, ESECUZIONI_DA_TENERE))
+            where t.scuola_id = (select scuola_id from giri_notturni where id = %s)
+              and (%s::int is null or x.test_id = %s)) v
+        where n.id = v.id and v.k > %s''', (gid, tid, tid, ESECUZIONI_DA_TENERE))
     c.execute('''
         delete from giri_notturni g where g.scuola_id = (select scuola_id from giri_notturni where id = %s)
           and g.stato <> 'in corso' and not exists (select 1 from esecuzioni_notturne n where n.giro_id = g.id)''',
