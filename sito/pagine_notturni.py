@@ -29,7 +29,8 @@ def _torna(predefinito='.indice'):
 
 
 def _test(tid):
-    t = conn().execute('select * from test_notturni where id = %s and scuola_id = %s', (tid, g.scuola['id'])).fetchone()
+    t = conn().execute('select t.*, d.dati from test_notturni t join dati_notturni d on d.id = t.dati_id '
+                       'where t.id = %s and t.scuola_id = %s', (tid, g.scuola['id'])).fetchone()
     if not t:
         abort(404)
     return t
@@ -442,6 +443,7 @@ def elimina(tid):
         flash('Il test sta girando: prima ferma il giro.', 'errore')
         return redirect(url_for('.test', tid=tid))
     conn().execute('delete from test_notturni where id = %s', (tid,))
+    notturni.pulisci_dati(conn(), g.scuola['id'])
     flash('Test eliminato, con le sue esecuzioni.', 'ok')
     return redirect(url_for('.indice'))
 
@@ -458,6 +460,7 @@ def togli():
     ids -= restano
     n = conn().execute('delete from test_notturni where scuola_id = %s and id = any(%s)',
                        (g.scuola['id'], sorted(ids))).rowcount if ids else 0
+    notturni.pulisci_dati(conn(), g.scuola['id'])
     flash('Eliminat%s %d test.' % ('o' if n == 1 else 'i', n), 'ok')
     if restano:
         flash('Un test sta girando e non è stato eliminato: fermalo o aspetta la fine del giro.', 'errore')

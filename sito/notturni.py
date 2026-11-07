@@ -73,10 +73,10 @@ def nome_casuale(seme, classi, ritardi, ordine=0):
 
 def presente(c, scuola_id, solutore, dati, opzioni):
     """L'id del test notturno attivo con gli stessi dati, solver e opzioni, o None."""
-    j = _json(dati)
-    r = c.execute('select id from test_notturni where scuola_id = %s and solutore = %s and md5(dati::text) = '
-                  'md5(%s::jsonb::text) and dati = %s::jsonb and opzioni = %s::jsonb and attivo',
-                  (scuola_id, solutore, j, j, _json(opzioni))).fetchone()
+    r = c.execute('select t.id from test_notturni t join dati_notturni d on d.id = t.dati_id '
+                  'where d.scuola_id = %s and d.impronta = md5(%s::jsonb::text) and t.scuola_id = %s '
+                  'and t.solutore = %s and t.opzioni = %s::jsonb and t.attivo',
+                  (scuola_id, _json(dati), scuola_id, solutore, _json(opzioni))).fetchone()
     return r['id'] if r else None
 
 
@@ -86,8 +86,9 @@ def nei_notturni(c, scuola_id, eid):
     database: i dati di un test non arrivano a Python."""
     r = c.execute("""
         select p.dati_scuola is not null as con_dati,
-               (select t.id from test_notturni t
-                where t.scuola_id = p.scuola_id and t.attivo and t.dati = p.dati_scuola
+               (select t.id from test_notturni t join dati_notturni d on d.id = t.dati_id
+                where d.scuola_id = p.scuola_id and d.impronta = md5(p.dati_scuola::text)
+                  and t.scuola_id = p.scuola_id and t.attivo
                   and t.solutore = coalesce(e.opzioni->>'solutore', 'main')
                   and t.opzioni = jsonb_build_object('orari', coalesce((e.opzioni->>'orari')::int, 1),
                                                      'ferma_nodi', coalesce((e.opzioni->>'ferma_nodi')::bigint, %s))
@@ -120,10 +121,35 @@ def aggiungi(c, scuola_id, nome, solutore, caso, dati, opzioni):
     gia = presente(c, scuola_id, solutore, dati, opzioni)
     if gia:
         return gia, False
-    r = c.execute('insert into test_notturni (scuola_id, nome, solutore, caso, dati, opzioni) '
+    dati_id = salva_dati(c, scuola_id, [dati])[0]
+    r = c.execute('insert into test_notturni (scuola_id, nome, solutore, caso, dati_id, opzioni) '
                   'values (%s, %s, %s, %s, %s, %s) returning id',
-                  (scuola_id, nome, solutore, _json(caso), _json(dati), _json(opzioni))).fetchone()
+                  (scuola_id, nome, solutore, _json(caso), dati_id, _json(opzioni))).fetchone()
     return r['id'], True
+
+
+def salva_dati(c, scuola_id, tanti):
+    """I dati di alcuni casi in dati_notturni (una volta sola: se ci sono gia' si usano quelli). Ritorna i loro id,
+    nello stesso ordine."""
+    righe = c.execute(_SALVA_DATI, (_json([{'i': i, 'dati': d} for i, d in enumerate(tanti)]), scuola_id,
+                                    scuola_id)).fetchall()
+    ids = {r['i']: r['id'] for r in righe}
+    return [ids[i] for i in range(len(tanti))]
+
+
+_SALVA_DATI = '''
+    with r as (select x.i, x.dati, md5(x.dati::text) as impronta from jsonb_to_recordset(%s::jsonb) as x(i int, dati jsonb)),
+    nuovi as (insert into dati_notturni (scuola_id, impronta, dati)
+              select distinct on (impronta) %s, impronta, dati from r order by impronta
+              on conflict do nothing returning id, impronta)
+    select r.i, coalesce(n.id, d.id) as id from r left join nuovi n on n.impronta = r.impronta
+    left join dati_notturni d on d.scuola_id = %s and d.impronta = r.impronta'''
+
+
+def pulisci_dati(c, scuola_id):
+    """Toglie i dati che nessun test usa piu' (dopo aver eliminato dei test)."""
+    c.execute('delete from dati_notturni d where d.scuola_id = %s and not exists '
+              '(select 1 from test_notturni t where t.dati_id = d.id)', (scuola_id,))
 
 
 def genera(c, scuola_id, semi, classi, ritardi, solutori, ferma_nodi, orari=1, casi_repository=False, ordini=(0,)):
@@ -152,11 +178,21 @@ def genera(c, scuola_id, semi, classi, ritardi, solutori, ferma_nodi, orari=1, c
                     casi.append(('tests/casi/' + f[:-5], {'tipo': 'file', 'nome': 'tests/casi/' + f}, json.load(fh)))
     aggiunti = gia = 0
     ids = []
-    test = [{'nome': nome, 'solutore': s, 'caso': caso, 'dati': dati} for nome, caso, dati in casi for s in solutori]
+    # i dati una volta per caso, poi i test (uno per solver) con l'id dei dati: alla query arrivano solo i nomi
+    test, visti = [], set()
+    for k in range(0, len(casi), _PER_VOLTA):
+        blocco = casi[k:k + _PER_VOLTA]
+        for (nome, caso, _), dati_id in zip(blocco, salva_dati(c, scuola_id, [d for _, _, d in blocco])):
+            for s in solutori:
+                if (s, dati_id) in visti:  # due casi con gli stessi dati: un test solo
+                    continue
+                visti.add((s, dati_id))
+                test.append({'nome': nome, 'solutore': s, 'caso': caso, 'dati_id': dati_id})
+    gia += len(casi) * len(solutori) - len(test)
     for k, i in enumerate(range(0, len(test), _PER_VOLTA)):
         if k and k & (k - 1) == 0:
             # dopo 1, 2, 4, 8... blocchi: il database rifa' le statistiche, se no crede che la tabella sia ancora
-            # piccola, non usa l'indice e confronta ogni test con tutti quelli della scuola
+            # piccola e non usa l'indice per trovare i test che ci sono gia'
             c.execute('analyze test_notturni')
         for r in c.execute(_AGGIUNGI_TANTI, (_json(test[i:i + _PER_VOLTA]), scuola_id, _json(opzioni), scuola_id,
                                              _json(opzioni))).fetchall():
@@ -168,20 +204,19 @@ def genera(c, scuola_id, semi, classi, ritardi, solutori, ferma_nodi, orari=1, c
     return aggiunti, gia, problemi, ids
 
 
-# Aggiungere tanti test in una volta: una query ogni _PER_VOLTA test (invece di due per test), con il confronto dei
-# dati fatto nel database sull'impronta (l'indice test_notturni_stessi_dati) e poi sui dati. Prima ogni test era un
-# confronto con i dati di tutti i test della scuola e due andate e ritorno con il database (dal Raspberry al Mac:
-# la rete): con migliaia di test, minuti.
+# Aggiungere tanti test in una volta: una query ogni _PER_VOLTA casi per i dati e una ogni _PER_VOLTA test (invece
+# di due per test), con i test che ci sono gia' trovati nel database dall'indice (scuola, solver, dati). Prima ogni
+# test era un confronto con i dati di tutti i test della scuola e due andate e ritorno con il database (dal
+# Raspberry al Mac: la rete): con migliaia di test, minuti.
 _PER_VOLTA = 200
 _AGGIUNGI_TANTI = '''
-    with r as (select x.* from jsonb_to_recordset(%s::jsonb) as x(nome text, solutore text, caso jsonb, dati jsonb)),
-    gia as (select r.solutore, r.dati, t.id from r cross join lateral (
+    with r as (select x.* from jsonb_to_recordset(%s::jsonb) as x(nome text, solutore text, caso jsonb, dati_id int)),
+    gia as (select r.solutore, r.dati_id, t.id from r cross join lateral (
                 select id from test_notturni t where t.scuola_id = %s and t.solutore = r.solutore
-                and md5(t.dati::text) = md5(r.dati::text) and t.dati = r.dati and t.opzioni = %s::jsonb and t.attivo
-                order by id limit 1) t),
-    nuovi as (insert into test_notturni (scuola_id, nome, solutore, caso, dati, opzioni)
-              select %s, r.nome, r.solutore, r.caso, r.dati, %s::jsonb from r
-              where not exists (select 1 from gia where gia.solutore = r.solutore and gia.dati = r.dati)
+                and t.dati_id = r.dati_id and t.opzioni = %s::jsonb and t.attivo order by id limit 1) t),
+    nuovi as (insert into test_notturni (scuola_id, nome, solutore, caso, dati_id, opzioni)
+              select %s, r.nome, r.solutore, r.caso, r.dati_id, %s::jsonb from r
+              where not exists (select 1 from gia where gia.solutore = r.solutore and gia.dati_id = r.dati_id)
               returning id)
     select id, true as nuovo from nuovi union all select id, false from gia'''
 
@@ -292,7 +327,8 @@ def _esegui_giro(config, gid, ids):
                     break
                 _giro['test'] = tid
             with db.connetti(config.database_url) as c:
-                test = c.execute('select * from test_notturni where id = %s', (tid,)).fetchone()
+                test = c.execute('select t.*, d.dati from test_notturni t join dati_notturni d on d.id = t.dati_id '
+                                 'where t.id = %s', (tid,)).fetchone()
                 if not test:
                     continue
                 nid = c.execute('insert into esecuzioni_notturne (giro_id, test_id) values (%s, %s) returning id',

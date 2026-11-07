@@ -34,6 +34,7 @@ def avvia(app):
         return
     _avviato = True
     riprendi_dopo_riavvio(app.config['SITO'])
+    solver.compila_tutti(app.config['SITO'].cartella_bin)
 
 
 def riprendi_dopo_riavvio(config):
