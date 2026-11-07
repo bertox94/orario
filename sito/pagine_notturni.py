@@ -311,9 +311,6 @@ def genera():
         flash('Casi non generati perché impossibili (errore nei dati): %d.' % scartati, 'ok')
     for p in problemi[:10]:
         flash('Non generato: %s' % p, 'errore')
-    if f.get('esegui') and ids:
-        conn().commit()  # il giro legge i test con un'altra connessione: devono esserci gia'
-        _avvia(ids)
     return redirect(url_for('.indice'))
 
 
