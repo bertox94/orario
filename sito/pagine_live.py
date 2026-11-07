@@ -133,8 +133,9 @@ def avvia():
     # computer), quando trova gli orari o prova tutto, oppure col pulsante
     opzioni = {'orari': _intero('orari', 1, 1, 1000),
                'max_backtrack': _intero('max_backtrack', 1000, 0, 100000)}
-    ferma_nodi = _intero('ferma_nodi', FERMA_NODI, 0)
-    if ferma_nodi:  # 0: senza limite, si ferma col pulsante
+    # il limite si scrive in milioni di nodi (0: senza limite, si ferma col pulsante)
+    ferma_nodi = _intero('ferma_milioni', FERMA_NODI // 1000000, 0, 1000) * 1000000
+    if ferma_nodi:
         opzioni['ferma_nodi'] = ferma_nodi
     disponibili = list(solver.solutori())
     if f.getlist('solutore') or sorgente != 'esecuzione':  # dal modulo, o «Rifai solo con»: quelli scelti

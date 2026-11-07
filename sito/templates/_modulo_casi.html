@@ -18,8 +18,8 @@
       <option value="{{ v }}" {{ 'selected' if v == ritardi }}>{{ testo }}</option>{% endfor %}
     </select></label>
     {% if ferma_nodi is not none %}{# i test notturni hanno un limite solo, in alto nella loro pagina #}
-    <label {% if ferma_min == 0 %}title="0: nessun limite, la ricerca va avanti finché non la fermi"{% endif %}>Fermati dopo nodi
-      <input type="number" name="ferma_nodi" min="{{ ferma_min }}" value="{{ ferma_nodi }}"></label>{% endif %}
+    <label title="in milioni di nodi{{ '; 0: nessun limite, la ricerca va avanti finché non la fermi' if ferma_min == 0 }}">Fermati dopo
+      <input type="number" name="ferma_milioni" min="{{ ferma_min }}" max="1000" step="1" value="{{ (ferma_nodi / 1000000)|round|int }}" style="width: 5em"> milioni di nodi</label>{% endif %}
     {% if con_orari %}<label>Orari da trovare <input type="number" name="orari" min="1" max="1000" value="1"></label>{% endif %}
   </div>
 {%- endmacro %}
