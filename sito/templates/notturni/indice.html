@@ -84,7 +84,8 @@
   {% set esiti = c.per_solver.values()|map(attribute='esito')|list %}
   {% set n_trovato = esiti|select('equalto', 'trovato')|list|length %}
   <tbody class="caso" data-gruppo="{{ ig }}" data-errore="{{ 1 if 'errore nei dati' in esiti else 0 }}"
-         data-trovato="{{ 1 if n_trovato else 0 }}" data-trovati="{{ n_trovato }}" data-aperto="{{ 0 if c.concluso else 1 }}" data-solver="{{ esiti|length }}">
+         data-trovato="{{ 1 if n_trovato else 0 }}" data-trovati="{{ n_trovato }}"
+         data-risolti="{{ 'dati' if 'errore nei dati' in esiti or 'nessuna soluzione' in esiti else 'nessuno' if not n_trovato else 'tutti' if n_trovato == esiti|length else esiti|length - n_trovato }}" data-aperto="{{ 0 if c.concluso else 1 }}" data-solver="{{ esiti|length }}">
     <tr class="riga-caso{{ ' riga-diversa' if c.per_solver.values()|selectattr('confronto', 'equalto', 'diverso')|list }}">
       <td><input type="checkbox" class="seleziona-caso" name="tid" form="togli-test"
                  value="{{ c.per_solver.values()|map(attribute='id')|join(',') }}"
@@ -171,7 +172,7 @@
     <option value="trovato">almeno un orario trovato</option>
     <option value="aperto">nessun solver arrivato a una conclusione</option>
   </select></label>
-  <label>Orario trovato da <select id="filtro-trovati"><option value="">qualsiasi numero di solver</option></select></label>
+  <label>Risolti <select id="filtro-trovati"><option value="">tutti i casi</option></select></label>
   <label class="spunta"><input type="checkbox" id="nascondi-errori"> Nascondi i casi con errore nei dati</label>
   <span class="tenue piccolo" id="conto-filtro"></span>
 </div>
@@ -238,16 +239,18 @@ document.getElementById('chiudi-tutti').addEventListener('click', () =>
 // «Nascondi i casi con errore nei dati» si aggiunge al filtro e resta scelto (in questo browser).
 const filtro = document.getElementById('filtro-casi');
 const nascondiErrori = document.getElementById('nascondi-errori');
-// «orario trovato da»: le scelte sono i numeri di solver che ci sono davvero (0 = da nessuno)
+// «Risolti» (all'ultima esecuzione): errore nei dati o dimostrato impossibile (un solver ha provato tutto: nessuna
+// soluzione); poi gli altri: risolto da tutti, non risolto da 1, 2... solver, da nessuno
 const filtroTrovati = document.getElementById('filtro-trovati');
 (() => {
   const casi = [...document.querySelectorAll('tbody.caso')];
   const max = Math.max(0, ...casi.map(t => +t.dataset.solver));
-  const quanti = [...new Set(casi.map(t => +t.dataset.trovati))].sort((a, b) => a - b);
-  for (const n of quanti) {
-    const conto = casi.filter(t => +t.dataset.trovati === n).length;
-    filtroTrovati.add(new Option(`${n === 0 ? 'nessun solver' : n === max ? `tutti i solver (${n})` : `${n} solver`} — ${conto} casi`, n));
-  }
+  const conto = v => casi.filter(t => t.dataset.risolti === v).length;
+  filtroTrovati.add(new Option(`errore nei dati o dimostrato impossibile — ${conto('dati')} casi`, 'dati'));
+  filtroTrovati.add(new Option(`risolto da tutti i solver — ${conto('tutti')} casi`, 'tutti'));
+  for (let k = 1; k < max; k++)
+    filtroTrovati.add(new Option(`non risolto da ${k === 1 ? 'un solver' : k === 2 ? 'due solver' : k + ' solver'} — ${conto(String(k))} casi`, String(k)));
+  filtroTrovati.add(new Option(`non risolto da alcun solver — ${conto('nessuno')} casi`, 'nessuno'));
 })();
 try { nascondiErrori.checked = localStorage.getItem('notturni-nascondi-errori') === '1'; } catch (e) {}
 function filtra() {
@@ -255,7 +258,7 @@ function filtra() {
   const casi = [...document.querySelectorAll('tbody.caso')];
   let n = 0;
   for (const t of casi) {
-    const si = (!v || t.dataset[v] === '1') && !(senza && t.dataset.errore === '1') && (nt === '' || t.dataset.trovati === nt);
+    const si = (!v || t.dataset[v] === '1') && !(senza && t.dataset.errore === '1') && (nt === '' || t.dataset.risolti === nt);
     t.hidden = !si;
     n += si;
   }
