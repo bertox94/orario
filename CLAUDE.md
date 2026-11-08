@@ -5,7 +5,8 @@ codice del sito e messaggi di commit sono in italiano.
 
 ## Cosa c'è
 
-- **Il solver** (C, radice del repository): ricerca con backtracking dell'orario. `main.c` contiene la ricerca
+- **Il solver** (C): ricerca con backtracking dell'orario. `solutori/main/main.c` (dall'8 novembre 2026 in
+  `solutori/` con gli altri solver, richiesta di Alb; prima nella radice) contiene la ricerca
   (`print_orario`) e i controlli che dipendono dall'ordine delle celle; lo stato e gli altri controlli sono in
   `controlli/comuni.h` (definizioni, condivise con i solver di `solutori/`), le dichiarazioni per la traccia e le
   potature in `controlli/controlli.h`; i dati di prova sono in `data_initialization/database_initializers.c`
@@ -16,7 +17,7 @@ codice del sito e messaggi di commit sono in italiano.
 - **Il sito** (Flask + Postgres, cartella `sito/`, in `main`; si lavora in `sito/terza-versione`): dati della scuola e test in tempo
   reale. A ogni backtrack la pagina del test mostra l'orario fino a quel punto e, per ogni docente, i controlli della
   ricerca con ingressi ed esito. Vedi `sito/INSTALLAZIONE.md`.
-- **I solver alternativi** (cartella `solutori/`, nel branch del sito): `giorni-liberi`, `ordini-classi`.
+- **I solver alternativi** (cartella `solutori/`, accanto a `main`): `giorni-liberi`, `ordini-classi`.
   Ognuno ha solo la sua ricerca (`main.c`) e, se serve, la sua parte di traccia; data layer, stampa, JSON, coda,
   costanti e potature sono i file della radice (`../../` nel suo `CMakeLists.txt`). Stessa riga di comando e stessa
   traccia di `main`. Il sito li compila dai `.c` del loro `CMakeLists.txt` e li offre come caselle nel modulo del
@@ -53,7 +54,7 @@ codice del sito e messaggi di commit sono in italiano.
 ### Verificare che il calcolo non cambia
 
 ```bash
-gcc -O2 -std=gnu11 -w main.c data_initialization/database_initializers.c printer/printer.c \
+gcc -O2 -std=gnu11 -w solutori/main/main.c data_initialization/database_initializers.c printer/printer.c \
     priority_queue/prio_queue.c ingresso_uscita/*.c potature/potature.c controllo_in_avanti/controllo_in_avanti.c \
     -o /tmp/solver -lm
 cd /tmp && rm -f orario.txt && /tmp/solver > /dev/null && grep -v '^Current time:' orario.txt | md5sum

@@ -43,12 +43,12 @@ DESCRIZIONI = {
 
 
 def solutori():
-    """I solver disponibili: nome -> cartella dei sorgenti ('main' prima, poi quelli di solutori/ in ordine)."""
-    s = {'main': RADICE}
+    """I solver disponibili, tutti in solutori/: nome -> cartella dei sorgenti ('main' prima, poi gli altri in ordine)."""
     base = os.path.join(RADICE, 'solutori')
+    s = {'main': os.path.join(base, 'main')}
     if os.path.isdir(base):
         for nome in sorted(os.listdir(base)):
-            if os.path.exists(os.path.join(base, nome, 'CMakeLists.txt')):
+            if nome != 'main' and os.path.exists(os.path.join(base, nome, 'CMakeLists.txt')):
                 s[nome] = os.path.join(base, nome)
     return s
 
@@ -70,24 +70,25 @@ def sorgenti(nome='main'):
     return [f for f in blocco.split() if f.endswith('.c')]
 
 
-def impronta_sorgenti(nome='main'):
-    """Impronta di tutti i sorgenti (.c e .h) di un solver: cambia appena cambia una riga, anche senza commit. I solver
-    di solutori/ usano i sorgenti della radice (data layer, stampa, JSON, potature): la loro impronta comprende quella
-    di main."""
-    radice = cartella(nome)
-    h = hashlib.sha1()
-    if (nome or 'main') != 'main':
-        h.update(impronta_sorgenti('main').encode())
+def _impronta_cartella(h, radice, escluse=()):
     for dir_, _, files in sorted(os.walk(radice)):
-        # dentro la cartella del solver; per main restano fuori il sito, i test e gli altri solver
         parti = os.path.relpath(dir_, radice).split(os.sep)
-        if any(x in ('.git', 'sito', 'tests', 'dati_sito', 'solutori') or x.startswith('cmake-build') for x in parti):
+        if any(x in escluse or x == '.git' or x.startswith('cmake-build') for x in parti):
             continue
         for f in sorted(files):
             if f.endswith(('.c', '.h')) or f == 'CMakeLists.txt':
                 p = os.path.join(dir_, f)
                 h.update(os.path.relpath(p, radice).encode())
                 h.update(open(p, 'rb').read())
+
+
+def impronta_sorgenti(nome='main'):
+    """Impronta di tutti i sorgenti (.c e .h) di un solver: cambia appena cambia una riga, anche senza commit. Sono
+    quelli condivisi della radice (data layer, stampa, JSON, coda, controlli, potature: tutto fuori dal sito, dai test e
+    da solutori/) e quelli della cartella del solver in solutori/."""
+    h = hashlib.sha1()
+    _impronta_cartella(h, RADICE, ('sito', 'tests', 'dati_sito', 'solutori', 'bf_search'))
+    _impronta_cartella(h, cartella(nome))
     return h.hexdigest()[:12]
 
 

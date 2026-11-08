@@ -3,7 +3,7 @@ project(untitled C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(untitled main.c
+add_executable(untitled solutori/main/main.c
         constants/professors.h
         constants/days.h
         constants/hours.h

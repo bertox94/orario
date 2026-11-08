@@ -37,7 +37,7 @@ MD5_RIFERIMENTO = '8e39aec451cd1a75ddd35c266ecad126'  # orario.txt di main sui d
 
 
 def cartella_solver(nome):
-    return RADICE if nome == 'main' else os.path.join(RADICE, 'solutori', nome)
+    return os.path.join(RADICE, 'solutori', nome)  # main compreso (solutori/main)
 
 
 def sorgenti(nome):

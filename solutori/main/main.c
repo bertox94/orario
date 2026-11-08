@@ -12,14 +12,14 @@
 #include <string.h>
 #include <time.h>
 
-#include "priority_queue/prio_queue.h"
-#include "data_initialization/database_initializers.h"
-#include "printer/printer.h"
-#include "ingresso_uscita/dati_json.h"
-#include "ingresso_uscita/traccia.h"
-#include "potature/potature.h"
-#include "controllo_in_avanti/controllo_in_avanti.h"
-#include "controlli/comuni.h"  // lo stato e i controlli comuni (con le definizioni)
+#include "../../priority_queue/prio_queue.h"
+#include "../../data_initialization/database_initializers.h"
+#include "../../printer/printer.h"
+#include "../../ingresso_uscita/dati_json.h"
+#include "../../ingresso_uscita/traccia.h"
+#include "../../potature/potature.h"
+#include "../../controllo_in_avanti/controllo_in_avanti.h"
+#include "../../controlli/comuni.h"  // lo stato e i controlli comuni (con le definizioni)
 
 // ---- i controlli sulla classe (la cella) ----
 
