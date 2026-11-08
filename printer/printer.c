@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
 
 #include "../printer/printer.h"
 #include "../data_initialization/database_initializers.h"
@@ -38,15 +37,6 @@ static void draw_grid_separator(FILE *f) {
     fprintf(f, "\n");
 }
 
-// l'intestazione: l'ora e quanti orari completi trovati finora.
-// Non stampare data e ora, la verific se doue output snoo uguali e più difficile
-static void print_header(unsigned long long attempt, FILE *f) {
-    //time_t current_time;
-    //time(&current_time);
-    //fprintf(f, "Current time: %s", ctime(&current_time));
-    fprintf(f, "Orari corretti: %llu\n\n", attempt);
-}
-
 // Una riga della classe c: il docente (quale = 1) o il codocente (quale = 2) di ogni cella fino a pos (esclusa), con
 // in testa l'etichetta (la classe nella prima riga, vuota nella seconda).
 static void riga_docenti(FILE *f, const teaching_slot orario[], const int pos, const int c, const char *etichetta,
@@ -66,9 +56,8 @@ static void riga_docenti(FILE *f, const teaching_slot orario[], const int pos, c
 }
 
 // le classi in riga, giorni e ore in colonna; poi le ore di ogni docente in ogni classe, le classi una accanto all'altra
-void print(const teaching_slot orario[], const int pos, unsigned long long attempt, FILE *f) {
-    print_header(attempt, f);
-
+// (niente data e ora: cosi' l'uscita di due esecuzioni si confronta direttamente)
+void print(const teaching_slot orario[], const int pos, FILE *f) {
     // 1. i giorni
     fprintf(f, "                |");
     for (int g = 0; g < actual_giorni_settimana; g++) {

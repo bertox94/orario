@@ -4,7 +4,8 @@
 // La cella pos e' giorno = pos / (ore * classi), ora = (pos / classi) % ore, classe = pos % classi.
 // print_orario(pos) decide la cella pos e scende a pos + 1: prova, nell'ordine della coda dei docenti (chi ha piu' ore
 // da fare prima), ogni docente in coppia con un codocente e poi da solo; dopo le ore obbligatorie prova anche l'ora
-// buca. Quando tutte le celle sono decise (pos == orario_len) l'orario e' completo e si stampa in orario.txt.
+// buca. Quando tutte le celle sono decise (pos == orario_len) l'orario e' completo: si stampa in orario.txt e la
+// ricerca finisce (si cerca un orario solo). Su console il tempo impiegato.
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,18 +16,16 @@
 #include "data_initialization/database_initializers.h"
 #include "printer/printer.h"
 
-#define SCHEDULES_PER_GB 55000
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 // ---- lo stato della ricerca ----
 
-long long int n_gen = 0;                          // orari completi trovati
-long long int n_gen_max = SCHEDULES_PER_GB / 5;   // ci si ferma dopo tanti orari
+int trovato = 0;                                  // l'orario e' stato trovato: la ricerca finisce
 teaching_slot orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
     [0 ... GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1] = (teaching_slot){-1, -1}
 };
 int orario_len;                                   // giorni * ore * classi
-FILE *f;                                          // orario.txt: gli orari trovati e i backtrack
+FILE *f;                                          // orario.txt: l'orario trovato
 
 // ---- la cella ----
 
@@ -247,9 +246,8 @@ static void segna_coppia(const Cella *c, QueueItem *it, QueueItem *jt, const int
 void print_orario(int pos);
 
 // Prova tutte le lezioni possibili in questa cella, nell'ordine della coda: ogni docente prima con ognuno dei
-// codocenti dopo di lui nella coda, poi da solo. Ritorna 1 se almeno una lezione e' stata provata.
-static int prova_lezioni(const Cella *c) {
-    int provata = 0;
+// codocenti dopo di lui nella coda, poi da solo.
+static void prova_lezioni(const Cella *c) {
     const int fine = c->base4d_queue + queue_sz;
     for (int ii = c->base4d_queue; ii < fine; ii++) {
         QueueItem *it = queue_mul[ii];
@@ -260,20 +258,17 @@ static int prova_lezioni(const Cella *c) {
             const int p2 = jt->teacher;
             if (!codocente_puo_insegnare(c, p1, p2)) continue;
             segna_coppia(c, it, jt, 1);
-            provata = 1;
             orario[c->pos] = (teaching_slot){p1, p2};
             print_orario(c->pos + 1);
             segna_coppia(c, it, jt, -1);
         }
         if (docente_puo_insegnare_da_solo(c, p1)) {
             segna_da_solo(c, it, 1);
-            provata = 1;
             orario[c->pos] = (teaching_slot){p1, -1};
             print_orario(c->pos + 1);
             segna_da_solo(c, it, -1);
         }
     }
-    return provata;
 }
 
 // L'ora buca: solo dopo le ore obbligatorie; da li' la classe non ha piu' lezione oggi.
@@ -286,33 +281,24 @@ static void prova_ora_buca(const Cella *c) {
 }
 
 void print_orario(const int pos) {
-    if (n_gen_max <= n_gen) return;
-    if (pos == orario_len) {  // tutte le celle decise: un orario completo
-        n_gen++;
-        print(orario, pos, n_gen, f);
+    if (trovato) return;
+    if (pos == orario_len) {  // tutte le celle decise: l'orario e' completo
+        trovato = 1;
+        print(orario, pos, f);
         return;
     }
     const Cella c = cella(pos);
     sort_queue_mul(c.base4d_queue, queue_sz);
     if (activities_for_this_class_and_hour(&c)) {
         ore_classe_svolte[c.cla]++;  // la lezione di questa cella conta gia' tra le ore della classe
-        const int provata = prova_lezioni(&c);
+        prova_lezioni(&c);
         ore_classe_svolte[c.cla]--;
-        if (!provata) {  // backtrack: nessun docente possibile in questa cella
-            fprintf(f, "Backtrack, non si è potuto scegiere alcun insegnante nel giorno: %s, ora: %s, classe: %s\n",
-                    giorni_settimana[c.giorno], ore_giornaliere[c.ora], classe_sezione[c.cla]);
-            print(orario, pos, n_gen, f);
-        }
     }
     prova_ora_buca(&c);
 }
 
 int main(void) {
-    time_t adesso;
-    time(&adesso);
     const clock_t inizio = clock();
-    printf("Program started at: %s\n", ctime(&adesso));
-
     inizializza_dati();
     stampa_dati();
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
@@ -320,10 +306,8 @@ int main(void) {
     f = fopen("orario.txt", "w");
     print_orario(0);
 
-    const double elapsed = (clock() - inizio) / (double) CLOCKS_PER_SEC;
-    printf("Totale generati: %llu in %d m, %d s at %.0f Hz", n_gen, (int) elapsed / 60, (int) elapsed % 60,
-           (double) n_gen / elapsed);
-    fflush(stdout);
+    const double secondi = (clock() - inizio) / (double) CLOCKS_PER_SEC;
+    printf(trovato ? "Orario trovato in %.2f s (in orario.txt)\n" : "Nessun orario possibile (%.2f s)\n", secondi);
     fclose(f);
     return 0;
 }
