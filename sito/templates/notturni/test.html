@@ -19,6 +19,18 @@
     {% endif %}{% endfor %}
   </tbody></table>
   {% else %}<p class="tenue">Nessun riferimento ancora: lo fissa la prima esecuzione.</p>{% endif %}
+  {% if t.ferma_nodi_prima %}
+  <p class="piccolo">Il limite di nodi è cambiato: il test gira due volte, con {{ ferma_nodi|numero }} nodi e con il
+    limite di prima, {{ t.ferma_nodi_prima|numero }} nodi, finché le ultime 5 esecuzioni non hanno tutti e due i limiti.</p>
+  {% if t.riferimento_prima %}
+  <p style="margin-bottom: 4px"><strong>Riferimento con il limite di prima</strong>
+    <span class="tenue piccolo">({{ t.ferma_nodi_prima|numero }} nodi)</span>:</p>
+  <table class="dati" style="width: auto"><tbody>
+    {% for k, nome in nomi_campi.items() %}{% if k != 'errore' or t.riferimento_prima.get(k) %}
+    <tr><th>{{ nome }}</th><td class="num">{{ valore(k, t.riferimento_prima.get(k)) }}</td></tr>
+    {% endif %}{% endfor %}
+  </tbody></table>
+  {% endif %}{% endif %}
   <div class="barra-comandi">
     <form method="post" action="{{ url_for('notturni.esegui') }}" class="in-linea">
       <input type="hidden" name="_gettone" value="{{ gettone }}"><input type="hidden" name="tid" value="{{ t.id }}">
@@ -57,7 +69,7 @@
       {{ cella(n, 'orario', classe='piccolo') }}
       <td>{{ confronto(n) }}{% if n.errore %}<div class="tenue piccolo">{{ n.errore[:200] }}</div>{% endif %}</td>
       <td class="piccolo"><code>{{ n.commit or '' }}</code></td>
-      <td>{% if n.confronto == 'diverso' and loop.first %}
+      <td>{% if n.confronto == 'diverso' and n.id in ultime %}
         <form method="post" action="{{ url_for('notturni.accetta', nid=n.id) }}" class="in-linea">
           <input type="hidden" name="_gettone" value="{{ gettone }}"><input type="hidden" name="poi" value="{{ request.path }}">
           <button class="pericolo piccolo">Accetta</button>

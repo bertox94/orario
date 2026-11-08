@@ -53,6 +53,12 @@
       <button class="secondario">Salva</button>
     </form>
   </div>
+  {% if doppi.test %}
+  <p class="tenue piccolo" style="margin-bottom: 0">Limite di nodi cambiato: {{ doppi.test }} test su {{ doppi.tutti }}
+    girano due volte, con il limite nuovo e con quello di prima ({% for x in doppi.limiti %}{{ x|numero }}{{ ', ' if not loop.last }}{% endfor %} nodi).
+    La tabella, i peggiorati e i migliorati usano ancora il limite di prima; quando le ultime 5 esecuzioni di un test
+    hanno anche il limite nuovo, il test passa a quello e gira una volta sola.</p>
+  {% endif %}
 </div>
 
 {# Una tabella di casi: ogni caso e' un gruppo (una riga, che si apre con una riga per solver); ogni giro e' una

@@ -9,6 +9,11 @@ Alla prima esecuzione i numeri diventano il riferimento. Dopo, ogni esecuzione e
 differenze campo per campo): un cambiamento voluto della ricerca si accetta dalla pagina, e i numeri nuovi diventano il
 riferimento.
 
+Cambiare il limite di nodi (richiesta di Alb dell'8 novembre 2026): con un limite nuovo i numeri non sono confrontabili
+con la storia. Dopo il cambio ogni test gira due volte, con il limite nuovo e con quello di prima (ferma_nodi_prima del
+test): confronti, peggiorati, migliorati e la pagina usano il limite di prima finche' le esecuzioni degli ultimi 5 giri
+del test non hanno tutti e due i limiti; poi il test passa al limite nuovo e gira una volta sola.
+
 Un giro esegue tutti i test attivi di una scuola uno dopo l'altro (non in parallelo: i tempi restano confrontabili e il
 Raspberry non si satura). Parte da solo ogni notte all'ora impostata (thread di sorveglianza, uno per processo del sito)
 o a mano. Un solo giro alla volta.
@@ -373,19 +378,28 @@ def _esegui_giro(config, gid, ids):
                 if not test:
                     continue
                 ferma_nodi = ferma_nodi_impostato(c)  # ogni test legge il limite della pagina quando parte
-                nid = c.execute('insert into esecuzioni_notturne (giro_id, test_id, ferma_nodi) values (%s, %s, %s) '
-                                'returning id', (gid, tid, ferma_nodi)).fetchone()['id']
-                pulisci_esecuzioni(c, gid, tid)  # anche mentre gira: 5 esecuzioni, compresa quella in corso
-                c.commit()
-            try:
-                r = esegui_test(config, test, ferma_nodi)
-            except Exception as ex:  # il test risulta in errore, il giro continua
-                traceback.print_exc()
-                r = {'esito': 'errore', 'errore': str(ex), 'secondi': None}
-            _registra(config, nid, test, r, ferma_nodi)
-            # subito, test per test: peggiorato o migliorato, e di questo test restano le ultime 5 esecuzioni
+            # dopo un cambio del limite anche con il limite di prima, finche' il test non passa a quello nuovo
+            limiti = [ferma_nodi] + [x for x in [test['ferma_nodi_prima']] if x and x != ferma_nodi]
+            for limite in limiti:
+                with _lock:
+                    if _giro['fermare']:
+                        break
+                with db.connetti(config.database_url) as c:
+                    nid = c.execute('insert into esecuzioni_notturne (giro_id, test_id, ferma_nodi) values (%s, %s, %s) '
+                                    'returning id', (gid, tid, limite)).fetchone()['id']
+                    pulisci_esecuzioni(c, gid, tid)  # anche mentre gira: 5 esecuzioni, compresa quella in corso
+                    c.commit()
+                try:
+                    r = esegui_test(config, test, limite)
+                except Exception as ex:  # il test risulta in errore, il giro continua
+                    traceback.print_exc()
+                    r = {'esito': 'errore', 'errore': str(ex), 'secondi': None}
+                _registra(config, nid, test, r, limite, prima=limite != ferma_nodi)
+            # subito, test per test: se passa al limite nuovo, peggiorato o migliorato, e di questo test restano le
+            # ultime 5 esecuzioni
             try:
                 with db.connetti(config.database_url) as c:
+                    aggiorna_passaggio(c, tid, ferma_nodi)
                     registra_variazioni(c, gid, tid)
                     pulisci_esecuzioni(c, gid, tid)
                     c.commit()
@@ -433,18 +447,20 @@ def registra_variazioni(c, gid, tid=None):
     giro = c.execute('select scuola_id, commit from giri_notturni where id = %s', (gid,)).fetchone()
     if not giro:
         return
+    # solo le esecuzioni con il limite che la pagina mostra: quello di prima, se il test gira ancora con tutti e due
     righe = c.execute('''
-        select n.* from esecuzioni_notturne n
+        select n.* from esecuzioni_notturne n join test_notturni t on t.id = n.test_id
         where n.test_id in (select test_id from esecuzioni_notturne where giro_id = %s)
           and (%s::int is null or n.test_id = %s)
+          and n.ferma_nodi = coalesce(t.ferma_nodi_prima, %s)
           and n.esito is not null and n.esito not in ('fermato', 'interrotto')
-        order by n.test_id, n.id''', (gid, tid, tid)).fetchall()
+        order by n.test_id, n.id''', (gid, tid, tid, ferma_nodi_impostato(c))).fetchall()
     per_test = {}
     for n in righe:
         per_test.setdefault(n['test_id'], []).append(n)
     for tid, lista in per_test.items():
         ultima = lista[-1]
-        prima = [n for n in lista[:-1] if n['ferma_nodi'] == ultima['ferma_nodi']]  # solo con lo stesso limite di nodi
+        prima = lista[:-1]
         if ultima['giro_id'] != gid or not prima:
             continue
         v = _valore_esecuzione(ultima)
@@ -465,31 +481,39 @@ def registra_variazioni(c, gid, tid=None):
 
 def pulisci_esecuzioni(c, gid, tid=None):
     """Dopo ogni test di un giro (tid) e alla fine del giro (tutti i test della sua scuola): di ogni test restano le
-    ultime ESECUZIONI_DA_TENERE esecuzioni, e i giri rimasti senza esecuzioni si tolgono. Il riferimento accettato di
-    un test resta (e' nel test)."""
+    ultime ESECUZIONI_DA_TENERE esecuzioni per ogni limite di nodi, e i giri rimasti senza esecuzioni si tolgono. Le
+    esecuzioni con un limite che non e' ne' quello impostato ne' quello di prima del test si tolgono quando ci sono le
+    ultime 5 con il limite impostato. Il riferimento accettato di un test resta (e' nel test)."""
     c.execute('''
         delete from esecuzioni_notturne n using (
-            select x.id, row_number() over (partition by x.test_id order by x.id desc) as k
+            select x.id, row_number() over (partition by x.test_id, x.ferma_nodi order by x.id desc) as k,
+                   x.ferma_nodi is distinct from %s and x.ferma_nodi is distinct from t.ferma_nodi_prima
+                   and (select count(*) from esecuzioni_notturne y where y.test_id = x.test_id and y.ferma_nodi = %s)
+                       >= %s as altro_limite
             from esecuzioni_notturne x join test_notturni t on t.id = x.test_id
             where t.scuola_id = (select scuola_id from giri_notturni where id = %s)
               and (%s::int is null or x.test_id = %s)) v
-        where n.id = v.id and v.k > %s''', (gid, tid, tid, ESECUZIONI_DA_TENERE))
+        where n.id = v.id and (v.k > %s or v.altro_limite)''',
+              (ferma_nodi_impostato(c), ferma_nodi_impostato(c), ESECUZIONI_DA_TENERE, gid, tid, tid,
+               ESECUZIONI_DA_TENERE))
     c.execute('''
         delete from giri_notturni g where g.scuola_id = (select scuola_id from giri_notturni where id = %s)
           and g.stato <> 'in corso' and not exists (select 1 from esecuzioni_notturne n where n.giro_id = g.id)''',
               (gid,))
 
 
-def _registra(config, nid, test, r, ferma_nodi):
+def _registra(config, nid, test, r, ferma_nodi, prima=False):
     """Scrive l'esecuzione e il confronto: senza riferimento, o con un riferimento fissato con un altro limite di nodi,
-    i numeri diventano il riferimento (confronto 'nuovo')."""
-    rif = test['riferimento']
+    i numeri diventano il riferimento (confronto 'nuovo'). Con il limite di prima (dopo un cambio del limite) il
+    riferimento e' riferimento_prima."""
+    colonna = 'riferimento_prima' if prima else 'riferimento'
+    rif = test[colonna]
     if r['esito'] in ('fermato', 'errore') or r['esito'] is None:
         confronto, diff = 'errore', None  # un test fermato a mano o in errore non dice niente sulla ricerca
     elif rif is None or rif.get('ferma_nodi') != ferma_nodi:
         confronto, diff = 'nuovo', None
     else:
-        diff = confronta(test['riferimento'], r)
+        diff = confronta(rif, r)
         confronto = 'diverso' if diff else 'uguale'
     with db.connetti(config.database_url) as c:
         c.execute('update esecuzioni_notturne set secondi = %s, esito = %s, nodi = %s, backtrack = %s, pos_max = %s, '
@@ -497,7 +521,7 @@ def _registra(config, nid, test, r, ferma_nodi):
                   (r.get('secondi'), r['esito'], r.get('nodi'), r.get('backtrack'), r.get('pos_max'), r.get('orario'),
                    r.get('errore'), confronto, _json(diff) if diff else None, nid))
         if confronto == 'nuovo':
-            c.execute("update test_notturni set riferimento = %s, accettato = now(), accettato_da = %s where id = %s",
+            c.execute("update test_notturni set " + colonna + " = %s, accettato = now(), accettato_da = %s where id = %s",
                       (_json(dict(valori(r), ferma_nodi=ferma_nodi)),
                        'prima esecuzione' if rif is None else 'nuovo limite di nodi', test['id']))
         c.commit()
@@ -513,10 +537,47 @@ def accetta(c, nid, chi):
     n = c.execute('select * from esecuzioni_notturne where id = %s', (nid,)).fetchone()
     if not n or n['confronto'] not in ('diverso', 'accettato'):
         return False
-    c.execute('update test_notturni set riferimento = %s, accettato = now(), accettato_da = %s where id = %s',
+    t = c.execute('select ferma_nodi_prima from test_notturni where id = %s', (n['test_id'],)).fetchone()
+    prima = t and t['ferma_nodi_prima'] == n['ferma_nodi'] and n['ferma_nodi'] != ferma_nodi_impostato(c)
+    colonna = 'riferimento_prima' if prima else 'riferimento'
+    c.execute('update test_notturni set ' + colonna + ' = %s, accettato = now(), accettato_da = %s where id = %s',
               (_json(dict(valori(n), ferma_nodi=n['ferma_nodi'])), chi, n['test_id']))
     c.execute("update esecuzioni_notturne set confronto = 'accettato' where id = %s", (nid,))
     return True
+
+
+# ---- il cambio del limite di nodi ----
+
+def cambia_limite(c, nuovo):
+    """Il limite di nodi passa a `nuovo`. Ogni test che finora ha girato con un altro limite gira anche con quello
+    (ferma_nodi_prima, con il suo riferimento), finche' non ha la storia anche con il limite nuovo (aggiorna_passaggio).
+    Un test gia' in un cambio tiene il limite di prima di allora; se si torna a quello, il cambio finisce."""
+    c.execute('''update test_notturni set ferma_nodi_prima = null, riferimento = coalesce(riferimento_prima, riferimento),
+                 riferimento_prima = null where ferma_nodi_prima = %s''', (nuovo,))
+    c.execute('''
+        with ultime as (
+            select distinct on (test_id) test_id, ferma_nodi from esecuzioni_notturne
+            where ferma_nodi is not null and esito is not null and esito not in ('fermato', 'interrotto')
+            order by test_id, id desc)
+        update test_notturni t set ferma_nodi_prima = u.ferma_nodi,
+            riferimento_prima = case when (t.riferimento->>'ferma_nodi')::bigint = u.ferma_nodi then t.riferimento end
+        from ultime u
+        where u.test_id = t.id and t.ferma_nodi_prima is null and u.ferma_nodi <> %s''', (nuovo,))
+
+
+def aggiorna_passaggio(c, tid, limite):
+    """Dopo un test: se gli ultimi ESECUZIONI_DA_TENERE giri in cui ha girato hanno tutti un'esecuzione con il limite
+    impostato e una con quello di prima, il test passa al limite nuovo (gira una volta sola)."""
+    t = c.execute('select ferma_nodi_prima from test_notturni where id = %s', (tid,)).fetchone()
+    if not t or t['ferma_nodi_prima'] is None:
+        return
+    prima = t['ferma_nodi_prima']
+    giri = c.execute('''
+        select giro_id, bool_or(ferma_nodi = %s) as nuovo, bool_or(ferma_nodi = %s) as vecchio
+        from esecuzioni_notturne where test_id = %s and esito is not null and esito not in ('fermato', 'interrotto')
+        group by giro_id order by giro_id desc limit %s''', (limite, prima, tid, ESECUZIONI_DA_TENERE)).fetchall()
+    if prima == limite or (len(giri) == ESECUZIONI_DA_TENERE and all(g['nuovo'] and g['vecchio'] for g in giri)):
+        c.execute('update test_notturni set ferma_nodi_prima = null, riferimento_prima = null where id = %s', (tid,))
 
 
 # ---- di notte ----

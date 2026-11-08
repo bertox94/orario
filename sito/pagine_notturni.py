@@ -48,11 +48,14 @@ def celle(dati):
 
 _ULTIME = '''
     select t.id, t.nome, t.solutore, t.caso, t.opzioni, t.attivo, t.riferimento, t.accettato, t.accettato_da,
+           t.ferma_nodi_prima,
            (select count(*) from esecuzioni_notturne x where x.test_id = t.id) as quante,
            n.id as nid, n.inizio, n.secondi, n.esito, n.nodi, n.backtrack, n.pos_max, n.orario, n.errore, n.confronto,
            n.differenze, n.giro_id
     from test_notturni t
-    left join lateral (select * from esecuzioni_notturne x where x.test_id = t.id order by x.id desc limit 1) n on true
+    -- l'ultima esecuzione; dopo un cambio del limite di nodi, l'ultima con il limite di prima
+    left join lateral (select * from esecuzioni_notturne x where x.test_id = t.id
+                       order by (x.ferma_nodi is not distinct from t.ferma_nodi_prima) desc, x.id desc limit 1) n on true
     where t.scuola_id = %s
     order by t.attivo desc, t.nome, t.solutore, t.id'''
 
@@ -143,11 +146,19 @@ def storia(c, scuola_id, test_ids):
     giri = c.execute(_GIRI_DEI_TEST, (scuola_id, test_ids, GIRI_IN_COLONNA + 1)).fetchall()[::-1]
     if not giri:
         return [], {}
-    esec = c.execute('select * from esecuzioni_notturne where giro_id = any(%s) and test_id = any(%s) order by id',
+    esec = c.execute('select n.*, t.ferma_nodi_prima from esecuzioni_notturne n join test_notturni t on t.id = n.test_id '
+                     'where n.giro_id = any(%s) and n.test_id = any(%s) order by n.id',
                      ([gi['id'] for gi in giri], test_ids)).fetchall()
     per_test = {}
     for n in esec:
-        per_test.setdefault(n['test_id'], []).append(n)
+        lista = per_test.setdefault(n['test_id'], [])
+        # dopo un cambio del limite di nodi un test gira due volte nello stesso giro: si mostra l'esecuzione con il
+        # limite di prima
+        if lista and lista[-1]['giro_id'] == n['giro_id']:
+            if n['ferma_nodi_prima'] is not None and n['ferma_nodi'] == n['ferma_nodi_prima']:
+                lista[-1] = n
+            continue
+        lista.append(n)
     celle = {}
     for tid, lista in per_test.items():
         prima = None
@@ -230,7 +241,9 @@ def indice():
                count(*) filter (where n.confronto = 'nuovo') as nuovi,
                count(*) filter (where n.confronto = 'errore') as errori,
                sum(n.secondi) as secondi
-        from giri_notturni gi left join esecuzioni_notturne n on n.giro_id = gi.id
+        from giri_notturni gi left join (esecuzioni_notturne n join test_notturni t on t.id = n.test_id
+            -- dopo un cambio del limite di nodi, solo le esecuzioni con il limite di prima
+            and (t.ferma_nodi_prima is null or n.ferma_nodi = t.ferma_nodi_prima)) on n.giro_id = gi.id
         where gi.scuola_id = %s group by gi.id order by gi.id desc limit 15''', (g.scuola['id'],)).fetchall()
     diversi = [r for r in righe if r['confronto'] == 'diverso']
     colonne, celle_giri = storia(conn(), g.scuola['id'], [r['id'] for r in righe if r['attivo']])
@@ -243,7 +256,11 @@ def indice():
             if v[k].get('inizio'):
                 v[k]['inizio'] = datetime.datetime.fromisoformat(v[k]['inizio'])
         variazioni[v['tipo']].append(v)
+    attivi = [r for r in righe if r['attivo']]
+    doppi = {'test': sum(1 for r in attivi if r['ferma_nodi_prima']), 'tutti': len(attivi),
+             'limiti': sorted({r['ferma_nodi_prima'] for r in attivi if r['ferma_nodi_prima']})}
     return render_template('notturni/indice.html', righe=righe, giri=giri, diversi=diversi, variazioni=variazioni,
+                           doppi=doppi,
                            colonne=colonne, celle_giri=celle_giri,
                            solver_colonne=solver_colonne, gruppi=gruppi,
                            disattivati=disattivati, riepilogo=riepilogo, per=per,
@@ -410,10 +427,14 @@ def limite():
         flash('Limite di nodi: un numero intero di milioni, da 1 a 100.', 'errore')
         return redirect(url_for('.indice'))
     v = milioni * 1000000
+    prima = notturni.ferma_nodi_impostato(conn())
     conn().execute("insert into impostazioni (nome, valore) values ('ferma_nodi_notturni', %s) "
                    "on conflict (nome) do update set valore = excluded.valore", (str(v),))
-    flash('I test notturni si fermano dopo %d milion%s di nodi (dal prossimo test che parte). Con un limite diverso il '
-          'primo risultato di ogni test diventa il suo nuovo riferimento.' % (milioni, 'e' if milioni == 1 else 'i'), 'ok')
+    if v != prima:
+        notturni.cambia_limite(conn(), v)
+    flash('I test notturni si fermano dopo %d milion%s di nodi (dal prossimo test che parte). Finché le ultime 5 '
+          'esecuzioni di un test non hanno anche il limite nuovo, il test gira due volte (con il limite di prima e con '
+          'quello nuovo) e la pagina mostra il limite di prima.' % (milioni, 'e' if milioni == 1 else 'i'), 'ok')
     return redirect(url_for('.indice'))
 
 
@@ -435,7 +456,14 @@ def test(tid):
     esecuzioni = conn().execute('select n.*, gi.commit, gi.motivo from esecuzioni_notturne n '
                                 'join giri_notturni gi on gi.id = n.giro_id where n.test_id = %s order by n.id desc '
                                 'limit 200', (tid,)).fetchall()
-    return render_template('notturni/test.html', t=t, esecuzioni=esecuzioni, totale=celle(t['dati']),
+    # «Accetta» solo sull'ultima esecuzione di ogni limite
+    ultime = set()
+    visti = set()
+    for n in esecuzioni:
+        if n['ferma_nodi'] not in visti:
+            visti.add(n['ferma_nodi'])
+            ultime.add(n['id'])
+    return render_template('notturni/test.html', t=t, esecuzioni=esecuzioni, totale=celle(t['dati']), ultime=ultime,
                            ferma_nodi=notturni.ferma_nodi_impostato(conn()),
                            nomi_campi=notturni.NOMI_CAMPI, in_corso=notturni.giro_in_corso(),
                            descrizione=solver.DESCRIZIONI.get(t['solutore'], t['solutore']))
