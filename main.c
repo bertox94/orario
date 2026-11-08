@@ -203,17 +203,17 @@ static int docente_puo_insegnare_da_solo(const Cella *c, const int p1) {
 
 // ---- la coda dei docenti ----
 
-// dalla priorita' piu' alta (piu' ore da fare) alla piu' bassa
+// dalla priorita' piu' alta (piu' ore da fare) alla piu' bassa; a parita' prima il docente con l'indice minore, cosi'
+// l'ordine e' sempre lo stesso (qsort non e' stabile: senza questo dipendeva dal sistema)
 int compare_queue_items(const void *a, const void *b) {
     const QueueItem *itemA = *(const QueueItem **) a;
     const QueueItem *itemB = *(const QueueItem **) b;
     if (itemA->priority < itemB->priority) return 1;
     if (itemA->priority > itemB->priority) return -1;
-    return 0;
+    return (itemA->teacher > itemB->teacher) - (itemA->teacher < itemB->teacher);
 }
 
-// Ordina la coda della cella (ogni cella ha la sua copia dei puntatori, vedi prio_queue.h). A parita' di priorita'
-// l'ordine dipende da qsort, che non e' stabile: per questo l'impronta di orario.txt cambia tra Mac e Linux.
+// Ordina la coda della cella (ogni cella ha la sua copia dei puntatori, vedi prio_queue.h).
 void sort_queue_mul(const size_t start, const size_t n) {
     qsort(&queue_mul[start], n, sizeof(QueueItem *), compare_queue_items);
 }

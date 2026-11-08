@@ -13,9 +13,9 @@ typedef struct el {
     double priority;
 } QueueItem;
 
-// queue_mul: per ogni cella (giorno, ora, classe) un blocco di INSEGNANTE_SZ puntatori agli stessi elementi. Ogni cella
-// ordina il suo blocco quando la ricerca ci arriva, e l'ordine resta li' fino alla volta dopo (a parita' di priorita'
-// conta l'ordine di prima): per questo ogni cella ha la sua copia dei puntatori. queue_sz: quanti docenti in coda.
+// queue_mul: per ogni cella (giorno, ora, classe) un blocco di INSEGNANTE_SZ puntatori agli stessi elementi, che la
+// cella ordina quando la ricerca ci arriva (per priorita', a parita' per indice del docente). queue_sz: quanti docenti
+// in coda.
 extern QueueItem **queue_mul;
 extern int queue_sz;
 
