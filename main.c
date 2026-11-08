@@ -35,9 +35,9 @@ int orario_len;                                   // giorni * ore * classi
 FILE *f;                                          // orario.txt: l'orario trovato
 
 // il conto dei nodi e i limiti (vedi ricerca.h): non cambiano la ricerca
-long long int nodi = 0, limite_nodi = 0, passi_max = 0;
+long long int nodi = 0, limite_nodi = 0;
 int fermato = 0, pos_max = 0;
-FILE *passi = NULL, *ultimo_backtrack = NULL;
+FILE *ultimo_backtrack = NULL;
 
 // ---- la cella ----
 
@@ -359,8 +359,6 @@ void print_orario(const int pos) {
     }
     nodi++;
     if (pos > pos_max) pos_max = pos;
-    static int pos_prima_passi = 0;
-    if (passi && nodi <= passi_max) riga_nodo(passi, pos, &pos_prima_passi);
     if (ultimo_backtrack && in_episodio) segui_episodio(pos);
     if (pos == orario_len) {  // tutte le celle decise: l'orario e' completo
         trovato = 1;
