@@ -13,6 +13,12 @@
 
 #include "../data_initialization/database_initializers.h"
 
+// Lo stato della ricerca mentre gira (opzione --stato FILE), per il sito: {"nodi": N, "pos": P, "pos_max": M,
+// "celle": totale, "orario": [[docente, codocente], ...]} con le prime P celle, quelle gia' decise (la ricerca sta
+// decidendo la cella P). Si scrive in un file provvisorio e poi si rinomina: chi legge trova sempre un JSON intero.
+void scrivi_stato(const char *percorso, long long int nodi, int pos, int pos_max, const teaching_slot *orario,
+                  int celle);
+
 void scrivi_risultato(const char *percorso, const char *esito, const char *errore, long long int nodi, double secondi,
                       long long int orari, const teaching_slot *orario, int celle);
 

@@ -30,6 +30,10 @@ FILE *f;
 // Non cambiano la ricerca: con --ferma-nodi N, dopo N nodi la ricerca smette (ogni chiamata ritorna subito).
 long long int nodi = 0, ferma_nodi = 0;
 int fermato = 0;
+// --stato: ogni mezzo secondo (guardato ogni 4096 nodi) la posizione e l'orario fin li', e il punto piu' avanti
+const char *file_stato = NULL;
+int pos_max = 0;
+clock_t ultimo_stato = 0;
 teaching_slot primo_orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ];
 
 
@@ -377,7 +381,13 @@ void print_orario(const int pos) {
     if (fermato) return;
     if (++nodi > ferma_nodi && ferma_nodi > 0) {
         fermato = 1;
+        if (file_stato) scrivi_stato(file_stato, ferma_nodi, pos, pos_max, orario, orario_len);  // dove si e' fermata
         return;
+    }
+    if (pos > pos_max) pos_max = pos;
+    if (file_stato && !(nodi & 4095) && clock() - ultimo_stato > CLOCKS_PER_SEC / 2) {
+        ultimo_stato = clock();
+        scrivi_stato(file_stato, nodi, pos, pos_max, orario, orario_len);
     }
 
     //print(orario, pos, n_gen, f);
@@ -481,13 +491,14 @@ void print_orario(const int pos) {
     }
 }
 
-// Uso: ./untitled [--input FILE] [--risultato FILE] [-n N] [--txt FILE] [--ferma-nodi N]
+// Uso: ./untitled [--input FILE] [--risultato FILE] [-n N] [--txt FILE] [--ferma-nodi N] [--stato FILE]
 //   senza opzioni: come sempre, i dati di inizializza_dati() e gli orari in orario.txt
 //   --input FILE:     i dati da un file JSON (ingresso_uscita/dati_json.h) invece che da inizializza_dati()
 //   --risultato FILE: alla fine l'esito, i nodi, il tempo e il primo orario trovato in JSON (ingresso_uscita/risultato.h)
 //   -n N:             quanti orari cercare al massimo (n_gen_max)
 //   --txt FILE:       dove scrivere orario.txt (/dev/null: non si scrive niente, molto piu' veloce)
 //   --ferma-nodi N:   ferma la ricerca dopo N nodi (esito "limite di nodi")
+//   --stato FILE:     mentre gira, ogni mezzo secondo la posizione e l'orario fin li' in JSON (ingresso_uscita/risultato.h)
 int main(int argc, char **argv) {
     const char *file_input = NULL, *file_risultato = NULL, *file_txt = "orario.txt";
     for (int i = 1; i < argc; i++) {
@@ -496,6 +507,7 @@ int main(int argc, char **argv) {
         else if (!strcmp(argv[i], "-n") && i + 1 < argc) n_gen_max = atoll(argv[++i]);
         else if (!strcmp(argv[i], "--txt") && i + 1 < argc) file_txt = argv[++i];
         else if (!strcmp(argv[i], "--ferma-nodi") && i + 1 < argc) ferma_nodi = atoll(argv[++i]);
+        else if (!strcmp(argv[i], "--stato") && i + 1 < argc) file_stato = argv[++i];
         else {
             fprintf(stderr, "Opzione sconosciuta: %s\n", argv[i]);
             return 2;

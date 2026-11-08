@@ -27,6 +27,25 @@ static void docente(FILE *r, const int p) {
     else stringa(r, insegnanti[p]);
 }
 
+void scrivi_stato(const char *percorso, const long long int nodi, const int pos, const int pos_max,
+                  const teaching_slot *orario, const int celle) {
+    char provvisorio[1024];
+    snprintf(provvisorio, sizeof provvisorio, "%s.tmp", percorso);
+    FILE *r = fopen(provvisorio, "w");
+    if (!r) return;
+    fprintf(r, "{\"nodi\":%lld,\"pos\":%d,\"pos_max\":%d,\"celle\":%d,\"orario\":[", nodi, pos, pos_max, celle);
+    for (int i = 0; i < pos; i++) {
+        fprintf(r, "%s[", i ? "," : "");
+        docente(r, orario[i].insegnante1);
+        fputc(',', r);
+        docente(r, orario[i].insegnante2);
+        fputc(']', r);
+    }
+    fprintf(r, "]}\n");
+    fclose(r);
+    rename(provvisorio, percorso);
+}
+
 void scrivi_risultato(const char *percorso, const char *esito, const char *errore, const long long int nodi,
                       const double secondi, const long long int orari, const teaching_slot *orario, const int celle) {
     FILE *r = fopen(percorso, "w");
