@@ -13,6 +13,7 @@ QueueItem **queue_mul;
 int queue_sz;
 
 
+// vedi prio_queue.h: il blocco della cella 0 e' l'elenco dei docenti; un docente nuovo si copia in tutti i blocchi
 void add_to_queue(int prof, int priority) {
     for (int i = 0; i < queue_sz; i++) {
         if (queue_mul[i]->teacher == prof) {

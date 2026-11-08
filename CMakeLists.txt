@@ -7,9 +7,7 @@ add_executable(untitled main.c
         constants/professors.h
         constants/days.h
         constants/hours.h
-        constants/rooms.h
         constants/classes.h
-        constants/subjects.h
         data_initialization/database_initializers.h
         data_initialization/database_initializers.c
         data_initialization/nomi_docenti.h
