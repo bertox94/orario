@@ -1,11 +1,16 @@
 #include <stdlib.h>
 #include <tgmath.h>
 #include <sys/time.h>
+#include <time.h>
 
 #include "utils.h"
 #include "priority_queue/prio_queue.h"
 #include "data_initialization/database_initializers.h"
 #include "printer/printer.h"
+#include "ingresso_uscita/dati_json.h"
+#include "ingresso_uscita/risultato.h"
+
+#include <string.h>
 
 #define SCHEDULES_PER_GB 55000
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -20,6 +25,16 @@ teaching_slot orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_S
 
 int orario_len;
 FILE *f;
+
+// Per il sito (ingresso_uscita/): nodi visitati (chiamate di print_orario), --ferma-nodi e il primo orario trovato.
+// Non cambiano la ricerca: con --ferma-nodi N, dopo N nodi la ricerca smette (ogni chiamata ritorna subito).
+long long int nodi = 0, ferma_nodi = 0;
+int fermato = 0;
+// --stato: ogni mezzo secondo (guardato ogni 4096 nodi) la posizione e l'orario fin li', e il punto piu' avanti
+const char *file_stato = NULL;
+int pos_max = 0;
+clock_t ultimo_stato = 0;
+teaching_slot primo_orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ];
 
 
 int g_giorno(const int p) { return p / actual_classi_sezione / actual_ore_giornaliere % actual_giorni_settimana; }
@@ -362,13 +377,26 @@ int verifica_ora_ingresso(const int prof, const int ora) {
 
 void print_orario(const int pos) {
     if (n_gen_max <= n_gen) return;
+    // per il sito: conta i nodi e, con --ferma-nodi, si ferma dopo N
+    if (fermato) return;
+    if (++nodi > ferma_nodi && ferma_nodi > 0) {
+        fermato = 1;
+        if (file_stato) scrivi_stato(file_stato, ferma_nodi, pos, pos_max, orario, orario_len);  // dove si e' fermata
+        return;
+    }
+    if (pos > pos_max) pos_max = pos;
+    if (file_stato && !(nodi & 4095) && clock() - ultimo_stato > CLOCKS_PER_SEC / 2) {
+        ultimo_stato = clock();
+        scrivi_stato(file_stato, nodi, pos, pos_max, orario, orario_len);
+    }
 
     //print(orario, pos, n_gen, f);
     if (pos == orario_len) {
         //if (verifica_ore_classe_materia()) { //not needed ? all hours should match
         n_gen++;
         //printf("%lld \n", n_gen);
-        print(orario, pos, n_gen, f);
+        if (n_gen == 1) memcpy(primo_orario, orario, sizeof(teaching_slot) * orario_len);  // per il sito
+        if (f) print(orario, pos, n_gen, f);
         //  }
         return;
     }
@@ -447,7 +475,7 @@ void print_orario(const int pos) {
             }
         }
         ore_classe_svolte[cla]--;
-        if (!found_prof) {
+        if (!found_prof && f) {  // f NULL: --txt /dev/null, non si scrive niente (molto piu' veloce)
             fprintf(f, "Backtrack, non si è potuto scegiere alcun insegnante nel giorno: %s, ora: %s, classe: %s\n",
                     giorni_settimana[giorno], ore_giornaliere[ora], classe_sezione[cla]);
             print(orario, pos, n_gen, f);
@@ -463,13 +491,42 @@ void print_orario(const int pos) {
     }
 }
 
-int main(void) {
+// Uso: ./untitled [--input FILE] [--risultato FILE] [-n N] [--txt FILE] [--ferma-nodi N] [--stato FILE]
+//   senza opzioni: come sempre, i dati di inizializza_dati() e gli orari in orario.txt
+//   --input FILE:     i dati da un file JSON (ingresso_uscita/dati_json.h) invece che da inizializza_dati()
+//   --risultato FILE: alla fine l'esito, i nodi, il tempo e il primo orario trovato in JSON (ingresso_uscita/risultato.h)
+//   -n N:             quanti orari cercare al massimo (n_gen_max)
+//   --txt FILE:       dove scrivere orario.txt (/dev/null: non si scrive niente, molto piu' veloce)
+//   --ferma-nodi N:   ferma la ricerca dopo N nodi (esito "limite di nodi")
+//   --stato FILE:     mentre gira, ogni mezzo secondo la posizione e l'orario fin li' in JSON (ingresso_uscita/risultato.h)
+int main(int argc, char **argv) {
+    const char *file_input = NULL, *file_risultato = NULL, *file_txt = "orario.txt";
+    for (int i = 1; i < argc; i++) {
+        if (!strcmp(argv[i], "--input") && i + 1 < argc) file_input = argv[++i];
+        else if (!strcmp(argv[i], "--risultato") && i + 1 < argc) file_risultato = argv[++i];
+        else if (!strcmp(argv[i], "-n") && i + 1 < argc) n_gen_max = atoll(argv[++i]);
+        else if (!strcmp(argv[i], "--txt") && i + 1 < argc) file_txt = argv[++i];
+        else if (!strcmp(argv[i], "--ferma-nodi") && i + 1 < argc) ferma_nodi = atoll(argv[++i]);
+        else if (!strcmp(argv[i], "--stato") && i + 1 < argc) file_stato = argv[++i];
+        else {
+            fprintf(stderr, "Opzione sconosciuta: %s\n", argv[i]);
+            return 2;
+        }
+    }
+
     time_t currentTime;
     time(&currentTime); // Get the current time
     const clock_t start = clock();
 
     printf("Program started at: %s\n", ctime(&currentTime));
-    inizializza_dati();
+    if (file_input) {
+        char errore[512];
+        if (!inizializza_dati_da_json(file_input, errore, sizeof errore)) {
+            fprintf(stderr, "Errore nei dati: %s\n", errore);
+            if (file_risultato) scrivi_risultato(file_risultato, "errore nei dati", errore, 0, 0, 0, NULL, 0);
+            return 1;
+        }
+    } else inizializza_dati();
     stampa_dati();
     //imposta la lunghezza dell'orario
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
@@ -501,7 +558,7 @@ int main(void) {
       }*/
 
 
-    f = fopen("orario.txt", "w");
+    f = strcmp(file_txt, "/dev/null") ? fopen(file_txt, "w") : NULL;
     //f = stdout;
     // al massimo ogni ora ci possono essere 2 prof in tutte le classi
     print_orario(0);
@@ -510,7 +567,10 @@ int main(void) {
     printf("Totale generati: %llu in %d m, %d s at %.0f Hz", n_gen, (int) elapsed / 60, (int) elapsed % 60,
            (double) n_gen / elapsed);
     fflush(stdout);
-    fclose(f);
+    if (f) fclose(f);
+    if (file_risultato)
+        scrivi_risultato(file_risultato, n_gen > 0 ? "trovato" : fermato ? "limite di nodi" : "nessuna soluzione", NULL,
+                         fermato ? ferma_nodi : nodi, elapsed, n_gen, n_gen > 0 ? primo_orario : NULL, orario_len);
 
     return 0;
 }
