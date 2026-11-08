@@ -38,11 +38,12 @@ static void draw_grid_separator(FILE *f) {
     fprintf(f, "\n");
 }
 
-// l'intestazione: l'ora e quanti orari completi trovati finora
+// l'intestazione: l'ora e quanti orari completi trovati finora.
+// Non stampare data e ora, la verific se doue output snoo uguali e più difficile
 static void print_header(unsigned long long attempt, FILE *f) {
-    time_t current_time;
-    time(&current_time);
-    fprintf(f, "Current time: %s", ctime(&current_time));
+    //time_t current_time;
+    //time(&current_time);
+    //fprintf(f, "Current time: %s", ctime(&current_time));
     fprintf(f, "Orari corretti: %llu\n\n", attempt);
 }
 
