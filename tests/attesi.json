@@ -1,0 +1,405 @@
+{
+ "giorni-liberi": {
+  "fattibilita_1_classe": {
+   "errore": "Thranduil in X: 19 ore, ma entrando alle 11 ne puo' fare al massimo 18 (3 al giorno per 6 giorni)",
+   "esito": "errore nei dati"
+  },
+  "fattibilita_2_totale": {
+   "errore": "Thranduil: 21 ore in tutto, ma entrando alle 11 ne puo' fare al massimo 18 (3 al giorno per 6 giorni)",
+   "esito": "errore nei dati"
+  },
+  "fattibilita_3_classi": {
+   "errore": "Prova: le sue classi gli prendono almeno 19 giornate-classe (al massimo 3 ore al giorno in una classe), ma con 3 classi al giorno ne ha 18",
+   "esito": "errore nei dati"
+  },
+  "fattibilita_4_classe_presto": {
+   "errore": "X: dalle 08 alle 08 servono 6 lezioni in una settimana (1 al giorno), ma con gli ingressi dei suoi docenti ce ne possono essere al massimo 3",
+   "esito": "errore nei dati"
+  },
+  "fattibilita_5_ora": {
+   "errore": "alle 08 sono entrati solo 1 docenti, ma le classi sono 2 (e l'ora e' obbligatoria)",
+   "esito": "errore nei dati"
+  },
+  "piccolo_fattibile": {
+   "backtrack": 0,
+   "esito": "trovato",
+   "nodi": 37,
+   "orario": "520cd4bd6d0e"
+  },
+  "seme_1_8": {
+   "backtrack": 2,
+   "esito": "trovato",
+   "nodi": 290,
+   "orario": "3b1e661ab02b"
+  },
+  "seme_2_12": {
+   "backtrack": 0,
+   "esito": "trovato",
+   "nodi": 433,
+   "orario": "6f8500f32303"
+  },
+  "seme_2_16": {
+   "backtrack": 9,
+   "esito": "trovato",
+   "nodi": 586,
+   "orario": "a6aaa9cff544"
+  },
+  "seme_2_8": {
+   "backtrack": 1,
+   "esito": "trovato",
+   "nodi": 290,
+   "orario": "56a57c327c3c"
+  },
+  "seme_2_8_ritardi": {
+   "backtrack": 3,
+   "esito": "trovato",
+   "nodi": 292,
+   "orario": "1b376cf9d3e8"
+  },
+  "seme_3_8": {
+   "backtrack": 12,
+   "esito": "trovato",
+   "nodi": 301,
+   "orario": "5ee348f82470"
+  },
+  "seme_4_12_ritardi": {
+   "backtrack": 0,
+   "esito": "trovato",
+   "nodi": 433,
+   "orario": "073f893901e7"
+  },
+  "seme_4_16": {
+   "backtrack": 2,
+   "esito": "trovato",
+   "nodi": 579,
+   "orario": "7496c22f150e"
+  },
+  "seme_4_8": {
+   "backtrack": 5,
+   "esito": "trovato",
+   "nodi": 294,
+   "orario": "6200695420a9"
+  },
+  "seme_5_12": {
+   "backtrack": 1,
+   "esito": "trovato",
+   "nodi": 433,
+   "orario": "f56e8b239c63"
+  },
+  "seme_5_12_ritardi": {
+   "backtrack": 1,
+   "esito": "trovato",
+   "nodi": 434,
+   "orario": "06c13a56d22b"
+  },
+  "seme_5_16": {
+   "backtrack": 3,
+   "esito": "trovato",
+   "nodi": 580,
+   "orario": "8da36c166899"
+  },
+  "seme_5_16_ritardi": {
+   "errore": "C05: dalle 08 alle 10 servono 18 lezioni in una settimana (3 al giorno), ma con gli ingressi dei suoi docenti ce ne possono essere al massimo 15",
+   "esito": "errore nei dati"
+  },
+  "seme_5_8": {
+   "backtrack": 3,
+   "esito": "trovato",
+   "nodi": 292,
+   "orario": "6875cdc2d18c"
+  },
+  "seme_5_8_ritardi": {
+   "backtrack": 37,
+   "esito": "trovato",
+   "nodi": 402,
+   "orario": "9be7279c1018"
+  },
+  "seme_6_16": {
+   "backtrack": 1,
+   "esito": "trovato",
+   "nodi": 578,
+   "orario": "656b42b89ee8"
+  },
+  "seme_6_8": {
+   "backtrack": 14,
+   "esito": "trovato",
+   "nodi": 347,
+   "orario": "6bf19002979b"
+  },
+  "seme_6_8_ritardi": {
+   "backtrack": 10,
+   "esito": "trovato",
+   "nodi": 336,
+   "orario": "564d5bda5533"
+  }
+ },
+ "main": {
+  "dati_di_prova": "8e39aec451cd1a75ddd35c266ecad126",
+  "fattibilita_1_classe": {
+   "errore": "Thranduil in X: 19 ore, ma entrando alle 11 ne puo' fare al massimo 18 (3 al giorno per 6 giorni)",
+   "esito": "errore nei dati"
+  },
+  "fattibilita_2_totale": {
+   "errore": "Thranduil: 21 ore in tutto, ma entrando alle 11 ne puo' fare al massimo 18 (3 al giorno per 6 giorni)",
+   "esito": "errore nei dati"
+  },
+  "fattibilita_3_classi": {
+   "errore": "Prova: le sue classi gli prendono almeno 19 giornate-classe (al massimo 3 ore al giorno in una classe), ma con 3 classi al giorno ne ha 18",
+   "esito": "errore nei dati"
+  },
+  "fattibilita_4_classe_presto": {
+   "errore": "X: dalle 08 alle 08 servono 6 lezioni in una settimana (1 al giorno), ma con gli ingressi dei suoi docenti ce ne possono essere al massimo 3",
+   "esito": "errore nei dati"
+  },
+  "fattibilita_5_ora": {
+   "errore": "alle 08 sono entrati solo 1 docenti, ma le classi sono 2 (e l'ora e' obbligatoria)",
+   "esito": "errore nei dati"
+  },
+  "piccolo_fattibile": {
+   "backtrack": 0,
+   "esito": "trovato",
+   "nodi": 37,
+   "orario": "520cd4bd6d0e"
+  },
+  "seme_1_8": {
+   "backtrack": 2,
+   "esito": "trovato",
+   "nodi": 290,
+   "orario": "3b1e661ab02b"
+  },
+  "seme_2_12": {
+   "backtrack": 0,
+   "esito": "trovato",
+   "nodi": 433,
+   "orario": "6f8500f32303"
+  },
+  "seme_2_16": {
+   "backtrack": 9,
+   "esito": "trovato",
+   "nodi": 586,
+   "orario": "a6aaa9cff544"
+  },
+  "seme_2_8": {
+   "backtrack": 1,
+   "esito": "trovato",
+   "nodi": 290,
+   "orario": "56a57c327c3c"
+  },
+  "seme_2_8_ritardi": {
+   "backtrack": 3,
+   "esito": "trovato",
+   "nodi": 292,
+   "orario": "1b376cf9d3e8"
+  },
+  "seme_3_8": {
+   "backtrack": 12,
+   "esito": "trovato",
+   "nodi": 301,
+   "orario": "5ee348f82470"
+  },
+  "seme_4_12_ritardi": {
+   "backtrack": 0,
+   "esito": "trovato",
+   "nodi": 433,
+   "orario": "073f893901e7"
+  },
+  "seme_4_16": {
+   "backtrack": 2,
+   "esito": "trovato",
+   "nodi": 579,
+   "orario": "7496c22f150e"
+  },
+  "seme_4_8": {
+   "backtrack": 5,
+   "esito": "trovato",
+   "nodi": 294,
+   "orario": "6200695420a9"
+  },
+  "seme_5_12": {
+   "backtrack": 1,
+   "esito": "trovato",
+   "nodi": 433,
+   "orario": "f56e8b239c63"
+  },
+  "seme_5_12_ritardi": {
+   "backtrack": 1,
+   "esito": "trovato",
+   "nodi": 434,
+   "orario": "06c13a56d22b"
+  },
+  "seme_5_16": {
+   "backtrack": 3,
+   "esito": "trovato",
+   "nodi": 580,
+   "orario": "8da36c166899"
+  },
+  "seme_5_16_ritardi": {
+   "errore": "C05: dalle 08 alle 10 servono 18 lezioni in una settimana (3 al giorno), ma con gli ingressi dei suoi docenti ce ne possono essere al massimo 15",
+   "esito": "errore nei dati"
+  },
+  "seme_5_8": {
+   "backtrack": 3,
+   "esito": "trovato",
+   "nodi": 292,
+   "orario": "6875cdc2d18c"
+  },
+  "seme_5_8_ritardi": {
+   "backtrack": 37,
+   "esito": "trovato",
+   "nodi": 402,
+   "orario": "9be7279c1018"
+  },
+  "seme_6_16": {
+   "backtrack": 1,
+   "esito": "trovato",
+   "nodi": 578,
+   "orario": "656b42b89ee8"
+  },
+  "seme_6_8": {
+   "backtrack": 14,
+   "esito": "trovato",
+   "nodi": 347,
+   "orario": "6bf19002979b"
+  },
+  "seme_6_8_ritardi": {
+   "backtrack": 10,
+   "esito": "trovato",
+   "nodi": 336,
+   "orario": "564d5bda5533"
+  }
+ },
+ "ordini-classi": {
+  "fattibilita_1_classe": {
+   "errore": "Thranduil in X: 19 ore, ma entrando alle 11 ne puo' fare al massimo 18 (3 al giorno per 6 giorni)",
+   "esito": "errore nei dati"
+  },
+  "fattibilita_2_totale": {
+   "errore": "Thranduil: 21 ore in tutto, ma entrando alle 11 ne puo' fare al massimo 18 (3 al giorno per 6 giorni)",
+   "esito": "errore nei dati"
+  },
+  "fattibilita_3_classi": {
+   "errore": "Prova: le sue classi gli prendono almeno 19 giornate-classe (al massimo 3 ore al giorno in una classe), ma con 3 classi al giorno ne ha 18",
+   "esito": "errore nei dati"
+  },
+  "fattibilita_4_classe_presto": {
+   "errore": "X: dalle 08 alle 08 servono 6 lezioni in una settimana (1 al giorno), ma con gli ingressi dei suoi docenti ce ne possono essere al massimo 3",
+   "esito": "errore nei dati"
+  },
+  "fattibilita_5_ora": {
+   "errore": "alle 08 sono entrati solo 1 docenti, ma le classi sono 2 (e l'ora e' obbligatoria)",
+   "esito": "errore nei dati"
+  },
+  "piccolo_fattibile": {
+   "backtrack": 0,
+   "esito": "trovato",
+   "nodi": 37,
+   "orario": "520cd4bd6d0e"
+  },
+  "seme_1_8": {
+   "backtrack": 2,
+   "esito": "trovato",
+   "nodi": 290,
+   "orario": "3b1e661ab02b"
+  },
+  "seme_2_12": {
+   "backtrack": 0,
+   "esito": "trovato",
+   "nodi": 433,
+   "orario": "6f8500f32303"
+  },
+  "seme_2_16": {
+   "backtrack": 9,
+   "esito": "trovato",
+   "nodi": 586,
+   "orario": "a6aaa9cff544"
+  },
+  "seme_2_8": {
+   "backtrack": 1,
+   "esito": "trovato",
+   "nodi": 290,
+   "orario": "56a57c327c3c"
+  },
+  "seme_2_8_ritardi": {
+   "backtrack": 3,
+   "esito": "trovato",
+   "nodi": 292,
+   "orario": "1b376cf9d3e8"
+  },
+  "seme_3_8": {
+   "backtrack": 12,
+   "esito": "trovato",
+   "nodi": 301,
+   "orario": "5ee348f82470"
+  },
+  "seme_4_12_ritardi": {
+   "backtrack": 0,
+   "esito": "trovato",
+   "nodi": 433,
+   "orario": "073f893901e7"
+  },
+  "seme_4_16": {
+   "backtrack": 2,
+   "esito": "trovato",
+   "nodi": 579,
+   "orario": "7496c22f150e"
+  },
+  "seme_4_8": {
+   "backtrack": 5,
+   "esito": "trovato",
+   "nodi": 294,
+   "orario": "6200695420a9"
+  },
+  "seme_5_12": {
+   "backtrack": 1,
+   "esito": "trovato",
+   "nodi": 433,
+   "orario": "f56e8b239c63"
+  },
+  "seme_5_12_ritardi": {
+   "backtrack": 1,
+   "esito": "trovato",
+   "nodi": 434,
+   "orario": "06c13a56d22b"
+  },
+  "seme_5_16": {
+   "backtrack": 3,
+   "esito": "trovato",
+   "nodi": 580,
+   "orario": "8da36c166899"
+  },
+  "seme_5_16_ritardi": {
+   "errore": "C05: dalle 08 alle 10 servono 18 lezioni in una settimana (3 al giorno), ma con gli ingressi dei suoi docenti ce ne possono essere al massimo 15",
+   "esito": "errore nei dati"
+  },
+  "seme_5_8": {
+   "backtrack": 3,
+   "esito": "trovato",
+   "nodi": 292,
+   "orario": "6875cdc2d18c"
+  },
+  "seme_5_8_ritardi": {
+   "backtrack": 37,
+   "esito": "trovato",
+   "nodi": 402,
+   "orario": "9be7279c1018"
+  },
+  "seme_6_16": {
+   "backtrack": 1,
+   "esito": "trovato",
+   "nodi": 578,
+   "orario": "656b42b89ee8"
+  },
+  "seme_6_8": {
+   "backtrack": 14,
+   "esito": "trovato",
+   "nodi": 347,
+   "orario": "6bf19002979b"
+  },
+  "seme_6_8_ritardi": {
+   "backtrack": 10,
+   "esito": "trovato",
+   "nodi": 336,
+   "orario": "564d5bda5533"
+  }
+ }
+}

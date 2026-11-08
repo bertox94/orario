@@ -1,0 +1,448 @@
+"""I test in tempo reale, in thread dello stesso processo del sito.
+
+Un test: i dati (un caso casuale, i dati della scuola o un file) vanno al solver come --input; mentre la ricerca gira,
+la sua traccia arriva riga per riga (vedi solver.Esecuzione) e ogni backtrack finisce nella tabella backtrack, cosi' la
+pagina del test lo mostra subito. Alla fine l'esito, gli orari trovati e i numeri della ricerca vanno nell'esecuzione.
+
+Se il sito si riavvia mentre un test gira, al riavvio il test risulta "interrotto" (il processo e' perso).
+"""
+import json
+import os
+import shutil
+import tempfile
+import threading
+import time
+import traceback
+
+from . import db, generatore, modello, solver
+
+def _json(v):
+    """Un valore per una colonna jsonb (come testo: lo converte Postgres)."""
+    return json.dumps(v, ensure_ascii=False)
+
+
+# esecuzioni (id) in corso -> (id della prova, solver.Esecuzione, nome del caso)
+ATTIVE = {}
+_lock = threading.Lock()
+_avviato = False
+
+
+def avvia(app):
+    """All'avvio del sito (una volta per processo)."""
+    global _avviato
+    if _avviato:
+        return
+    _avviato = True
+    riprendi_dopo_riavvio(app.config['SITO'])
+    solver.compila_tutti(app.config['SITO'].cartella_bin)
+
+
+def riprendi_dopo_riavvio(config):
+    shutil.rmtree(config.cartella_esecuzioni, ignore_errors=True)  # resti di esecuzioni interrotte (in RAM)
+    with db.connetti(config.database_url) as c:
+        c.execute("update esecuzioni set esito = 'interrotto', finito = false, fine = now() where esito is null")
+        c.execute("update prove set stato = 'interrotta', fine = now(), "
+                  "messaggio = coalesce(messaggio, 'il sito e'' stato riavviato mentre il test era in corso') "
+                  "where stato in ('in corso', 'annullamento')")
+        c.commit()
+
+
+def nome_caso(caso):
+    if caso['tipo'] == 'casuale':
+        return 'seme %d, %d classi%s%s' % (caso['seme'], caso.get('classi', 8), ', ritardi' if caso.get('ritardi') else '',
+                                          ', ordine %d' % caso['ordine'] if caso.get('ordine') else '')
+    if caso['tipo'] == 'scuola':
+        return 'dati della scuola'
+    return caso.get('nome') or 'file'
+
+
+def _cartella_lavoro(config):
+    """Una cartella temporanea (in RAM, vedi SITO_LAVORO) per i file di una sola esecuzione."""
+    os.makedirs(config.cartella_esecuzioni, exist_ok=True)
+    return tempfile.mkdtemp(prefix='e-', dir=config.cartella_esecuzioni)
+
+
+def dati_del_caso(c, scuola_id, caso):
+    """I dati per --input di un caso: generati da un seme, quelli attuali della scuola, o quelli gia' pronti."""
+    if caso['tipo'] == 'casuale':
+        dati = generatore.genera(caso['seme'], caso.get('classi', 8), caso.get('ritardi', False))
+        return generatore.riordina_classi(dati, caso.get('ordine', 0))
+    if caso['tipo'] == 'scuola':
+        return modello.per_main(modello.leggi(c, scuola_id))
+    return caso['dati']
+
+
+# ---- dati da un file ----
+
+def da_formato_precedente(d):
+    """Dati nel formato del solver precedente (classi e docenti per indice, lezioni da solo e in coppia separate)
+    convertiti per --input: ogni lezione diventa una chiamata (in coppia: tutte le ore insieme al codocente)."""
+    classi = [cl['nome'] for cl in d['classi']]
+    docenti = [p['nome'] for p in d['docenti']]
+    lezioni = []
+    for l in d['lezioni']:
+        x = {'classe': classi[l['classe']], 'docente': docenti[l['docente']], 'ore': l['ore']}
+        if l.get('codocente') is not None:
+            x.update(codocente=docenti[l['codocente']], ore_codocenza=l['ore'])
+        lezioni.append(x)
+    return {'giorni': d['giorni'], 'ore': d['ore'], 'lezioni': lezioni,
+            'ingressi': [{'docente': p['nome'], 'ora': p['ingresso']} for p in d['docenti'] if p.get('ingresso')]}
+
+
+def valida(config, dati):
+    """Fa leggere i dati al solver. Ritorna None se vanno bene, altrimenti il motivo."""
+    exe = solver.compila(config.cartella_bin)
+    cartella = _cartella_lavoro(config)
+    try:
+        return solver.valida(exe, dati, cartella)
+    finally:
+        shutil.rmtree(cartella, ignore_errors=True)
+
+
+def dati_da_file_caricato(config, f):
+    """I dati di un file JSON caricato: nel formato di --input, oppure del solver precedente (anche dentro un
+    risultato.json). Ritorna (dati per --input, nome, None) oppure (None, None, errore)."""
+    try:
+        contenuto = json.load(f)
+    except ValueError:
+        return None, None, 'Il file non e\' JSON valido.'
+    d = contenuto.get('dati', contenuto) if isinstance(contenuto, dict) else None
+    if not isinstance(d, dict) or not d.get('lezioni'):
+        return None, None, 'Formato del file sconosciuto: serve un file esportato dai dati della scuola.'
+    try:
+        dati = d if modello.formato_main(d) else da_formato_precedente(d)
+    except (KeyError, IndexError, TypeError):
+        return None, None, 'Formato del file sconosciuto: serve un file esportato dai dati della scuola.'
+    errore = valida(config, dati)
+    if errore:
+        return None, None, 'File non valido: %s' % errore
+    nome = (f.filename or 'file').rsplit('/', 1)[-1][:60]
+    return dati, 'file %s' % nome, None
+
+
+# ---- un test ----
+
+class _Registro:
+    """Riceve la traccia del solver mentre arriva e la scrive nel database: i backtrack a gruppi (al massimo ogni
+    mezzo secondo), i dati subito (la pagina li usa per i nomi). Una connessione sola per tutta l'esecuzione (aprirne
+    una a ogni gruppo costava piu' dell'inserimento, soprattutto dal Raspberry, con il database sul Mac), chiusa da
+    chiudi()."""
+
+    def __init__(self, url, eid):
+        self.url, self.eid = url, eid
+        self.attesa = []
+        self.attesa_nodi = []
+        self.ultimo = time.time()
+        self.lock = threading.Lock()
+        self._lock_db = threading.Lock()
+        self._c = None
+        self.dati = None
+        self.orari = []
+        self.backtrack = 0
+
+    def _scrivi(self, f):
+        """f(cursore) nella connessione dell'esecuzione, poi commit (la connessione si apre la prima volta)."""
+        with self._lock_db:
+            if self._c is None or self._c.closed:
+                self._c = db.connetti(self.url)
+            try:
+                with self._c.cursor() as cur:
+                    f(cur)
+                self._c.commit()
+            except Exception:
+                self._c.close()  # la prossima volta se ne apre una nuova
+                raise
+
+    def chiudi(self):
+        with self._lock_db:
+            if self._c is not None:
+                self._c.close()
+
+    def ricevi(self, x):
+        tipo = x.get('tipo')
+        if tipo == 'dati':
+            self.dati = x
+            self._scrivi(lambda cur: cur.execute('update esecuzioni set risultato = %s where id = %s',
+                                                 (_json({'dati': x}), self.eid)))
+        elif tipo == 'backtrack':
+            with self.lock:
+                self.attesa.append(x)
+                self.backtrack = x['n']
+            if len(self.attesa) >= 50 or time.time() - self.ultimo > 0.5:
+                self.scarica()
+        elif tipo == 'nodi':
+            with self.lock:
+                self.attesa_nodi.append(x)
+            if len(self.attesa_nodi) >= 50 or time.time() - self.ultimo > 0.5:
+                self.scarica()
+        elif tipo == 'orario':
+            self.orari.append(x['orario'])
+
+    def scarica(self):
+        with self.lock:
+            righe, self.attesa = self.attesa, []
+            nodi, self.attesa_nodi = self.attesa_nodi, []
+            self.ultimo = time.time()
+        if not righe and not nodi:
+            return
+
+        def inserisci(cur):  # tutte le righe del gruppo insieme (executemany: meno andate e ritorni col database)
+            if nodi:
+                cur.executemany('insert into nodi (esecuzione_id, da, quanti, passi) values (%s, %s, %s, %s) '
+                                'on conflict do nothing',
+                                [(self.eid, x['da'], len(x['passi']), _json(x['passi'])) for x in nodi])
+            if righe:
+                cur.executemany('insert into backtrack (esecuzione_id, n, nodo, pos, giorno, ora, classe, buca_dopo, '
+                                'riassunto, record) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) '
+                                'on conflict do nothing',
+                                [(self.eid, x['n'], x['nodo'], x['pos'], x['giorno'], x['ora'], x['classe'],
+                                  bool(x['buca_dopo']), _json(riassunto_backtrack(x)), _json(x)) for x in righe])
+        self._scrivi(inserisci)
+
+
+def riassunto_backtrack(x):
+    """Per un backtrack: a quale controllo si e' fermato ogni docente della classe. Chi passa i controlli del primo
+    docente si ferma nelle coppie e poi da solo: conta il controllo del ramo da solo, l'ultimo tentativo."""
+    conta = {}
+    if not x['docenti'] and not x['slot']['uscita']:
+        return {x['slot']['nome']: 1}
+    for d in x['docenti']:
+        if d['fermato_a'] >= 0:
+            nome = d['controlli'][d['fermato_a']]['nome']
+        else:
+            s = d['da_solo']
+            nome = 'da solo: ' + (s['controlli'][s['fermato_a']]['nome'] if s['fermato_a'] >= 0 else '?')
+        conta[nome] = conta.get(nome, 0) + 1
+    return conta
+
+
+def _riassunto(r):
+    """Una riga per l'elenco dei test: "57 backtrack · 1.234 nodi"."""
+    parti = []
+    if r.get('errore_dati'):
+        return r['errore_dati']
+    parti.append('%s backtrack' % '{:,}'.format(r.get('backtrack') or 0).replace(',', '.'))
+    if r.get('nodi') is not None:
+        parti.append('%s nodi' % '{:,}'.format(r['nodi']).replace(',', '.'))
+    return ' · '.join(parti)
+
+
+def avvia_live(config, scuola_id, caso, opzioni, solutori=('main',)):
+    """Crea la prova e un'esecuzione per ogni solver, lancia ognuno nel suo thread (girano in parallelo) e ritorna
+    (id prova, [id delle esecuzioni])."""
+    with db.connetti(config.database_url) as c:
+        dati = dati_del_caso(c, scuola_id, caso)
+        nome = nome_caso(caso)
+        caso_salvato = {k: v for k, v in caso.items() if k != 'dati'}
+        pid = c.execute("insert into prove (scuola_id, tipo, nome, stato, opzioni, commit, inizio, dati_scuola) "
+                        "values (%s, 'live', %s, 'in corso', %s, %s, now(), %s) returning id",
+                        (scuola_id, nome, _json({'caso': caso_salvato, 'solutori': list(solutori), **opzioni}),
+                         solver.commit_attuale(), _json(dati))).fetchone()['id']
+        esecuzioni = []
+        for s in solutori:
+            o = dict(opzioni, solutore=s) if s != 'main' else dict(opzioni)  # 'main' non si scrive (i test di prima)
+            eid = c.execute('insert into esecuzioni (prova_id, caso, caso_dati, fase, opzioni) '
+                            'values (%s, %s, %s, 1, %s) returning id',
+                            (pid, nome, _json(caso_salvato), _json(o))).fetchone()['id']
+            esecuzioni.append((eid, o))
+        c.commit()
+    pronti = []
+    for eid, o in esecuzioni:
+        pronto = threading.Event()
+        threading.Thread(target=_esegui, args=(config, pid, eid, nome, dati, o, pronto), daemon=True,
+                         name='live-%d-%d' % (pid, eid)).start()
+        pronti.append(pronto)
+    for pronto in pronti:
+        pronto.wait(120)  # la compilazione puo' richiedere qualche secondo
+    return pid, [eid for eid, _ in esecuzioni]
+
+
+# la prova e' finita quando non resta nessuna sua esecuzione senza esito. Prima di scrivere l'esito ogni esecuzione
+# blocca la riga della prova (_BLOCCA_PROVA, fino al commit): se due solver finiscono nello stesso istante, il secondo
+# aspetta il primo e vede il suo esito; senza, nessuno dei due vedeva l'altro e la prova restava «in corso».
+_BLOCCA_PROVA = 'select 1 from prove where id = %s for update'
+_FINE_PROVA = ("update prove set stato = %s, fine = now(), riepilogo = %s, messaggio = coalesce(%s, messaggio) "
+               "where id = %s and not exists (select 1 from esecuzioni where prova_id = %s and esito is null)")
+
+
+def _esegui(config, pid, eid, nome, dati, opzioni, pronto):
+    """Un'esecuzione (un solver) di una prova, dall'inizio alla fine: nel suo thread."""
+    cartella = _cartella_lavoro(config)
+    registro = _Registro(config.database_url, eid)
+    try:
+        exe = solver.compila(config.cartella_bin, opzioni.get('solutore', 'main'))
+        e = solver.Esecuzione(exe, dati, opzioni, cartella, su_record=registro.ricevi)
+        with _lock:
+            ATTIVE[eid] = (pid, e, nome)
+        pronto.set()
+        try:
+            r = e.attendi()
+        finally:
+            with _lock:
+                ATTIVE.pop(eid, None)
+        registro.scarica()
+        # da un solver fermato: i backtrack sono quelli contati fin li' (il progresso li conta anche oltre il
+        # limite di quelli registrati)
+        if r['fine'] is None:
+            r['backtrack'] = max(r['backtrack'] or 0, (e.ultimo_progresso or {}).get('backtrack') or 0)
+            r['nodi'] = (e.ultimo_progresso or {}).get('nodi')
+        # la posizione piu' avanti raggiunta: dalla fine, o (solver fermato) dall'ultimo progresso
+        pos_max = (r['fine'] or {}).get('pos_max', (e.ultimo_progresso or {}).get('pos_max'))
+        risultato = {'dati': r['dati'], 'orari': r['orari'], 'fine': r['fine'], 'nodi': r['nodi'],
+                     'backtrack': r['backtrack'], 'errore_dati': r['errore_dati'], 'pos_max': pos_max}
+        with db.connetti(config.database_url) as c:
+            c.execute(_BLOCCA_PROVA, (pid,))
+            c.execute('update esecuzioni set esito = %s, finito = %s, marce = %s, trovati = %s, secondi = %s, '
+                      'diagnosi = %s, risultato = %s, fine = now() where id = %s',
+                      (r['esito'], r['finito'], r['backtrack'], r['trovati'], r['secondi'], _riassunto(r),
+                       _json(risultato), eid))
+            c.execute(_FINE_PROVA, ('finita', _json({'esito': r['esito']}), None, pid, pid))
+            c.commit()
+    except Exception as ex:  # l'esecuzione risulta in errore, con il motivo
+        traceback.print_exc()
+        with db.connetti(config.database_url) as c:
+            c.execute(_BLOCCA_PROVA, (pid,))
+            c.execute("update esecuzioni set esito = 'errore', finito = false, fine = now(), diagnosi = %s "
+                      "where id = %s and esito is null", (str(ex), eid))
+            c.execute(_FINE_PROVA, ('errore', _json({'esito': 'errore'}), str(ex), pid, pid))
+            c.commit()
+    finally:
+        registro.chiudi()
+        pronto.set()
+        shutil.rmtree(cartella, ignore_errors=True)
+
+
+# ---- i controlli a un nodo qualunque (il passo passo) ----
+# La traccia ha i controlli dei docenti solo ai backtrack. Per un altro nodo si rifa' la ricerca, con gli stessi dati e
+# lo stesso solver, fino a quel nodo (la ricerca e' sempre la stessa: si ferma esattamente li') e il solver scrive i
+# controlli della cella in cui entra (--controlli-nodo). Costa quanto arrivare a quel nodo: per un milione di nodi
+# qualche secondo. Gli ultimi risultati restano in memoria.
+_CONTROLLI = {}
+_lock_controlli = threading.Lock()
+
+
+def controlli_al_nodo(config, eid, nodo):
+    """Il record dei controlli (come un backtrack, con tipo «controlli») al nodo dell'esecuzione eid, o None se a quel
+    nodo la ricerca non entra in una cella da decidere (fine dell'orario, potatura)."""
+    with _lock_controlli:
+        if (eid, nodo) in _CONTROLLI:
+            return _CONTROLLI[eid, nodo]
+    with db.connetti(config.database_url) as c:
+        r = c.execute('select e.opzioni, p.dati_scuola from esecuzioni e join prove p on p.id = e.prova_id '
+                      'where e.id = %s', (eid,)).fetchone()
+    if not r or not r['dati_scuola']:
+        return None
+    o = r['opzioni'] or {}
+    nome = o.get('solutore', 'main')
+    exe = solver.compila(config.cartella_bin, nome)
+    cartella = _cartella_lavoro(config)
+    try:
+        opzioni = {'solutore': nome, 'orari': o.get('orari', 1), 'max_backtrack': 0, 'max_nodi': 0,
+                   'ferma_nodi': nodo + 1, 'controlli_nodo': nodo}
+        solver.Esecuzione(exe, r['dati_scuola'], opzioni, cartella).attendi()
+        record = None
+        with open(os.path.join(cartella, solver.TRACCIA)) as f:
+            for riga in f:
+                if '"tipo":"controlli"' in riga:
+                    record = json.loads(riga)
+    finally:
+        shutil.rmtree(cartella, ignore_errors=True)
+    with _lock_controlli:
+        if len(_CONTROLLI) > 500:
+            _CONTROLLI.clear()
+        _CONTROLLI[eid, nodo] = record
+    return record
+
+
+def in_corso(esecuzione_id):
+    with _lock:
+        return esecuzione_id in ATTIVE
+
+
+def progresso(esecuzione_id):
+    """L'ultima riga di progresso del solver (nodi, backtrack, orari, pos, secondi), o None."""
+    with _lock:
+        a = ATTIVE.get(esecuzione_id)
+    return a[1].ultimo_progresso if a else None
+
+
+def ferma_esecuzione(esecuzione_id):
+    with _lock:
+        a = ATTIVE.get(esecuzione_id)
+    if a:
+        a[1].ferma()
+    return a is not None
+
+
+def elimina_prova(config, prova_id):
+    """Cancella la prova (con esecuzioni e backtrack), se non e' in corso."""
+    with db.connetti(config.database_url) as c:
+        p = c.execute('select stato from prove where id = %s', (prova_id,)).fetchone()
+        if not p or p['stato'] in ('in corso', 'annullamento'):
+            return False
+        c.execute('delete from prove where id = %s', (prova_id,))
+        c.commit()
+    return True
+
+
+# ---- una serie di test (piu' combinazioni di seme, classi, ritardi e ordine dal modulo) ----
+# I test di una serie partono uno dopo l'altro, come i test notturni: ognuno con i suoi solver in parallelo, il
+# successivo quando il precedente e' finito (tutti i suoi solver hanno un esito). Una serie alla volta; se il sito si
+# riavvia la serie si perde (i test gia' fatti restano).
+SERIE = {'attiva': False, 'fermare': False, 'casi': 0, 'fatti': 0, 'pid': None, 'problemi': []}
+
+
+def serie():
+    """Lo stato della serie: una copia di SERIE."""
+    with _lock:
+        return dict(SERIE, problemi=list(SERIE['problemi']))
+
+
+def avvia_serie(config, scuola_id, casi, opzioni, solutori):
+    """Avvia in un thread i test dei casi, uno dopo l'altro. False se c'e' gia' una serie in corso."""
+    with _lock:
+        if SERIE['attiva']:
+            return False
+        SERIE.update(attiva=True, fermare=False, casi=len(casi), fatti=0, pid=None, problemi=[])
+    threading.Thread(target=_esegui_serie, args=(config, scuola_id, casi, opzioni, solutori), daemon=True,
+                     name='serie').start()
+    return True
+
+
+def ferma_serie():
+    """Non avvia piu' test della serie e ferma quello in corso."""
+    with _lock:
+        SERIE['fermare'] = True
+        pid = SERIE['pid']
+        attive = [a[1] for a in ATTIVE.values() if a[0] == pid]
+    for e in attive:
+        e.ferma()
+
+
+def _esegui_serie(config, scuola_id, casi, opzioni, solutori):
+    try:
+        for caso in casi:
+            with _lock:
+                if SERIE['fermare']:
+                    break
+            try:
+                pid, _ = avvia_live(config, scuola_id, caso, opzioni, solutori)
+            except ValueError as ex:  # il generatore non trova dati validi per questo caso
+                with _lock:
+                    SERIE['problemi'].append('%s: %s' % (nome_caso(caso), ex))
+                    SERIE['fatti'] += 1
+                continue
+            with _lock:
+                SERIE['pid'] = pid
+            while True:  # finito quando nessuna sua esecuzione e' ancora attiva
+                time.sleep(1)
+                with _lock:
+                    if not any(a[0] == pid for a in ATTIVE.values()):
+                        break
+            with _lock:
+                SERIE['fatti'] += 1
+    except Exception:
+        traceback.print_exc()
+    finally:
+        with _lock:
+            SERIE.update(attiva=False, pid=None)

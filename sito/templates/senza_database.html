@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block titolo %}Database non raggiungibile{% endblock %}
+{% block contenuto %}
+<div class="scheda" style="max-width: 640px; margin: 60px auto;">
+  <h1>Database non raggiungibile</h1>
+  <p>Il sito non riesce a collegarsi a Postgres.</p>
+  <pre class="testo">{{ messaggio }}</pre>
+  <p>Controlla che il Mac sia acceso e non in stop, che Postgres.app sia avviato (server in funzione) e che sia sulla
+    stessa rete del sito. Poi ricarica questa pagina: non serve riavviare il sito.</p>
+  <p class="tenue">Le prove già in corso continuano; i risultati si salvano quando il database torna raggiungibile solo se
+    il Mac torna entro pochi secondi: in caso contrario la prova risulta interrotta.</p>
+</div>
+{% endblock %}

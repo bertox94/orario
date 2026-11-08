@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% block titolo %}{{ e.caso }}{% endblock %}
+{% block contenuto %}
+{% set fine = r.get('fine') %}
+{% if not request.args.get('incorporata') %}<p class="piccolo"><a href="{{ url_for('live.indice') }}">← Test in tempo reale</a></p>{% endif %}
+<h1>{{ e.caso }}
+  <span class="esito {{ (e.esito if not in_corso else none)|classe_esito }}">{{ 'in corso' if in_corso else (e.esito or e.stato_prova) }}</span></h1>
+
+<div class="scheda">
+  {# tempo, nodo, backtrack e posizione in grande: aggiornati ogni secondo mentre il test gira (paginaTest) #}
+  <div class="contatori" id="contatori"></div>
+  <p class="piccolo" style="margin-top: 0">
+    Test n. {{ e.prova_id }} · {{ e.inizio|data }}{% if e.secondi %} · durata {{ e.secondi|durata }}{% endif %}
+    · {{ e.opzioni|opzioni }}{% if e.commit %} · solver <code>{{ e.commit }}</code>{% endif %}</p>
+  {% if in_corso %}
+    <p><strong>La ricerca è in corso:</strong> <span id="progresso" class="ingressi">avvio…</span></p>
+    <p><button type="button" id="ferma" class="pericolo">Ferma</button></p>
+  {% else %}
+    <p style="margin-bottom: 0">
+      {% if e.esito == 'trovato' %}La ricerca ha trovato {{ e.trovati|numero }} orari{{ 'o' if e.trovati == 1 }}.
+      {% elif e.esito == 'nessuna soluzione' %}La ricerca ha provato tutto: con questi dati e questi controlli l'orario non esiste.
+      {% elif e.esito == 'non finito' %}Finito il tempo massimo prima di trovare un orario.
+      {% elif e.esito == 'limite di nodi' %}La ricerca si è fermata al limite di nodi ({{ (e.opzioni or {}).get('ferma_nodi')|numero }}) prima di trovare un orario.
+      {% elif e.esito == 'fermato' %}Test fermato a mano.
+      {% elif e.esito == 'errore nei dati' %}Il solver non accetta i dati: {{ r.get('errore_dati') }}
+      {% elif e.esito == 'interrotto' %}Il sito si è riavviato mentre il test girava.
+      {% else %}{{ e.esito }}{% if e.diagnosi %}: {{ e.diagnosi }}{% endif %}{% if e.messaggio %} ({{ e.messaggio }}){% endif %}
+      {% endif %}
+      {% if r.get('nodi') is not none %}Nodi visitati: {{ r.nodi|numero }} · backtrack: {{ r.backtrack|numero }}.{% endif %}
+    </p>
+  {% endif %}
+  {% if notturno %}
+  <div class="avviso {{ 'ok' if notturno.differenze == [] else ('errore' if notturno.differenze else '') }}" style="margin: 8px 0 0">
+    Rifatto dal test notturno <a href="{{ url_for('notturni.test', tid=notturno.test.id) }}">{{ notturno.test.nome }}</a>:
+    {% set rif = notturno.test.riferimento %}
+    atteso {{ rif.esito }}, {{ rif.nodi|numero }} nodi, {{ rif.backtrack|numero }} backtrack, posizione massima {{ rif.pos_max|numero }}.
+    {% if notturno.differenze is none %}Il confronto si fa a test finito.
+    {% elif not notturno.differenze %}<strong>Uguale al riferimento.</strong>
+    {% else %}<strong>Diverso:</strong> {% for d in notturno.differenze %}{{ ', ' if not loop.first }}{{ notturno.nomi.get(d.campo, d.campo) }}
+      {{ d.trovato|numero if d.trovato is number else d.trovato }} invece di {{ d.atteso|numero if d.atteso is number else d.atteso }}{% endfor %}.
+    {% endif %}
+  </div>
+  {% endif %}
+  <div class="barra-comandi">
+    <form method="post" action="{{ url_for('live.avvia') }}" class="in-linea">
+      <input type="hidden" name="_gettone" value="{{ gettone }}">
+      <input type="hidden" name="sorgente" value="esecuzione"><input type="hidden" name="eid" value="{{ e.id }}">
+      {# senza ferma_nodi né tempo: il limite di sempre, 50.000.000 di nodi #}
+      {% for k, v in (e.opzioni or {}).items() if k not in ('solutore', 'ferma_nodi', 'tempo') %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+      {# senza «solutore»: tutti i solver insieme, una tab per ognuno; il secondo pulsante solo con questo #}
+      {% set questo = (e.opzioni or {}).get('solutore') or 'main' %}
+      <button class="secondario" title="Con tutti i solver, ognuno nella sua tab">Rifai il test con gli stessi dati</button>
+      <button class="secondario" name="solutore" value="{{ questo }}">Rifai solo con {{ questo }}</button>
+    </form>
+    <a class="bottone secondario" href="{{ url_for('casi.scarica_dati', eid=e.id) }}">Scarica i dati</a>
+    {% if nei_notturni %}
+    <a class="bottone secondario" href="{{ url_for('notturni.test', tid=nei_notturni) }}" target="_top"
+       title="C'è già un test notturno con gli stessi dati e lo stesso solver">✓ Nei test notturni</a>
+    {% elif si_aggiunge %}
+    <form method="post" action="{{ url_for('notturni.da_test', eid=e.id) }}" class="in-linea"
+          title="Stessi dati e stesso solver, ogni notte, con il limite di nodi dei test notturni">
+      <input type="hidden" name="_gettone" value="{{ gettone }}"><input type="hidden" name="poi" value="{{ request.full_path }}">
+      <button class="secondario">Aggiungi ai test notturni</button>
+    </form>
+    {% endif %}
+    {% if n_registrati or in_corso %}<a class="bottone secondario" href="{{ url_for('casi.scarica_backtrack', eid=e.id) }}">Scarica i backtrack</a>{% endif %}
+  </div>
+</div>
+
+{% if r.get('orari') %}
+<h2>L'orario trovato</h2>
+<div id="orario-trovato"></div>
+{% endif %}
+
+<h2>Classi, docenti e codocenze</h2>
+<p class="tenue piccolo">I dati del test: le ore di ogni classe (e quante ne restano buche) e, per ogni docente, le
+  classi in cui insegna e le codocenze, con il grafo delle coppie.</p>
+<div id="dati-caso"><p class="tenue piccolo">Caricamento…</p></div>
+
+<h2>Backtrack</h2>
+<p class="tenue piccolo">Un backtrack è uno slot in cui la ricerca non è riuscita a mettere nessun docente.
+  Registrati: <strong id="n-registrati">{{ n_registrati|numero }}</strong>{% if fine %} su {{ fine.backtrack|numero }}
+  in tutto{% endif %} (al massimo {{ (e.opzioni or {}).get('max_backtrack', 1000)|numero }}{% if (e.opzioni or {}).get('solutore') == 'giorni-liberi' %} per giro{% endif %}), in
+  <strong id="n-gruppi">0</strong> gruppi. <span id="spiega-gruppi"></span> Scegli un gruppo: il cursore qui sotto
+  scorre i suoi backtrack e «Mostra soluzione» fa vedere come si risolve; ← e → passano al backtrack (o al passo)
+  precedente e al successivo dentro il gruppo, senza cambiare gruppo.</p>
+<div class="barra-comandi">
+  <label class="spunta">Raggruppa i backtrack
+    <select id="modo-gruppi">
+      <option value="annidati">gruppi annidati</option>
+      <option value="cella">un gruppo per cella</option>
+      <option value="consecutivi">gruppi consecutivi, con le celle toccate</option>
+      <option value="passi">passo passo: il cursore scorre i nodi della ricerca</option>
+      <option value="celle">passo passo per cella: un nodo decide una cella alla volta</option>
+    </select></label>
+</div>
+<div class="scorre alta" id="elenco-backtrack" style="max-height: 40vh">
+  <table class="dati" id="tabella-gruppi">
+    <thead><tr><th class="num">Gruppo</th><th>Cella</th><th class="num">Backtrack</th><th class="num">Quanti</th>
+      <th class="num">Nodi</th><th class="col-celle">Celle toccate</th><th>Come finisce</th></tr></thead>
+    <tbody><tr class="vuoto"><td colspan="7" class="tenue">{{ 'Ancora nessun backtrack.' if in_corso else 'Nessun backtrack registrato.' }}</td></tr></tbody>
+  </table>
+</div>
+<div id="intestazione-backtrack"></div>
+<div class="scheda cursore-backtrack">
+  <table class="dati backtrack-fissa">
+    <colgroup><col style="width: 5em"><col style="width: 6em"><col style="width: 9em"><col style="width: 9em"><col></colgroup>
+    <thead><tr><th class="num">N.</th><th class="num">Nodo</th><th>Slot</th><th>Poi</th><th>Dove si fermano i docenti</th></tr></thead>
+    <tbody id="riga-attuale"><tr><td colspan="5" class="tenue">Nessun backtrack scelto.</td></tr></tbody>
+  </table>
+  <div class="riga-cursore">
+    <button type="button" class="secondario" data-passo="-100" title="100 posizioni indietro">−100</button>
+    <button type="button" class="secondario" data-passo="-10" title="10 backtrack indietro">−10</button>
+    <div class="cursore-con-tacche">
+      <input type="range" id="cursore-backtrack" min="1" max="1" value="1" step="1" aria-label="Scorri i backtrack">
+      <div id="tacche-cursore" aria-hidden="true"></div>
+    </div>
+    <button type="button" class="secondario" data-passo="10" title="10 backtrack avanti">+10</button>
+    <button type="button" class="secondario" data-passo="100" title="100 posizioni avanti">+100</button>
+  </div>
+  <div class="barra-comandi">
+    <label class="spunta">Da <input type="number" id="cursore-da" min="1" value="1"></label>
+    <label class="spunta">a <input type="number" id="cursore-a" min="1" value="1"></label>
+    <button type="button" class="secondario" id="cursore-tutti">Tutto il gruppo</button>
+    <button type="button" id="cursore-play" title="Fa avanzare il cursore da solo, una posizione alla volta">▶ Play</button>
+    <select id="cursore-velocita" aria-label="Velocità">
+      <option value="1000">lento</option>
+      <option value="300" selected>normale</option>
+      <option value="80">veloce</option>
+      <option value="15">velocissimo</option>
+    </select>
+    <span class="tenue piccolo" id="spiega-cursore">Il cursore va dal backtrack «Da» al backtrack «a»: scegliendo un gruppo, dal suo primo
+      backtrack all'ultimo (solo i suoi). Come si risolve il gruppo: «Mostra soluzione». Con i
+      gruppi consecutivi, le tacche sotto il cursore sono i backtrack in celle diverse da quella di partenza, del colore
+      della cella.</span>
+  </div>
+</div>
+<div class="barra-comandi">
+  <button type="button" class="secondario" id="precedente">← Precedente</button>
+  <button type="button" class="secondario" id="successivo">Successivo →</button>
+  <button type="button" class="secondario" id="mostra-soluzione" disabled
+          title="Nell'orario raggiunto, come la ricerca supera la cella del gruppo">Mostra soluzione</button>
+  <span class="tenue piccolo" id="posizione"></span>
+  <label class="spunta" style="margin-left: auto" title="Mostra anche i controlli dopo il primo che ferma la ricerca, con il loro esito invece che in grigio">
+    <input type="checkbox" id="tutti-i-motivi"> Tutti i motivi</label>
+  <label class="spunta" title="Accesa: coppie e da solo solo per chi passa i controlli base, come nella ricerca. Spenta: per tutti i docenti">
+    <input type="checkbox" id="controlli-incrementali" checked> Controlli incrementali</label>
+  <label class="spunta">Docenti, coppie e «da solo» da mostrare
+    <select id="filtro-docenti">
+      <option value="con-ore" selected>solo chi ha ancora ore in questa classe</option>
+      <option value="tutti">tutti</option>
+      <option value="esauriti">solo chi ha esaurito le ore in questa classe</option>
+    </select></label>
+</div>
+<h2>L'orario raggiunto</h2>
+<div id="orario-raggiunto"><p class="tenue piccolo">Scegli un backtrack nell'elenco qui sopra per vedere l'orario
+  fino a quel punto.</p></div>
+
+<div id="dettaglio-backtrack"></div>
+{% endblock %}
+{% block script %}
+<script>
+paginaTest({
+  dati: {{ (r.get('dati') or none)|tojson }},
+  orario: {{ (r.get('orari') or [none])[0]|tojson }},
+  inCorso: {{ in_corso|tojson }},
+  esito: {{ (e.esito if not in_corso else none)|tojson }},
+  maxBacktrack: {{ (e.opzioni or {}).get('max_backtrack', 1000)|tojson }},
+  totaleBacktrack: {{ (fine.backtrack if fine else (r.get('backtrack') or 0))|tojson }},
+  finali: {{ {'secondi': e.secondi, 'nodi': r.get('nodi'), 'backtrack': r.get('backtrack'),
+              'pos_max': (fine.pos_max if fine and fine.pos_max is defined else r.get('pos_max')),
+              'trovato': e.esito == 'trovato'}|tojson }},
+  urlStato: {{ url_for('casi.stato', eid=e.id)|tojson }},
+  urlDati: {{ url_for('casi.dati', eid=e.id)|tojson }},
+  urlElenco: {{ url_for('casi.elenco_backtrack', eid=e.id)|tojson }},
+  urlBacktrack: {{ url_for('casi.un_backtrack', eid=e.id, n=0)|tojson }},
+  urlNodi: {{ url_for('casi.nodi', eid=e.id)|tojson }},
+  urlControlli: {{ url_for('casi.controlli', eid=e.id, nodo=0)|tojson }},
+  urlFerma: {{ url_for('casi.ferma', eid=e.id)|tojson }},
+});
+</script>
+{% endblock %}

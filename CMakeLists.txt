@@ -7,21 +7,21 @@ add_executable(untitled main.c
         constants/professors.h
         constants/days.h
         constants/hours.h
-        constants/rooms.h
         constants/classes.h
-        constants/subjects.h
         data_initialization/database_initializers.h
         data_initialization/database_initializers.c
-        data_initialization/nomi_docenti.h
         printer/printer.h
         printer/printer.c
         priority_queue/prio_queue.c
         priority_queue/prio_queue.h
-        utils.h
         ingresso_uscita/json.h
         ingresso_uscita/json.c
         ingresso_uscita/dati_json.h
         ingresso_uscita/dati_json.c
-        ingresso_uscita/risultato.h
-        ingresso_uscita/risultato.c
+        ingresso_uscita/traccia.h
+        ingresso_uscita/traccia.c
+        potature/potature.h
+        potature/potature.c
+        controllo_in_avanti/controllo_in_avanti.h
+        controllo_in_avanti/controllo_in_avanti.c
 )
