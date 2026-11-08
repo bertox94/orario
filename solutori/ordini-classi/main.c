@@ -170,9 +170,6 @@ void print_orario(const int s) {
     const int base4d_queue = ((giorno * ORA_GIORNALIERA_SZ + ora) * CLASSE_SEZIONE_SZ + cla) * INSEGNANTE_SZ;  // la coda
 
     sort_queue_mul(base4d_queue, queue_sz, ora, actual_giorni_settimana - 1 - giorno);
-    // traccia: al nodo di --controlli-nodo i controlli dei docenti di questa cella, poi il programma esce (il passo passo)
-    if (traccia_nodi == traccia_controlli_nodo)
-        traccia_controlli(s, giorno, ora, cla, base2d_ci, base3d_goi, base4d_queue);
     if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
         int found_prof = 0;
         ore_classe_svolte[cla]++;
@@ -267,7 +264,6 @@ int main(int argc, char **argv) {
         else if (!strcmp(argv[i], "--max-backtrack") && i + 1 < argc) max_backtrack = atoll(argv[++i]);
         else if (!strcmp(argv[i], "--max-nodi") && i + 1 < argc) max_nodi = atoll(argv[++i]);
         else if (!strcmp(argv[i], "--ferma-nodi") && i + 1 < argc) traccia_ferma_nodi = atoll(argv[++i]);
-        else if (!strcmp(argv[i], "--controlli-nodo") && i + 1 < argc) traccia_controlli_nodo = atoll(argv[++i]);
         else if (!strcmp(argv[i], "--progresso")) progresso = 1;
         else if (!strcmp(argv[i], "--nodi-base") && i + 1 < argc) nodi_base = atoll(argv[++i]);
         else {

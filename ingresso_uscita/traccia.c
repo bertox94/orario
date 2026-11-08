@@ -34,8 +34,6 @@ static int posto(const int g) { return traccia_posti ? traccia_posti[g] : g; }
 
 long long int traccia_nodi = 0;
 long long int traccia_ferma_nodi = 0;
-long long int traccia_controlli_nodo = 0;
-static int solo_controlli = 0;  // traccia_controlli: il record e' "controlli", non un backtrack
 long long int traccia_prossimo = 0x10000;
 int traccia_pos_max = 0;
 long long int traccia_backtrack_n = 0;
@@ -354,8 +352,8 @@ void traccia_nuovo_giro(void) { primo_del_giro = traccia_backtrack_n; }
 
 static void testa_backtrack(const int pos, const int giorno, const int ora, const int cla, const int buca_dopo) {
     scrivi_nodi();
-    fprintf(t, "{\"tipo\":\"%s\",\"n\":%lld,\"nodo\":%lld,\"pos\":%d,\"giorno\":%d,\"ora\":%d,\"classe\":%d,"
-            "\"buca_dopo\":%d,", solo_controlli ? "controlli" : "backtrack", traccia_backtrack_n, traccia_nodi, pos, giorno, ora, cla, buca_dopo);
+    fprintf(t, "{\"tipo\":\"backtrack\",\"n\":%lld,\"nodo\":%lld,\"pos\":%d,\"giorno\":%d,\"ora\":%d,\"classe\":%d,"
+            "\"buca_dopo\":%d,", traccia_backtrack_n, traccia_nodi, pos, giorno, ora, cla, buca_dopo);
     if (traccia_giorni) {
         fprintf(t, "\"giro\":%d,\"fissati\":%d,\"giorni\":[", traccia_giro, traccia_fissati);
         for (int r = 0; r < actual_giorni_settimana; r++) fprintf(t, "%s%d", r ? "," : "", traccia_giorni[r]);
@@ -379,18 +377,7 @@ void traccia_backtrack(const int s, const int giorno, const int ora, const int c
     scrivi_cella(s, giorno, ora, cla, base2d_ci, base3d_goi, base4d_queue, buca_dopo);
 }
 
-void traccia_controlli(const int s, const int giorno, const int ora, const int cla, const int base2d_ci,
-                       const int base3d_goi, const int base4d_queue) {
-    if (t) {
-        solo_controlli = 1;
-        scrivi_cella(s, giorno, ora, cla, base2d_ci, base3d_goi, base4d_queue, 0);
-        solo_controlli = 0;
-    }
-    traccia_chiudi();
-    exit(0);
-}
-
-// i docenti della cella con i loro controlli (un backtrack, o i controlli di un nodo: traccia_controlli)
+// i docenti della cella con i loro controlli (un backtrack)
 static void scrivi_cella(const int s, const int giorno, const int ora, const int cla, const int base2d_ci,
                          const int base3d_goi, const int base4d_queue, const int buca_dopo) {
     const int pos = cella(s);  // la cella; nella traccia "pos" e' il passo s

@@ -13,7 +13,7 @@ Le opzioni di un test:
     tempo           secondi massimi (assente = senza limite: si ferma col pulsante o quando ha finito)
     orari           quanti orari completi trovare prima di fermarsi (-n)
     max_backtrack   quanti backtrack registrare per esteso (gli altri si contano soltanto)
-    max_nodi        quanti nodi della ricerca registrare (per scorrerla passo passo), default MAX_NODI
+    max_nodi        quanti nodi della ricerca registrare nella traccia, default 0 (il passo passo, che li usava, e' stato tolto)
     ferma_nodi      fermare la ricerca dopo esattamente tanti nodi (--ferma-nodi), esito
                     'limite di nodi': sempre allo stesso punto, per i test notturni (assente = nessun limite)
 """
@@ -145,7 +145,7 @@ def commit_attuale():
 # ---- un'esecuzione ----
 
 DATI, TRACCIA, USCITA = 'dati.json', 'traccia.jsonl', 'uscita.txt'
-MAX_NODI = 1000000
+MAX_NODI = 0  # i nodi non si registrano piu': servivano al passo passo (tolto l'8 novembre 2026)
 
 
 def argomenti(opzioni):
@@ -153,8 +153,7 @@ def argomenti(opzioni):
     return ['--input', DATI, '--traccia', TRACCIA, '-n', str(opzioni.get('orari', 1)),
             '--max-backtrack', str(opzioni.get('max_backtrack', 1000)), '--txt', os.devnull, '--progresso'] + \
         ['--max-nodi', str(opzioni.get('max_nodi', MAX_NODI))] + \
-        (['--ferma-nodi', str(opzioni['ferma_nodi'])] if opzioni.get('ferma_nodi') else []) + \
-        (['--controlli-nodo', str(opzioni['controlli_nodo'])] if opzioni.get('controlli_nodo') else [])
+        (['--ferma-nodi', str(opzioni['ferma_nodi'])] if opzioni.get('ferma_nodi') else [])
 
 
 class Esecuzione:

@@ -119,9 +119,6 @@ void print_orario(const int pos) {
     const int base4d_queue = ((giorno * ORA_GIORNALIERA_SZ + ora) * CLASSE_SEZIONE_SZ + cla) * INSEGNANTE_SZ;  // la coda
 
     sort_queue_mul(base4d_queue, queue_sz, ora, actual_giorni_settimana - 1 - giorno);
-    // traccia: al nodo di --controlli-nodo i controlli dei docenti di questa cella, poi il programma esce (il passo passo)
-    if (traccia_nodi == traccia_controlli_nodo)
-        traccia_controlli(pos, giorno, ora, cla, base2d_ci, base3d_goi, base4d_queue);
     if (activities_for_this_class_and_hour(pos, giorno, ora, cla)) {
         int found_prof = 0;
         ore_classe_svolte[cla]++;
@@ -199,8 +196,6 @@ void print_orario(const int pos) {
 //   --ferma-nodi N:     ferma la ricerca dopo N nodi esatti, con esito "limite di nodi":
 //                       sempre allo stesso punto, per i test notturni
 //   --progresso:        ogni mezzo secondo una riga JSON di progresso su stderr
-//   --controlli-nodo N: al nodo N scrive nella traccia i controlli dei docenti della sua cella e finisce (il passo
-//                       passo del sito); la ricerca fino a li' e' la stessa
 int main(int argc, char **argv) {
     const char *file_input = NULL, *file_traccia = NULL, *file_txt = "orario.txt";
     long long int max_backtrack = 1000, max_nodi = 0;
@@ -213,7 +208,6 @@ int main(int argc, char **argv) {
         else if (!strcmp(argv[i], "--max-backtrack") && i + 1 < argc) max_backtrack = atoll(argv[++i]);
         else if (!strcmp(argv[i], "--max-nodi") && i + 1 < argc) max_nodi = atoll(argv[++i]);
         else if (!strcmp(argv[i], "--ferma-nodi") && i + 1 < argc) traccia_ferma_nodi = atoll(argv[++i]);
-        else if (!strcmp(argv[i], "--controlli-nodo") && i + 1 < argc) traccia_controlli_nodo = atoll(argv[++i]);
         else if (!strcmp(argv[i], "--progresso")) progresso = 1;
         else {
             fprintf(stderr, "Opzione sconosciuta: %s\n", argv[i]);

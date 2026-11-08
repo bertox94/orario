@@ -312,48 +312,6 @@ def _esegui(config, pid, eid, nome, dati, opzioni, pronto):
         shutil.rmtree(cartella, ignore_errors=True)
 
 
-# ---- i controlli a un nodo qualunque (il passo passo) ----
-# La traccia ha i controlli dei docenti solo ai backtrack. Per un altro nodo si rifa' la ricerca, con gli stessi dati e
-# lo stesso solver, fino a quel nodo (la ricerca e' sempre la stessa: si ferma esattamente li') e il solver scrive i
-# controlli della cella in cui entra (--controlli-nodo). Costa quanto arrivare a quel nodo: per un milione di nodi
-# qualche secondo. Gli ultimi risultati restano in memoria.
-_CONTROLLI = {}
-_lock_controlli = threading.Lock()
-
-
-def controlli_al_nodo(config, eid, nodo):
-    """Il record dei controlli (come un backtrack, con tipo «controlli») al nodo dell'esecuzione eid, o None se a quel
-    nodo la ricerca non entra in una cella da decidere (fine dell'orario, potatura)."""
-    with _lock_controlli:
-        if (eid, nodo) in _CONTROLLI:
-            return _CONTROLLI[eid, nodo]
-    with db.connetti(config.database_url) as c:
-        r = c.execute('select e.opzioni, p.dati_scuola from esecuzioni e join prove p on p.id = e.prova_id '
-                      'where e.id = %s', (eid,)).fetchone()
-    if not r or not r['dati_scuola']:
-        return None
-    o = r['opzioni'] or {}
-    nome = o.get('solutore', 'main')
-    exe = solver.compila(config.cartella_bin, nome)
-    cartella = _cartella_lavoro(config)
-    try:
-        opzioni = {'solutore': nome, 'orari': o.get('orari', 1), 'max_backtrack': 0, 'max_nodi': 0,
-                   'ferma_nodi': nodo + 1, 'controlli_nodo': nodo}
-        solver.Esecuzione(exe, r['dati_scuola'], opzioni, cartella).attendi()
-        record = None
-        with open(os.path.join(cartella, solver.TRACCIA)) as f:
-            for riga in f:
-                if '"tipo":"controlli"' in riga:
-                    record = json.loads(riga)
-    finally:
-        shutil.rmtree(cartella, ignore_errors=True)
-    with _lock_controlli:
-        if len(_CONTROLLI) > 500:
-            _CONTROLLI.clear()
-        _CONTROLLI[eid, nodo] = record
-    return record
-
-
 def in_corso(esecuzione_id):
     with _lock:
         return esecuzione_id in ATTIVE

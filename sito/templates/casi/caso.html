@@ -82,16 +82,14 @@
   Registrati: <strong id="n-registrati">{{ n_registrati|numero }}</strong>{% if fine %} su {{ fine.backtrack|numero }}
   in tutto{% endif %} (al massimo {{ (e.opzioni or {}).get('max_backtrack', 1000)|numero }}{% if (e.opzioni or {}).get('solutore') == 'giorni-liberi' %} per giro{% endif %}), in
   <strong id="n-gruppi">0</strong> gruppi. <span id="spiega-gruppi"></span> Scegli un gruppo: il cursore qui sotto
-  scorre i suoi backtrack e «Mostra soluzione» fa vedere come si risolve; ← e → passano al backtrack (o al passo)
-  precedente e al successivo dentro il gruppo, senza cambiare gruppo.</p>
+  scorre i suoi backtrack e «Mostra soluzione» fa vedere come si risolve; ← e → passano al backtrack precedente e al
+  successivo dentro il gruppo.</p>
 <div class="barra-comandi">
   <label class="spunta">Raggruppa i backtrack
     <select id="modo-gruppi">
       <option value="annidati">gruppi annidati</option>
       <option value="cella">un gruppo per cella</option>
       <option value="consecutivi">gruppi consecutivi, con le celle toccate</option>
-      <option value="passi">passo passo: il cursore scorre i nodi della ricerca</option>
-      <option value="celle">passo passo per cella: un nodo decide una cella alla volta</option>
     </select></label>
 </div>
 <div class="scorre alta" id="elenco-backtrack" style="max-height: 40vh">
@@ -129,10 +127,9 @@
       <option value="80">veloce</option>
       <option value="15">velocissimo</option>
     </select>
-    <span class="tenue piccolo" id="spiega-cursore">Il cursore va dal backtrack «Da» al backtrack «a»: scegliendo un gruppo, dal suo primo
-      backtrack all'ultimo (solo i suoi). Come si risolve il gruppo: «Mostra soluzione». Con i
-      gruppi consecutivi, le tacche sotto il cursore sono i backtrack in celle diverse da quella di partenza, del colore
-      della cella.</span>
+    <span class="tenue piccolo">Il cursore va dal backtrack «Da» al backtrack «a» del gruppo scelto. Con i gruppi
+      consecutivi, le tacche sotto il cursore sono i backtrack in celle diverse da quella di partenza, del colore della
+      cella.</span>
   </div>
 </div>
 <div class="barra-comandi">
@@ -141,11 +138,7 @@
   <button type="button" class="secondario" id="mostra-soluzione" disabled
           title="Nell'orario raggiunto, come la ricerca supera la cella del gruppo">Mostra soluzione</button>
   <span class="tenue piccolo" id="posizione"></span>
-  <label class="spunta" style="margin-left: auto" title="Mostra anche i controlli dopo il primo che ferma la ricerca, con il loro esito invece che in grigio">
-    <input type="checkbox" id="tutti-i-motivi"> Tutti i motivi</label>
-  <label class="spunta" title="Accesa: coppie e da solo solo per chi passa i controlli base, come nella ricerca. Spenta: per tutti i docenti">
-    <input type="checkbox" id="controlli-incrementali" checked> Controlli incrementali</label>
-  <label class="spunta">Docenti, coppie e «da solo» da mostrare
+  <label class="spunta" style="margin-left: auto">Docenti, coppie e «da solo» da mostrare
     <select id="filtro-docenti">
       <option value="con-ore" selected>solo chi ha ancora ore in questa classe</option>
       <option value="tutti">tutti</option>
@@ -174,8 +167,6 @@ paginaTest({
   urlDati: {{ url_for('casi.dati', eid=e.id)|tojson }},
   urlElenco: {{ url_for('casi.elenco_backtrack', eid=e.id)|tojson }},
   urlBacktrack: {{ url_for('casi.un_backtrack', eid=e.id, n=0)|tojson }},
-  urlNodi: {{ url_for('casi.nodi', eid=e.id)|tojson }},
-  urlControlli: {{ url_for('casi.controlli', eid=e.id, nodo=0)|tojson }},
   urlFerma: {{ url_for('casi.ferma', eid=e.id)|tojson }},
 });
 </script>
