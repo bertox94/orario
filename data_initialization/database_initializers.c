@@ -21,7 +21,7 @@ char ore_giornaliere[ORA_GIORNALIERA_SZ][MAX_LEN_WORDS];
 char classe_sezione[CLASSE_SEZIONE_SZ][MAX_LEN_WORDS];
 char insegnanti[INSEGNANTE_SZ][MAX_LEN_WORDS];
 
-// automatically initialized to zero since they are global
+// quanti giorni, ore, classi e docenti ci sono davvero (gli array sono grandi per il massimo)
 int actual_giorni_settimana;
 int actual_ore_giornaliere;
 int actual_classi_sezione;
@@ -34,7 +34,6 @@ int ore_classi_docenti_alone_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 int ore_classi[CLASSE_SEZIONE_SZ];
 int ore_classe_svolte[CLASSE_SEZIONE_SZ];
 int ore_docenti[INSEGNANTE_SZ];
-int ore_docenti_svolte[INSEGNANTE_SZ];
 int ore_classi_codocenza[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ];
 int ore_classi_codocenza_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ];
 int ore_fatte_da_un_prof_in_una_classe_in_giorno[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
@@ -42,9 +41,7 @@ int ore_fatte_da_un_prof_in_una_classe_in_giorno[GIORNO_SETTIMANA_SZ * CLASSE_SE
 int ora_di_entrata_prof[INSEGNANTE_SZ];
 int prof_gia_impegnato_giorno_ora[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ];
 int n_ore_buche[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ];
-/*
- * Conversions from string to id
- */
+// ---- dal nome all'indice (-1 se non c'e') ----
 int p_giorno(char g[]) {
     for (int i = 0; i < actual_giorni_settimana; i++)
         if (!strcmp(giorni_settimana[i], g))
@@ -73,9 +70,7 @@ int p_insegnante(const char in[]) {
     return -1;
 }
 
-/*
- * Append string to its array and increment respective size.
- */
+// ---- registrare un nome: lo aggiunge in fondo se non c'e' ancora (l'ordine di registrazione da' gli indici) ----
 
 void set_giorno_settimana(char giorno[]) {
     if (p_giorno(giorno) >= 0) return;
@@ -105,9 +100,7 @@ void set_insegnante(char in[]) {
     strcpy(insegnanti[actual_insegnanti++], in);
 }
 
-/*
- * Access and set constraints
- */
+// ---- le ore ----
 void add_ore_classi_insegnante(int classe, int insegnante, int ore) {
     ore_classi_docenti[classe * INSEGNANTE_SZ + insegnante] += ore;
 }
@@ -157,18 +150,9 @@ int get_ore_classi_insegnante_svolte(int classe, int insegnante) {
     return ore_classi_docenti_svolte[classe * INSEGNANTE_SZ + insegnante];
 }
 
-int get_ore_classi_settimanale(int classe) {
-    return ore_classi[classe];
-}
-
-int get_ore_insegnante_settimanale(int insegnante) {
-    return ore_docenti[insegnante];
-}
-
-/*
- * Set constraints from user
-*/
-
+// ---- le lezioni ----
+// Una lezione: il docente prof fa `ore` ore nella classe cla, tutte da solo. Registra classe e docente e lo mette in
+// coda (la sua priorita' cresce delle ore).
 
 void set_classe_insegnante_ore(char cla[], char prof[], const int ore) {
     set_classe_sezione(cla);
@@ -180,6 +164,7 @@ void set_classe_insegnante_ore(char cla[], char prof[], const int ore) {
     add_to_queue(p_insegnante(prof), ore);
 }
 
+// Una lezione con codocente: prof fa `ore` ore nella classe, di cui ore_cod insieme a cod (e ore - ore_cod da solo).
 void set_classe_insegnante_ore_cod(char cla[], char prof[], const int ore, char cod[], const int ore_cod) {
     set_classe_sezione(cla);
     set_insegnante(prof);
@@ -196,30 +181,6 @@ void set_classe_insegnante_ore_cod(char cla[], char prof[], const int ore, char 
     add_to_queue(p_insegnante(prof), ore);
 }
 
-/*
-void set_classe_materia_ore_prof_codocenza(char cla[], char mat[], const int ore, const char prof[], const int ore_cod,
-                                           const char cod[]) {
-    set_classe_sezione(cla);
-    set_materia(mat);
-    set_insegnante(prof);
-    set_insegnante(cod);
-    const int p_cla = p_classe_sezione(cla);
-    const int p_mat = p_materia(mat);
-    const int p_prof = p_insegnante(prof);
-    const int p_cod = p_insegnante(cod);
-    assert(p_cla!=-1);
-    assert(p_mat!=-1);
-    assert(p_prof!=-1);
-    assert(p_cod!=-1);
-    const int base = p_cla * MATERIA_SZ * INSEGNANTE_SZ + p_mat * INSEGNANTE_SZ;
-    ore_insegnanti_classe_materia[base + p_prof] += ore;
-    ore_insegnanti_classe_materia[base + p_cod] += ore_cod;
-
-    assert(ore>=ore_cod);
-    ore_insegnanti_classe_materia_lonely[base + p_prof] += ore - ore_cod;
-    ore_classe_settimanali[p_cla] += ore;
-}
-*/
 
 void inizializza_dati() {
     set_giorno_settimana(Lun);
