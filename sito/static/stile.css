@@ -200,8 +200,6 @@ table.orario th { z-index: 1; }
 table.orario td.classe { z-index: 2; }
 table.orario th.classe { z-index: 3; }
 
-/* la colonna «Celle toccate» c'e' solo con i gruppi consecutivi */
-#tabella-gruppi:not(.con-celle) .col-celle { display: none; }
 /* i docenti in orizzontale: una colonna per docente, una riga per controllo */
 table.docenti-orizzontale { border-collapse: collapse; font-size: 13px; margin: 0 0 12px; }
 table.docenti-orizzontale th, table.docenti-orizzontale td { padding: 3px 8px; border-bottom: 1px dotted var(--bordo);
