@@ -3,9 +3,9 @@
 // L'orario e' un elenco di celle (giorno, ora, classe) in quest'ordine: per ogni giorno, per ogni ora, tutte le classi.
 // La cella pos e' giorno = pos / (ore * classi), ora = (pos / classi) % ore, classe = pos % classi.
 // print_orario(pos) decide la cella pos e scende a pos + 1: prova, nell'ordine della coda dei docenti (chi ha piu' ore
-// da fare prima), ogni docente in coppia con un codocente e poi da solo; dopo le ore obbligatorie prova anche l'ora
-// buca. Quando tutte le celle sono decise (pos == orario_len) l'orario e' completo: si stampa in orario.txt e la
-// ricerca finisce (si cerca un orario solo). Su console il tempo impiegato.
+// da fare prima), ogni docente in coppia con un altro (una codocenza) e poi da solo; dopo le ore obbligatorie prova
+// anche l'ora buca. Quando tutte le celle sono decise (pos == orario_len) l'orario e' completo: si stampa in
+// orario.txt e la ricerca finisce (si cerca un orario solo). Su console il tempo impiegato.
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -126,7 +126,8 @@ int verifica_ora_ingresso(const int p, const int ora) {
     return ora >= ora_di_entrata_prof[p];
 }
 
-// con il codocente p2 ha ancora ore da fare insieme in questa classe
+// p1 e p2 hanno ancora ore da fare insieme in questa classe (una codocenza: vale in tutti e due i versi, chiunque dei
+// due sia il docente della lezione e chiunque il codocente)
 int docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(const Cella *c, const int p1, const int p2) {
     return get_ore_insegnanti_codocenza_svolte_in_una_classe(c->cla, p1, p2) <
            get_ore_insegnanti_codocenza_in_una_classe(c->cla, p1, p2);
@@ -173,7 +174,7 @@ int sabato_esaurisci_priorita_subito(const Cella *c, const int prof) {
     }
 }
 
-// I controlli del docente p1 in questa cella, prima di cercargli un codocente o metterlo da solo.
+// I controlli del docente p1 in questa cella, prima di provarlo in coppia o da solo.
 static int docente_puo_insegnare(const Cella *c, const int p1) {
     return prof_è_disponibile(c, p1)
            && deve_ancora_svolgere_ore_in_questa_classe(c, p1)
@@ -183,8 +184,10 @@ static int docente_puo_insegnare(const Cella *c, const int p1) {
            && verifica_ora_ingresso(p1, c->ora);
 }
 
-// I controlli del codocente p2 insieme a p1.
-static int codocente_puo_insegnare(const Cella *c, const int p1, const int p2) {
+// I controlli del secondo docente p2 della coppia, insieme a p1. Le coppie si provano nell'ordine della coda: p1 e'
+// quello che viene prima, p2 uno di quelli dopo. Quindi p2 non e' sempre il codocente della lezione: puo' essere il
+// docente, e p1 il suo codocente. (Che p2 abbia ancora ore nella classe lo dicono le ore insieme rimaste.)
+static int secondo_della_coppia_puo_insegnare(const Cella *c, const int p1, const int p2) {
     return prof_è_disponibile(c, p2)
            && docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(c, p1, p2)
            && prof_fa_al_max_n_ore(c, p2)
@@ -245,8 +248,9 @@ static void segna_coppia(const Cella *c, QueueItem *it, QueueItem *jt, const int
 
 void print_orario(int pos);
 
-// Prova tutte le lezioni possibili in questa cella, nell'ordine della coda: ogni docente prima con ognuno dei
-// codocenti dopo di lui nella coda, poi da solo.
+// Prova tutte le lezioni possibili in questa cella, nell'ordine della coda: ogni docente (ii) prima in coppia con
+// ognuno di quelli dopo di lui nella coda (jj) con cui ha ore insieme qui, poi da solo. In una coppia il docente della
+// lezione puo' essere tanto ii quanto jj: la coppia si prova una volta sola, quando si arriva al primo dei due.
 static void prova_lezioni(const Cella *c) {
     const int fine = c->base4d_queue + queue_sz;
     for (int ii = c->base4d_queue; ii < fine; ii++) {
@@ -256,7 +260,7 @@ static void prova_lezioni(const Cella *c) {
         for (int jj = ii + 1; jj < fine; jj++) {
             QueueItem *jt = queue_mul[jj];
             const int p2 = jt->teacher;
-            if (!codocente_puo_insegnare(c, p1, p2)) continue;
+            if (!secondo_della_coppia_puo_insegnare(c, p1, p2)) continue;
             segna_coppia(c, it, jt, 1);
             orario[c->pos] = (teaching_slot){p1, p2};
             print_orario(c->pos + 1);
