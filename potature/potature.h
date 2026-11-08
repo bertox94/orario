@@ -62,4 +62,14 @@ typedef struct {
 } Potatura;
 extern Potatura potatura;
 
+// Per la traccia: dopo una potatura, l'esito di ogni regola (non solo fino alla prima che non vale), nell'ordine della
+// ricerca. T si controlla solo a ora chiusa e dopo un'ora buca: altrimenti valutata = 0. C allora guarda tutte le classi.
+enum { REGOLA_L1, REGOLA_L2, REGOLA_C, REGOLA_T, REGOLA_A1, REGOLA_A2, REGOLA_A3, REGOLA_A4, N_REGOLE };
+typedef struct {
+    int valutata, passa;
+    Potatura numeri;            // se non passa
+    int tutte_le_classi;        // C: anche le altre classi (ora chiusa o ora buca)
+} EsitoRegola;
+void tutte_le_potature(int s, EsitoRegola r[N_REGOLE]);
+
 #endif //UNTITLED_POTATURE_H

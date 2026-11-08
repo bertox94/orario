@@ -160,7 +160,7 @@ static int ore_totali_stanno(const Classe k[], const int s) {
 // suo ingresso e 3 ore (oggi: quante ne possono ancora fare i suoi docenti nella classe); in tutto, al massimo le ore
 // che le restano. (Come lezioni_della_classe_bastano del solver precedente.) Necessaria: ogni cella piena e' una
 // lezione, e nessuna lezione supera questi massimi.
-static int lezioni_bastano(const Classe *k, const int c) {
+static int lezioni_bastano(const Classe *k, const int c, const int quali) {
     if (k->finita || !voci_complete) return 1;
     const int giorni_dopo = giorni_dopo_il(k->giorno);
     const int ultima = actual_ore_giornaliere - 1;
@@ -176,6 +176,7 @@ static int lezioni_bastano(const Classe *k, const int c) {
     }
     for (int h = 0; h <= ultima; h++) {
         if (h >= PRIME_N_ORE_OBBLIGATORIE && h != ultima) continue;  // le ore facoltative in mezzo non obbligano
+        if (!(quali & (h == ultima ? 2 : 1))) continue;               // quali: 1 L1, 2 L2, 3 tutte e due
         const int fino_oggi = MIN(h, ultima_oggi);
         int oggi = 0, in_un_giorno = 0, in_tutto = 0;
         for (int v = 0; v < n_voci[c]; v++) {
@@ -207,7 +208,7 @@ int potatura_dopo(const int s) {
     const int c = g_classe(decisa), g = g_giorno(decisa), h = g_ora(decisa);
     const Classe k = stato_classe(c, s);
     // a ogni cella: L e C per la classe della cella appena decisa
-    if (!lezioni_bastano(&k, c)) return POTATURA_LEZIONI_CLASSE;
+    if (!lezioni_bastano(&k, c, 3)) return POTATURA_LEZIONI_CLASSE;
     if (!ore_in_classe_stanno(&k, c)) return POTATURA_ORE_DOCENTI;
     // a ogni ora chiusa e dopo ogni ora buca: C per tutte le classi e T (il tempo passa per tutti; dopo un'ora buca la
     // classe perde le ore di oggi)
@@ -232,4 +233,50 @@ int potatura_dopo(const int s) {
         return POTATURA_IN_AVANTI;
     }
     return 0;
+}
+
+// ---- per la traccia: tutte le regole, anche dopo la prima che non vale ----
+// Stesse condizioni di potatura_dopo, ognuna per conto suo. Non cambia lo stato della ricerca (solo `potatura`, che
+// rimette com'era).
+void tutte_le_potature(const int s, EsitoRegola r[N_REGOLE]) {
+    const Potatura prima = potatura;
+    const int motivo_prima = motivo_in_avanti;
+    for (int i = 0; i < N_REGOLE; i++) r[i] = (EsitoRegola){0, 1};
+    if (s <= 0 || s >= orario_len) return;
+    const int decisa = cella_al_passo(s - 1);
+    const int c = g_classe(decisa), g = g_giorno(decisa), h = g_ora(decisa);
+    const Classe k = stato_classe(c, s);
+    r[REGOLA_L1] = (EsitoRegola){1, lezioni_bastano(&k, c, 1), potatura};
+    r[REGOLA_L2] = (EsitoRegola){1, lezioni_bastano(&k, c, 2), potatura};
+    int ora_chiusa = 1;
+    for (int cc = 0; cc < actual_classi_sezione && ora_chiusa; cc++) ora_chiusa = rango[cella(g, h, cc)] < s;
+    const int buca = orario[decisa].insegnante1 < 0 && orario[decisa].insegnante2 < 0;
+    r[REGOLA_C].valutata = 1;
+    r[REGOLA_C].passa = ore_in_classe_stanno(&k, c);
+    r[REGOLA_C].numeri = potatura;
+    r[REGOLA_C].tutte_le_classi = ora_chiusa || buca;
+    if (ora_chiusa || buca) {
+        Classe tutte[CLASSE_SEZIONE_SZ];
+        for (int cc = 0; cc < actual_classi_sezione; cc++) {
+            tutte[cc] = stato_classe(cc, s);
+            if (r[REGOLA_C].passa && !ore_in_classe_stanno(&tutte[cc], cc)) {
+                r[REGOLA_C].passa = 0;
+                r[REGOLA_C].numeri = potatura;
+            }
+        }
+        r[REGOLA_T] = (EsitoRegola){1, ore_totali_stanno(tutte, s), potatura};
+    }
+    for (int m = 0; m < 4; m++) {
+        const int q = un_controllo_in_avanti(s, m);
+        EsitoRegola *e = &r[REGOLA_A1 + m];
+        *e = (EsitoRegola){1, q < 0};
+        if (q >= 0) {
+            e->numeri = (Potatura){POTATURA_IN_AVANTI, -1, -1, 0, 0, -1, g_giorno(q), g_ora(q)};
+            numeri_in_avanti(&e->numeri.docente, &e->numeri.classe, &e->numeri.restano, &e->numeri.possibili);
+            e->numeri.cella = q;
+            e->numeri.motivo = m;
+        }
+    }
+    potatura = prima;
+    motivo_in_avanti = motivo_prima;
 }

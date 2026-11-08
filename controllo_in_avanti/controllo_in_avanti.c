@@ -148,10 +148,10 @@ static int cella_senza_docenti(const Oggi *o) {
 // quante ne entrano tra da e h nelle ore in cui i suoi docenti sono liberi (al massimo massimo_oggi di ognuno); in
 // ognuno dei giorni dopo, al massimo MAX_ORE_PROF_IN_UNA_CLASSE tra le 0 e h dalle ore in cui sono entrati; in tutto,
 // non piu' delle ore che le restano. Poi (2b) fino all'ultima ora: tutte le ore che restano alla classe. Ritorna la
-// cella dell'ora per cui non bastano, o -1.
+// cella dell'ora per cui non bastano, o -1. quali: 1 solo 2a, 2 solo 2b, 3 tutte e due (la ricerca).
 static int ultima_ora_non_basta;
 
-static int conteggio_lezioni(const Oggi *o, const int c, const int dopo) {
+static int conteggio_lezioni(const Oggi *o, const int c, const int dopo, const int quali) {
     int solo_oggi[ORA_GIORNALIERA_SZ] = {0}, con_dopo[ORA_GIORNALIERA_SZ] = {0};  // lezioni possibili fino a ogni ora
     const int O = actual_ore_giornaliere, da = o->da[c];
     const int chiusa = n_ore_buche[o->giorno * CLASSE_SEZIONE_SZ + c] > 0;        // oggi ha gia' avuto un'ora buca
@@ -185,11 +185,14 @@ static int conteggio_lezioni(const Oggi *o, const int c, const int dopo) {
         tutto_giorno += MIN(resto, al_giorno);
         tutto += MIN(resto, oggi + al_giorno * dopo);
     }
-    for (int h = da; h < PRIME_N_ORE_OBBLIGATORIE; h++)
-        if (solo_oggi[h] < h - da + 1) return cella(o->giorno, h, c);
-    for (int h = 0; h < PRIME_N_ORE_OBBLIGATORIE; h++)
-        if (con_dopo[h] < MAX(0, h - da + 1) + (h + 1) * dopo)
-            return cella(h >= da ? o->giorno : giorno_dopo(o->giorno), h, c);
+    if (quali & 1) {
+        for (int h = da; h < PRIME_N_ORE_OBBLIGATORIE; h++)
+            if (solo_oggi[h] < h - da + 1) return cella(o->giorno, h, c);
+        for (int h = 0; h < PRIME_N_ORE_OBBLIGATORIE; h++)
+            if (con_dopo[h] < MAX(0, h - da + 1) + (h + 1) * dopo)
+                return cella(h >= da ? o->giorno : giorno_dopo(o->giorno), h, c);
+    }
+    if (!(quali & 2)) return -1;
     const int celle_oggi = chiusa ? 0 : MAX(0, O - da);
     const int possibili = MIN(tutto, MIN(tutto_oggi, celle_oggi) + dopo * MIN(tutto_giorno, O));
     const int restano = ore_classi[c] - ore_classe_svolte[c];
@@ -296,13 +299,27 @@ int controllo_in_avanti(const int s) {
     if (q >= 0) return q;
     const int dopo = actual_giorni_settimana - 1 - posto(o.giorno);
     ultima_ora_non_basta = 0;
-    for (int c = 0; c < actual_classi_sezione && q < 0; c++) q = conteggio_lezioni(&o, c, dopo);
+    for (int c = 0; c < actual_classi_sezione && q < 0; c++) q = conteggio_lezioni(&o, c, dopo, 3);
     if (q >= 0) {
         motivo_in_avanti = ultima_ora_non_basta ? 2 : 1;
         return q;
     }
     motivo_in_avanti = 3;
     return docente_senza_tempo(&o, dopo) ? cella_di_passo(MIN(s, orario_len - 1)) : -1;
+}
+
+// Per la traccia: un solo controllo, anche se uno prima non vale (motivo 0..3, come motivo_in_avanti). -1 se passa,
+// se no la cella, con i numeri in numeri_in_avanti. Non cambia niente della ricerca.
+int un_controllo_in_avanti(const int s, const int motivo) {
+    static Oggi o;
+    calcola_oggi(s, &o);
+    blocco = (Blocco){-1, -1, 0, 0};
+    if (motivo == 0) return cella_senza_docenti(&o);
+    const int dopo = actual_giorni_settimana - 1 - posto(o.giorno);
+    int q = -1;
+    if (motivo == 3) return docente_senza_tempo(&o, dopo) ? cella_di_passo(MIN(s, orario_len - 1)) : -1;
+    for (int c = 0; c < actual_classi_sezione && q < 0; c++) q = conteggio_lezioni(&o, c, dopo, motivo == 1 ? 1 : 2);
+    return q;
 }
 
 // ---- la verifica dei dati (prima della ricerca) ----

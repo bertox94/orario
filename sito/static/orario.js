@@ -221,9 +221,10 @@ const CONTROLLI = {
       : `giorno fissato, la sua scelta: ${i.scelta_fissata[0] < 0 && i.scelta_fissata[1] < 0 ? "l'ora buca" : coppia(d, i.scelta_fissata)}`},
 };
 
-// Le potature, una riga per regola, nell'ordine in cui la ricerca le controlla entrando nella cella dopo una scelta
-// (potature/potature.h e controllo_in_avanti/controllo_in_avanti.h). Si ferma alla prima che non vale: quelle prima
-// sono passate, quelle dopo non si controllano. Per un backtrack che e' una potatura (lo slot); null per gli altri.
+// Le potature, una riga per regola, nell'ordine in cui la ricerca le controlla subito dopo una scelta
+// (potature/potature.h e controllo_in_avanti/controllo_in_avanti.h). La ricerca si ferma alla prima che non vale; la
+// traccia le calcola tutte (slot.regole), quindi si vede anche l'esito di quelle dopo. Per un backtrack che e' una
+// potatura (lo slot); null per gli altri.
 const REGOLE_POTATURE = [
   {sigla: 'L1', nome: 'Lezioni della classe fino alle ore obbligatorie', quando: 'a ogni cella, per la classe appena decisa',
    cosa: "le lezioni che restano alla classe (un docente da solo o una coppia) bastano a riempire le sue ore " +
@@ -256,21 +257,36 @@ function tabellaPotature(slot, d) {
     : null;
   if (!quale) return null;
   const k = REGOLE_POTATURE.findIndex(r => r.sigla === quale);
-  return el('table', {class: 'dati tabella-potature'}, [
-    el('thead', {}, el('tr', {}, ['', 'Regola', 'Cosa controlla', 'Quando', 'Esito'].map(t => el('th', {testo: t})))),
-    el('tbody', {}, REGOLE_POTATURE.map((r, j) => {
-      const esito = j < k ? (r.sigla === 'T' ? "passa (o non toccava: si controlla solo a ora chiusa e dopo un'ora buca)"
-                                             : 'passa')
-        : j === k ? descriviIngressi(slot.nome, i, d)
-        : 'non controllata: la ricerca si ferma alla prima regola che non vale';
-      return el('tr', {class: j < k ? 'si' : j === k ? 'no' : 'non-valutato'}, [
-        el('td', {class: 'segno', testo: j < k ? '✓' : j === k ? '✗' : '–'}),
-        el('td', {}, [el('strong', {testo: r.sigla}), ' ' + r.nome]),
-        el('td', {class: 'piccolo', testo: typeof r.cosa === 'function' ? r.cosa(d) : r.cosa}),
-        el('td', {class: 'piccolo tenue', testo: r.quando}),
-        el('td', {class: 'piccolo' + (j === k ? ' testo-male' : j > k ? ' tenue' : ''), testo: esito}),
-      ]);
-    })),
+  // l'esito di ogni regola: dalla traccia (tutte calcolate) o, per le tracce di prima, solo fino a quella che scatta
+  const esiti = REGOLE_POTATURE.map((r, j) => {
+    const x = (slot.regole || []).find(e => e.sigla === r.sigla);
+    if (x) return {valutata: !!x.valutata, passa: !!x.passa, ingressi: x.ingressi, nome: x.nome, tutte: x.tutte_le_classi};
+    return j < k ? {valutata: true, passa: true} : j === k ? {valutata: true, passa: false, ingressi: i, nome: slot.nome}
+      : {valutata: false, vecchia: true};
+  });
+  const falsi = esiti.filter(e => e.valutata && !e.passa).length;
+  return el('div', {}, [
+    el('p', {class: 'piccolo', testo: `Regole che non valgono: ${falsi} di ${REGOLE_POTATURE.length}. La ricerca torna ` +
+      `indietro alla prima (${quale}).`}),
+    el('table', {class: 'dati tabella-potature'}, [
+      el('thead', {}, el('tr', {}, ['', 'Regola', 'Cosa controlla', 'Quando', 'Esito'].map(t => el('th', {testo: t})))),
+      el('tbody', {}, REGOLE_POTATURE.map((r, j) => {
+        const e = esiti[j];
+        const esito = !e.valutata ? (e.vecchia ? 'non calcolata (traccia di prima)'
+                                               : "non si controlla: l'ora non è chiusa e non c'è un'ora buca")
+          : e.passa ? (r.sigla === 'C' ? (e.tutte ? 'passa, in tutte le classi' : 'passa, nella classe della cella') : 'passa')
+          : descriviIngressi(e.nome, e.ingressi || {}, d) + (j === k ? ' ← la ricerca torna indietro qui' : '');
+        const classe = !e.valutata ? 'non-valutato' : e.passa ? 'si' : 'no';
+        return el('tr', {class: classe}, [
+          el('td', {class: 'segno', testo: !e.valutata ? '–' : e.passa ? '✓' : '✗'}),
+          el('td', {}, [el('strong', {testo: r.sigla}), ' ' + r.nome]),
+          el('td', {class: 'piccolo', testo: typeof r.cosa === 'function' ? r.cosa(d) : r.cosa}),
+          el('td', {class: 'piccolo tenue', testo: r.quando}),
+          el('td', {class: 'piccolo' + (!e.valutata ? ' tenue' : e.passa ? '' : ' testo-male'),
+                    testo: esito}),
+        ]);
+      })),
+    ]),
   ]);
 }
 
@@ -550,9 +566,12 @@ function partiDocenti(d, b, filtro) {
   parti.push(tabellaControlli([b.slot], b.slot.uscita ? -1 : 0, d));
   const potature = tabellaPotature(b.slot, d);
   if (potature) parti.push(el('h4', {testo: 'Le potature, nell\'ordine in cui la ricerca le controlla'}), potature);
-  const cella = b.slot.ingressi && b.slot.ingressi.docenti_cella ? tabellaDocentiCella(b.slot.ingressi, d) : null;
-  if (cella) parti.push(el('h4', {testo: `Perché nessun docente può stare in ${doveCella(d, b.slot.ingressi)}: i ` +
-    `docenti di ${nomeClasse(d, b.slot.ingressi.classe)}`}), cella);
+  // A1 «resterebbe senza docenti»: quella che fa tornare indietro, o (con tutte le regole calcolate) A1 anche se scatta
+  // prima un'altra regola
+  const a1 = (b.slot.regole || []).find(e => e.sigla === 'A1' && e.valutata && !e.passa);
+  const conCella = b.slot.ingressi && b.slot.ingressi.docenti_cella ? b.slot.ingressi : a1 && a1.ingressi;
+  if (conCella && conCella.docenti_cella) parti.push(el('h4', {testo: `Perché nessun docente può stare in ` +
+    `${doveCella(d, conCella)}: i docenti di ${nomeClasse(d, conCella.classe)}`}), tabellaDocentiCella(conCella, d));
   return parti;
 }
 

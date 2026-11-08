@@ -463,42 +463,62 @@ void traccia_slot_chiuso(const int s, const int giorno, const int ora, const int
     fflush(t);
 }
 
-// Una potatura (vedi potature/potature.h) all'ingresso della cella pos: la scelta nella cella prima lascia un resto
-// impossibile. Nella traccia e' un backtrack in questa cella, con il controllo e i suoi numeri.
-void traccia_potatura(const int s, const Potatura *p) {
-    if (!registra()) return;
-    const int c = cella(s);
-    testa_backtrack(s, g_giorno(c), g_ora(c), g_classe(c), 0);
-    fprintf(t, "\"nella_cella\":1,");
-    if (p->controllo == POTATURA_IN_AVANTI) {  // il controllo in avanti, entrando nella cella dopo la scelta
-        fprintf(t, "\"slot\":{\"nome\":\"situazione_risolvibile\",\"ingressi\":{\"cella_bloccata\":%d,"
-                "\"motivo\":\"%s\",\"giorno\":%d,\"ora\":%d,\"classe\":%d", p->cella, nome_motivo_in_avanti(p->motivo),
-                p->giorno, p->ora, g_classe(p->cella));
-        if (p->motivo >= 2)
-            fprintf(t, ",\"docente\":%d,\"classe_conto\":%d,\"restano\":%d,\"possibili\":%d", p->docente, p->classe,
-                    p->restano, p->possibili);
-        if (p->motivo == 0) {  // la cella senza docenti: i docenti della sua classe, con perche' non possono starci
-            static DocenteCella dc[INSEGNANTE_SZ];
-            const int n = docenti_della_cella(s + 1, p->cella, dc, INSEGNANTE_SZ);
-            fprintf(t, ",\"docenti_cella\":[");
-            for (int k = 0; k < n; k++)
-                fprintf(t, "%s{\"docente\":%d,\"restano\":%d,\"ingresso\":%d,\"occupato\":%d,\"fatte_oggi\":%d,"
-                        "\"blocco_chiuso\":%d,\"classi_oggi\":%d,\"massimo_oggi\":%d}", k ? "," : "", dc[k].docente,
-                        dc[k].restano, dc[k].ingresso, dc[k].occupato, dc[k].fatte_oggi, dc[k].blocco_chiuso,
-                        dc[k].classi_oggi, dc[k].massimo_oggi);
-            fputc(']', t);
-        }
-        fprintf(t, "},\"uscita\":0},\"docenti\":[],\"altri_docenti\":0,\"incoerente\":0,");
-        orario_fino_a(s + 1);
-        fprintf(t, "}\n");
-        fflush(t);
+// Il nome e gli ingressi di una potatura (vedi potature/potature.h), dopo le prime s + 1 celle.
+static const char *nome_potatura(const Potatura *p) {
+    return p->controllo == POTATURA_IN_AVANTI ? "situazione_risolvibile"
+         : p->controllo == POTATURA_ORE_DOCENTI ? "ore_dei_docenti_stanno_nel_tempo" : "lezioni_della_classe_bastano";
+}
+
+static void ingressi_potatura(const int s, const Potatura *p) {
+    if (p->controllo != POTATURA_IN_AVANTI) {
+        fprintf(t, "{\"docente\":%d,\"classe\":%d,\"restano\":%d,\"possibili\":%d,\"fino_ora\":%d,\"giorno\":%d,"
+                "\"ora\":%d}", p->docente, p->classe, p->restano, p->possibili, p->fino_ora, p->giorno, p->ora);
         return;
     }
-    fprintf(t, "\"slot\":{\"nome\":\"%s\",\"ingressi\":{\"docente\":%d,\"classe\":%d,\"restano\":%d,"
-            "\"possibili\":%d,\"fino_ora\":%d,\"giorno\":%d,\"ora\":%d},\"uscita\":0}",
-            p->controllo == POTATURA_ORE_DOCENTI ? "ore_dei_docenti_stanno_nel_tempo" : "lezioni_della_classe_bastano",
-            p->docente, p->classe, p->restano, p->possibili, p->fino_ora, p->giorno, p->ora);
-    fprintf(t, ",\"docenti\":[],\"altri_docenti\":0,\"incoerente\":0,");
+    fprintf(t, "{\"cella_bloccata\":%d,\"motivo\":\"%s\",\"giorno\":%d,\"ora\":%d,\"classe\":%d", p->cella,
+            nome_motivo_in_avanti(p->motivo), p->giorno, p->ora, g_classe(p->cella));
+    if (p->motivo >= 2)
+        fprintf(t, ",\"docente\":%d,\"classe_conto\":%d,\"restano\":%d,\"possibili\":%d", p->docente, p->classe,
+                p->restano, p->possibili);
+    if (p->motivo == 0) {  // la cella senza docenti: i docenti della sua classe, con perche' non possono starci
+        static DocenteCella dc[INSEGNANTE_SZ];
+        const int n = docenti_della_cella(s + 1, p->cella, dc, INSEGNANTE_SZ);
+        fprintf(t, ",\"docenti_cella\":[");
+        for (int k = 0; k < n; k++)
+            fprintf(t, "%s{\"docente\":%d,\"restano\":%d,\"ingresso\":%d,\"occupato\":%d,\"fatte_oggi\":%d,"
+                    "\"blocco_chiuso\":%d,\"classi_oggi\":%d,\"massimo_oggi\":%d}", k ? "," : "", dc[k].docente,
+                    dc[k].restano, dc[k].ingresso, dc[k].occupato, dc[k].fatte_oggi, dc[k].blocco_chiuso,
+                    dc[k].classi_oggi, dc[k].massimo_oggi);
+        fputc(']', t);
+    }
+    fputc('}', t);
+}
+
+// Una potatura della scelta appena messa nella cella del passo s: nella traccia e' un backtrack in questa cella, con il
+// controllo che la ricerca ha trovato falso e i suoi numeri; in "regole" l'esito di tutti i controlli generali, anche
+// quelli dopo il primo che non vale (la ricerca si ferma al primo: questi si calcolano solo per la traccia).
+void traccia_potatura(const int s, const Potatura *p) {
+    if (!registra()) return;
+    const Potatura scattata = *p;
+    static EsitoRegola r[N_REGOLE];
+    tutte_le_potature(s + 1, r);
+    const int c = cella(s);
+    testa_backtrack(s, g_giorno(c), g_ora(c), g_classe(c), 0);
+    fprintf(t, "\"nella_cella\":1,\"slot\":{\"nome\":\"%s\",\"ingressi\":", nome_potatura(&scattata));
+    ingressi_potatura(s, &scattata);
+    fprintf(t, ",\"uscita\":0,\"regole\":[");
+    static const char *sigle[N_REGOLE] = {"L1", "L2", "C", "T", "A1", "A2", "A3", "A4"};
+    for (int k = 0; k < N_REGOLE; k++) {
+        fprintf(t, "%s{\"sigla\":\"%s\",\"valutata\":%d,\"passa\":%d", k ? "," : "", sigle[k], r[k].valutata,
+                r[k].passa);
+        if (k == REGOLA_C) fprintf(t, ",\"tutte_le_classi\":%d", r[k].tutte_le_classi);
+        if (r[k].valutata && !r[k].passa) {
+            fprintf(t, ",\"nome\":\"%s\",\"ingressi\":", nome_potatura(&r[k].numeri));
+            ingressi_potatura(s, &r[k].numeri);
+        }
+        fputc('}', t);
+    }
+    fprintf(t, "]},\"docenti\":[],\"altri_docenti\":0,\"incoerente\":0,");
     orario_fino_a(s + 1);
     fprintf(t, "}\n");
     fflush(t);

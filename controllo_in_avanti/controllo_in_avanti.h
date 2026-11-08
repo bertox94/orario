@@ -43,6 +43,8 @@ extern int motivo_in_avanti;
 const char *nome_motivo_in_avanti(int motivo);
 // i numeri dei motivi 2 e 3: il docente (-1 per 2), la classe (-1: in tutto), quante ore restano, quante possibili
 void numeri_in_avanti(int *docente, int *classe, int *restano, int *possibili);
+// Per la traccia: solo il controllo del motivo dato (0..3), anche se uno prima non vale. -1 se passa, se no la cella.
+int un_controllo_in_avanti(int s, int motivo);
 
 // Per la traccia (motivo 0, la cella q senza docenti, dopo le prime s celle): i docenti della classe di q, uno per
 // elemento, con quello che serve per vedere perche' nessuno puo' starci. Ritorna quanti sono (al massimo n).
