@@ -306,9 +306,6 @@ void post_chiamata_ricorsiva_insieme(const int base2d_ci, const int base3d_goi, 
     decrement_ore_classi_codocenza_svolte(cla, it->teacher, jt->teacher);
 }
 
-int è_un_docente_che_insegna_da_solo_in_questa_classe(const int base2d_ci, const int prof) {
-    return classi_docenti_teorici[base2d_ci + prof];
-}
 
 int deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(const int base2d_ci, const int prof) {
     return ore_classi_docenti_alone_svolte[base2d_ci + prof] < ore_classi_docenti_alone[
@@ -434,8 +431,7 @@ void print_orario(const int pos) {
                     }
                 }
                 //non abbiamo trovato combinazioni di codocenza, verifica se all'insegnante mancano ore di docenza da solo
-                if (è_un_docente_che_insegna_da_solo_in_questa_classe(base2d_ci, p1)
-                    && deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(base2d_ci, p1)
+                if (deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(base2d_ci, p1)
                     && sabato_esaurisci_priorita_subito(pos, giorno, ora, base2d_ci, p1)
                     && 1) {
                     prep_chiamata_ricorsiva(base2d_ci, base3d_goi, it, giorno, cla, p1);
