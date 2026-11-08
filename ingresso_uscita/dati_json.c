@@ -118,11 +118,6 @@ int inizializza_dati_da_json(const char *percorso, char *errore, const size_t di
             fallisci(errore, dimensione, "troppi docenti (al massimo %d)", INSEGNANTE_SZ);
             goto fine;
         }
-        // classe e docenti si registrano qui, nell'ordine in cui compaiono (inizializza_dati() li registra tutti
-        // prima delle lezioni con set_classe_sezione e set_insegnante): l'ordine decide gli indici, e quindi la coda
-        set_classe_sezione(a);
-        set_insegnante(b);
-        if (con_cod) set_insegnante(cod);
         if (con_cod) set_classe_insegnante_ore_cod(a, b, n_ore, cod, n_cod);
         else set_classe_insegnante_ore(a, b, n_ore);
     }

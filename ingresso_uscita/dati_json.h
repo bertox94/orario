@@ -3,10 +3,10 @@
 
 // Lettura dei dati da un file JSON (opzione --input), al posto dei dati scritti in inizializza_dati().
 //
-// Fa quello che fa inizializza_dati() in data_initialization/database_initializers.c: registra giorni e ore, prepara
-// la coda, poi per ogni lezione, nello stesso ordine del file, registra classe e docenti (alla loro prima comparsa) e
-// chiama set_classe_insegnante_ore / set_classe_insegnante_ore_cod, poi le ore di ingresso, poi gli stessi controlli
-// finali sulle ore delle classi. Cambia solo da dove arrivano i valori. Il calcolo dell'orario non e' toccato.
+// Fa esattamente quello che fa inizializza_dati() in data_initialization/database_initializers.c: registra giorni e
+// ore, prepara la coda, poi chiama set_classe_insegnante_ore / set_classe_insegnante_ore_cod per ogni lezione, nello
+// stesso ordine del file, poi le ore di ingresso, poi gli stessi controlli finali sulle ore delle classi. Cambia solo
+// da dove arrivano i valori. Il calcolo dell'orario non e' toccato.
 //
 // Formato:
 // {

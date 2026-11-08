@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% block titolo %}{{ p.nome }}{% endblock %}
+{% block contenuto %}
+{# Un test con piu' solver: una tab per solver, ognuna con la pagina del suo solver (incorporata). Tutte le pagine
+   restano aperte, quindi ognuna segue la sua ricerca mentre le ricerche vanno in parallelo. #}
+<p class="piccolo"><a href="{{ url_for('live.indice') }}">← Test in tempo reale</a></p>
+<h1>{{ p.nome }} <span class="tenue piccolo">test n. {{ p.id }} · {{ esecuzioni|length }} solver in parallelo</span></h1>
+
+<div class="barra-comandi">
+  <button type="button" id="ferma-tutti" class="pericolo" hidden>Ferma tutti</button>
+  <form method="post" action="{{ url_for('live.avvia') }}" class="in-linea">
+    <input type="hidden" name="_gettone" value="{{ gettone }}">
+    <input type="hidden" name="sorgente" value="esecuzione"><input type="hidden" name="eid" value="{{ esecuzioni[0].id }}">
+    {# senza ferma_nodi né tempo: il limite di sempre, 50.000.000 di nodi #}
+    {% for k, v in (p.opzioni or {}).items() if k not in ('caso', 'solutori', 'ferma_nodi', 'tempo') %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+    {% for x in esecuzioni %}<input type="hidden" name="solutore" value="{{ x.solutore }}">{% endfor %}
+    <button class="secondario">Rifai il test con gli stessi dati e questi solver</button>
+  </form>
+  {% if da_aggiungere %}
+  <form method="post" action="{{ url_for('notturni.da_prova', pid=p.id) }}" class="in-linea"
+        title="Un test notturno per ogni solver che non c'è già: stessi dati, con il limite di nodi dei test notturni">
+    <input type="hidden" name="_gettone" value="{{ gettone }}"><input type="hidden" name="poi" value="{{ request.full_path }}">
+    <button class="secondario">Aggiungi ai test notturni{{ ' (%d solver)'|format(da_aggiungere) if da_aggiungere < esecuzioni|length }}</button>
+  </form>
+  {% else %}<a class="bottone secondario" href="{{ url_for('notturni.indice') }}" title="Tutti i solver di questo test sono già tra i test notturni">✓ Nei test notturni</a>{% endif %}
+</div>
+
+<div class="tab-solver" role="tablist">
+  {% for x in esecuzioni %}
+  <button type="button" role="tab" data-eid="{{ x.id }}" title="{{ descrizioni.get(x.solutore, x.solutore) }}"
+          class="{{ 'attiva' if x.id == scheda }}">
+    <strong>{{ x.solutore }}</strong> <span class="esito {{ x.esito|classe_esito }}">{{ x.esito or 'in corso' }}</span>
+    <span class="avanzamento piccolo tenue"></span>
+  </button>
+  {% endfor %}
+  {# su iPad il title non si vede: la descrizione del solver scelto sta qui #}
+  <div id="descrizione-solver" class="piccolo tenue">{% for x in esecuzioni if x.id == scheda %}{{ descrizioni.get(x.solutore, x.solutore) }}{% endfor %}</div>
+</div>
+<div class="pagine-solver">
+  {% for x in esecuzioni %}
+  <iframe scrolling="no" data-eid="{{ x.id }}" src="{{ url_for('casi.caso', eid=x.id, incorporata=1) }}"
+          class="{{ '' if x.id == scheda else 'nascosta' }}" title="{{ x.solutore }}"></iframe>
+  {% endfor %}
+</div>
+{% endblock %}
+{% block script %}
+<script>
+(() => {
+  const tab = [...document.querySelectorAll('.tab-solver [data-eid]')];
+  const pagine = [...document.querySelectorAll('.pagine-solver iframe')];
+  const fermaTutti = document.getElementById('ferma-tutti');
+  const descrizione = document.getElementById('descrizione-solver');
+
+  // la tab scelta (anche nell'indirizzo, per ricaricare la pagina sulla stessa tab)
+  function scegli(eid) {
+    tab.forEach(t => t.classList.toggle('attiva', t.dataset.eid === eid));
+    descrizione.textContent = tab.find(t => t.dataset.eid === eid).title;
+    pagine.forEach(f => f.classList.toggle('nascosta', f.dataset.eid !== eid));
+    const u = new URL(location.href);
+    u.searchParams.set('scheda', eid);
+    history.replaceState(null, '', u);
+  }
+  tab.forEach(t => t.addEventListener('click', () => {
+    scegli(t.dataset.eid);
+    // se la pagina e' scesa sotto le tab, si torna all'inizio della pagina scelta
+    if (barra.getBoundingClientRect().top <= 0) contenitore.scrollIntoView({block: 'start'});
+  }));
+
+  // Una barra laterale sola, quella della pagina: ogni pagina di solver e' alta quanto il suo contenuto e non scorre
+  // dentro di se'. Le sue misure in vh si calcolano sulla finestra vera (--vh-finestra, vedi stile.css): altrimenti un
+  // elenco alto il 40% della pagina incorporata crescerebbe con la pagina stessa.
+  const barra = document.querySelector('.tab-solver');
+  const contenitore = document.querySelector('.pagine-solver');
+  const vh = () => pagine.forEach(f => f.contentDocument &&
+    f.contentDocument.documentElement.style.setProperty('--vh-finestra', innerHeight / 100 + 'px'));
+  const adatta = f => {
+    const d = f.contentDocument;
+    if (d && d.body) f.style.height = Math.ceil(d.body.getBoundingClientRect().height) + 'px';
+  };
+  pagine.forEach(f => {
+    const pronta = () => {
+      vh();
+      adatta(f);
+      new f.contentWindow.ResizeObserver(() => adatta(f)).observe(f.contentDocument.body);
+    };
+    // il caricamento si ascolta sempre: prima della pagina vera l'iframe ha un documento vuoto (about:blank) gia' «completo»
+    f.addEventListener('load', pronta);
+    const d = f.contentDocument;
+    if (d && d.readyState === 'complete' && d.URL !== 'about:blank' && d.body) pronta();
+  });
+  addEventListener('resize', vh);
+  // anche ogni secondo: il ResizeObserver scatta solo quando la pagina si disegna (non in una scheda nascosta)
+  setInterval(() => pagine.forEach(adatta), 1000);
+
+  // nelle tab: esito o avanzamento di ogni solver
+  const inCorso = new Set();
+  async function segui(t) {
+    const eid = t.dataset.eid;
+    try {
+      const s = await (await fetch(`{{ url_for('casi.caso', eid=0) }}`.replace(/0$/, eid) + '/stato')).json();
+      const esito = t.querySelector('.esito'), avanti = t.querySelector('.avanzamento');
+      const p = s.progresso;
+      if (s.in_corso) {
+        inCorso.add(eid);
+        esito.textContent = 'in corso';
+        esito.className = 'esito esito-in-corso';
+        if (p) avanti.textContent = `${numeroIt(Math.round(p.secondi))} s · ${numeroIt(p.nodi)} nodi · slot ${numeroIt(p.pos)}`;
+      } else {
+        inCorso.delete(eid);
+        if (s.esito) {
+          esito.textContent = s.esito;
+          esito.className = 'esito esito-' + s.esito.replace(/\s*\(.*/, '').trim().replace(/ /g, '-');
+          avanti.textContent = '';
+        }
+      }
+      fermaTutti.hidden = !inCorso.size;
+      if (!s.in_corso && s.esito) return;  // finito: la tab non cambia piu'
+    } catch (e) { /* rete: si riprova */ }
+    setTimeout(() => segui(t), 1000);
+  }
+  tab.forEach(segui);
+
+  fermaTutti.addEventListener('click', async () => {
+    fermaTutti.disabled = true;
+    await Promise.all([...inCorso].map(eid => fetch(`{{ url_for('casi.caso', eid=0) }}`.replace(/0$/, eid) + '/ferma',
+      {method: 'POST', headers: {'X-Gettone': window.GETTONE}})));
+  });
+})();
+</script>
+{% endblock %}
