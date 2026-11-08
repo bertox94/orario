@@ -184,14 +184,15 @@ static int docente_puo_insegnare(const Cella *c, const int p1) {
            && verifica_ora_ingresso(p1, c->ora);
 }
 
-// I controlli del codocente p2 insieme a p1. (L'ora di ingresso del codocente non si controlla.)
+// I controlli del codocente p2 insieme a p1.
 static int codocente_puo_insegnare(const Cella *c, const int p1, const int p2) {
     return prof_è_disponibile(c, p2)
            && docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(c, p1, p2)
            && prof_fa_al_max_n_ore(c, p2)
            && prof_fa_ore_contigue(c, p2)
            && sabato_esaurisci_priorita_subito_cod(c, p1, p2)
-           && ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(c, p2);
+           && ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(c, p2)
+           && verifica_ora_ingresso(p2, c->ora);
 }
 
 // I controlli per mettere p1 da solo.
