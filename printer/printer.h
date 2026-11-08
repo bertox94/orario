@@ -6,7 +6,7 @@
 #define UNTITLED_PRINTER_H
 
 #define MAX_STR_SZ_IN_DISPLAY 18
-#include <_stdio.h>
+#include <stdio.h>
 
 #include "../data_initialization/database_initializers.h"
 

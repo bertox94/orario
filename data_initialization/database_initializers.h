@@ -72,7 +72,11 @@ void set_insegnante(char in[]);
 
 void set_classe_insegnante_ore(char cla[], char prof[], const int ore);
 
+void set_classe_insegnante_ore_cod(char cla[], char prof[], const int ore, char cod[], const int ore_cod);
+
 int p_insegnante(const char in[]);
+
+int p_classe_sezione(char cla[]);
 
 int get_ore_classi_insegnante(int classe, int insegnante);
 
