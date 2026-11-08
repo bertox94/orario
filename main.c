@@ -6,15 +6,21 @@
 // da fare prima), ogni docente in coppia con un altro (una codocenza) e poi da solo; dopo le ore obbligatorie prova
 // anche l'ora buca. Quando tutte le celle sono decise (pos == orario_len) l'orario e' completo: si stampa in
 // orario.txt e la ricerca finisce (si cerca un orario solo). Su console il tempo impiegato.
+//
+// ./untitled           i dati di prova (inizializza_dati)
+// ./untitled test [N]  le prove con i dati casuali (prove.h): senza N lo chiede
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
 #include "utils.h"
 #include "priority_queue/prio_queue.h"
 #include "data_initialization/database_initializers.h"
 #include "printer/printer.h"
+#include "ricerca.h"
+#include "prove.h"
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
@@ -26,6 +32,11 @@ teaching_slot orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_S
 };
 int orario_len;                                   // giorni * ore * classi
 FILE *f;                                          // orario.txt: l'orario trovato
+
+// il conto dei nodi e i limiti (vedi ricerca.h): non cambiano la ricerca
+long long int nodi = 0, limite_nodi = 0, passi_max = 0;
+int fermato = 0, pos_max = 0;
+FILE *passi = NULL;
 
 // ---- la cella ----
 
@@ -284,11 +295,38 @@ static void prova_ora_buca(const Cella *c) {
     n_ore_buche[c->giorno * CLASSE_SEZIONE_SZ + c->cla]--;
 }
 
+// Una riga per nodo nel file dei passi: il numero del nodo e la cella appena decisa (pos - 1) con la scelta (i due
+// docenti, o l'ora buca). Se la cella non e' quella dopo la precedente, la ricerca e' tornata indietro.
+static void scrivi_passo(const int pos) {
+    static int pos_prima = 0;
+    if (pos == 0) {
+        fprintf(passi, "%lld\tinizio\n", nodi);
+        pos_prima = 0;
+        return;
+    }
+    const int k = pos - 1;
+    const teaching_slot *t = &orario[k];
+    fprintf(passi, "%lld\tcella %d\t%s %s %s\t", nodi, k, giorni_settimana[g_giorno(k)], ore_giornaliere[g_ora(k)],
+            classe_sezione[g_classe(k)]);
+    if (t->insegnante1 < 0) fprintf(passi, "ora buca");
+    else if (t->insegnante2 < 0) fprintf(passi, "%s", insegnanti[t->insegnante1]);
+    else fprintf(passi, "%s + %s", insegnanti[t->insegnante1], insegnanti[t->insegnante2]);
+    fprintf(passi, pos <= pos_prima ? "\tindietro\n" : "\n");
+    pos_prima = pos;
+}
+
 void print_orario(const int pos) {
-    if (trovato) return;
+    if (trovato || fermato) return;
+    if (limite_nodi && nodi >= limite_nodi) {  // il limite di nodi: la ricerca si ferma qui
+        fermato = 1;
+        return;
+    }
+    nodi++;
+    if (pos > pos_max) pos_max = pos;
+    if (passi && nodi <= passi_max) scrivi_passo(pos);
     if (pos == orario_len) {  // tutte le celle decise: l'orario e' completo
         trovato = 1;
-        print(orario, pos, f);
+        if (f) print(orario, pos, f);
         return;
     }
     const Cella c = cella(pos);
@@ -301,7 +339,16 @@ void print_orario(const int pos) {
     prova_ora_buca(&c);
 }
 
-int main(void) {
+int main(const int argc, char **argv) {
+    if (argc > 1 && !strcmp(argv[1], "test")) {  // le prove con i dati casuali
+        long long int n = argc > 2 ? atoll(argv[2]) : -1;
+        while (n < 0) {
+            printf("Numero di ripetizioni: ");
+            fflush(stdout);
+            if (scanf("%lld", &n) != 1) return 1;
+        }
+        return esegui_prove((int) n);
+    }
     const clock_t inizio = clock();
     inizializza_dati();
     stampa_dati();
