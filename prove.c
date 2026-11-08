@@ -19,7 +19,8 @@ typedef struct {
 
 // Nel processo figlio: genera i dati, cerca l'orario (al massimo PROVE_LIMITE_NODI nodi) e scrive i passi nel file
 // file_passi (i primi PROVE_PASSI nodi).
-static Esito un_test(const int seme, const int classi, const int ritardi, const char *file_passi) {
+static Esito un_test(const int seme, const int classi, const int ritardi, const char *file_passi,
+                     const char *file_ultimo) {
     Esito e = {0};
     if (!genera_dati_casuali(seme, classi, ritardi)) return e;
     e.generato = 1;
@@ -28,10 +29,12 @@ static Esito un_test(const int seme, const int classi, const int ritardi, const 
     limite_nodi = PROVE_LIMITE_NODI;
     passi = fopen(file_passi, "w");
     passi_max = PROVE_PASSI;
+    ultimo_backtrack = fopen(file_ultimo, "w+");
     const clock_t inizio = clock();
     print_orario(0);
     e.secondi = (clock() - inizio) / (double) CLOCKS_PER_SEC;
     if (passi) fclose(passi);
+    chiudi_ultimo_backtrack();
     e.trovato = trovato;
     e.fermato = fermato;
     e.nodi = nodi;
@@ -52,8 +55,9 @@ static void accoda(const char *da, FILE *a) {
 
 int esegui_prove(const int n) {
     FILE *report = fopen("report.txt", "w"), *tutti_i_passi = fopen("passi.txt", "w");
-    if (!report || !tutti_i_passi) {
-        fprintf(stderr, "Non riesco a scrivere report.txt e passi.txt nella cartella corrente\n");
+    FILE *ultimi = fopen("ultimo-backtrack.txt", "w");
+    if (!report || !tutti_i_passi || !ultimi) {
+        fprintf(stderr, "Non riesco a scrivere report.txt, passi.txt e ultimo-backtrack.txt nella cartella corrente\n");
         return 1;
     }
     const int totale = (n + 1) * (n + 1) * 2;
@@ -70,15 +74,16 @@ int esegui_prove(const int n) {
                 printf("Test %d di %d: seme %d, %d classi, %s ritardi... ", k, totale, seme, classi,
                        ritardi ? "con" : "senza");
                 fflush(stdout);
-                char file_passi[64];
+                char file_passi[64], file_ultimo[64];
                 snprintf(file_passi, sizeof file_passi, "passi-%d.tmp", k);
+                snprintf(file_ultimo, sizeof file_ultimo, "ultimo-%d.tmp", k);
                 int tubo[2];
                 if (pipe(tubo)) return 1;
                 fflush(NULL);
                 const pid_t figlio = fork();
                 if (figlio == 0) {  // il test, in un processo a parte
                     close(tubo[0]);
-                    const Esito e = un_test(seme, classi, ritardi, file_passi);
+                    const Esito e = un_test(seme, classi, ritardi, file_passi, file_ultimo);
                     write(tubo[1], &e, sizeof e);
                     _exit(0);
                 }
@@ -106,12 +111,25 @@ int esegui_prove(const int n) {
                     fflush(tutti_i_passi);
                 }
                 remove(file_passi);
+                if (e.generato) {  // l'ultimo backtrack del test (se la ricerca si e' bloccata almeno una volta)
+                    fprintf(ultimi, "=== test %d: seme %d, %d classi, %s ritardi: %s ===\n", k, seme, classi,
+                            ritardi ? "con" : "senza", esito);
+                    FILE *in = fopen(file_ultimo, "r");
+                    const int vuoto = !in || fgetc(in) == EOF;
+                    if (in) fclose(in);
+                    if (vuoto) fprintf(ultimi, "nessun backtrack\n");
+                    else accoda(file_ultimo, ultimi);
+                    fprintf(ultimi, "\n");
+                    fflush(ultimi);
+                }
+                remove(file_ultimo);
                 printf("%s (%lld nodi, %.1f s)\n", esito, e.nodi, e.secondi);
             }
     fprintf(report, "\nTrovati %d su %d, al limite di nodi %d.\n", trovati, totale, al_limite);
     fclose(report);
     fclose(tutti_i_passi);
-    printf("Fatto: %d test, %d orari trovati, %d al limite di nodi. Report in report.txt, passi in passi.txt.\n", totale,
-           trovati, al_limite);
+    fclose(ultimi);
+    printf("Fatto: %d test, %d orari trovati, %d al limite di nodi. Report in report.txt, passi in passi.txt, l'ultimo "
+           "backtrack di ogni test in ultimo-backtrack.txt.\n", totale, trovati, al_limite);
     return 0;
 }

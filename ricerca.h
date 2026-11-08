@@ -19,6 +19,10 @@ extern int fermato;                 // si e' fermata al limite
 extern int pos_max;                 // la cella piu' avanti raggiunta
 extern FILE *passi;                 // ogni nodo, una riga (NULL: no), fino a passi_max nodi
 extern long long int passi_max;
+// l'ultimo backtrack (NULL: no): dal nodo dove la ricerca si blocca, ogni nodo finche' non va oltre quella cella; il
+// blocco dopo ricomincia il file. Alla fine chiudi_ultimo_backtrack() scrive come finisce e taglia il file li'.
+extern FILE *ultimo_backtrack;
+void chiudi_ultimo_backtrack(void);
 
 // Decide la cella pos e scende alle celle dopo (print_orario(0): tutto l'orario).
 void print_orario(int pos);

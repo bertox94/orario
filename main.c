@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "utils.h"
 #include "priority_queue/prio_queue.h"
@@ -36,7 +37,7 @@ FILE *f;                                          // orario.txt: l'orario trovat
 // il conto dei nodi e i limiti (vedi ricerca.h): non cambiano la ricerca
 long long int nodi = 0, limite_nodi = 0, passi_max = 0;
 int fermato = 0, pos_max = 0;
-FILE *passi = NULL;
+FILE *passi = NULL, *ultimo_backtrack = NULL;
 
 // ---- la cella ----
 
@@ -295,24 +296,59 @@ static void prova_ora_buca(const Cella *c) {
     n_ore_buche[c->giorno * CLASSE_SEZIONE_SZ + c->cla]--;
 }
 
-// Una riga per nodo nel file dei passi: il numero del nodo e la cella appena decisa (pos - 1) con la scelta (i due
-// docenti, o l'ora buca). Se la cella non e' quella dopo la precedente, la ricerca e' tornata indietro.
-static void scrivi_passo(const int pos) {
-    static int pos_prima = 0;
+// Una riga per nodo: il numero del nodo e la cella appena decisa (pos - 1) con la scelta (i due docenti, o l'ora
+// buca); «indietro» se la cella non e' quella dopo la riga prima (*pos_prima: la pos della riga prima).
+static void riga_nodo(FILE *out, const int pos, int *pos_prima) {
     if (pos == 0) {
-        fprintf(passi, "%lld\tinizio\n", nodi);
-        pos_prima = 0;
+        fprintf(out, "%lld\tinizio\n", nodi);
+        *pos_prima = 0;
         return;
     }
     const int k = pos - 1;
     const teaching_slot *t = &orario[k];
-    fprintf(passi, "%lld\tcella %d\t%s %s %s\t", nodi, k, giorni_settimana[g_giorno(k)], ore_giornaliere[g_ora(k)],
+    fprintf(out, "%lld\tcella %d\t%s %s %s\t", nodi, k, giorni_settimana[g_giorno(k)], ore_giornaliere[g_ora(k)],
             classe_sezione[g_classe(k)]);
-    if (t->insegnante1 < 0) fprintf(passi, "ora buca");
-    else if (t->insegnante2 < 0) fprintf(passi, "%s", insegnanti[t->insegnante1]);
-    else fprintf(passi, "%s + %s", insegnanti[t->insegnante1], insegnanti[t->insegnante2]);
-    fprintf(passi, pos <= pos_prima ? "\tindietro\n" : "\n");
-    pos_prima = pos;
+    if (t->insegnante1 < 0) fprintf(out, "ora buca");
+    else if (t->insegnante2 < 0) fprintf(out, "%s", insegnanti[t->insegnante1]);
+    else fprintf(out, "%s + %s", insegnanti[t->insegnante1], insegnanti[t->insegnante2]);
+    fprintf(out, pos <= *pos_prima ? "\tindietro\n" : "\n");
+    *pos_prima = pos;
+}
+
+// ---- l'ultimo backtrack (ricerca.h) ----
+// Un episodio comincia a un nodo dove la ricerca si blocca (nessuna scelta possibile nella cella: il nodo non ha
+// figli) e prende ogni nodo dopo, finche' la ricerca non va oltre quella cella. Il prossimo blocco dopo il superamento
+// ricomincia il file da capo (sovrascrive); alla fine della ricerca resta l'ultimo episodio.
+static int in_episodio = 0, cella_bloccata, pos_prima_episodio;
+
+static void inizia_episodio(const int pos) {
+    rewind(ultimo_backtrack);
+    const Cella c = cella(pos);
+    fprintf(ultimo_backtrack, "backtrack al nodo %lld: nella cella %d (%s %s %s) nessuna scelta possibile\n", nodi, pos,
+            giorni_settimana[c.giorno], ore_giornaliere[c.ora], classe_sezione[c.cla]);
+    pos_prima_episodio = pos;
+    in_episodio = 1;
+    cella_bloccata = pos;
+}
+
+// a ogni nodo, durante un episodio: la sua riga e, se la ricerca e' andata oltre la cella bloccata, la fine
+static void segui_episodio(const int pos) {
+    riga_nodo(ultimo_backtrack, pos, &pos_prima_episodio);
+    if (pos <= cella_bloccata) return;
+    fprintf(ultimo_backtrack, pos == orario_len ? "superato: orario completo\n"
+                                                : "superato: la ricerca va oltre la cella %d\n", cella_bloccata);
+    in_episodio = 0;
+}
+
+void chiudi_ultimo_backtrack(void) {
+    if (!ultimo_backtrack) return;
+    if (in_episodio) fprintf(ultimo_backtrack, "non superato: la ricerca si ferma qui (%s)\n",
+                             fermato ? "limite di nodi" : "nessuna soluzione");
+    fflush(ultimo_backtrack);
+    const long fine = ftell(ultimo_backtrack);
+    if (fine >= 0 && ftruncate(fileno(ultimo_backtrack), fine)) { /* resta quello che c'era dopo: niente di grave */ }
+    fclose(ultimo_backtrack);
+    ultimo_backtrack = NULL;
 }
 
 void print_orario(const int pos) {
@@ -323,13 +359,16 @@ void print_orario(const int pos) {
     }
     nodi++;
     if (pos > pos_max) pos_max = pos;
-    if (passi && nodi <= passi_max) scrivi_passo(pos);
+    static int pos_prima_passi = 0;
+    if (passi && nodi <= passi_max) riga_nodo(passi, pos, &pos_prima_passi);
+    if (ultimo_backtrack && in_episodio) segui_episodio(pos);
     if (pos == orario_len) {  // tutte le celle decise: l'orario e' completo
         trovato = 1;
         if (f) print(orario, pos, f);
         return;
     }
     const Cella c = cella(pos);
+    const long long int nodi_prima = nodi;
     sort_queue_mul(c.base4d_queue, queue_sz);
     if (activities_for_this_class_and_hour(&c)) {
         ore_classe_svolte[c.cla]++;  // la lezione di questa cella conta gia' tra le ore della classe
@@ -337,6 +376,8 @@ void print_orario(const int pos) {
         ore_classe_svolte[c.cla]--;
     }
     prova_ora_buca(&c);
+    // nessun figlio: la ricerca si e' bloccata qui (un backtrack)
+    if (ultimo_backtrack && !in_episodio && nodi == nodi_prima && !trovato && !fermato) inizia_episodio(pos);
 }
 
 int main(const int argc, char **argv) {
