@@ -5,10 +5,10 @@
 #include "../printer/printer.h"
 #include "../data_initialization/database_initializers.h"
 #include "../priority_queue/prio_queue.h"
-// orario.txt: la griglia dell'orario con le statistiche per classe (il formato di riferimento dell'md5: non si tocca)
-// e stampa_dati su stdout.
-
-static void copy_and_pad(char *dest, const char *src, int maxlen) {
+//
+// Created by Alberto Tiraboschi on 20/06/2026.
+//
+void copy_and_pad(char *dest, const char *src, int maxlen) {
     int src_len = strlen(src);
     int copy_len = src_len;
 
@@ -25,7 +25,7 @@ static void copy_and_pad(char *dest, const char *src, int maxlen) {
     dest[maxlen - 1] = '\0';
 }
 
-static void draw_grid_separator(FILE *f) {
+void draw_grid_separator(FILE *f) {
     fprintf(f, "----------------+");
     for (int g = 0; g < actual_giorni_settimana; g++) {
         for (int o = 0; o < actual_ore_giornaliere; o++) {
@@ -35,14 +35,15 @@ static void draw_grid_separator(FILE *f) {
     fprintf(f, "\n");
 }
 
-static void print_header(unsigned long long attempt, FILE *f) {
+// Helper 1: Prints the header block containing the current time and attempt number
+void print_header(unsigned long long attempt, FILE *f) {
     time_t current_time;
     time(&current_time);
     fprintf(f, "Current time: %s", ctime(&current_time));
     fprintf(f, "Orari corretti: %llu\n\n", attempt);
 }
 
-// la griglia: classi in riga, giorni e ore in colonna, poi le statistiche dei docenti per classe
+// Main Function: Prints classes as rows, and days/hours as columns
 void print(const teaching_slot orario[], const int pos, unsigned long long attempt, FILE *f) {
     print_header(attempt, f);
 
@@ -187,7 +188,19 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
     fprintf(f, "\n");
 }
 
-void stampa_dati(void) {
+void print_priority_queue(FILE *f, int start, int end) {
+    for (int i = start; i < end; i++) {
+        if (i == start) fprintf(f, "Head: ");
+        else if (i == end - 1) fprintf(f, "Tail: ");
+        else fprintf(f, "       ");
+        char str[MAX_STR_SZ_IN_DISPLAY];
+        copy_and_pad(str, insegnanti[queue_mul[i]->teacher], MAX_STR_SZ_IN_DISPLAY);
+        fprintf(f, "%d)\t%s : %.2f\n", i, str, queue_mul[i]->priority);
+    }
+    fprintf(f, "------------\n");
+}
+
+void stampa_dati() {
     printf("Giorni settimana: ");
     for (int i = 0; i < actual_giorni_settimana - 1; i++)
         printf("%s, ", giorni_settimana[i]);
