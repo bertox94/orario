@@ -12,6 +12,7 @@ add_executable(untitled main.c
         constants/subjects.h
         data_initialization/database_initializers.h
         data_initialization/database_initializers.c
+        data_initialization/nomi_docenti.h
         printer/printer.h
         printer/printer.c
         priority_queue/prio_queue.c
