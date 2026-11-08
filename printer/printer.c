@@ -37,7 +37,7 @@ static void draw_grid_separator(FILE *f) {
     fprintf(f, "\n");
 }
 
-// Una riga della classe c: il docente (quale = 1) o il codocente (quale = 2) di ogni cella fino a pos (esclusa), con
+// Una riga della classe c: il primo (quale = 1) o il secondo docente (quale = 2) di ogni cella fino a pos (esclusa), con
 // in testa l'etichetta (la classe nella prima riga, vuota nella seconda).
 static void riga_docenti(FILE *f, const teaching_slot orario[], const int pos, const int c, const char *etichetta,
                          const int quale) {
