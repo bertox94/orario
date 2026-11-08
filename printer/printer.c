@@ -4,11 +4,14 @@
 
 #include "../printer/printer.h"
 #include "../data_initialization/database_initializers.h"
-#include "../priority_queue/prio_queue.h"
 //
 // Created by Alberto Tiraboschi on 20/06/2026.
 //
-void copy_and_pad(char *dest, const char *src, int maxlen) {
+
+// La stampa dell'orario in orario.txt (print) e dei dati letti su stdout (stampa_dati).
+
+// src in dest, tagliato o completato con spazi fino a maxlen - 1 caratteri
+static void copy_and_pad(char *dest, const char *src, int maxlen) {
     int src_len = strlen(src);
     int copy_len = src_len;
 
@@ -25,7 +28,7 @@ void copy_and_pad(char *dest, const char *src, int maxlen) {
     dest[maxlen - 1] = '\0';
 }
 
-void draw_grid_separator(FILE *f) {
+static void draw_grid_separator(FILE *f) {
     fprintf(f, "----------------+");
     for (int g = 0; g < actual_giorni_settimana; g++) {
         for (int o = 0; o < actual_ore_giornaliere; o++) {
@@ -35,19 +38,37 @@ void draw_grid_separator(FILE *f) {
     fprintf(f, "\n");
 }
 
-// Helper 1: Prints the header block containing the current time and attempt number
-void print_header(unsigned long long attempt, FILE *f) {
+// l'intestazione: l'ora e quanti orari completi trovati finora
+static void print_header(unsigned long long attempt, FILE *f) {
     time_t current_time;
     time(&current_time);
     fprintf(f, "Current time: %s", ctime(&current_time));
     fprintf(f, "Orari corretti: %llu\n\n", attempt);
 }
 
-// Main Function: Prints classes as rows, and days/hours as columns
+// Una riga della classe c: il docente (quale = 1) o il codocente (quale = 2) di ogni cella fino a pos (esclusa), con
+// in testa l'etichetta (la classe nella prima riga, vuota nella seconda).
+static void riga_docenti(FILE *f, const teaching_slot orario[], const int pos, const int c, const char *etichetta,
+                         const int quale) {
+    if (quale == 1) fprintf(f, " %-14s |", etichetta);
+    else fprintf(f, "                |");
+    for (int g = 0; g < actual_giorni_settimana; g++) {
+        for (int o = 0; o < actual_ore_giornaliere; o++) {
+            const int p = g * actual_ore_giornaliere * actual_classi_sezione + o * actual_classi_sezione + c;
+            const int curr = p >= pos ? -1 : quale == 1 ? orario[p].insegnante1 : orario[p].insegnante2;
+            char formatted_str[MAX_STR_SZ_IN_DISPLAY];
+            copy_and_pad(formatted_str, curr == -1 ? "       --        " : insegnanti[curr], MAX_STR_SZ_IN_DISPLAY);
+            fprintf(f, "     %s     |", formatted_str);
+        }
+    }
+    fprintf(f, "\n");
+}
+
+// le classi in riga, giorni e ore in colonna; poi le ore di ogni docente in ogni classe, le classi una accanto all'altra
 void print(const teaching_slot orario[], const int pos, unsigned long long attempt, FILE *f) {
     print_header(attempt, f);
 
-    // 1. Print Days header row
+    // 1. i giorni
     fprintf(f, "                |");
     for (int g = 0; g < actual_giorni_settimana; g++) {
         for (int o = 0; o < actual_ore_giornaliere; o++) {
@@ -58,7 +79,7 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
     }
     fprintf(f, "\n");
 
-    // 2. Print Hours header row (sub-columns)
+    // 2. le ore
     fprintf(f, "                |");
     for (int g = 0; g < actual_giorni_settimana; g++) {
         for (int o = 0; o < actual_ore_giornaliere; o++) {
@@ -71,58 +92,25 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
 
     draw_grid_separator(f);
 
-    // 3. Print each class as a row
+    // 3. una riga per classe (docente e codocente)
     for (int c = 0; c < actual_classi_sezione; c++) {
-        // Prepare class label (e.g., "Classe: 1A")
         char class_label[MAX_STR_SZ_IN_DISPLAY];
         snprintf(class_label, sizeof(class_label), "%s", classe_sezione[c]);
         char formatted_class[15];
         copy_and_pad(formatted_class, class_label, 15);
 
-        // --- Row for Insegnante 1 ---
-        fprintf(f, " %-14s |", formatted_class);
-        for (int g = 0; g < actual_giorni_settimana; g++) {
-            for (int o = 0; o < actual_ore_giornaliere; o++) {
-                int curr;
-                int p = g * actual_ore_giornaliere * actual_classi_sezione + o * actual_classi_sezione + c;
-                if (p >= pos) curr = -1;
-                else curr = orario[p].insegnante1;
-
-                char formatted_str[MAX_STR_SZ_IN_DISPLAY];
-                copy_and_pad(formatted_str, curr == -1 ? "       --        " : insegnanti[curr],
-                             MAX_STR_SZ_IN_DISPLAY);
-                fprintf(f, "     %s     |", formatted_str);
-            }
-        }
-        fprintf(f, "\n");
-
-        // --- Row for Insegnante 2 (Code/Codocenza) ---
-        fprintf(f, "                |");
-        for (int g = 0; g < actual_giorni_settimana; g++) {
-            for (int o = 0; o < actual_ore_giornaliere; o++) {
-                int curr;
-                int p = g * actual_ore_giornaliere * actual_classi_sezione + o * actual_classi_sezione + c;
-                if (p >= pos) curr = -1;
-                else curr = orario[p].insegnante2;
-
-                char formatted_str[MAX_STR_SZ_IN_DISPLAY];
-                copy_and_pad(formatted_str, curr == -1 ? "       --        " : insegnanti[curr],
-                             MAX_STR_SZ_IN_DISPLAY);
-                fprintf(f, "     %s     |", formatted_str);
-            }
-        }
-        fprintf(f, "\n");
+        riga_docenti(f, orario, pos, c, formatted_class, 1);
+        riga_docenti(f, orario, pos, c, "", 2);
 
         draw_grid_separator(f);
     }
 
-    // 4. Print Teacher workload summaries side-by-side per class
+    // 4. per ogni classe, una accanto all'altra, le ore messe / da fare di ogni suo docente ([1]: tutte messe)
     fprintf(f, "\n--- Statistiche Insegnanti per Classe (Side-by-Side) ---\n\n");
 
-    // Define fixed column width for each class block (e.g., 35 characters wide per class)
     const int COL_WIDTH = 35;
 
-    // 1. Print Header Row with Class Names
+    // i nomi delle classi
     for (int c = 0; c < actual_classi_sezione; c++) {
         char header_buf[64];
         snprintf(header_buf, sizeof(header_buf), "Classe: %s", classe_sezione[c]);
@@ -130,14 +118,13 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
     }
     fprintf(f, "\n");
 
-    // Print separator line matching the column widths
     for (int c = 0; c < actual_classi_sezione; c++) {
         for (int i = 0; i < COL_WIDTH; i++) fprintf(f, "-");
         fprintf(f, "-+-");
     }
     fprintf(f, "\n");
 
-    // 2. Determine the maximum number of active teachers in any class
+    // quante righe: i docenti della classe che ne ha di piu'
     int max_active_teachers = 0;
     for (int c = 0; c < actual_classi_sezione; c++) {
         int count = 0;
@@ -147,7 +134,7 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
         if (count > max_active_teachers) max_active_teachers = count;
     }
 
-    // 3. Print each teacher row side-by-side across classes
+    // la riga r: l'r-esimo docente di ogni classe
     for (int r = 0; r < max_active_teachers; r++) {
         for (int c = 0; c < actual_classi_sezione; c++) {
             int current_match = 0;
@@ -160,7 +147,6 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
                         int ore_i = get_ore_classi_insegnante(c, j);
 
                         char line_buf[64];
-                        // Format: "TeacherName: 5/10 [1]"
                         snprintf(line_buf, sizeof(line_buf), "%-18s %2d/%2d [%d]",
                                  insegnanti[j], ore_i_s, ore_i, ore_i_s == ore_i);
 
@@ -172,7 +158,6 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
                 }
             }
             if (!printed) {
-                // Empty padding block if this class has fewer teachers than max_active_teachers
                 char empty_buf[1] = "";
                 fprintf(f, "%-*s | ", COL_WIDTH, empty_buf);
             }
@@ -180,24 +165,11 @@ void print(const teaching_slot orario[], const int pos, unsigned long long attem
         fprintf(f, "\n");
     }
 
-    // Print bottom separator
     for (int c = 0; c < actual_classi_sezione; c++) {
         for (int i = 0; i < COL_WIDTH; i++) fprintf(f, "-");
         fprintf(f, "-+-");
     }
     fprintf(f, "\n");
-}
-
-void print_priority_queue(FILE *f, int start, int end) {
-    for (int i = start; i < end; i++) {
-        if (i == start) fprintf(f, "Head: ");
-        else if (i == end - 1) fprintf(f, "Tail: ");
-        else fprintf(f, "       ");
-        char str[MAX_STR_SZ_IN_DISPLAY];
-        copy_and_pad(str, insegnanti[queue_mul[i]->teacher], MAX_STR_SZ_IN_DISPLAY);
-        fprintf(f, "%d)\t%s : %.2f\n", i, str, queue_mul[i]->priority);
-    }
-    fprintf(f, "------------\n");
 }
 
 void stampa_dati() {

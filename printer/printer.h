@@ -6,10 +6,11 @@
 #define UNTITLED_PRINTER_H
 
 #define MAX_STR_SZ_IN_DISPLAY 18
-#include <_stdio.h>
+#include <stdio.h>
 
 #include "../data_initialization/database_initializers.h"
 
+// L'orario fino alla cella pos (esclusa) in f: una riga per classe con docente e codocente, giorni e ore in colonna, e
+// per ogni classe le ore messe e quelle da fare di ogni docente. attempt: quanti orari completi trovati finora.
 void print(const teaching_slot orario[], const int pos, unsigned long long attempt, FILE *f);
-void print_priority_queue(FILE *f, int start, int end);
 #endif //UNTITLED_PRINTER_H
