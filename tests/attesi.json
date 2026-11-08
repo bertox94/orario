@@ -29,7 +29,7 @@
   "seme_1_8": {
    "backtrack": 2,
    "esito": "trovato",
-   "nodi": 290,
+   "nodi": 289,
    "orario": "3b1e661ab02b"
   },
   "seme_2_12": {
@@ -41,25 +41,25 @@
   "seme_2_16": {
    "backtrack": 9,
    "esito": "trovato",
-   "nodi": 586,
+   "nodi": 579,
    "orario": "a6aaa9cff544"
   },
   "seme_2_8": {
    "backtrack": 1,
    "esito": "trovato",
-   "nodi": 290,
+   "nodi": 289,
    "orario": "56a57c327c3c"
   },
   "seme_2_8_ritardi": {
    "backtrack": 3,
    "esito": "trovato",
-   "nodi": 292,
+   "nodi": 289,
    "orario": "1b376cf9d3e8"
   },
   "seme_3_8": {
    "backtrack": 12,
    "esito": "trovato",
-   "nodi": 301,
+   "nodi": 289,
    "orario": "5ee348f82470"
   },
   "seme_4_12_ritardi": {
@@ -71,13 +71,13 @@
   "seme_4_16": {
    "backtrack": 2,
    "esito": "trovato",
-   "nodi": 579,
+   "nodi": 577,
    "orario": "7496c22f150e"
   },
   "seme_4_8": {
    "backtrack": 5,
    "esito": "trovato",
-   "nodi": 294,
+   "nodi": 289,
    "orario": "6200695420a9"
   },
   "seme_5_12": {
@@ -89,13 +89,13 @@
   "seme_5_12_ritardi": {
    "backtrack": 1,
    "esito": "trovato",
-   "nodi": 434,
+   "nodi": 433,
    "orario": "06c13a56d22b"
   },
   "seme_5_16": {
    "backtrack": 3,
    "esito": "trovato",
-   "nodi": 580,
+   "nodi": 577,
    "orario": "8da36c166899"
   },
   "seme_5_16_ritardi": {
@@ -105,31 +105,31 @@
   "seme_5_8": {
    "backtrack": 3,
    "esito": "trovato",
-   "nodi": 292,
+   "nodi": 289,
    "orario": "6875cdc2d18c"
   },
   "seme_5_8_ritardi": {
    "backtrack": 37,
    "esito": "trovato",
-   "nodi": 402,
+   "nodi": 400,
    "orario": "9be7279c1018"
   },
   "seme_6_16": {
    "backtrack": 1,
    "esito": "trovato",
-   "nodi": 578,
+   "nodi": 577,
    "orario": "656b42b89ee8"
   },
   "seme_6_8": {
    "backtrack": 14,
    "esito": "trovato",
-   "nodi": 347,
+   "nodi": 345,
    "orario": "6bf19002979b"
   },
   "seme_6_8_ritardi": {
    "backtrack": 10,
    "esito": "trovato",
-   "nodi": 336,
+   "nodi": 326,
    "orario": "564d5bda5533"
   }
  },
@@ -164,7 +164,7 @@
   "seme_1_8": {
    "backtrack": 2,
    "esito": "trovato",
-   "nodi": 290,
+   "nodi": 289,
    "orario": "3b1e661ab02b"
   },
   "seme_2_12": {
@@ -176,25 +176,25 @@
   "seme_2_16": {
    "backtrack": 9,
    "esito": "trovato",
-   "nodi": 586,
+   "nodi": 579,
    "orario": "a6aaa9cff544"
   },
   "seme_2_8": {
    "backtrack": 1,
    "esito": "trovato",
-   "nodi": 290,
+   "nodi": 289,
    "orario": "56a57c327c3c"
   },
   "seme_2_8_ritardi": {
    "backtrack": 3,
    "esito": "trovato",
-   "nodi": 292,
+   "nodi": 289,
    "orario": "1b376cf9d3e8"
   },
   "seme_3_8": {
    "backtrack": 12,
    "esito": "trovato",
-   "nodi": 301,
+   "nodi": 289,
    "orario": "5ee348f82470"
   },
   "seme_4_12_ritardi": {
@@ -206,13 +206,13 @@
   "seme_4_16": {
    "backtrack": 2,
    "esito": "trovato",
-   "nodi": 579,
+   "nodi": 577,
    "orario": "7496c22f150e"
   },
   "seme_4_8": {
    "backtrack": 5,
    "esito": "trovato",
-   "nodi": 294,
+   "nodi": 289,
    "orario": "6200695420a9"
   },
   "seme_5_12": {
@@ -224,13 +224,13 @@
   "seme_5_12_ritardi": {
    "backtrack": 1,
    "esito": "trovato",
-   "nodi": 434,
+   "nodi": 433,
    "orario": "06c13a56d22b"
   },
   "seme_5_16": {
    "backtrack": 3,
    "esito": "trovato",
-   "nodi": 580,
+   "nodi": 577,
    "orario": "8da36c166899"
   },
   "seme_5_16_ritardi": {
@@ -240,31 +240,31 @@
   "seme_5_8": {
    "backtrack": 3,
    "esito": "trovato",
-   "nodi": 292,
+   "nodi": 289,
    "orario": "6875cdc2d18c"
   },
   "seme_5_8_ritardi": {
    "backtrack": 37,
    "esito": "trovato",
-   "nodi": 402,
+   "nodi": 400,
    "orario": "9be7279c1018"
   },
   "seme_6_16": {
    "backtrack": 1,
    "esito": "trovato",
-   "nodi": 578,
+   "nodi": 577,
    "orario": "656b42b89ee8"
   },
   "seme_6_8": {
    "backtrack": 14,
    "esito": "trovato",
-   "nodi": 347,
+   "nodi": 345,
    "orario": "6bf19002979b"
   },
   "seme_6_8_ritardi": {
    "backtrack": 10,
    "esito": "trovato",
-   "nodi": 336,
+   "nodi": 326,
    "orario": "564d5bda5533"
   }
  },
@@ -298,7 +298,7 @@
   "seme_1_8": {
    "backtrack": 2,
    "esito": "trovato",
-   "nodi": 290,
+   "nodi": 289,
    "orario": "3b1e661ab02b"
   },
   "seme_2_12": {
@@ -310,25 +310,25 @@
   "seme_2_16": {
    "backtrack": 9,
    "esito": "trovato",
-   "nodi": 586,
+   "nodi": 579,
    "orario": "a6aaa9cff544"
   },
   "seme_2_8": {
    "backtrack": 1,
    "esito": "trovato",
-   "nodi": 290,
+   "nodi": 289,
    "orario": "56a57c327c3c"
   },
   "seme_2_8_ritardi": {
    "backtrack": 3,
    "esito": "trovato",
-   "nodi": 292,
+   "nodi": 289,
    "orario": "1b376cf9d3e8"
   },
   "seme_3_8": {
    "backtrack": 12,
    "esito": "trovato",
-   "nodi": 301,
+   "nodi": 289,
    "orario": "5ee348f82470"
   },
   "seme_4_12_ritardi": {
@@ -340,13 +340,13 @@
   "seme_4_16": {
    "backtrack": 2,
    "esito": "trovato",
-   "nodi": 579,
+   "nodi": 577,
    "orario": "7496c22f150e"
   },
   "seme_4_8": {
    "backtrack": 5,
    "esito": "trovato",
-   "nodi": 294,
+   "nodi": 289,
    "orario": "6200695420a9"
   },
   "seme_5_12": {
@@ -358,13 +358,13 @@
   "seme_5_12_ritardi": {
    "backtrack": 1,
    "esito": "trovato",
-   "nodi": 434,
+   "nodi": 433,
    "orario": "06c13a56d22b"
   },
   "seme_5_16": {
    "backtrack": 3,
    "esito": "trovato",
-   "nodi": 580,
+   "nodi": 577,
    "orario": "8da36c166899"
   },
   "seme_5_16_ritardi": {
@@ -374,31 +374,31 @@
   "seme_5_8": {
    "backtrack": 3,
    "esito": "trovato",
-   "nodi": 292,
+   "nodi": 289,
    "orario": "6875cdc2d18c"
   },
   "seme_5_8_ritardi": {
    "backtrack": 37,
    "esito": "trovato",
-   "nodi": 402,
+   "nodi": 400,
    "orario": "9be7279c1018"
   },
   "seme_6_16": {
    "backtrack": 1,
    "esito": "trovato",
-   "nodi": 578,
+   "nodi": 577,
    "orario": "656b42b89ee8"
   },
   "seme_6_8": {
    "backtrack": 14,
    "esito": "trovato",
-   "nodi": 347,
+   "nodi": 345,
    "orario": "6bf19002979b"
   },
   "seme_6_8_ritardi": {
    "backtrack": 10,
    "esito": "trovato",
-   "nodi": 336,
+   "nodi": 326,
    "orario": "564d5bda5533"
   }
  }

@@ -478,9 +478,11 @@ void traccia_slot_chiuso(const int s, const int giorno, const int ora, const int
 
 // Una potatura (vedi potature/potature.h) all'ingresso della cella pos: la scelta nella cella prima lascia un resto
 // impossibile. Nella traccia e' un backtrack in questa cella, con il controllo e i suoi numeri.
-void traccia_potatura(const int s, const int giorno, const int ora, const int cla, const Potatura *p) {
+void traccia_potatura(const int s, const Potatura *p) {
     if (!registra()) return;
-    testa_backtrack(s, giorno, ora, cla, 0);
+    const int c = cella(s);
+    testa_backtrack(s, g_giorno(c), g_ora(c), g_classe(c), 0);
+    fprintf(t, "\"nella_cella\":1,");
     if (p->controllo == POTATURA_IN_AVANTI) {  // il controllo in avanti, entrando nella cella dopo la scelta
         fprintf(t, "\"slot\":{\"nome\":\"situazione_risolvibile\",\"ingressi\":{\"cella_bloccata\":%d,"
                 "\"motivo\":\"%s\",\"giorno\":%d,\"ora\":%d,\"classe\":%d", p->cella, nome_motivo_in_avanti(p->motivo),
@@ -490,7 +492,7 @@ void traccia_potatura(const int s, const int giorno, const int ora, const int cl
                     p->restano, p->possibili);
         if (p->motivo == 0) {  // la cella senza docenti: i docenti della sua classe, con perche' non possono starci
             static DocenteCella dc[INSEGNANTE_SZ];
-            const int n = docenti_della_cella(s, p->cella, dc, INSEGNANTE_SZ);
+            const int n = docenti_della_cella(s + 1, p->cella, dc, INSEGNANTE_SZ);
             fprintf(t, ",\"docenti_cella\":[");
             for (int k = 0; k < n; k++)
                 fprintf(t, "%s{\"docente\":%d,\"restano\":%d,\"ingresso\":%d,\"occupato\":%d,\"fatte_oggi\":%d,"
@@ -500,7 +502,7 @@ void traccia_potatura(const int s, const int giorno, const int ora, const int cl
             fputc(']', t);
         }
         fprintf(t, "},\"uscita\":0},\"docenti\":[],\"altri_docenti\":0,\"incoerente\":0,");
-        orario_fino_a(s);
+        orario_fino_a(s + 1);
         fprintf(t, "}\n");
         fflush(t);
         return;
@@ -510,7 +512,7 @@ void traccia_potatura(const int s, const int giorno, const int ora, const int cl
             p->controllo == POTATURA_ORE_DOCENTI ? "ore_dei_docenti_stanno_nel_tempo" : "lezioni_della_classe_bastano",
             p->docente, p->classe, p->restano, p->possibili, p->fino_ora, p->giorno, p->ora);
     fprintf(t, ",\"docenti\":[],\"altri_docenti\":0,\"incoerente\":0,");
-    orario_fino_a(s);
+    orario_fino_a(s + 1);
     fprintf(t, "}\n");
     fflush(t);
 }

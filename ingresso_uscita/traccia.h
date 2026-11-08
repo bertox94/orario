@@ -55,7 +55,9 @@ void traccia_backtrack(int pos, int giorno, int ora, int cla, int base2d_ci, int
 // torna indietro senza provare nessun docente.
 void traccia_slot_chiuso(int pos, int giorno, int ora, int cla);
 // la scelta nella cella prima lascia un resto impossibile (una potatura, vedi potature/potature.h)
-void traccia_potatura(int pos, int giorno, int ora, int cla, const Potatura *p);
+// Una potatura della scelta appena messa nella cella del passo s (i controlli generali si fanno nello stesso nodo, prima
+// di scendere): un backtrack nella cella s, con "nella_cella":1 e l'orario fino alla scelta compresa.
+void traccia_potatura(int s, const Potatura *p);
 
 // ---- per i solver di solutori/ (la stessa traccia, con due aggiunte) ----
 // Un solver che non decide le celle in ordine di indice (per-classe): cella_di[s] e' la cella decisa al passo s,

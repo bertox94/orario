@@ -16,7 +16,7 @@
 //  3. le ore dei docenti: in ogni classe le ore che restano al docente stanno in quelle che puo' ancora fare (oggi dopo
 //     l'ultima ora decisa, se il suo blocco non si e' chiuso; poi al massimo 3 al giorno dal suo ingresso), e in tutto
 //     stanno nelle ore libere che gli restano.
-// Quando: all'ingresso della cella dopo la scelta, con le potature (potature/potature.h, POTATURA_IN_AVANTI).
+// Quando: subito dopo la scelta, nello stesso nodo, con le potature (potature/potature.h, POTATURA_IN_AVANTI).
 //
 // Vale per qualunque ordine delle celle (main: un'ora alla volta; per-classe: dentro il giorno una
 // classe alla volta) e dei giorni (giorni-liberi): i solver si decidono un giorno alla volta, e dentro il giorno ogni

@@ -148,6 +148,16 @@ static int traccia_fissato(const int pos, const int giorno, const int ora, const
     return u;
 }
 
+// I controlli generali (le potature, potature/potature.h) della scelta appena messa nella cella del passo s, nello
+// stesso nodo: se dopo questa scelta il resto non si puo' completare, la ricerca non scende (la scelta si toglie e si
+// prova la prossima). 1: si scende.
+static int scendi(const int s) {
+    if (fermato || n_gen_max <= n_gen) return 1;  // la ricerca e' finita: la cella dopo ritorna subito, come prima
+    if (!potatura_dopo(s + 1)) return 1;
+    traccia_potatura(s, &potatura);
+    return 0;
+}
+
 // ---- la ricerca ----
 // print_orario(s) decide la cella del passo s, pos = cella_di[s], e scende a s + 1. Alla fine (s == orario_len)
 // l'orario e' completo. Come main, piu' il controllo dei giorni fissati e il limite di nodi del giro.
@@ -177,11 +187,6 @@ void print_orario(const int s) {
         return;
     }
     const int pos = cella_di[s];
-    // le potature (potature/potature.h): la scelta nella cella prima lascia un resto ancora possibile?
-    if (potatura_dopo(s)) {
-        traccia_potatura(s, g_giorno(pos), g_ora(pos), g_classe(pos), &potatura);
-        return;
-    }
 
     const int giorno = g_giorno(pos), ora = g_ora(pos), cla = g_classe(pos);
     const int base2d_ci = cla * INSEGNANTE_SZ;                                                   // classe, docente
@@ -224,7 +229,7 @@ void print_orario(const int s) {
                 prep_chiamata_ricorsiva_insieme(base2d_ci, base3d_goi, cla, it, jt, giorno);
                 found_prof = 1;
                 orario[pos] = (teaching_slot){p1, p2};
-                print_orario(s + 1);
+                if (scendi(s)) print_orario(s + 1);
                 post_chiamata_ricorsiva_insieme(base2d_ci, base3d_goi, cla, it, jt, giorno);
                 if (fermato) break;
             }
@@ -236,7 +241,7 @@ void print_orario(const int s) {
                 prep_chiamata_ricorsiva(base2d_ci, base3d_goi, it, giorno, cla, p1);
                 found_prof = 1;
                 orario[pos] = (teaching_slot){p1, -1};
-                print_orario(s + 1);
+                if (scendi(s)) print_orario(s + 1);
                 post_chiamata_ricorsiva(base2d_ci, base3d_goi, it, giorno, cla, p1);
                 if (fermato) break;
             }
@@ -261,7 +266,7 @@ void print_orario(const int s) {
     if (ora_buca_possibile(giorno, ora, cla) && cella_del_giorno_fissato(pos, giorno, -1, -1)) {
         orario[pos] = (teaching_slot){-1, -1};
         n_ore_buche[base2d_gc + cla]++;
-        print_orario(s + 1);
+        if (scendi(s)) print_orario(s + 1);
         n_ore_buche[base2d_gc + cla]--;
     }
 }

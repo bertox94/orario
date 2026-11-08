@@ -33,7 +33,7 @@ nell'ordine del giro.
 Dal 6 novembre 2026 tutti i solver, `main` compreso, hanno gli stessi controlli (richiesta di Alb): quelli di `main`, le
 potature L, C e T, il controllo in avanti A e la verifica dei dati prima della ricerca (`controllo_in_avanti/`, prima
 solo nel solver `in-avanti`), e alla fine il controllo «ogni classe ha fatto tutte le sue ore». Cambia solo come cercano
-(l'ordine delle celle, i giri); A si fa entrando nella cella dopo (una potatura: nella traccia
+(l'ordine delle celle, i giri); A si fa subito dopo la scelta, nello stesso nodo (una potatura: nella traccia
 `situazione_risolvibile`). Restano propri di un solver solo i
 controlli che hanno senso solo lì: i giorni fissati di `giorni-liberi`.
 
@@ -89,7 +89,8 @@ Le due potature del solver precedente (`archivio/2026-11-04`, `ricerca/vincoli.c
 `potature/`, lo stesso file in tutti i solver (`giorni-liberi` le chiama con il suo ordine dei giorni,
 `potature_ordine_giorni`). Sono condizioni
 necessarie: scartano solo rami senza soluzioni, quindi il primo orario trovato non cambia; cambia quanto presto la
-ricerca torna indietro. Si controllano all'ingresso della cella dopo una scelta:
+ricerca torna indietro. Si controllano subito dopo aver messo una scelta, nello stesso nodo, prima di scendere alla cella dopo (dall'8
+novembre 2026; prima entrando nella cella dopo, che contava un nodo in più):
 
 - **a ogni cella**, per la classe appena decisa: le sue lezioni (un docente da solo o una coppia) bastano per le sue
   ore obbligatorie di ogni giorno che resta e per tutte le ore che le restano; le ore che restano a ogni suo docente
@@ -111,7 +112,7 @@ ricerca torna indietro. Si controllano all'ingresso della cella dopo una scelta:
      tutto nelle ore libere che gli restano dal suo ingresso.
 
 Sono scritte sulle celle già decise (per ogni classe la sua prima cella non decisa), quindi valgono anche per un altro ordine
-delle celle (come quello del solver `per-classe`, tolto). Nella traccia una potatura è un backtrack nella cella dopo la scelta, con il
+delle celle (come quello del solver `per-classe`, tolto). Nella traccia una potatura è un backtrack nella cella della scelta («nella_cella»: 1, l'orario fino alla scelta compresa), con il
 controllo `ore_dei_docenti_stanno_nel_tempo`, `lezioni_della_classe_bastano` o `situazione_risolvibile` (A) e i suoi
 numeri.
 

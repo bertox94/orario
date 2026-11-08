@@ -11,7 +11,9 @@
 // Quindi scartano solo rami senza soluzioni: gli orari trovati, e il loro ordine, sono gli stessi di prima; cambia solo
 // quanto presto la ricerca torna indietro (verificato: stesso primo orario su tutti i casi risolti).
 //
-// Quando avvengono (all'ingresso del passo s, cioe' subito dopo la scelta della cella del passo s - 1):
+// Quando avvengono: subito dopo aver messo una scelta nella cella del passo s - 1, nello stesso nodo, prima di scendere
+// alla cella dopo (dall'8 novembre 2026, richiesta di Alb: i controlli generali della scelta stanno nella sua cella; prima
+// si facevano entrando nella cella dopo, che contava un nodo in piu'). Si chiamano con potatura_dopo(s):
 //
 //   A OGNI CELLA, per la classe della cella appena decisa (dipendono solo da quella classe):
 //     L. lezioni della classe: le lezioni che le restano (un docente da solo o una coppia) bastano a riempire le sue

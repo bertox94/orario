@@ -196,10 +196,10 @@ const CONTROLLI = {
     descrizione: 'controllo in avanti: lascia un docente a ogni cella obbligatoria di oggi, abbastanza lezioni alle classi e abbastanza tempo ai docenti',
     breve: 'lascerebbe una cella senza docenti, senza lezioni o un docente senza tempo', ingressi: ingressiInAvanti},
   situazione_risolvibile: {  // potatura A: gli altri solver, entrando nella cella dopo la scelta
-    descrizione: 'potatura (controllo in avanti): la scelta nella cella prima lascia un docente a ogni cella di oggi, abbastanza lezioni alle classi e abbastanza tempo ai docenti',
-    breve: 'la scelta di prima rende il resto impossibile', ingressi: ingressiInAvanti},
+    descrizione: 'potatura (controllo in avanti): dopo la scelta resta un docente a ogni cella di oggi, abbastanza lezioni alle classi e abbastanza tempo ai docenti',
+    breve: 'la scelta rende il resto impossibile', ingressi: ingressiInAvanti},
   ore_dei_docenti_stanno_nel_tempo: {  // potatura (tutti i solver)
-    descrizione: 'potatura: dopo la scelta nella cella prima, le ore che restano a ogni docente stanno nel tempo che gli resta',
+    descrizione: 'potatura: dopo la scelta, le ore che restano a ogni docente stanno nel tempo che gli resta',
     breve: 'potatura: a un docente non basterebbe il tempo',
     ingressi: (i, d) => i.classe >= 0
       ? `a ${nomeDoc(d, i.docente)} restano ${i.restano} ore in ${nomeClasse(d, i.classe)}, ma da ` +
@@ -208,7 +208,7 @@ const CONTROLLI = {
       : `a ${nomeDoc(d, i.docente)} restano ${i.restano} ore in tutto, ma da ${d.giorni[i.giorno]} ha al massimo ` +
         `${i.possibili} ore libere (dal suo ingresso, un'ora per volta)`},
   lezioni_della_classe_bastano: {  // potatura
-    descrizione: 'potatura: dopo la scelta nella cella prima, le lezioni che restano alla classe bastano per le sue ore',
+    descrizione: 'potatura: dopo la scelta, le lezioni che restano alla classe bastano per le sue ore',
     breve: 'potatura: a una classe non basterebbero le lezioni',
     ingressi: (i, d) => `${nomeClasse(d, i.classe)}: da ${d.giorni[i.giorno]} ${nomeOra(d, i.ora)} ` +
       (i.fino_ora === d.ore.length - 1 ? `restano ${i.restano} ore da fare`
@@ -464,6 +464,12 @@ function testaSezione(chiave, titolo) {
 // (la cella fin dove la ricerca e' tornata indietro per cambiare una scelta).
 // passo (passo passo): {didascalia, bordata, ritorno}: la didascalia al posto di quella solita e, se ci sono, la cella
 // bordata (quella messa nello stesso record del backtrack) e quella in cui e' finito l'ultimo backtracking.
+// la scelta provata nella cella di una potatura (nell'orario del backtrack, alla sua cella)
+function sceltaDi(d, b) {
+  const x = (b.orario || [])[b.pos];
+  return !x || (x[0] < 0 && x[1] < 0) ? "l'ora buca" : coppia(d, x);
+}
+
 function disegnaBacktrack(contenitore, d, b, filtro, sopra, prima, passo) {
   d = datiPerBacktrack(d, b);
   if (prima && prima.giro !== b.giro) prima = null;  // un altro giro: un altro ordine, non si confronta
@@ -473,7 +479,11 @@ function disegnaBacktrack(contenitore, d, b, filtro, sopra, prima, passo) {
   sostituisci(document.getElementById('intestazione-backtrack'),
     el('h3', {}, `Backtrack n. ${numeroIt(b.n)}: ${testoPos(d, b.pos)}`),
     el('p', {class: 'tenue piccolo'}, [
-      ['ore_dei_docenti_stanno_nel_tempo', 'lezioni_della_classe_bastano'].includes(b.slot.nome)
+      b.nella_cella
+        ? `Al nodo ${numeroIt(b.nodo)} la ricerca prova in questa cella ${sceltaDi(d, b)}, ma una potatura (vedi ` +
+          `«Lo slot» qui sotto) dice che con questa scelta l'orario non si può più completare: la toglie e prova la ` +
+          'scelta dopo. '
+      : ['ore_dei_docenti_stanno_nel_tempo', 'lezioni_della_classe_bastano'].includes(b.slot.nome)
         ? `Al nodo ${numeroIt(b.nodo)} la ricerca entra in questa cella, ma una potatura dice che dopo la scelta nella ` +
           `cella prima l'orario non si può più completare (vedi «La classe» qui sotto). `
         : b.slot.nome === 'situazione_risolvibile'
@@ -481,7 +491,8 @@ function disegnaBacktrack(contenitore, d, b, filtro, sopra, prima, passo) {
           `resto impossibile (vedi «La classe» qui sotto). `
         : `Al nodo ${numeroIt(b.nodo)} della ricerca la classe ${nomeClasse(d, s.classe)} non ha potuto avere nessun ` +
           `docente in quest'ora. `,
-      ['situazione_risolvibile', 'ore_dei_docenti_stanno_nel_tempo', 'lezioni_della_classe_bastano'].includes(b.slot.nome)
+      b.nella_cella ? ''
+      : ['situazione_risolvibile', 'ore_dei_docenti_stanno_nel_tempo', 'lezioni_della_classe_bastano'].includes(b.slot.nome)
         ? 'La ricerca torna indietro e cambia quella scelta.'
       : b.buca_dopo ? "Siamo oltre le ore obbligatorie: dopo la ricerca prova l'ora buca, quindi non è un vicolo cieco."
       : b.ora >= (d.parametri || {}).ore_obbligatorie
@@ -501,14 +512,19 @@ function disegnaBacktrack(contenitore, d, b, filtro, sopra, prima, passo) {
     if (p >= prima.orario.length || p >= prima.pos || JSON.stringify(b.orario[p]) !== JSON.stringify(prima.orario[p]))
       cambiate.add(p);
   const tornata = passo ? passo.bordata : cambiate.size ? Math.min(...cambiate) : undefined;
-  disegnaOrario(griglia, d, b.orario, {fino: b.pos, blocco: b.pos, cambiate, tornata,
-                                        ritorno: passo ? passo.ritorno : undefined});
+  // una potatura nella cella: l'orario arriva alla scelta compresa, in azzurro; se no la cella senza docenti in rosso
+  disegnaOrario(griglia, d, b.orario, b.nella_cella
+    ? {fino: b.pos + 1, attuale: b.pos, cambiate, tornata, ritorno: passo ? passo.ritorno : undefined}
+    : {fino: b.pos, blocco: b.pos, cambiate, tornata, ritorno: passo ? passo.ritorno : undefined});
   const testoCambi = !prima ? '' : !cambiate.size ? ` Nessuna cella cambiata dal backtrack precedente (n. ${numeroIt(prima.n)}).`
     : ` In verde ${cambiate.size === 1 ? 'la cella cambiata' : `le ${numeroIt(cambiate.size)} celle cambiate`} dal ` +
       `backtrack precedente (n. ${numeroIt(prima.n)}); bordata la prima, ${testoPos(d, tornata)}: la ricerca è tornata ` +
       `fin lì e ha cambiato scelta.`;
   mettiGriglia(sopra, el('p', {class: 'tenue piccolo didascalia'}, passo ? passo.didascalia
-    : `Al backtrack n. ${numeroIt(b.n)}: ${testoPos(d, b.pos)} (in rosso).` + testoCambi), griglia, 'td.blocco');
+    : b.nella_cella ? `Al backtrack n. ${numeroIt(b.n)}: in ${testoPos(d, b.pos)} (in azzurro) la scelta ` +
+        `${sceltaDi(d, b)}, scartata da una potatura.` + testoCambi
+    : `Al backtrack n. ${numeroIt(b.n)}: ${testoPos(d, b.pos)} (in rosso).` + testoCambi), griglia,
+    b.nella_cella ? 'td.attuale' : 'td.blocco');
   parti.push(...partiDocenti(d, b, filtro));
   sostituisci(contenitore, ...parti);
 }
@@ -749,7 +765,7 @@ function paginaTest(cfg) {
     const motivi = Object.entries(b.riassunto).sort((a, b) => b[1] - a[1])
       .map(([k, v]) => el('span', {class: 'motivo', title: k}, `${v} × ${motivoBreve(k)}`));
     return [td(numeroIt(b.n), true), td(numeroIt(b.nodo), true), td(testoBacktrack(d, b)),
-            td(b.buca_dopo ? 'segue ora buca' : 'torna indietro'), el('td', {}, motivi)];
+            td(b.nella_cella ? 'prova la scelta dopo' : b.buca_dopo ? 'segue ora buca' : 'torna indietro'), el('td', {}, motivi)];
   }
 
   // ---- i gruppi di backtrack ----
@@ -1048,9 +1064,9 @@ function paginaTest(cfg) {
       parti.push(el('span', {class: 'tacca ' + colore, style: `left: calc(8px + (100% - 16px) * ${f})`, title: titolo}));
     };
     if (chiave && modo.passi) {
-      for (const [nodo, n] of P.bt) {
+      for (const [n, k] of P.btPasso) {
         const x = riassunti.get(n);
-        tacca(passoDelNodo(nodo), x.pos === g.inizio ? 'c0' : 'c1', `backtrack ${numeroIt(n)}: ${testoBacktrack(d, x)}`);
+        tacca(k, x.pos === g.inizio ? 'c0' : 'c1', `backtrack ${numeroIt(n)}: ${testoBacktrack(d, x)}`);
       }
     } else if (chiave) {
       const colori = coloriCelle(g);
@@ -1223,22 +1239,37 @@ function paginaTest(cfg) {
       if (pos[i] > 0) { st[2 * (pos[i] - 1)] = p1[i]; st[2 * (pos[i] - 1) + 1] = p2[i]; }
       if (i % OGNI === 0) punti.push(st.slice());
     }
+    // i backtrack del gruppo per nodo: a un nodo possono essere piu' d'uno (le scelte di una cella scartate dalle
+    // potature, che si controllano nello stesso nodo, prima di scendere), in ordine
     const bt = new Map();
-    for (const n of g.membri) { const x = riassunti.get(n); if (x.nodo >= da && x.nodo < da + L) bt.set(x.nodo, n); }
-    // i passi
-    const er = [], et = [], dec = [], tent = [];
+    for (const n of g.membri) {
+      const x = riassunti.get(n);
+      if (x.nodo >= da && x.nodo < da + L) { if (!bt.has(x.nodo)) bt.set(x.nodo, []); bt.get(x.nodo).push(n); }
+    }
+    // i passi: er il record, btn il backtrack del passo (-1: non e' un backtrack), et 1 se e' un backtrack
+    const er = [], et = [], btn = [], dec = [], tent = [];
     const chiamata = new Map();  // cella -> record dell'ultima chiamata che la decide (la pila della ricerca)
     const tentativi = new Map(); // record di una chiamata -> quante coppie ha messo finora
     for (let i = 0; i < L; i++) {
-      if (!modo.perCella) { er.push(i); et.push(bt.has(da + i) ? 1 : 0); dec.push(-1); tent.push(0); continue; }
+      if (!modo.perCella) {
+        if (!bt.has(da + i)) { er.push(i); et.push(0); btn.push(-1); dec.push(-1); tent.push(0); }
+        else for (const n of bt.get(da + i)) { er.push(i); et.push(1); btn.push(n); dec.push(-1); tent.push(0); }
+        continue;
+      }
       const c = pos[i] - 1;
       if (i > 0 && c >= 0) {  // il record 0 e' l'ingresso nella prima cella: la sua coppia viene da prima
         const q = chiamata.has(c) ? chiamata.get(c) : -1, t = (tentativi.get(q) || 0) + 1;
         tentativi.set(q, t);
-        er.push(i); et.push(0); dec.push(q); tent.push(t);
+        er.push(i); et.push(0); btn.push(-1); dec.push(q); tent.push(t);
       }
       chiamata.set(pos[i], i);
-      if (bt.has(da + i)) { er.push(i); et.push(1); dec.push(i); tent.push(0); }
+      // un backtrack: nessun docente nella cella (decide il nodo i), o una scelta scartata da una potatura nella cella
+      // del backtrack (decide l'ultima chiamata di quella cella)
+      for (const n of bt.get(da + i) || []) {
+        const x = riassunti.get(n);
+        const q = x.nella_cella ? (chiamata.has(x.pos) ? chiamata.get(x.pos) : -1) : i;
+        er.push(i); et.push(1); btn.push(n); dec.push(q); tent.push(0);
+      }
     }
     const S = er.length, primo = new Int32Array(L + 1).fill(S);
     // per cella: a ogni passo, la cella in cui e' finito l'ultimo backtracking (la prima messa dopo un backtrack)
@@ -1250,10 +1281,12 @@ function paginaTest(cfg) {
     }
     for (let k = S - 1; k >= 0; k--) primo[er[k]] = k;
     for (let i = L - 1; i >= 0; i--) if (primo[i] > primo[i + 1]) primo[i] = primo[i + 1];
-    P = {g, da, L, pos, p1, p2, punti, bt, S, er, et, dec, tent, rit, primo, lo: 0, hi: S - 1};
+    const btPasso = new Map();  // backtrack -> il suo passo
+    btn.forEach((n, k) => { if (n >= 0) btPasso.set(n, k); });
+    P = {g, da, L, pos, p1, p2, punti, bt, S, er, et, btn, btPasso, dec, tent, rit, primo, lo: 0, hi: S - 1};
     cursoreDa.value = da;
     cursoreA.value = da + L - 1;
-    iPasso = nBt !== undefined && riassunti.has(nBt) ? passoDelNodo(riassunti.get(nBt).nodo) : 0;
+    iPasso = nBt !== undefined && btPasso.has(nBt) ? btPasso.get(nBt) : 0;
     aggiornaCursorePassi();
     mostraPasso(iPasso);
   }
@@ -1298,10 +1331,10 @@ function paginaTest(cfg) {
     disegnaTacche();
   }
 
-  function vaiANodo(nodo) {
+  function vaiANodo(nodo, n) {
     if (!P || P.vuoto) return;
     if (nodo < P.da || nodo >= P.da + P.L) return;
-    const k = passoDelNodo(nodo);
+    const k = n !== undefined && P.btPasso.has(n) ? P.btPasso.get(n) : passoDelNodo(nodo);
     if (k < P.lo || k > P.hi) { [cursoreDa.value, cursoreA.value] = [P.da, P.da + P.L - 1]; aggiornaCursorePassi(); }
     mostraPasso(k);
   }
@@ -1310,7 +1343,7 @@ function paginaTest(cfg) {
   function rigaPasso(k) {
     if (!P || P.vuoto) return;
     const i = P.er[k], nodo = P.da + i, pos = P.pos[i];
-    if (P.et[k] === 1) return mostraRigaAttuale(P.bt.get(nodo));
+    if (P.et[k] === 1) return mostraRigaAttuale(P.btn[k]);
     const poi = pos < lunghezzaOrario() ? testoSlot(pos) : null;
     if (modo.perCella) return rigaAttuale([td('–', true),
       td(P.dec[k] >= 0 ? numeroIt(P.da + P.dec[k]) : '?', true), td(testoSlot(pos - 1)), td(tentativo(k)),
@@ -1327,8 +1360,9 @@ function paginaTest(cfg) {
     soluzioneMostrata = false;
     aggiornaBottoneSoluzione();
     const i = P.er[k], nodo = P.da + i, pos = P.pos[i], g = P.g;
-    const nBt = P.et[k] === 1 ? P.bt.get(nodo) : undefined;
-    const chi = modo.perCella && nBt === undefined && P.dec[k] >= 0 ? P.da + P.dec[k] : nodo;
+    const nBt = P.et[k] === 1 ? P.btn[k] : undefined;
+    const xBt = nBt !== undefined ? riassunti.get(nBt) : null;
+    const chi = modo.perCella && P.dec[k] >= 0 && (nBt === undefined || (xBt && xBt.nella_cella)) ? P.da + P.dec[k] : nodo;
     rigaPasso(k);
     $('posizione').textContent = `passo ${numeroIt(k + 1)} di ${numeroIt(P.S)} nel gruppo ${numeroIt(g.k + 1)} · ` +
       `nodo ${numeroIt(chi)}` + (nBt !== undefined ? ` · backtrack ${numeroIt(nBt)}` : '') +
@@ -1341,7 +1375,12 @@ function paginaTest(cfg) {
       aperto = b;
       apertiControlli = null;
       apertoPrima = null;
-      apertoPasso = modo.perCella
+      apertoPasso = b.nella_cella
+        ? {didascalia: `${modo.perCella ? `Il nodo ${numeroIt(chi)} decide` : 'In'} ${testoSlot(b.pos)} ` +
+            `${modo.perCella ? 'e ' : 'la ricerca '}prova ${sceltaDi(d, b)} (in azzurro), ma una potatura dice che il ` +
+            `resto non si può completare: backtrack n. ${numeroIt(nBt)}, la scelta si toglie.`,
+           ritorno: P.rit[k] >= 0 ? P.rit[k] : undefined}
+        : modo.perCella
         ? {didascalia: `Il nodo ${numeroIt(nodo)} decide ${testoSlot(pos)}: nessun docente passa i controlli, ` +
             `backtrack n. ${numeroIt(nBt)} (in rosso). La ricerca torna indietro.`,
            ritorno: P.rit[k] >= 0 ? P.rit[k] : undefined}
@@ -1461,7 +1500,7 @@ function paginaTest(cfg) {
     if (!riassunti.has(n)) return;
     const g = gruppoDi.get(n);
     if (g !== gruppoScelto) { scegliGruppo(g, n); return; }  // un backtrack di un altro gruppo: si passa a quel gruppo
-    if (modo.passi) return vaiANodo(riassunti.get(n).nodo);
+    if (modo.passi) return vaiANodo(riassunti.get(n).nodo, n);
     scelto = n;
     soluzioneMostrata = false;
     aggiornaBottoneSoluzione();
