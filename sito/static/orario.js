@@ -888,15 +888,27 @@ function paginaTest(cfg) {
     else if (rr.bottom > re.top + elenco.clientHeight) elenco.scrollTop += rr.bottom - re.top - elenco.clientHeight;
     cursoreDa.value = g.primo;
     cursoreA.value = g.ultimo;
-    apri(n === undefined ? g.primo : n);
+    apri(soloUltimo.checked ? g.ultimo : n === undefined ? g.primo : n);
   }
 
   // ---- il cursore: scorre i backtrack del gruppo scelto, da «Da» ad «a» (la soluzione: «Mostra soluzione») ----
   const cursore = $('cursore-backtrack'), cursoreDa = $('cursore-da'), cursoreA = $('cursore-a');
-  let lista = [];      // i backtrack del gruppo tra «Da» e «a»
+  let lista = [];      // i backtrack del gruppo tra «Da» e «a» (ignorando i backtrack interni: l'ultimo di ogni gruppo)
+  // «Ignora i backtrack interni»: di ogni gruppo conta solo l'ultimo backtrack; il cursore scorre i gruppi
+  const soloUltimo = $('solo-ultimo');
+  try { soloUltimo.checked = localStorage.getItem('solo-ultimo') === '1'; } catch (e) { /* niente */ }
   function aggiornaCursore() {
     const g = gruppoScelto;
+    for (const x of [cursoreDa, cursoreA, $('cursore-tutti')]) x.disabled = soloUltimo.checked;
     if (!g) return;
+    if (soloUltimo.checked) {
+      lista = gruppi.map(x => x.ultimo);
+      cursore.min = 0;
+      cursore.max = lista.length - 1;
+      cursore.value = Math.max(0, lista.indexOf(scelto));
+      disegnaTacche();
+      return;
+    }
     let da = parseInt(cursoreDa.value, 10), a = parseInt(cursoreA.value, 10);
     if (!(da >= g.primo)) da = g.primo;
     if (!(a <= g.ultimo)) a = g.ultimo;
@@ -914,7 +926,7 @@ function paginaTest(cfg) {
   let ultimeTacche = '';
   function disegnaTacche() {
     const g = gruppoScelto, min = +cursore.min, max = +cursore.max;
-    const conTacche = g && g.celle.size > 1;
+    const conTacche = g && g.celle.size > 1 && !soloUltimo.checked;
     const chiave = conTacche ? `${g.k}:${g.membri.length}:${lista[0]}:${min}:${max}` : '';
     if (chiave === ultimeTacche) return;
     ultimeTacche = chiave;
@@ -994,6 +1006,12 @@ function paginaTest(cfg) {
   document.querySelectorAll('.riga-cursore [data-passo]').forEach(b =>
     b.addEventListener('click', () => passo(+b.dataset.passo)));
   // «Tutto il gruppo»: il cursore va da un capo all'altro del gruppo
+  soloUltimo.addEventListener('change', () => {
+    try { localStorage.setItem('solo-ultimo', soloUltimo.checked ? '1' : '0'); } catch (e) { /* niente */ }
+    fermaPlay();
+    aggiornaCursore();
+    if (gruppoScelto) apri(soloUltimo.checked ? gruppoScelto.ultimo : gruppoScelto.primo);
+  });
   $('cursore-tutti').addEventListener('click', () => {
     if (!gruppoScelto) return;
     [cursoreDa.value, cursoreA.value] = [gruppoScelto.primo, gruppoScelto.ultimo];
@@ -1046,13 +1064,17 @@ function paginaTest(cfg) {
     if (!riassunti.has(n)) return;
     const g = gruppoDi.get(n);
     if (g !== gruppoScelto) { scegliGruppo(g, n); return; }  // un backtrack di un altro gruppo: si passa a quel gruppo
+    if (soloUltimo.checked) n = g.ultimo;
     scelto = n;
     soluzioneMostrata = false;
     aggiornaBottoneSoluzione();
     if (n < +cursoreDa.value || n > +cursoreA.value) { cursoreDa.value = g.primo; cursoreA.value = g.ultimo; }
     aggiornaCursore();
-    $('posizione').textContent = `backtrack ${numeroIt(n)} · ${numeroIt(g.membri.indexOf(n) + 1)}° di ` +
-      `${numeroIt(g.membri.length)} nel gruppo ${numeroIt(g.k + 1)}` +
+    $('posizione').textContent = (soloUltimo.checked
+      ? `backtrack ${numeroIt(n)} · ` + (g.membri.length === 1 ? "l'unico" : `l'ultimo dei ${numeroIt(g.membri.length)}`) +
+        ` del gruppo ${numeroIt(g.k + 1)} di ${numeroIt(gruppi.length)}`
+      : `backtrack ${numeroIt(n)} · ${numeroIt(g.membri.indexOf(n) + 1)}° di ` +
+        `${numeroIt(g.membri.length)} nel gruppo ${numeroIt(g.k + 1)}`) +
       (n === g.ultimo && !risolto(g) ? ` · ultimo passaggio, non risolto (${comeFinisce(g)[0]})` : '');
     mostraRigaAttuale(n);
     const i = lista.indexOf(n);
