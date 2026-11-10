@@ -1,6 +1,7 @@
 #include "caso.h"
 #include "ricerca.h"
 #include "data_initialization/generatore.h"
+#include "passi.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -69,6 +70,7 @@ static void fotografa(const int pos) {
 // a ogni nodo: la foto quando la ricerca finisce qui (orario completo, ultimo nodo prima del limite) e ogni mezzo
 // secondo (guardato ogni 4096 nodi) anche lo stato su file
 static void segui(const int pos) {
+    passi_nodo(nodi, pos, orario, orario_len);
     if (pos == orario_len || (limite_nodi && nodi == limite_nodi)) {
         fotografa(pos);
         return;
@@ -82,8 +84,9 @@ static void segui(const int pos) {
 }
 
 int esegui_caso(const unsigned long long int seme, const int classi, const int ritardi, const long long int limite,
-                const char *file) {
+                const char *file, const char *file_passi) {
     file_stato = file;
+    if (file_passi && !passi_apri(file_passi)) return 2;
     inizio = ultima_scrittura = clock();
     if (!genera_dati_casuali(seme, classi, ritardi)) {
         esito = "dati non generati";
@@ -95,6 +98,7 @@ int esegui_caso(const unsigned long long int seme, const int classi, const int r
     ogni_nodo = segui;
     scrivi_stato(1);
     print_orario(0);
+    passi_chiudi();
     esito = trovato ? "trovato" : fermato ? "limite di nodi" : "nessuna soluzione";
     if (!trovato && !fermato) foto_pos = 0;  // nessuna soluzione: non resta niente da mostrare
     scrivi_stato(0);
