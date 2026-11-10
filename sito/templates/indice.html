@@ -10,11 +10,12 @@
       <option value="senza">senza</option>
       <option value="con" {{ 'selected' if ultimo.ritardi }}>con</option>
     </select></label>
-  <label>Fermati dopo <input type="number" name="milioni" min="0" step="0.1" value="{{ '%g'|format(ultimo.limite / 1000000) }}"> milioni di nodi</label>
+  <label>Fermati dopo <input type="number" name="milioni" min="0.1" max="{{ max_milioni }}" step="0.1" value="{{ '%g'|format((ultimo.limite or 1000000) / 1000000) }}"> milioni di nodi</label>
   <button {{ 'disabled' if in_corso }}>Avvia</button>
 </form>
-<p class="nota">Il seme decide i dati del caso (stesso seme, stesse classi e ritardi: stessi dati). Con 0 milioni di
-  nodi la ricerca non ha limite. Un test alla volta.{% if in_corso %} Adesso gira il
+<p class="nota">Il seme decide i dati del caso (stesso seme, stesse classi e ritardi: stessi dati). La ricerca si
+  ferma all'orario completo o dopo il numero di nodi scelto (al massimo {{ max_milioni }} milioni: ogni passo si registra,
+  per poterlo rivedere). Un test alla volta.{% if in_corso %} Adesso gira il
   <a href="{{ url_for('pagina_test', tid=in_corso) }}">test {{ in_corso }}</a>.{% endif %}</p>
 
 <h2>Storico</h2>

@@ -44,10 +44,27 @@ table.orario .giorno { border-left: 2px solid var(--bordo); }
 table.orario td.buca { color: var(--tenue); }
 table.orario .cod { color: var(--tenue); }
 
-/* dove e' la ricerca: lo slider (solo da guardare) e la cella che sta decidendo */
-.posizione { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
-.posizione input[type=range] { flex: 1 1 300px; max-width: 700px; }
+/* la ricerca passo per passo: lo slider con Prec. e Succ., la cella che decide e la scelta appena messa */
+.passi { display: flex; align-items: center; gap: 10px; }
+.passi input[type=range] { flex: 1; min-width: 0; }
+.passi button { white-space: nowrap; }
+.testo-passo { margin: 6px 0 10px; min-height: 1.4em; }
+.indietro { color: var(--male); font-weight: 600; }
 table.orario td.attuale { background: #fff4d6; outline: 2px solid var(--avviso); outline-offset: -2px; }
+table.orario td.appena { background: #e3edfb; }
+/* le celle tutte della stessa misura: la tabella non si muove quando cambia quello che c'e' dentro */
+table.orario { table-layout: fixed; width: max-content; }
+table.orario col.col-classe { width: 64px; }
+table.orario col.col-cella { width: 92px; }
+table.orario td { height: 40px; padding: 2px 5px; line-height: 16px; overflow: hidden; box-sizing: border-box; }
+table.orario .riga { display: block; height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* le codocenze: il grafo e l'elenco delle coppie */
+.codocenze { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+svg.grafo { width: 100%; max-width: 560px; height: auto; background: #fff; border: 1px solid var(--riga); }
+svg.grafo line { stroke: var(--accento); stroke-opacity: .45; stroke-linecap: round; }
+svg.grafo line:hover { stroke-opacity: .9; }
+svg.grafo circle { fill: var(--testo); }
+svg.grafo text { font-size: 11px; fill: var(--testo); }
 button.piccolo { padding: 2px 8px; font-size: 13px; }
 h1 { font-size: 22px; }
 /* la colonna delle classi resta ferma mentre la tabella scorre */
