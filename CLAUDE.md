@@ -26,6 +26,10 @@ codice e messaggi di commit sono in italiano.
   (confronta esito, nodi e l'impronta di ogni passo su 14 casi, alcuni fermati dalla verifica dei dati). Dopo una modifica voluta alla ricerca:
   `python3 tests/non_regressione.py --aggiorna`, e dirlo nel commit.
 - Le modifiche si fanno in un ramo e si portano in `main` con una PR; unire solo quando Alb lo dice.
+- Come si lavora (richiesta di Alb del 10 novembre 2026):
+  - controlli nuovi: si fanno le modifiche in locale, si mostra il codice ad Alb e se ne discute; il push solo dopo;
+  - altri lavori: prima una proposta di modifica, il commit quando Alb è d'accordo;
+  - sempre un commit per ogni modifica (per esempio un commit per ogni controllo aggiunto).
 
 ## Raspberry
 
