@@ -10,7 +10,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "utils.h"
 #include "priority_queue/prio_queue.h"
 #include "data_initialization/database_initializers.h"
 #include "ricerca.h"

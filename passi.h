@@ -21,4 +21,9 @@ int passi_apri(const char *percorso);
 void passi_nodo(long long int nodo, int pos, const teaching_slot *orario, int celle);
 void passi_chiudi(void);
 
+// Rilegge il nodo k (da 1) dal file: riempie orario[] fino alla cella che il nodo sta per decidere e la ritorna
+// (-1: il nodo non c'e'); in *pos_prima la cella che decideva il nodo prima (-1 per il primo nodo). celle: quante celle
+// ha l'orario.
+int passi_leggi(const char *percorso, long long int k, int celle, teaching_slot *orario, int *pos_prima);
+
 #endif //UNTITLED_PASSI_H

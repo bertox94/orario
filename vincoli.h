@@ -1,7 +1,7 @@
 #ifndef UNTITLED_VINCOLI_H
 #define UNTITLED_VINCOLI_H
 
-// I vincoli della ricerca (definiti in ricerca.c), per chi li vuole valutare uno per uno: controlli.c, che per il
+// I vincoli della ricerca (definiti in ricerca.c), per chi li vuole valutare uno per uno: passo.c, che per il
 // sito dice il valore di ogni controllo in una cella. La ricerca usa le stesse funzioni.
 
 #include <stddef.h>

@@ -17,4 +17,7 @@
 // Registra giorni, ore, coda e lezioni come inizializza_dati(). Ritorna 0 se non riesce a generare i dati.
 int genera_dati_casuali(unsigned long long int seme, int n_classi, int con_ritardi);
 
+// I dati appena generati, in JSON su stdout (./untitled dati, per il sito): giorni, ore, lezioni e ore di ingresso.
+void stampa_dati_casuali(void);
+
 #endif //UNTITLED_GENERATORE_H

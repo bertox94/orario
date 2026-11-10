@@ -21,6 +21,9 @@ void add_to_queue(int prof, int priority) {
             return;
         }
     }
+    if (!queue_mul)  // la prima volta: un blocco di INSEGNANTE_SZ puntatori per ogni cella
+        queue_mul = malloc(sizeof(QueueItem *) * GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ *
+                           INSEGNANTE_SZ);
     QueueItem *new = malloc(sizeof(QueueItem));
     new->teacher = prof;
     new->priority = priority;
