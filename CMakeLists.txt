@@ -10,6 +10,7 @@ add_executable(untitled main.c
         constants/classes.h
         data_initialization/database_initializers.h
         data_initialization/database_initializers.c
+        data_initialization/dati_di_prova.c
         data_initialization/nomi_docenti.h
         data_initialization/generatore.h
         data_initialization/generatore.c
