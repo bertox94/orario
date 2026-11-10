@@ -93,7 +93,7 @@ int get_ore_insegnanti_codocenza_svolte_in_una_classe(int cla, int p1, int p2);
 
 int get_ore_insegnanti_codocenza_in_una_classe(int cla, int p1, int p2);
 
-// i dati di prova: giorni, ore, lezioni e ore di ingresso
+// i dati di prova (dati_di_prova.c): giorni, ore, lezioni e ore di ingresso
 void inizializza_dati();
 
 // i dati letti, su stdout
