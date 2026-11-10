@@ -7,10 +7,10 @@
   "passi": "4aab9fa2b3ce6e8b1fca0a7130ab7654"
  },
  "seme 0, 9 classi, con ritardi, 100000 nodi": {
-  "esito": "limite di nodi",
-  "nodi": 100000,
-  "cella_max": 58,
-  "passi": "3e77df471d66e3fa4d64f227ba0feb89"
+  "esito": "errore nei dati",
+  "nodi": 0,
+  "cella_max": 0,
+  "passi": "d41d8cd98f00b204e9800998ecf8427e"
  },
  "seme 1, 8 classi, senza ritardi, 100000 nodi": {
   "esito": "trovato",
@@ -31,10 +31,10 @@
   "passi": "0fba367dede35ec53e7038dc9fb1013c"
  },
  "seme 3, 10 classi, con ritardi, 100000 nodi": {
-  "esito": "limite di nodi",
-  "nodi": 100000,
-  "cella_max": 188,
-  "passi": "e4f20b9c560618c95ed1460a8753cbb4"
+  "esito": "errore nei dati",
+  "nodi": 0,
+  "cella_max": 0,
+  "passi": "d41d8cd98f00b204e9800998ecf8427e"
  },
  "seme 5, 9 classi, senza ritardi, 100000 nodi": {
   "esito": "trovato",
@@ -43,10 +43,10 @@
   "passi": "71c2805f26e5b0327ca2270e69b3b9cc"
  },
  "seme 0, 8 classi, con ritardi, 100000 nodi": {
-  "esito": "nessuna soluzione",
-  "nodi": 9,
-  "cella_max": 5,
-  "passi": "13c5056e07137c4e090ddafdb7b507e1"
+  "esito": "errore nei dati",
+  "nodi": 0,
+  "cella_max": 0,
+  "passi": "d41d8cd98f00b204e9800998ecf8427e"
  },
  "seme 7, 12 classi, senza ritardi, 100000 nodi": {
   "esito": "limite di nodi",
@@ -55,9 +55,9 @@
   "passi": "5a2f0a8c00f89068fbea9a8c7777370a"
  },
  "seme 4, 3 classi, con ritardi, 100000 nodi": {
-  "esito": "nessuna soluzione",
-  "nodi": 4,
-  "cella_max": 2,
-  "passi": "51b6403a0b52d2d9891784b3c0072d3b"
+  "esito": "errore nei dati",
+  "nodi": 0,
+  "cella_max": 0,
+  "passi": "d41d8cd98f00b204e9800998ecf8427e"
  }
 }
