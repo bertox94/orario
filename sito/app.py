@@ -54,8 +54,8 @@ def crea_app():
         if not t:
             abort(404)
         d = dati.dati_del_caso(t['info'])
-        classi, docenti, coppie = dati.riassunto_dati(d)
-        return render_template('test.html', t=t, classi=classi, docenti=docenti, coppie=coppie,
+        classi, docenti, coppie, riepilogo = dati.riassunto_dati(d)
+        return render_template('test.html', t=t, classi=classi, docenti=docenti, coppie=coppie, riepilogo=riepilogo,
                                grafo=dati.grafo(coppie), ore=d['ore'])
 
     @app.route('/test/<int:tid>/passo/<int:k>')

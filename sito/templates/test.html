@@ -11,41 +11,70 @@
 </form>
 
 <h2>Il caso</h2>
-<h3>Le classi</h3>
-<div class="scorre"><table class="dati">
-  <thead><tr><th>Classe</th><th class="num">Ore</th><th>Lezioni</th></tr></thead>
-  <tbody>{% for c in classi %}
-    <tr><td>{{ c.nome }}</td><td class="num">{{ c.ore }}</td>
-      <td>{% for l in c.lezioni %}<span class="lezione">{{ l.docente }} {{ l.ore }}{% if l.codocente %} <span class="nota">({{ l.ore_codocenza }} con {{ l.codocente }})</span>{% endif %}</span>{% endfor %}</td></tr>
-  {% endfor %}</tbody>
-</table></div>
-
-<h3>I docenti</h3>
-<div class="scorre"><table class="dati">
-  <thead><tr><th>Docente</th><th class="num">Ore</th><th>Entra</th><th>Classi</th></tr></thead>
-  <tbody>{% for d in docenti %}
-    <tr><td>{{ d.nome }}</td><td class="num">{{ d.ore }}</td>
-      <td>{{ ore[d.ingresso] if d.ingresso else '' }}</td><td>{{ d.classi|join(', ') }}</td></tr>
-  {% endfor %}</tbody>
-</table></div>
-
-<h3>Le codocenze</h3>
-{% if grafo %}
-<div class="codocenze">
-  <svg viewBox="0 0 {{ grafo.lato }} {{ grafo.lato }}" class="grafo" role="img" aria-label="Grafo delle codocenze">
-    {% for f in grafo.fili %}<line x1="{{ '%.1f'|format(f.x1) }}" y1="{{ '%.1f'|format(f.y1) }}" x2="{{ '%.1f'|format(f.x2) }}" y2="{{ '%.1f'|format(f.y2) }}" stroke-width="{{ '%.1f'|format(f.spessore) }}"><title>{{ f.a }} e {{ f.b }}: {{ f.ore }} or{{ 'a' if f.ore == 1 else 'e' }} insieme ({{ f.classi|join(', ') }})</title></line>
-    {% endfor %}
-    {% for n in grafo.nodi %}<circle cx="{{ '%.1f'|format(n.x) }}" cy="{{ '%.1f'|format(n.y) }}" r="4"></circle><text x="{{ '%.1f'|format(n.lx) }}" y="{{ '%.1f'|format(n.y + 4) }}" text-anchor="{{ n.ancora }}">{{ n.nome }}</text>
-    {% endfor %}
-  </svg>
-  <table class="dati">
-    <thead><tr><th>Coppia</th><th class="num">Ore insieme</th><th>Classi</th></tr></thead>
-    <tbody>{% for c in coppie|sort(attribute='ore', reverse=true) %}
-      <tr><td>{{ c.a }} e {{ c.b }}</td><td class="num">{{ c.ore }}</td><td>{{ c.classi|join(', ') }}</td></tr>
-    {% endfor %}</tbody>
-  </table>
+<div class="riepilogo">
+  <div><strong>{{ riepilogo.classi }}</strong> classi</div>
+  <div><strong>{{ riepilogo.docenti }}</strong> docenti</div>
+  <div><strong>{{ riepilogo.ore }}</strong> ore di lezione</div>
+  <div><strong>{{ riepilogo.ore_in_coppia }}</strong> ore in codocenza <span class="nota">({{ riepilogo.coppie }} coppie)</span></div>
+  <div><strong>{{ riepilogo.in_ritardo }}</strong> docenti entrano dopo la prima ora</div>
 </div>
-{% else %}<p class="nota">Nessuna codocenza.</p>{% endif %}
+<p class="nota legenda"><span class="q solo"></span> un'ora da solo <span class="q coppia"></span> un'ora in coppia</p>
+
+<details open>
+  <summary>Le classi</summary>
+  <div class="schede">{% for c in classi %}
+    <div class="scheda">
+      <div class="testa"><strong>{{ c.nome }}</strong> <span class="nota">{{ c.ore }} ore · {{ c.docenti }} docenti</span></div>
+      <table class="lezioni">{% for l in c.lezioni %}
+        <tr>
+          <td class="chi">{{ l.docente }}{% if l.codocente %}<span class="con"> + {{ l.codocente }}</span>{% endif %}</td>
+          <td class="quadri">{% for k in range(l.ore) %}<span class="q {{ 'coppia' if k < l.ore_codocenza else 'solo' }}"></span>{% endfor %}</td>
+          <td class="num">{{ l.ore }}{% if l.codocente %}<span class="nota"> ({{ l.ore_codocenza }} insieme)</span>{% endif %}</td>
+        </tr>{% endfor %}
+      </table>
+    </div>{% endfor %}
+  </div>
+</details>
+
+<details open>
+  <summary>I docenti</summary>
+  <div class="scorre"><table class="dati docenti">
+    <thead><tr><th>Docente</th><th class="num">Ore</th><th></th><th>Entra</th><th>Nelle classi</th><th>In coppia con</th></tr></thead>
+    <tbody>{% for d in docenti %}
+      <tr>
+        <td><strong>{{ d.nome }}</strong></td>
+        <td class="num">{{ d.ore }}</td>
+        <td><span class="barra" style="width: {{ (120 * d.ore / riepilogo.ore_docente_max)|round|int }}px"><span class="solo" style="flex: {{ d.ore - d.in_coppia }}"></span><span class="coppia" style="flex: {{ d.in_coppia }}"></span></span></td>
+        <td>{% if d.ingresso %}<span class="tardi">dalle {{ ore[d.ingresso] }}</span>{% else %}<span class="nota">dalla prima ora</span>{% endif %}</td>
+        <td>{% for c in d.classi %}<span class="pezzo">{{ c.classe }} <strong>{{ c.ore }}</strong></span>{% endfor %}</td>
+        <td>{% for x in d.codocenti %}<span class="pezzo">{{ x.nome }} <strong>{{ x.ore }}</strong> <span class="nota">{{ x.classi|join(', ') }}</span></span>{% else %}<span class="nota">—</span>{% endfor %}</td>
+      </tr>{% endfor %}
+    </tbody>
+  </table></div>
+</details>
+
+<details open>
+  <summary>Le codocenze</summary>
+  {% if grafo %}
+  <div class="codocenze">
+    <svg viewBox="0 0 {{ grafo.lato }} {{ grafo.lato }}" class="grafo" role="img" aria-label="Grafo delle codocenze">
+      {% for f in grafo.fili %}<line x1="{{ '%.1f'|format(f.x1) }}" y1="{{ '%.1f'|format(f.y1) }}" x2="{{ '%.1f'|format(f.x2) }}" y2="{{ '%.1f'|format(f.y2) }}" stroke-width="{{ '%.1f'|format(f.spessore) }}"><title>{{ f.a }} e {{ f.b }}: {{ f.ore }} or{{ 'a' if f.ore == 1 else 'e' }} insieme ({{ f.classi|join(', ') }})</title></line>
+      {% endfor %}
+      {% for n in grafo.nodi %}<circle cx="{{ '%.1f'|format(n.x) }}" cy="{{ '%.1f'|format(n.y) }}" r="4"></circle><text x="{{ '%.1f'|format(n.lx) }}" y="{{ '%.1f'|format(n.y + 4) }}" text-anchor="{{ n.ancora }}">{{ n.nome }}</text>
+      {% endfor %}
+    </svg>
+    <table class="dati">
+      <thead><tr><th>Coppia</th><th class="num">Ore insieme</th><th></th><th>Classi</th></tr></thead>
+      <tbody>{% for c in coppie|sort(attribute='ore', reverse=true) %}
+        <tr><td>{{ c.a }} + {{ c.b }}</td><td class="num">{{ c.ore }}</td>
+          <td class="quadri">{% for k in range(c.ore) %}<span class="q coppia"></span>{% endfor %}</td>
+          <td>{{ c.classi|join(', ') }}</td></tr>
+      {% endfor %}</tbody>
+    </table>
+  </div>
+  <p class="nota">Nel grafo un filo unisce due docenti che hanno ore insieme: più spesso, più ore.</p>
+  {% else %}<p class="nota">Nessuna codocenza.</p>{% endif %}
+</details>
 
 <h2>La ricerca, passo per passo</h2>
 <div class="passi">

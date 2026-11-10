@@ -70,3 +70,32 @@ h1 { font-size: 22px; }
 /* la colonna delle classi resta ferma mentre la tabella scorre */
 table.orario thead tr:first-child th:first-child { position: sticky; left: 0; z-index: 2; }
 table.orario tbody th { z-index: 1; box-shadow: 1px 0 0 var(--bordo); }
+
+/* i dati del caso: riepilogo, classi a schede, docenti, codocenze */
+.riepilogo { display: flex; flex-wrap: wrap; gap: 8px 12px; margin: 8px 0; }
+.riepilogo > div { background: #fff; border: 1px solid var(--riga); border-radius: 8px; padding: 6px 12px; }
+.riepilogo strong { font-size: 18px; margin-right: 2px; }
+.q { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 2px; vertical-align: middle; }
+.q.solo, .barra .solo { background: var(--accento); }
+.q.coppia, .barra .coppia { background: #b0661a; }
+.legenda .q { margin-left: 10px; }
+.legenda .q:first-child { margin-left: 0; }
+details { margin: 14px 0; }
+summary { font-size: 16px; font-weight: 600; cursor: pointer; margin-bottom: 8px; }
+.schede { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.scheda { background: #fff; border: 1px solid var(--riga); border-radius: 8px; padding: 10px 12px; }
+.scheda .testa { margin-bottom: 6px; }
+.scheda .testa strong { font-size: 16px; margin-right: 6px; }
+table.lezioni { width: 100%; background: none; font-size: 13px; }
+table.lezioni td { padding: 2px 0; vertical-align: middle; }
+table.lezioni td.chi { padding-right: 8px; }
+table.lezioni .con { color: #8a4d12; }
+table.lezioni td.quadri { white-space: nowrap; width: 76px; }
+table.lezioni td.num { white-space: nowrap; width: 1%; padding-left: 6px; }
+td.quadri { white-space: nowrap; }
+.barra { display: inline-flex; height: 10px; border-radius: 2px; overflow: hidden; vertical-align: middle; }
+.tardi { background: #fff4d6; color: var(--avviso); border-radius: 10px; padding: 1px 8px; font-size: 13px;
+  white-space: nowrap; }
+.pezzo { display: inline-block; margin: 0 12px 2px 0; white-space: nowrap; }
+table.docenti td { vertical-align: middle; }
+table.docenti td:nth-child(1), table.docenti td:nth-child(4) { white-space: nowrap; }

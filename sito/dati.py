@@ -28,31 +28,55 @@ def docenti_in_ordine(dati):
 
 
 def riassunto_dati(dati):
-    """Per ogni classe le ore e le lezioni; per ogni docente le ore, l'ora di ingresso e le classi; le codocenze."""
+    """I dati del caso per la pagina:
+    - classi: nome, ore, quanti docenti, lezioni (docente, ore, codocente, ore_codocenza: le ore insieme);
+    - docenti (in ordine di nome): ore in tutto, da solo e in coppia, ora di ingresso, per ogni classe le sue ore,
+      e i codocenti con le ore insieme e le classi;
+    - coppie: le codocenze (a, b, ore, classi);
+    - riepilogo: i totali."""
     classi, docenti, coppie = {}, {}, {}
     ingresso = {e['docente']: e['ora'] for e in dati.get('ingressi', [])}
 
-    def docente(nome, classe, ore):
-        d = docenti.setdefault(nome, {'nome': nome, 'ore': 0, 'classi': [], 'ingresso': ingresso.get(nome, 0)})
+    def docente(nome, classe, ore, insieme, con=None):
+        d = docenti.setdefault(nome, {'nome': nome, 'ore': 0, 'in_coppia': 0, 'classi': {}, 'codocenti': {},
+                                      'ingresso': ingresso.get(nome, 0)})
         d['ore'] += ore
-        if classe not in d['classi']:
-            d['classi'].append(classe)
+        d['in_coppia'] += insieme
+        c = d['classi'].setdefault(classe, {'classe': classe, 'ore': 0, 'in_coppia': 0})
+        c['ore'] += ore
+        c['in_coppia'] += insieme
+        if con:
+            x = d['codocenti'].setdefault(con, {'nome': con, 'ore': 0, 'classi': []})
+            x['ore'] += insieme
+            if classe not in x['classi']:
+                x['classi'].append(classe)
 
     for l in dati['lezioni']:
-        c = classi.setdefault(l['classe'], {'nome': l['classe'], 'ore': 0, 'lezioni': []})
+        c = classi.setdefault(l['classe'], {'nome': l['classe'], 'ore': 0, 'lezioni': [], 'nomi': set()})
         c['ore'] += l['ore']
-        cod = l.get('codocente')
-        c['lezioni'].append({'docente': l['docente'], 'ore': l['ore'], 'codocente': cod,
-                             'ore_codocenza': l.get('ore_codocenza', 0)})
-        docente(l['docente'], l['classe'], l['ore'])
+        cod, insieme = l.get('codocente'), l.get('ore_codocenza', 0)
+        c['lezioni'].append({'docente': l['docente'], 'ore': l['ore'], 'codocente': cod, 'ore_codocenza': insieme})
+        c['nomi'].add(l['docente'])
+        docente(l['docente'], l['classe'], l['ore'], insieme, cod)
         if cod:
-            docente(cod, l['classe'], l['ore_codocenza'])
+            c['nomi'].add(cod)
+            docente(cod, l['classe'], insieme, insieme, l['docente'])
             k = tuple(sorted((l['docente'], cod)))
             x = coppie.setdefault(k, {'a': k[0], 'b': k[1], 'ore': 0, 'classi': []})
-            x['ore'] += l['ore_codocenza']
+            x['ore'] += insieme
             if l['classe'] not in x['classi']:
                 x['classi'].append(l['classe'])
-    return list(classi.values()), sorted(docenti.values(), key=lambda d: d['nome'].lower()), list(coppie.values())
+    for c in classi.values():
+        c['docenti'] = len(c.pop('nomi'))
+    elenco = sorted(docenti.values(), key=lambda d: d['nome'].lower())
+    for d in elenco:
+        d['classi'] = list(d['classi'].values())
+        d['codocenti'] = sorted(d['codocenti'].values(), key=lambda x: -x['ore'])
+    riepilogo = {'classi': len(classi), 'docenti': len(elenco), 'ore': sum(c['ore'] for c in classi.values()),
+                 'ore_in_coppia': sum(x['ore'] for x in coppie.values()), 'coppie': len(coppie),
+                 'in_ritardo': sum(1 for d in elenco if d['ingresso']),
+                 'ore_docente_max': max((d['ore'] for d in elenco), default=1)}
+    return list(classi.values()), elenco, list(coppie.values()), riepilogo
 
 
 def grafo(coppie, lato=560):
