@@ -11,6 +11,8 @@ Due pagine, senza login e senza database:
   Sotto l'orario, per la cella del passo: il controllo della classe (può avere lezione, può avere un'ora buca) con i
   suoi numeri, la coda di priorità in ordine, e per ogni docente della classe il valore di tutti i controlli, da solo
   e in coppia (calcolati dal solver con le stesse funzioni della ricerca).
+  Se i dati non passano la verifica del solver (`verifica_dati.h`) l'esito è «errore nei dati»: la ricerca non parte e
+  la pagina mostra il motivo, sopra i dati del caso.
 
 Un test alla volta, con un limite di nodi da 0,1 a 20 milioni (ogni passo si registra: 6 byte per nodo).
 

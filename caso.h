@@ -8,7 +8,9 @@
 // fine (scritto in FILE.tmp e poi rinominato: chi legge trova sempre un JSON intero):
 // {
 //   "in_corso": 1 | 0,
-//   "esito": "in corso" | "trovato" | "limite di nodi" | "nessuna soluzione" | "dati non generati",
+//   "esito": "in corso" | "trovato" | "limite di nodi" | "nessuna soluzione" | "errore nei dati" |
+//            "dati non generati",
+//   "errore": "..."   solo con «errore nei dati»: il controllo che non vale (verifica_dati.h); la ricerca non parte
 //   "nodi": N, "secondi": S, "pos": P, "pos_max": M, "celle": C,
 //   "giorni": [...], "ore": [...], "classi": [...],
 //   "orario": [[docente, codocente], ...]   le prime P celle, quelle gia' decise (null: nessuno)

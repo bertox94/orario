@@ -11,6 +11,8 @@ codice e messaggi di commit sono in italiano.
   - `./untitled test N`: le prove con i dati casuali (`prove.c`), su stdout solo i test che arrivano al limite;
   - `./untitled caso|dati|passo ...`: per il sito (`caso.c`, `data_initialization/generatore.c`, `passo.c`,
     `passi.c`).
+  Prima della ricerca, `verifica_dati.c` (richiesta di Alb del 10 novembre 2026): cinque controlli sui dati, condizioni
+  necessarie; se uno non vale la ricerca non parte («errore nei dati», con il motivo); le prove saltano i casi che non la passano.
   Il solver scrive solo quello che serve al sito: niente `orario.txt`, niente stampe in più.
 - **Il sito** (`sito/`, Flask, senza login né database): test in tempo reale, storico, la ricerca passo per passo con
   i controlli di ogni cella. Mostra soltanto: dati, passi e controlli li calcola il solver. Vedi `sito/LEGGIMI.md`.
@@ -21,7 +23,7 @@ codice e messaggi di commit sono in italiano.
 - **Non cambiare come il solver calcola gli orari** (ricerca, ordine della coda, controlli) se Alb non lo chiede
   esplicitamente. Uscite e comandi per il sito si possono toccare: non devono cambiare il percorso della ricerca.
 - Prima di ogni commit che tocca il solver: `python3 tests/non_regressione.py` deve finire con «tutto come atteso»
-  (confronta esito, nodi e l'impronta di ogni passo su 10 casi). Dopo una modifica voluta alla ricerca:
+  (confronta esito, nodi e l'impronta di ogni passo su 14 casi, alcuni fermati dalla verifica dei dati). Dopo una modifica voluta alla ricerca:
   `python3 tests/non_regressione.py --aggiorna`, e dirlo nel commit.
 - Le modifiche si fanno in un ramo e si portano in `main` con una PR; unire solo quando Alb lo dice.
 
