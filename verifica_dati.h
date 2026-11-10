@@ -20,7 +20,8 @@
 //  5. ora per ora: a ogni ora obbligatoria i docenti gia' entrati sono almeno quante le classi
 //
 // Chi la chiama: main.c per i dati di prova (stampa «Errore nei dati: ...») e caso.c per i casi del sito (esito
-// «errore nei dati», con il motivo nel campo «errore» dello stato). Le prove (./untitled test N) non la usano.
+// «errore nei dati», con il motivo nel campo «errore» dello stato). Le prove (./untitled test N) saltano i casi
+// che non la passano.
 //
 // 1 se i dati passano tutti i controlli; se no 0, con il primo che non vale spiegato in errore.
 int verifica_dati(char *errore, size_t dimensione);

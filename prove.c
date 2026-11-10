@@ -1,6 +1,7 @@
 #include "prove.h"
 #include "ricerca.h"
 #include "data_initialization/generatore.h"
+#include "verifica_dati.h"
 
 #include <stdio.h>
 #include <sys/wait.h>
@@ -14,11 +15,13 @@ typedef struct {
     double secondi;
 } Esito;
 
-// Nel processo figlio: genera i dati e cerca l'orario, al massimo PROVE_LIMITE_NODI nodi. (Dati che non si generano:
-// come un test che non arriva al limite.)
+// Nel processo figlio: genera i dati e cerca l'orario, al massimo PROVE_LIMITE_NODI nodi. Un test con i dati che non
+// passano la verifica (verifica_dati.h) si salta: la ricerca non parte e non si stampa niente. (Come i dati che non
+// si generano: un test che non arriva al limite.)
 static Esito un_test(const int seme, const int classi, const int ritardi) {
     Esito e = {0};
-    if (!genera_dati_casuali(seme, classi, ritardi)) return e;
+    char errore[512];
+    if (!genera_dati_casuali(seme, classi, ritardi) || !verifica_dati(errore, sizeof errore)) return e;
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
     limite_nodi = PROVE_LIMITE_NODI;
     const clock_t inizio = clock();
