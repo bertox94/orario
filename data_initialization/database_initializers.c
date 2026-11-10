@@ -27,7 +27,6 @@ int ore_classi_docenti_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 int ore_classi_docenti_alone_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 int ore_classi[CLASSE_SEZIONE_SZ];
 int ore_classe_svolte[CLASSE_SEZIONE_SZ];
-int ore_docenti[INSEGNANTE_SZ];
 int ore_classi_codocenza[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ];
 int ore_classi_codocenza_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ];
 int ore_fatte_da_un_prof_in_una_classe_in_giorno[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
@@ -107,10 +106,6 @@ void add_ore_classi_settimanale(int classe, int ore) {
     ore_classi[classe] += ore;
 }
 
-void add_ore_insegnante_settimanale(int insegnante, int ore) {
-    ore_docenti[insegnante] += ore;
-}
-
 void add_ore_classi_codocenza(int cla, int p1, int p2, int ore) {
     swap_min_first(&p1, &p2);
     ore_classi_codocenza[cla * INSEGNANTE_SZ * INSEGNANTE_SZ + p1 * INSEGNANTE_SZ + p2] += ore;
@@ -154,7 +149,6 @@ void set_classe_insegnante_ore(char cla[], char prof[], const int ore) {
     add_ore_classi_insegnante(p_classe_sezione(cla), p_insegnante(prof), ore);
     add_ore_classi_insegnante_lonely(p_classe_sezione(cla), p_insegnante(prof), ore);
     add_ore_classi_settimanale(p_classe_sezione(cla), ore);
-    add_ore_insegnante_settimanale(p_insegnante(prof), ore);
     add_to_queue(p_insegnante(prof), ore);
 }
 
@@ -165,11 +159,9 @@ void set_classe_insegnante_ore_cod(char cla[], char prof[], const int ore, char 
     add_ore_classi_insegnante(p_classe_sezione(cla), p_insegnante(prof), ore);
     add_ore_classi_insegnante_lonely(p_classe_sezione(cla), p_insegnante(prof), ore - ore_cod);
     add_ore_classi_settimanale(p_classe_sezione(cla), ore);
-    add_ore_insegnante_settimanale(p_insegnante(prof), ore);
 
     set_insegnante(cod);
     add_ore_classi_insegnante(p_classe_sezione(cla), p_insegnante(cod), ore_cod);
-    add_ore_insegnante_settimanale(p_insegnante(cod), ore_cod);
     add_ore_classi_codocenza(p_classe_sezione(cla), p_insegnante(prof), p_insegnante(cod), ore_cod);
     add_to_queue(p_insegnante(cod), ore_cod);
     add_to_queue(p_insegnante(prof), ore);

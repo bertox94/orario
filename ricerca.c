@@ -5,7 +5,7 @@
 // print_orario(pos) decide la cella pos e scende a pos + 1: prova, nell'ordine della coda dei docenti (chi ha piu' ore
 // da fare prima), ogni docente in coppia con un altro (una codocenza) e poi da solo; dopo le ore obbligatorie prova
 // anche l'ora buca. Quando tutte le celle sono decise (pos == orario_len) l'orario e' completo: si stampa in
-// orario.txt (se f non e' NULL) e la ricerca finisce: si cerca un orario solo. La lancia main.c (o prove.c).
+// la ricerca finisce (si cerca un orario solo): l'orario resta in orario[]. La lanciano main.c, prove.c e caso.c.
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,7 +13,6 @@
 #include "utils.h"
 #include "priority_queue/prio_queue.h"
 #include "data_initialization/database_initializers.h"
-#include "printer/printer.h"
 #include "ricerca.h"
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -25,10 +24,10 @@ teaching_slot orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_S
     [0 ... GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1] = (teaching_slot){-1, -1}
 };
 int orario_len;                                   // giorni * ore * classi
-FILE *f;                                          // orario.txt: l'orario trovato
 
 // il conto dei nodi e i limiti (vedi ricerca.h): non cambiano la ricerca
 long long int nodi = 0, limite_nodi = 0;
+void (*ogni_nodo)(int pos) = NULL;
 int fermato = 0, pos_max = 0;
 
 // ---- la cella ----
@@ -296,9 +295,9 @@ void print_orario(const int pos) {
     }
     nodi++;
     if (pos > pos_max) pos_max = pos;
+    if (ogni_nodo) ogni_nodo(pos);
     if (pos == orario_len) {  // tutte le celle decise: l'orario e' completo
         trovato = 1;
-        if (f) print(orario, pos, f);
         return;
     }
     const Cella c = cella(pos);

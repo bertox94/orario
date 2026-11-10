@@ -16,10 +16,10 @@ add_executable(untitled main.c
         data_initialization/generatore.c
         ricerca.h
         ricerca.c
+        caso.h
+        caso.c
         prove.h
         prove.c
-        printer/printer.h
-        printer/printer.c
         priority_queue/prio_queue.c
         priority_queue/prio_queue.h
         utils.h

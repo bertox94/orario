@@ -49,8 +49,6 @@ extern int ore_classi[CLASSE_SEZIONE_SZ];
 // ore di ogni classe, e quante gia' messe
 extern int ore_classe_svolte[CLASSE_SEZIONE_SZ];
 
-// ore di ogni docente in tutto (solo per stampa_dati)
-extern int ore_docenti[INSEGNANTE_SZ];
 // ore di ogni coppia docente-codocente in ogni classe (classe, docente con l'indice minore, l'altro), e quante gia' messe
 extern int ore_classi_codocenza[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ];
 extern int ore_classi_codocenza_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ];
@@ -96,7 +94,5 @@ int get_ore_insegnanti_codocenza_in_una_classe(int cla, int p1, int p2);
 // i dati di prova (dati_di_prova.c): giorni, ore, lezioni e ore di ingresso
 void inizializza_dati();
 
-// i dati letti, su stdout
-void stampa_dati();
 
 #endif //UNTITLED_CONSTANTS_H
