@@ -24,7 +24,7 @@ button:disabled { opacity: .5; cursor: default; }
   background: var(--riga); }
 .esito-trovato { color: var(--ok); background: #e6f4ea; }
 .esito-limite-di-nodi, .esito-in-corso { color: var(--avviso); background: #fff4d6; }
-.esito-nessuna-soluzione, .esito-dati-non-generati, .esito-fermato, .esito-interrotto { color: var(--male);
+.esito-nessuna-soluzione, .esito-errore-nei-dati, .esito-dati-non-generati, .esito-fermato, .esito-interrotto { color: var(--male);
   background: #fdecea; }
 .scorre { overflow-x: auto; }
 table { border-collapse: collapse; background: #fff; }
@@ -119,3 +119,5 @@ table.controlli tr.coppia td.con { padding-left: 22px; color: #8a4d12; white-spa
 table.controlli td.vuoto { color: var(--bordo); text-align: center; }
 table.controlli tr.docente td { border-top: 1px solid var(--bordo); }
 table.controlli td.esito-cella { white-space: nowrap; }
+
+.errore-dati { color: var(--male); background: #fdecea; padding: 8px 12px; border-radius: 6px; max-width: 900px; }

@@ -2,6 +2,7 @@
 #include "ricerca.h"
 #include "data_initialization/generatore.h"
 #include "passi.h"
+#include "verifica_dati.h"
 #include "json.h"
 
 #include <stdio.h>
@@ -11,6 +12,7 @@
 static const char *file_stato;
 static clock_t inizio, ultima_scrittura;
 static const char *esito = "in corso";
+static char errore[512];  // il motivo, quando l'esito e' «errore nei dati»
 // la foto dell'orario all'ultimo nodo scritto: durante la ricerca orario[] cambia, la foto no
 static teaching_slot foto[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ];
 static int foto_pos = 0;
@@ -31,6 +33,10 @@ static void scrivi_stato(const int in_corso) {
     if (!r) return;
     fprintf(r, "{\"in_corso\":%d,\"esito\":", in_corso);
     json_stringa(r, esito);
+    if (errore[0]) {
+        fputs(",\"errore\":", r);
+        json_stringa(r, errore);
+    }
     fprintf(r, ",\"nodi\":%lld,\"secondi\":%.2f,\"pos\":%d,\"pos_max\":%d,\"celle\":%d", nodi,
             (clock() - inizio) / (double) CLOCKS_PER_SEC, foto_pos, pos_max, orario_len);
     elenco(r, "giorni", giorni_settimana, actual_giorni_settimana);
@@ -81,6 +87,12 @@ int esegui_caso(const unsigned long long int seme, const int classi, const int r
         return 1;
     }
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
+    if (!verifica_dati(errore, sizeof errore)) {  // l'orario non puo' esistere: la ricerca non parte
+        passi_chiudi();
+        esito = "errore nei dati";
+        scrivi_stato(0);
+        return 0;
+    }
     limite_nodi = limite;
     ogni_nodo = segui;
     scrivi_stato(1);

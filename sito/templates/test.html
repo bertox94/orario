@@ -6,6 +6,7 @@
 <h1>Test {{ i.id }}: seme {{ i.seme }}, {{ i.classi }} classi, {{ 'con' if i.ritardi else 'senza' }} ritardi</h1>
 <p><span id="esito" class="esito"></span> <span id="numeri"></span>
   <span class="nota">limite {{ i.limite|numero }} nodi</span></p>
+<p id="errore" class="errore-dati" hidden></p>
 <form method="post" action="{{ url_for('ferma') }}" id="ferma" {{ 'hidden' if not s.gira }}>
   <input type="hidden" name="poi" value="{{ request.path }}"><button class="secondario">Ferma</button>
 </form>
@@ -107,6 +108,9 @@ function mostraStato(s) {
   e.className = 'esito esito-' + esito.replace(/ /g, '-');
   document.getElementById('numeri').textContent = `${numero(s.nodi || 0)} nodi in ${(s.secondi || 0).toFixed(1)} s`;
   document.getElementById('ferma').hidden = !s.gira;
+  // errore nei dati: l'orario non puo' esistere, la ricerca non e' partita; il motivo lo da' il solver
+  document.getElementById('errore').hidden = !s.errore;
+  document.getElementById('errore').textContent = s.errore ? 'La ricerca non è partita: ' + s.errore : '';
   if (s.giorni && !forma) {
     forma = {giorni: s.giorni, ore: s.ore, classi: s.classi};
     disegnaGriglia();

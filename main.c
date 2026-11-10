@@ -16,6 +16,7 @@
 #include "prove.h"
 #include "caso.h"
 #include "passo.h"
+#include "verifica_dati.h"
 #include "data_initialization/generatore.h"
 
 int main(const int argc, char **argv) {
@@ -55,6 +56,11 @@ int main(const int argc, char **argv) {
     inizializza_dati();
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
 
+    char errore[512];
+    if (!verifica_dati(errore, sizeof errore)) {  // l'orario non puo' esistere: la ricerca non parte
+        printf("Errore nei dati: %s\n", errore);
+        return 1;
+    }
     print_orario(0);
 
     const double secondi = (clock() - inizio) / (double) CLOCKS_PER_SEC;
