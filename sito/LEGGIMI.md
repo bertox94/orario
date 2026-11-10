@@ -1,8 +1,8 @@
 # Il sito: test in tempo reale
 
 Due pagine, senza login e senza database:
-- **Test e storico** (`/`): il modulo per avviare un test (seme, classi, ritardi, limite in milioni di nodi; 0 =
-  senza limite) e lo storico di tutti i test fatti (esito, nodi, cella più avanti, tempo), con la × per eliminarne uno.
+- **Test e storico** (`/`): il modulo per avviare un test (seme, classi, ritardi, limite in milioni di nodi, da 0,1
+  a 20) e lo storico di tutti i test fatti (esito, nodi, cella più avanti, tempo), con la × per eliminarne uno.
 - **Un test** (`/test/<n>`): prima i dati del caso (le classi con le lezioni, i docenti con ore, ingresso e classi,
   le codocenze con il grafo), poi la ricerca passo per passo: uno slider su tutti i nodi, dal primo all'orario
   completo o al limite, con «Prec.» e «Succ.» (o ← e →); per ogni passo l'orario fin lì, con la cella che la ricerca
