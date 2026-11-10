@@ -1,7 +1,7 @@
 #ifndef UNTITLED_RICERCA_H
 #define UNTITLED_RICERCA_H
 
-// La ricerca (main.c), per chi la lancia: main() con i dati di prova, prove.c con i dati casuali.
+// La ricerca (ricerca.c), per chi la lancia: main.c con i dati di prova, prove.c con i dati casuali.
 
 #include <stdio.h>
 
