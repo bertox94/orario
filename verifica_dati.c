@@ -44,8 +44,21 @@ static int docente_in_una_classe(void) {
     return 1;
 }
 
+static int docente_in_tutto(void) {
+    const int G = actual_giorni_settimana;
+    for (int p = 0; p < actual_insegnanti; p++) {
+        const int al_giorno = actual_ore_giornaliere - ingresso(p);
+        if (ore_in_tutto(p) <= G * al_giorno) continue;
+        snprintf(errore, dimensione, "%s: %d ore in tutto, ma %sne può fare al massimo %d (%d al giorno per %d giorni)",
+                 insegnanti[p], ore_in_tutto(p), entrando(p), G * al_giorno, al_giorno, G);
+        return 0;
+    }
+    return 1;
+}
+
 int verifica_dati(char *testo, const size_t lunghezza) {
     errore = testo;
     dimensione = lunghezza;
-    return docente_in_una_classe();
+    return docente_in_una_classe()
+           && docente_in_tutto();
 }
