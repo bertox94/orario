@@ -4,9 +4,10 @@
 
 #ifndef UNTITLED_HOURS_H
 #define UNTITLED_HOURS_H
-
-// le ore dei dati di prova, in ordine
-static char ore_giorno[][MAX_LEN_WORDS] = {"08", "09", "10", "11", "12", "13"};
-#define N_ORE_GIORNO ((int) (sizeof ore_giorno / sizeof ore_giorno[0]))
-
+char Ora_08[] = "08";
+char Ora_09[] = "09";
+char Ora_10[] = "10";
+char Ora_11[] = "11";
+char Ora_12[] = "12";
+char Ora_13[] = "13";
 #endif //UNTITLED_HOURS_H
