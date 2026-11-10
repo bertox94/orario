@@ -22,7 +22,8 @@
 #define MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO 3    // un docente insegna al massimo in 3 classi al giorno
 #define MAX_ORE_PROF_IN_UNA_CLASSE 3                    // e al massimo 3 ore al giorno nella stessa classe
 
-// una cella dell'orario: il docente e il codocente (-1: nessuno; tutti e due -1: ora buca o cella non decisa)
+// una cella dell'orario: i due docenti (-1: nessuno; tutti e due -1: ora buca o cella non decisa). In una coppia
+// insegnante1 e' quello che veniva prima nella coda, che puo' essere il docente della lezione o il codocente.
 typedef struct {
     int insegnante1;
     int insegnante2;
