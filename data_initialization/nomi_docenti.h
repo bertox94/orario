@@ -4,7 +4,7 @@
 // Nomi di docenti: personaggi di fantasia come quelli dei dati del programma (constants/professors.h), ma tutti
 // diversi da quelli, mescolati tra le varie saghe. Per i docenti dei dati casuali: il docente d (da 0) si chiama
 // NOMI_DOCENTI_CASUALI[d], oltre la fine dell'elenco D%03d. In questa versione nessun file lo usa ancora.
-// Solo ASCII e al massimo 16 caratteri: stanno nelle celle della griglia stampata (MAX_STR_SZ_IN_DISPLAY).
+// Solo ASCII e al massimo 16 caratteri.
 // Cambiare l'elenco cambia solo i nomi, non la ricerca (che lavora sugli indici dei docenti).
 
 static const char *const NOMI_DOCENTI_CASUALI[] = {

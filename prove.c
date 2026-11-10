@@ -20,7 +20,6 @@ static Esito un_test(const int seme, const int classi, const int ritardi) {
     Esito e = {0};
     if (!genera_dati_casuali(seme, classi, ritardi)) return e;
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
-    f = NULL;  // l'orario trovato non si stampa
     limite_nodi = PROVE_LIMITE_NODI;
     const clock_t inizio = clock();
     print_orario(0);

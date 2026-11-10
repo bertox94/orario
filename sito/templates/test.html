@@ -1,0 +1,265 @@
+{% extends 'base.html' %}
+{% block titolo %}Test {{ t.info.id }} · orario{% endblock %}
+{% block contenuto %}
+{% set i, s = t.info, t.stato %}
+<p class="nota"><a href="{{ url_for('indice') }}">← Test e storico</a></p>
+<h1>Test {{ i.id }}: seme {{ i.seme }}, {{ i.classi }} classi, {{ 'con' if i.ritardi else 'senza' }} ritardi</h1>
+<p><span id="esito" class="esito"></span> <span id="numeri"></span>
+  <span class="nota">limite {{ i.limite|numero }} nodi</span></p>
+<form method="post" action="{{ url_for('ferma') }}" id="ferma" {{ 'hidden' if not s.gira }}>
+  <input type="hidden" name="poi" value="{{ request.path }}"><button class="secondario">Ferma</button>
+</form>
+
+<h2>Il caso</h2>
+<div class="riepilogo">
+  <div><strong>{{ riepilogo.classi }}</strong> classi</div>
+  <div><strong>{{ riepilogo.docenti }}</strong> docenti</div>
+  <div><strong>{{ riepilogo.ore }}</strong> ore di lezione</div>
+  <div><strong>{{ riepilogo.ore_in_coppia }}</strong> ore in codocenza <span class="nota">({{ riepilogo.coppie }} coppie)</span></div>
+  <div><strong>{{ riepilogo.in_ritardo }}</strong> docenti entrano dopo la prima ora</div>
+</div>
+<p class="nota legenda"><span class="q solo"></span> un'ora da solo <span class="q coppia"></span> un'ora in coppia</p>
+
+<details open>
+  <summary>Le classi</summary>
+  <div class="schede">{% for c in classi %}
+    <div class="scheda">
+      <div class="testa"><strong>{{ c.nome }}</strong> <span class="nota">{{ c.ore }} ore · {{ c.docenti }} docenti</span></div>
+      <table class="lezioni">{% for l in c.lezioni %}
+        <tr>
+          <td class="chi">{{ l.docente }}{% if l.codocente %}<span class="con"> + {{ l.codocente }}</span>{% endif %}</td>
+          <td class="quadri">{% for k in range(l.ore) %}<span class="q {{ 'coppia' if k < l.ore_codocenza else 'solo' }}"></span>{% endfor %}</td>
+          <td class="num">{{ l.ore }}{% if l.codocente %}<span class="nota"> ({{ l.ore_codocenza }} insieme)</span>{% endif %}</td>
+        </tr>{% endfor %}
+      </table>
+    </div>{% endfor %}
+  </div>
+</details>
+
+<details open>
+  <summary>I docenti</summary>
+  <div class="scorre"><table class="dati docenti">
+    <thead><tr><th>Docente</th><th class="num">Ore</th><th></th><th>Entra</th><th>Nelle classi</th><th>In coppia con</th></tr></thead>
+    <tbody>{% for d in docenti %}
+      <tr>
+        <td><strong>{{ d.nome }}</strong></td>
+        <td class="num">{{ d.ore }}</td>
+        <td><span class="barra" style="width: {{ (120 * d.ore / riepilogo.ore_docente_max)|round|int }}px"><span class="solo" style="flex: {{ d.ore - d.in_coppia }}"></span><span class="coppia" style="flex: {{ d.in_coppia }}"></span></span></td>
+        <td>{% if d.ingresso %}<span class="tardi">dalle {{ ore[d.ingresso] }}</span>{% else %}<span class="nota">dalla prima ora</span>{% endif %}</td>
+        <td>{% for c in d.classi %}<span class="pezzo">{{ c.classe }} <strong>{{ c.ore }}</strong></span>{% endfor %}</td>
+        <td>{% for x in d.codocenti %}<span class="pezzo">{{ x.nome }} <strong>{{ x.ore }}</strong> <span class="nota">{{ x.classi|join(', ') }}</span></span>{% else %}<span class="nota">—</span>{% endfor %}</td>
+      </tr>{% endfor %}
+    </tbody>
+  </table></div>
+</details>
+
+<details open>
+  <summary>Le codocenze</summary>
+  {% if grafo %}
+  <div class="codocenze">
+    <svg viewBox="0 0 {{ grafo.lato }} {{ grafo.lato }}" class="grafo" role="img" aria-label="Grafo delle codocenze">
+      {% for f in grafo.fili %}<line x1="{{ '%.1f'|format(f.x1) }}" y1="{{ '%.1f'|format(f.y1) }}" x2="{{ '%.1f'|format(f.x2) }}" y2="{{ '%.1f'|format(f.y2) }}" stroke-width="{{ '%.1f'|format(f.spessore) }}"><title>{{ f.a }} e {{ f.b }}: {{ f.ore }} or{{ 'a' if f.ore == 1 else 'e' }} insieme ({{ f.classi|join(', ') }})</title></line>
+      {% endfor %}
+      {% for n in grafo.nodi %}<circle cx="{{ '%.1f'|format(n.x) }}" cy="{{ '%.1f'|format(n.y) }}" r="4"></circle><text x="{{ '%.1f'|format(n.lx) }}" y="{{ '%.1f'|format(n.y + 4) }}" text-anchor="{{ n.ancora }}">{{ n.nome }}</text>
+      {% endfor %}
+    </svg>
+    <table class="dati">
+      <thead><tr><th>Coppia</th><th class="num">Ore insieme</th><th></th><th>Classi</th></tr></thead>
+      <tbody>{% for c in coppie|sort(attribute='ore', reverse=true) %}
+        <tr><td>{{ c.a }} + {{ c.b }}</td><td class="num">{{ c.ore }}</td>
+          <td class="quadri">{% for k in range(c.ore) %}<span class="q coppia"></span>{% endfor %}</td>
+          <td>{{ c.classi|join(', ') }}</td></tr>
+      {% endfor %}</tbody>
+    </table>
+  </div>
+  <p class="nota">Nel grafo un filo unisce due docenti che hanno ore insieme: più spesso, più ore.</p>
+  {% else %}<p class="nota">Nessuna codocenza.</p>{% endif %}
+</details>
+
+<h2>La ricerca, passo per passo</h2>
+<div class="passi">
+  <button type="button" class="secondario" id="prec" title="Il passo prima (←)">◀ Prec.</button>
+  <input type="range" id="slider" min="1" max="1" value="1" aria-label="Passo della ricerca">
+  <button type="button" class="secondario" id="succ" title="Il passo dopo (→)">Succ. ▶</button>
+</div>
+<p id="testo-passo" class="testo-passo"></p>
+<div class="scorre"><table class="orario" id="orario"></table></div>
+<p class="nota">Ogni passo è un nodo della ricerca: la cella gialla è quella che la ricerca sta per decidere,
+  l'azzurra la scelta appena messa; «–» è un'ora buca. Mentre il test gira lo slider si allunga e, se è in fondo,
+  segue la ricerca.</p>
+
+<div id="controlli"></div>
+{% endblock %}
+{% block script %}
+{% set i, s = t.info, t.stato %}
+<script>
+const URL_STATO = '{{ url_for('stato', tid=i.id) }}', URL_PASSO = '{{ url_for('passo', tid=i.id, k=0)[:-1] }}';
+const slider = document.getElementById('slider'), tabella = document.getElementById('orario');
+const testo = document.getElementById('testo-passo');
+const numero = n => Number(n).toLocaleString('it-IT');
+const esc = x => String(x).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+let forma = null;  // giorni, ore, classi (dallo stato)
+
+// l'esito, i numeri e il pulsante Ferma, dallo stato del test
+function mostraStato(s) {
+  const esito = s.esito || 'in corso', e = document.getElementById('esito');
+  e.textContent = esito;
+  e.className = 'esito esito-' + esito.replace(/ /g, '-');
+  document.getElementById('numeri').textContent = `${numero(s.nodi || 0)} nodi in ${(s.secondi || 0).toFixed(1)} s`;
+  document.getElementById('ferma').hidden = !s.gira;
+  if (s.giorni && !forma) {
+    forma = {giorni: s.giorni, ore: s.ore, classi: s.classi};
+    disegnaGriglia();
+  }
+}
+
+// la griglia vuota, una volta sola: celle tutte della stessa misura (table-layout fixed)
+function disegnaGriglia() {
+  const {giorni, ore, classi} = forma, O = ore.length;
+  let h = '<colgroup><col class="col-classe">' + giorni.map(() => ore.map(() => '<col class="col-cella">').join('')).join('') +
+    '</colgroup><thead><tr><th rowspan="2">Classe</th>' + giorni.map(g => `<th colspan="${O}" class="giorno">${esc(g)}</th>`).join('') +
+    '</tr><tr>' + giorni.map(() => ore.map((o, k) => `<th class="${k ? '' : 'inizio-giorno'}">${esc(o)}</th>`).join('')).join('') +
+    '</tr></thead><tbody>';
+  for (const c of classi) {
+    h += `<tr><th>${esc(c)}</th>`;
+    for (let g = 0; g < giorni.length; g++) for (let o = 0; o < O; o++) h += `<td class="${o ? '' : 'inizio-giorno'}"></td>`;
+    h += '</tr>';
+  }
+  tabella.innerHTML = h + '</tbody>';
+}
+
+// il passo k: l'orario fino alla cella che la ricerca sta decidendo
+function disegnaPasso(p) {
+  const {giorni, ore, classi} = forma, G = giorni.length, O = ore.length, C = classi.length, celle = G * O * C;
+  const pos = p.pos;
+  const dove = k => `${giorni[Math.floor(k / (O * C))]} ${ore[Math.floor(k / C) % O]}, ${classi[k % C]}`;
+  let t = `Passo ${numero(p.k)} di ${numero(Number(slider.max))} · ` +
+    (pos >= celle ? 'orario completo' : `decide la cella ${numero(pos + 1)} di ${numero(celle)} (${dove(pos)})`);
+  if (p.prima !== null && pos <= p.prima)
+    t += ` · <span class="indietro">torna indietro di ${numero(p.prima - pos + 1)} cell${p.prima - pos ? 'e' : 'a'}: nuova scelta in ${dove(pos - 1)}</span>`;
+  testo.innerHTML = t;
+  const righe = tabella.tBodies[0].rows;
+  for (let c = 0; c < C; c++) for (let g = 0; g < G; g++) for (let o = 0; o < O; o++) {
+    const k = (g * O + o) * C + c, td = righe[c].cells[1 + g * O + o], x = p.orario[k];
+    td.innerHTML = x ? (x[0] ? `<span class="riga">${esc(x[0])}</span>` + (x[1] ? `<span class="riga cod">${esc(x[1])}</span>` : '') : '–') : '';
+    td.classList.toggle('buca', !!x && !x[0]);
+    td.classList.toggle('attuale', k === pos);
+    td.classList.toggle('appena', k === pos - 1);
+  }
+  // la cella gialla (o l'azzurra) in vista, scorrendo solo la tabella
+  const segno = tabella.querySelector('td.attuale') || tabella.querySelector('td.appena');
+  if (segno) {
+    const box = tabella.parentElement, a = segno.getBoundingClientRect(), b = box.getBoundingClientRect();
+    const sinistra = tabella.querySelector('col.col-classe') ? 64 : 0;
+    if (a.left < b.left + sinistra) box.scrollLeft -= b.left + sinistra - a.left + 40;
+    else if (a.right > b.right) box.scrollLeft += a.right - b.right + 40;
+  }
+}
+
+let richiesto = 0, attesa = null;
+async function vai(k) {
+  if (!forma || Number(slider.max) < 1) return;
+  k = Math.max(1, Math.min(Number(slider.max), k));
+  slider.value = k;
+  richiesto = k;
+  const r = await fetch(URL_PASSO + k);
+  if (!r.ok || richiesto !== k) return;  // un altro passo chiesto nel frattempo: vale l'ultimo
+  const p = await r.json();
+  disegnaPasso(p);
+  disegnaControlli(p);
+}
+// «Prec.» e «Succ.» anche accanto al titolo della cella (la pagina resta dov'e')
+document.getElementById('controlli').addEventListener('click', e => {
+  const b = e.target.closest('button[data-passo]');
+  if (b) vai(Number(slider.value) + Number(b.dataset.passo));
+});
+
+// ---- sotto l'orario: il controllo della classe, la coda di priorita' e i controlli dei docenti della classe ----
+const NOMI_CONTROLLI = {
+  libero: "libero a quest'ora", ore_nella_classe: 'ha ancora ore nella classe', max_ore_oggi: 'meno di 3 ore oggi nella classe',
+  ore_contigue: 'le ore di oggi sono di seguito', max_classi_oggi: 'al massimo 3 classi oggi', entrato: 'è già entrato',
+  ore_da_solo: 'ha ancora ore da solo', sabato: 'regola del sabato', ore_insieme: 'hanno ancora ore insieme',
+};
+const segno = v => `<td class="${v ? 'si' : 'no'}">${v ? '✓' : '✗'}</td>`;
+function disegnaControlli(c) {
+  const box = document.getElementById('controlli');
+  if (!c || c.completo) {
+    box.innerHTML = c ? `<div class="testa-cella"><h2>Orario completo</h2>
+      <button type="button" class="secondario" data-passo="-1" title="Il passo prima (←)">◀ Prec.</button></div>
+      <p class="nota">Nessuna cella da decidere.</p>` : '';
+    return;
+  }
+  const {giorni, ore, classi} = forma, O = ore.length, C = classi.length;
+  const dove = `${giorni[Math.floor(c.pos / (O * C))]} ${ore[Math.floor(c.pos / C) % O]}, ${classi[c.pos % C]}`;
+  const k = c.classe;
+  let h = `<div class="testa-cella"><h2>La cella ${numero(c.pos + 1)}: ${esc(dove)}</h2>
+    <button type="button" class="secondario" data-passo="-1" title="Il passo prima (←)">◀ Prec.</button>
+    <button type="button" class="secondario" data-passo="1" title="Il passo dopo (→)">Succ. ▶</button></div>`;
+  // la classe
+  h += `<h3>Il controllo della classe</h3><table class="dati controlli"><tbody>
+    <tr><th>La classe può avere lezione</th>${segno(k.ha_attivita)}
+      <td class="nota">le restano ${k.ore_rimanenti} ore e ${k.celle_obbligatorie_rimanenti} celle obbligatorie da riempire` +
+      ` (le ore devono bastare); ore buche oggi: ${k.ore_buche_oggi} (dopo un'ora buca non ha più lezione)</td></tr>
+    <tr><th>Può avere un'ora buca</th>${segno(k.ora_buca_possibile)}<td class="nota">solo dopo le ore obbligatorie</td></tr>
+  </tbody></table>`;
+  // la coda
+  h += `<h3>La coda di priorità</h3><p class="nota">L'ordine in cui la ricerca prova i docenti: prima chi ha più ore ancora
+    da mettere (il numero). In evidenza i docenti di ${esc(classi[c.pos % C])}.</p><ol class="coda">` +
+    c.coda.map(x => `<li class="${x.nella_classe ? 'della-classe' : ''}">${esc(x.docente)} <strong>${x.priorita}</strong></li>`).join('') + '</ol>';
+  // i docenti della classe e, sotto ognuno, le sue coppie: una tabella sola. La riga del docente ha i suoi
+  // controlli e l'esito da solo; la riga di una coppia («con ...») ha i controlli sul secondo docente e l'esito in coppia.
+  const val = (lista, nome) => { const x = lista.find(y => y[0] === nome); return x ? segno(x[1]) : '<td class="vuoto">·</td>'; };
+  const esitoCella = (ok, testo) => `<td class="esito-cella ${ok ? 'si' : 'no'}">${ok ? testo : 'no'}</td>`;
+  const COLONNE = ['libero', 'ore', 'max_ore_oggi', 'ore_contigue', 'max_classi_oggi', 'entrato'];
+  const TITOLI = {ore: 'ha ancora ore nella classe (coppia: ore insieme)'};
+  h += `<h3>I controlli dei docenti della classe e delle coppie</h3>
+    <p class="nota">Nell'ordine della coda. Sotto ogni docente le sue coppie con chi viene dopo di lui nella coda: lì i
+    controlli sono sul secondo docente, e la coppia si prova solo se anche il primo può insegnare.</p>
+    <div class="scorre"><table class="dati controlli"><thead><tr><th>Coda</th><th>Docente</th><th class="num">Ore rimaste qui</th>` +
+    COLONNE.map(n => `<th>${TITOLI[n] || NOMI_CONTROLLI[n]}</th>`).join('') +
+    `<th>Può insegnare</th><th>${NOMI_CONTROLLI.ore_da_solo}</th><th>${NOMI_CONTROLLI.sabato}</th><th>Esito</th></tr></thead><tbody>` +
+    c.docenti.map(x => {
+      const solo = x.controlli.map(y => y[0] === 'ore_nella_classe' ? ['ore', y[1]] : y);
+      let righe = `<tr class="docente"><td class="num">${x.posto}°</td><td><strong>${esc(x.docente)}</strong></td><td class="num">${x.ore_rimaste}</td>` +
+        COLONNE.map(n => val(solo, n)).join('') + esitoCella(x.puo, 'sì') + val(x.da_solo.controlli, 'ore_da_solo') +
+        val(x.da_solo.controlli, 'sabato') + esitoCella(k.ha_attivita && x.puo && x.da_solo.puo, 'da solo: si prova') + '</tr>';
+      for (const y of x.coppie) {
+        const due = y.controlli.map(z => z[0] === 'ore_insieme' ? ['ore', z[1]] : z);
+        righe += `<tr class="coppia"><td></td><td class="con">con <strong>${esc(y.con)}</strong></td><td></td>` +
+          COLONNE.map(n => val(due, n)).join('') + '<td class="vuoto">·</td><td class="vuoto">·</td>' + val(due, 'sabato') +
+          esitoCella(k.ha_attivita && x.puo && y.puo, 'in coppia: si prova') + '</tr>';
+      }
+      return righe;
+    }).join('') + '</tbody></table></div>';
+  box.innerHTML = h;
+}
+slider.addEventListener('input', () => { clearTimeout(attesa); attesa = setTimeout(() => vai(Number(slider.value)), 60); });
+document.getElementById('prec').addEventListener('click', () => vai(Number(slider.value) - 1));
+document.getElementById('succ').addEventListener('click', () => vai(Number(slider.value) + 1));
+document.addEventListener('keydown', e => {
+  if (e.target.closest('input:not([type=range]), select, textarea')) return;
+  if (e.key === 'ArrowLeft') { e.preventDefault(); vai(Number(slider.value) - 1); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); vai(Number(slider.value) + 1); }
+});
+
+// mentre il test gira: lo stato ogni secondo; lo slider si allunga e, se e' in fondo, segue la ricerca
+async function segui() {
+  try {
+    const s = await (await fetch(URL_STATO, {cache: 'no-store'})).json();
+    const inFondo = Number(slider.value) >= Number(slider.max);
+    mostraStato(s);
+    if (s.passi > Number(slider.max) || !s.gira) {
+      slider.max = Math.max(1, s.passi);
+      if (inFondo) vai(s.passi);
+    }
+    if (!s.gira) return;
+  } catch (e) { /* si riprova */ }
+  setTimeout(segui, 1000);
+}
+const iniziale = {{ s|tojson }};
+mostraStato(iniziale);
+slider.max = Math.max(1, iniziale.passi || 1);
+if (iniziale.passi) vai(iniziale.passi);
+if (iniziale.gira) setTimeout(segui, 1000);
+</script>
+{% endblock %}

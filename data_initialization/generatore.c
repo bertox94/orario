@@ -1,11 +1,10 @@
 #include "generatore.h"
 #include "database_initializers.h"
 #include "nomi_docenti.h"
-#include "../priority_queue/prio_queue.h"
+#include "../json.h"
 
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 
 #define ORE_CLASSE_MIN 30   // max(29, ore obbligatorie della settimana)
 #define ORE_CLASSE_MAX 36
@@ -128,12 +127,10 @@ int genera_dati_casuali(const unsigned long long int seme, const int n_classi, c
     for (int t = 0; t < MAX_TENTATIVI && !ok; t++) ok = tenta(n_classi);
     if (!ok) return 0;
 
-    // come inizializza_dati(): giorni e ore, la coda, le lezioni (classe per classe), le ore di ingresso
+    // come inizializza_dati(): giorni e ore, le lezioni (classe per classe), le ore di ingresso
     char giorni[][4] = {"Lun", "Mar", "Mer", "Gio", "Ven", "Sab"}, ore[][3] = {"08", "09", "10", "11", "12", "13"};
     for (int g = 0; g < 6; g++) set_giorno_settimana(giorni[g]);
     for (int h = 0; h < 6; h++) set_ora_giornaliera(ore[h]);
-    queue_mul = malloc(sizeof(QueueItem *) * GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ *
-                       INSEGNANTE_SZ);
     for (int c = 0; c < n_classi; c++)
         for (int i = 0; i < n_lezioni; i++) {
             const Lezione *l = &lezioni[i];
@@ -169,4 +166,51 @@ int genera_dati_casuali(const unsigned long long int seme, const int n_classi, c
         }
     }
     return 1;
+}
+
+// I dati appena generati in JSON su stdout, per il sito: le lezioni come sono state generate (classe, docente, ore e,
+// se c'e', codocente e ore insieme), classe per classe, e le ore di ingresso di chi entra tardi.
+void stampa_dati_casuali(void) {
+    printf("{\"giorni\":[");
+    for (int g = 0; g < actual_giorni_settimana; g++) {
+        if (g) putchar(',');
+        json_stringa(stdout, giorni_settimana[g]);
+    }
+    printf("],\"ore\":[");
+    for (int h = 0; h < actual_ore_giornaliere; h++) {
+        if (h) putchar(',');
+        json_stringa(stdout, ore_giornaliere[h]);
+    }
+    printf("],\"lezioni\":[");
+    char nome[MAX_LEN_WORDS];
+    int scritte = 0;
+    for (int c = 0; c < actual_classi_sezione; c++)
+        for (int i = 0; i < n_lezioni; i++) {
+            const Lezione *l = &lezioni[i];
+            if (l->classe != c) continue;
+            printf("%s{\"classe\":", scritte++ ? "," : "");
+            json_stringa(stdout, classe_sezione[c]);
+            printf(",\"docente\":");
+            nome_docente(l->docente, nome);
+            json_stringa(stdout, nome);
+            printf(",\"ore\":%d", l->ore);
+            if (l->codocente >= 0) {
+                printf(",\"codocente\":");
+                nome_docente(l->codocente, nome);
+                json_stringa(stdout, nome);
+                printf(",\"ore_codocenza\":%d", l->ore_codocenza);
+            }
+            putchar('}');
+        }
+    printf("],\"ingressi\":[");
+    scritte = 0;
+    for (int d = 0; d < n_docenti; d++) {
+        nome_docente(d, nome);
+        const int ora = ora_di_entrata_prof[p_insegnante(nome)];
+        if (!ora) continue;
+        printf("%s{\"docente\":", scritte++ ? "," : "");
+        json_stringa(stdout, nome);
+        printf(",\"ora\":%d}", ora);
+    }
+    printf("]}\n");
 }

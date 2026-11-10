@@ -7,7 +7,6 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include "../utils.h"
 
 
 char giorni_settimana[GIORNO_SETTIMANA_SZ][MAX_LEN_WORDS];
@@ -27,7 +26,6 @@ int ore_classi_docenti_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 int ore_classi_docenti_alone_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
 int ore_classi[CLASSE_SEZIONE_SZ];
 int ore_classe_svolte[CLASSE_SEZIONE_SZ];
-int ore_docenti[INSEGNANTE_SZ];
 int ore_classi_codocenza[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ];
 int ore_classi_codocenza_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ];
 int ore_fatte_da_un_prof_in_una_classe_in_giorno[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
@@ -35,22 +33,31 @@ int ore_fatte_da_un_prof_in_una_classe_in_giorno[GIORNO_SETTIMANA_SZ * CLASSE_SE
 int ora_di_entrata_prof[INSEGNANTE_SZ];
 int prof_gia_impegnato_giorno_ora[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ];
 int n_ore_buche[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ];
+// una coppia di docenti sempre nello stesso ordine: prima l'indice minore
+static void swap_min_first(int *p1, int *p2) {
+    if (*p1 > *p2) {
+        const int temp = *p1;
+        *p1 = *p2;
+        *p2 = temp;
+    }
+}
+
 // ---- dal nome all'indice (-1 se non c'e') ----
-int p_giorno(char g[]) {
+static int p_giorno(char g[]) {
     for (int i = 0; i < actual_giorni_settimana; i++)
         if (!strcmp(giorni_settimana[i], g))
             return i;
     return -1;
 }
 
-int p_ora(char o[]) {
+static int p_ora(char o[]) {
     for (int i = 0; i < actual_ore_giornaliere; i++)
         if (!strcmp(ore_giornaliere[i], o))
             return i;
     return -1;
 }
 
-int p_classe_sezione(char cla[]) {
+static int p_classe_sezione(char cla[]) {
     for (int i = 0; i < actual_classi_sezione; i++)
         if (!strcmp(classe_sezione[i], cla))
             return i;
@@ -80,14 +87,14 @@ void set_ora_giornaliera(char ora[]) {
     strcpy(ore_giornaliere[actual_ore_giornaliere++], ora);
 }
 
-void set_classe_sezione(char cla[]) {
+static void set_classe_sezione(char cla[]) {
     if (p_classe_sezione(cla) >= 0) return;
     assert(actual_classi_sezione < CLASSE_SEZIONE_SZ);
     assert(strlen(cla) < MAX_LEN_WORDS);
     strcpy(classe_sezione[actual_classi_sezione++], cla);
 }
 
-void set_insegnante(char in[]) {
+static void set_insegnante(char in[]) {
     if (p_insegnante(in) >= 0) return;
     assert(actual_insegnanti < INSEGNANTE_SZ);
     assert(strlen(in) < MAX_LEN_WORDS);
@@ -95,23 +102,19 @@ void set_insegnante(char in[]) {
 }
 
 // ---- le ore ----
-void add_ore_classi_insegnante(int classe, int insegnante, int ore) {
+static void add_ore_classi_insegnante(int classe, int insegnante, int ore) {
     ore_classi_docenti[classe * INSEGNANTE_SZ + insegnante] += ore;
 }
 
-void add_ore_classi_insegnante_lonely(int classe, int insegnante, int ore) {
+static void add_ore_classi_insegnante_lonely(int classe, int insegnante, int ore) {
     ore_classi_docenti_alone[classe * INSEGNANTE_SZ + insegnante] += ore;
 }
 
-void add_ore_classi_settimanale(int classe, int ore) {
+static void add_ore_classi_settimanale(int classe, int ore) {
     ore_classi[classe] += ore;
 }
 
-void add_ore_insegnante_settimanale(int insegnante, int ore) {
-    ore_docenti[insegnante] += ore;
-}
-
-void add_ore_classi_codocenza(int cla, int p1, int p2, int ore) {
+static void add_ore_classi_codocenza(int cla, int p1, int p2, int ore) {
     swap_min_first(&p1, &p2);
     ore_classi_codocenza[cla * INSEGNANTE_SZ * INSEGNANTE_SZ + p1 * INSEGNANTE_SZ + p2] += ore;
 }
@@ -136,14 +139,6 @@ int get_ore_insegnanti_codocenza_in_una_classe(const int cla, int p1, int p2) {
     return ore_classi_codocenza[cla * INSEGNANTE_SZ * INSEGNANTE_SZ + p1 * INSEGNANTE_SZ + p2];
 }
 
-int get_ore_classi_insegnante(int classe, int insegnante) {
-    return ore_classi_docenti[classe * INSEGNANTE_SZ + insegnante];
-}
-
-int get_ore_classi_insegnante_svolte(int classe, int insegnante) {
-    return ore_classi_docenti_svolte[classe * INSEGNANTE_SZ + insegnante];
-}
-
 // ---- le lezioni ----
 // Una lezione: il docente prof fa `ore` ore nella classe cla, tutte da solo. Registra classe e docente e lo mette in
 // coda (la sua priorita' cresce delle ore).
@@ -154,7 +149,6 @@ void set_classe_insegnante_ore(char cla[], char prof[], const int ore) {
     add_ore_classi_insegnante(p_classe_sezione(cla), p_insegnante(prof), ore);
     add_ore_classi_insegnante_lonely(p_classe_sezione(cla), p_insegnante(prof), ore);
     add_ore_classi_settimanale(p_classe_sezione(cla), ore);
-    add_ore_insegnante_settimanale(p_insegnante(prof), ore);
     add_to_queue(p_insegnante(prof), ore);
 }
 
@@ -165,11 +159,9 @@ void set_classe_insegnante_ore_cod(char cla[], char prof[], const int ore, char 
     add_ore_classi_insegnante(p_classe_sezione(cla), p_insegnante(prof), ore);
     add_ore_classi_insegnante_lonely(p_classe_sezione(cla), p_insegnante(prof), ore - ore_cod);
     add_ore_classi_settimanale(p_classe_sezione(cla), ore);
-    add_ore_insegnante_settimanale(p_insegnante(prof), ore);
 
     set_insegnante(cod);
     add_ore_classi_insegnante(p_classe_sezione(cla), p_insegnante(cod), ore_cod);
-    add_ore_insegnante_settimanale(p_insegnante(cod), ore_cod);
     add_ore_classi_codocenza(p_classe_sezione(cla), p_insegnante(prof), p_insegnante(cod), ore_cod);
     add_to_queue(p_insegnante(cod), ore_cod);
     add_to_queue(p_insegnante(prof), ore);
