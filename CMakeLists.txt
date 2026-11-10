@@ -18,6 +18,8 @@ add_executable(untitled main.c
         ricerca.c
         caso.h
         caso.c
+        passi.h
+        passi.c
         prove.h
         prove.c
         priority_queue/prio_queue.c
