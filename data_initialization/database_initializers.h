@@ -69,19 +69,11 @@ void set_giorno_settimana(char giorno[]);
 
 void set_ora_giornaliera(char ora[]);
 
-void set_classe_sezione(char cla[]);
-
-void set_insegnante(char in[]);
-
 void set_classe_insegnante_ore(char cla[], char prof[], const int ore);
 
 void set_classe_insegnante_ore_cod(char cla[], char prof[], const int ore, char cod[], const int ore_cod);
 
 int p_insegnante(const char in[]);
-
-int get_ore_classi_insegnante(int classe, int insegnante);
-
-int get_ore_classi_insegnante_svolte(int classe, int insegnante);
 
 void increment_ore_classi_codocenza_svolte(int cla, int p1, int p2);
 

@@ -21,11 +21,11 @@ add_executable(untitled main.c
         passi.h
         passi.c
         vincoli.h
-        controlli.h
-        controlli.c
+        passo.h
+        passo.c
+        json.h
         prove.h
         prove.c
         priority_queue/prio_queue.c
         priority_queue/prio_queue.h
-        utils.h
 )

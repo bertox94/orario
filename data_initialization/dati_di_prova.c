@@ -21,7 +21,7 @@ static char *prof(const char *nome) {
     abort();
 }
 
-// Giorni e ore, la coda, le lezioni classe per classe (i docenti si registrano alla prima lezione: l'ordine decide i
+// Giorni e ore, le lezioni classe per classe (i docenti si registrano alla prima lezione: l'ordine decide i
 // loro indici e quindi l'ordine della coda a parita' di priorita'), le ore di ingresso, e il controllo delle ore.
 void inizializza_dati() {
     set_giorno_settimana(Lun);
@@ -37,10 +37,6 @@ void inizializza_dati() {
     set_ora_giornaliera(Ora_11);
     set_ora_giornaliera(Ora_12);
     set_ora_giornaliera(Ora_13);
-
-    // la coda dei docenti (vedi prio_queue.h), riempita dalle lezioni
-    queue_mul = malloc(
-        sizeof(QueueItem *) * GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ);
 
     set_classe_insegnante_ore(Classe_3A, prof("D. Malfoy"), 2);
     set_classe_insegnante_ore(Classe_3A, prof("Voldemort"), 3);

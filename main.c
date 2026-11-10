@@ -3,7 +3,8 @@
 // ./untitled           i dati di prova (inizializza_dati): su console solo il tempo impiegato
 // ./untitled test N    le prove con i dati casuali (prove.h)
 // ./untitled caso SEME CLASSI RITARDI LIMITE FILE [PASSI]   un caso casuale per il sito (caso.h)
-// ./untitled controlli SEME CLASSI RITARDI PASSI K           i controlli al nodo K di quel caso (controlli.h)
+// ./untitled passo SEME CLASSI RITARDI PASSI K               il nodo K di quel caso: orario e controlli (passo.h)
+// ./untitled dati SEME CLASSI RITARDI                         i dati di quel caso in JSON (generatore.h)
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,7 +15,8 @@
 #include "ricerca.h"
 #include "prove.h"
 #include "caso.h"
-#include "controlli.h"
+#include "passo.h"
+#include "data_initialization/generatore.h"
 
 int main(const int argc, char **argv) {
     if (argc > 1 && !strcmp(argv[1], "test")) {  // le prove con i dati casuali
@@ -33,12 +35,21 @@ int main(const int argc, char **argv) {
         return esegui_caso(strtoull(argv[2], NULL, 10), atoi(argv[3]), atoi(argv[4]), atoll(argv[5]), argv[6],
                            argc > 7 ? argv[7] : NULL);
     }
-    if (argc > 1 && !strcmp(argv[1], "controlli")) {  // i controlli di un nodo, per il sito
+    if (argc > 1 && !strcmp(argv[1], "passo")) {  // un nodo della ricerca: orario e controlli, per il sito
         if (argc < 7) {
-            fprintf(stderr, "Uso: %s controlli SEME CLASSI RITARDI PASSI K\n", argv[0]);
+            fprintf(stderr, "Uso: %s passo SEME CLASSI RITARDI PASSI K\n", argv[0]);
             return 2;
         }
-        return stampa_controlli(strtoull(argv[2], NULL, 10), atoi(argv[3]), atoi(argv[4]), argv[5], atoll(argv[6]));
+        return stampa_passo(strtoull(argv[2], NULL, 10), atoi(argv[3]), atoi(argv[4]), argv[5], atoll(argv[6]));
+    }
+    if (argc > 1 && !strcmp(argv[1], "dati")) {  // i dati di un caso, per il sito
+        if (argc < 5) {
+            fprintf(stderr, "Uso: %s dati SEME CLASSI RITARDI\n", argv[0]);
+            return 2;
+        }
+        if (!genera_dati_casuali(strtoull(argv[2], NULL, 10), atoi(argv[3]), atoi(argv[4]))) return 1;
+        stampa_dati_casuali();
+        return 0;
     }
     const clock_t inizio = clock();
     inizializza_dati();

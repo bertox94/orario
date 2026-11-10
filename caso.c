@@ -2,6 +2,7 @@
 #include "ricerca.h"
 #include "data_initialization/generatore.h"
 #include "passi.h"
+#include "json.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -14,27 +15,13 @@ static const char *esito = "in corso";
 static teaching_slot foto[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ];
 static int foto_pos = 0;
 
-static void stringa(FILE *r, const char *s) {
-    fputc('"', r);
-    for (; *s; s++) {
-        if (*s == '"' || *s == '\\') fputc('\\', r);
-        fputc(*s, r);
-    }
-    fputc('"', r);
-}
-
 static void elenco(FILE *r, const char *campo, char nomi[][MAX_LEN_WORDS], const int n) {
     fprintf(r, ",\"%s\":[", campo);
     for (int i = 0; i < n; i++) {
         if (i) fputc(',', r);
-        stringa(r, nomi[i]);
+        json_stringa(r, nomi[i]);
     }
     fputc(']', r);
-}
-
-static void docente(FILE *r, const int p) {
-    if (p < 0) fputs("null", r);
-    else stringa(r, insegnanti[p]);
 }
 
 static void scrivi_stato(const int in_corso) {
@@ -43,7 +30,7 @@ static void scrivi_stato(const int in_corso) {
     FILE *r = fopen(provvisorio, "w");
     if (!r) return;
     fprintf(r, "{\"in_corso\":%d,\"esito\":", in_corso);
-    stringa(r, esito);
+    json_stringa(r, esito);
     fprintf(r, ",\"nodi\":%lld,\"secondi\":%.2f,\"pos\":%d,\"pos_max\":%d,\"celle\":%d", nodi,
             (clock() - inizio) / (double) CLOCKS_PER_SEC, foto_pos, pos_max, orario_len);
     elenco(r, "giorni", giorni_settimana, actual_giorni_settimana);
@@ -52,9 +39,9 @@ static void scrivi_stato(const int in_corso) {
     fputs(",\"orario\":[", r);
     for (int i = 0; i < foto_pos; i++) {
         fputs(i ? ",[" : "[", r);
-        docente(r, foto[i].insegnante1);
+        json_nome(r, foto[i].insegnante1 < 0 ? NULL : insegnanti[foto[i].insegnante1]);
         fputc(',', r);
-        docente(r, foto[i].insegnante2);
+        json_nome(r, foto[i].insegnante2 < 0 ? NULL : insegnanti[foto[i].insegnante2]);
         fputc(']', r);
     }
     fputs("]}\n", r);
