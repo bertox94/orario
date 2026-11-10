@@ -11,6 +11,11 @@ add_executable(untitled main.c
         data_initialization/database_initializers.h
         data_initialization/database_initializers.c
         data_initialization/nomi_docenti.h
+        data_initialization/generatore.h
+        data_initialization/generatore.c
+        ricerca.h
+        prove.h
+        prove.c
         printer/printer.h
         printer/printer.c
         priority_queue/prio_queue.c

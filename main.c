@@ -6,15 +6,21 @@
 // da fare prima), ogni docente in coppia con un altro (una codocenza) e poi da solo; dopo le ore obbligatorie prova
 // anche l'ora buca. Quando tutte le celle sono decise (pos == orario_len) l'orario e' completo: si stampa in
 // orario.txt e la ricerca finisce (si cerca un orario solo). Su console il tempo impiegato.
+//
+// ./untitled           i dati di prova (inizializza_dati)
+// ./untitled test N    le prove con i dati casuali (prove.h)
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
 #include "utils.h"
 #include "priority_queue/prio_queue.h"
 #include "data_initialization/database_initializers.h"
 #include "printer/printer.h"
+#include "ricerca.h"
+#include "prove.h"
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
@@ -26,6 +32,10 @@ teaching_slot orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_S
 };
 int orario_len;                                   // giorni * ore * classi
 FILE *f;                                          // orario.txt: l'orario trovato
+
+// il conto dei nodi e i limiti (vedi ricerca.h): non cambiano la ricerca
+long long int nodi = 0, limite_nodi = 0;
+int fermato = 0, pos_max = 0;
 
 // ---- la cella ----
 
@@ -285,10 +295,16 @@ static void prova_ora_buca(const Cella *c) {
 }
 
 void print_orario(const int pos) {
-    if (trovato) return;
+    if (trovato || fermato) return;
+    if (limite_nodi && nodi >= limite_nodi) {  // il limite di nodi: la ricerca si ferma qui
+        fermato = 1;
+        return;
+    }
+    nodi++;
+    if (pos > pos_max) pos_max = pos;
     if (pos == orario_len) {  // tutte le celle decise: l'orario e' completo
         trovato = 1;
-        print(orario, pos, f);
+        if (f) print(orario, pos, f);
         return;
     }
     const Cella c = cella(pos);
@@ -301,7 +317,15 @@ void print_orario(const int pos) {
     prova_ora_buca(&c);
 }
 
-int main(void) {
+int main(const int argc, char **argv) {
+    if (argc > 1 && !strcmp(argv[1], "test")) {  // le prove con i dati casuali
+        if (argc < 3) {
+            fprintf(stderr, "Uso: %s test N\n", argv[0]);
+            return 2;
+        }
+        esegui_prove(atoi(argv[2]));
+        return 0;
+    }
     const clock_t inizio = clock();
     inizializza_dati();
     stampa_dati();
