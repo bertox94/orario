@@ -114,3 +114,8 @@ table.controlli td strong { white-space: nowrap; }
 .testa-cella h2 { margin: 0 8px 0 0; }
 /* i controlli occupano sempre almeno lo schermo: cambiando passo la pagina non salta */
 #controlli { min-height: 100vh; }
+table.controlli tr.coppia td { border-bottom-style: dotted; background: #fcfcfb; }
+table.controlli tr.coppia td.con { padding-left: 22px; color: #8a4d12; white-space: nowrap; }
+table.controlli td.vuoto { color: var(--bordo); text-align: center; }
+table.controlli tr.docente td { border-top: 1px solid var(--bordo); }
+table.controlli td.esito-cella { white-space: nowrap; }

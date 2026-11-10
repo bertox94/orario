@@ -206,27 +206,31 @@ function disegnaControlli(c) {
   h += `<h3>La coda di priorità</h3><p class="nota">L'ordine in cui la ricerca prova i docenti: prima chi ha più ore ancora
     da mettere (il numero). In evidenza i docenti di ${esc(classi[c.pos % C])}.</p><ol class="coda">` +
     c.coda.map(x => `<li class="${x.nella_classe ? 'della-classe' : ''}">${esc(x.docente)} <strong>${x.priorita}</strong></li>`).join('') + '</ol>';
-  // i docenti della classe
-  const base = c.docenti.length ? c.docenti[0].controlli.map(x => x[0]) : [];
-  h += `<h3>I controlli dei docenti della classe</h3><div class="scorre"><table class="dati controlli"><thead><tr>
-    <th>Coda</th><th>Docente</th><th class="num">Ore rimaste qui</th>` + base.map(n => `<th>${NOMI_CONTROLLI[n]}</th>`).join('') +
-    `<th>Può insegnare</th><th>${NOMI_CONTROLLI.ore_da_solo}</th><th>${NOMI_CONTROLLI.sabato}</th><th>Da solo</th></tr></thead><tbody>` +
-    c.docenti.map(x => `<tr><td class="num">${x.posto}°</td><td><strong>${esc(x.docente)}</strong></td><td class="num">${x.ore_rimaste}</td>` +
-      x.controlli.map(y => segno(y[1])).join('') + `<td class="esito-cella ${x.puo ? 'si' : 'no'}">${x.puo ? 'sì' : 'no'}</td>` +
-      x.da_solo.controlli.map(y => segno(y[1])).join('') +
-      `<td class="esito-cella ${k.ha_attivita && x.puo && x.da_solo.puo ? 'si' : 'no'}">${k.ha_attivita && x.puo && x.da_solo.puo ? 'si prova' : 'no'}</td></tr>`).join('') +
-    '</tbody></table></div>';
-  // le coppie
-  const coppie = c.docenti.flatMap(x => x.coppie.map(y => ({primo: x, y})));
-  if (coppie.length) {
-    const nomi = coppie[0].y.controlli.map(x => x[0]);
-    h += `<h3>Le coppie</h3><p class="nota">Ogni coppia si prova una volta: il primo è quello che viene prima nella coda (deve
-      poter insegnare, tabella sopra), i controlli qui sono sul secondo.</p><div class="scorre"><table class="dati controlli"><thead><tr>
-      <th>Primo</th><th>può insegnare</th><th>Secondo</th>` + nomi.map(n => `<th>${NOMI_CONTROLLI[n]}</th>`).join('') + '<th>In coppia</th></tr></thead><tbody>' +
-      coppie.map(({primo, y}) => { const ok = k.ha_attivita && primo.puo && y.puo; return `<tr><td><strong>${esc(primo.docente)}</strong></td>${segno(primo.puo)}` +
-        `<td><strong>${esc(y.con)}</strong></td>` + y.controlli.map(z => segno(z[1])).join('') +
-        `<td class="esito-cella ${ok ? 'si' : 'no'}">${ok ? 'si prova' : 'no'}</td></tr>`; }).join('') + '</tbody></table></div>';
-  }
+  // i docenti della classe e, sotto ognuno, le sue coppie: una tabella sola. La riga del docente ha i suoi
+  // controlli e l'esito da solo; la riga di una coppia («con ...») ha i controlli sul secondo docente e l'esito in coppia.
+  const val = (lista, nome) => { const x = lista.find(y => y[0] === nome); return x ? segno(x[1]) : '<td class="vuoto">·</td>'; };
+  const esitoCella = (ok, testo) => `<td class="esito-cella ${ok ? 'si' : 'no'}">${ok ? testo : 'no'}</td>`;
+  const COLONNE = ['libero', 'ore', 'max_ore_oggi', 'ore_contigue', 'max_classi_oggi', 'entrato'];
+  const TITOLI = {ore: 'ha ancora ore nella classe (coppia: ore insieme)'};
+  h += `<h3>I controlli dei docenti della classe e delle coppie</h3>
+    <p class="nota">Nell'ordine della coda. Sotto ogni docente le sue coppie con chi viene dopo di lui nella coda: lì i
+    controlli sono sul secondo docente, e la coppia si prova solo se anche il primo può insegnare.</p>
+    <div class="scorre"><table class="dati controlli"><thead><tr><th>Coda</th><th>Docente</th><th class="num">Ore rimaste qui</th>` +
+    COLONNE.map(n => `<th>${TITOLI[n] || NOMI_CONTROLLI[n]}</th>`).join('') +
+    `<th>Può insegnare</th><th>${NOMI_CONTROLLI.ore_da_solo}</th><th>${NOMI_CONTROLLI.sabato}</th><th>Esito</th></tr></thead><tbody>` +
+    c.docenti.map(x => {
+      const solo = x.controlli.map(y => y[0] === 'ore_nella_classe' ? ['ore', y[1]] : y);
+      let righe = `<tr class="docente"><td class="num">${x.posto}°</td><td><strong>${esc(x.docente)}</strong></td><td class="num">${x.ore_rimaste}</td>` +
+        COLONNE.map(n => val(solo, n)).join('') + esitoCella(x.puo, 'sì') + val(x.da_solo.controlli, 'ore_da_solo') +
+        val(x.da_solo.controlli, 'sabato') + esitoCella(k.ha_attivita && x.puo && x.da_solo.puo, 'da solo: si prova') + '</tr>';
+      for (const y of x.coppie) {
+        const due = y.controlli.map(z => z[0] === 'ore_insieme' ? ['ore', z[1]] : z);
+        righe += `<tr class="coppia"><td></td><td class="con">con <strong>${esc(y.con)}</strong></td><td></td>` +
+          COLONNE.map(n => val(due, n)).join('') + '<td class="vuoto">·</td><td class="vuoto">·</td>' + val(due, 'sabato') +
+          esitoCella(k.ha_attivita && x.puo && y.puo, 'in coppia: si prova') + '</tr>';
+      }
+      return righe;
+    }).join('') + '</tbody></table></div>';
   box.innerHTML = h;
 }
 slider.addEventListener('input', () => { clearTimeout(attesa); attesa = setTimeout(() => vai(Number(slider.value)), 60); });
