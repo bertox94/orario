@@ -56,9 +56,26 @@ static int docente_in_tutto(void) {
     return 1;
 }
 
+static int docente_classi_al_giorno(void) {
+    const int disponibili = MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO * actual_giorni_settimana;
+    for (int p = 0; p < actual_insegnanti; p++) {
+        int servono = 0;
+        for (int c = 0; c < actual_classi_sezione; c++)
+            servono += (ore_in_classe(c, p) + MAX_ORE_PROF_IN_UNA_CLASSE - 1) / MAX_ORE_PROF_IN_UNA_CLASSE;
+        if (servono <= disponibili) continue;
+        snprintf(errore, dimensione, "%s: con al massimo %d ore al giorno in una classe, le sue classi gli prendono in "
+                 "tutto almeno %d giorni, ma con %d classi al giorno per %d giorni ne ha %d", insegnanti[p],
+                 MAX_ORE_PROF_IN_UNA_CLASSE, servono, MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO,
+                 actual_giorni_settimana, disponibili);
+        return 0;
+    }
+    return 1;
+}
+
 int verifica_dati(char *testo, const size_t lunghezza) {
     errore = testo;
     dimensione = lunghezza;
     return docente_in_una_classe()
-           && docente_in_tutto();
+           && docente_in_tutto()
+           && docente_classi_al_giorno();
 }
