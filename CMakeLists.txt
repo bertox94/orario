@@ -15,6 +15,7 @@ add_executable(untitled main.c
         data_initialization/generatore.h
         data_initialization/generatore.c
         ricerca.h
+        ricerca.c
         prove.h
         prove.c
         printer/printer.h
