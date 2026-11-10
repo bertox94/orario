@@ -1,6 +1,7 @@
 // Il programma: lancia la ricerca dell'orario (ricerca.c).
 //
 // ./untitled           i dati di prova (inizializza_dati): su console solo il tempo impiegato
+//                      (o «Errore nei dati: ...» se non passano la verifica dei dati, verifica_dati.h)
 // ./untitled test N    le prove con i dati casuali (prove.h)
 // ./untitled caso SEME CLASSI RITARDI LIMITE FILE [PASSI]   un caso casuale per il sito (caso.h)
 // ./untitled passo SEME CLASSI RITARDI PASSI K               il nodo K di quel caso: orario e controlli (passo.h)
