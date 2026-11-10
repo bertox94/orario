@@ -101,11 +101,24 @@ static int classe_ore_obbligatorie(void) {
     return 1;
 }
 
+static int docenti_entrati_a_ogni_ora(void) {
+    for (int h = 0; h < MIN(PRIME_N_ORE_OBBLIGATORIE, actual_ore_giornaliere); h++) {
+        int entrati = 0;
+        for (int p = 0; p < actual_insegnanti; p++) entrati += ingresso(p) <= h && ore_in_tutto(p) > 0;
+        if (entrati >= actual_classi_sezione) continue;
+        snprintf(errore, dimensione, "alle %s sono entrati solo %d docenti, ma le classi sono %d e l'ora è obbligatoria",
+                 ore_giornaliere[h], entrati, actual_classi_sezione);
+        return 0;
+    }
+    return 1;
+}
+
 int verifica_dati(char *testo, const size_t lunghezza) {
     errore = testo;
     dimensione = lunghezza;
     return docente_in_una_classe()
            && docente_in_tutto()
            && docente_classi_al_giorno()
-           && classe_ore_obbligatorie();
+           && classe_ore_obbligatorie()
+           && docenti_entrati_a_ogni_ora();
 }
