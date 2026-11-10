@@ -7,8 +7,8 @@
 // ritardi: (N + 1) * (N + 1) * 2 test. Ogni test cerca un orario e si ferma a PROVE_LIMITE_NODI nodi. Su stdout solo
 // i test che arrivano al limite, uno per riga; nessun file.
 
-#define PROVE_CLASSI_MIN 8
-#define PROVE_LIMITE_NODI 1000000LL
+#define PROVE_CLASSI_MIN 3
+#define PROVE_LIMITE_NODI 10000000LL
 
 void esegui_prove(int n);
 
