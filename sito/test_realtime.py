@@ -1,5 +1,5 @@
 """I test in tempo reale: ognuno in una cartella lavoro/test/<numero> con info.json (i parametri e quando e' partito)
-e stato.json (lo stato della ricerca, scritto dal solver), passi.bin (ogni nodo, per lo slider: vedi passi.py).
+e stato.json (lo stato della ricerca, scritto dal solver), passi.bin (ogni nodo, per lo slider: vedi passi.h).
 Un test alla volta; gli altri restano come storico."""
 import json
 import os
@@ -8,7 +8,7 @@ import subprocess
 import threading
 import time
 
-from . import passi, solver
+from . import solver
 
 _lock = threading.Lock()
 _in_corso = {'id': None, 'processo': None}
@@ -56,7 +56,8 @@ def avvia(lavoro, seme, classi, ritardi, milioni):
         _scrivi(os.path.join(d, 'info.json'), {'id': tid, 'seme': seme, 'classi': classi, 'ritardi': ritardi,
                                                'limite': limite, 'inizio': time.time()})
         _in_corso['processo'] = subprocess.Popen(
-            [exe, 'caso', str(seme), str(classi), '1' if ritardi else '0', str(limite), 'stato.json', 'passi.bin'], cwd=d,
+            [exe, 'caso', str(seme), str(classi), '1' if ritardi else '0', str(limite), 'stato.json', 'passi.bin'],
+            cwd=d,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         _in_corso['id'] = tid
         return tid
@@ -85,26 +86,36 @@ def test(lavoro, tid):
     if not gira and stato.get('in_corso', 1):  # finito senza scrivere la fine: fermato, o il sito si e' riavviato
         stato = dict(stato, esito='fermato' if info.get('fermato') else 'interrotto', in_corso=0)
     stato['gira'] = gira
-    stato['passi'] = passi.conta(os.path.join(d, 'passi.bin'))[0]
+    try:  # quanti nodi si possono gia' rivedere: 6 byte l'uno nel file dei passi
+        stato['passi'] = os.path.getsize(os.path.join(d, 'passi.bin')) // 6
+    except OSError:
+        stato['passi'] = 0
     return {'info': info, 'stato': stato}
 
 
-def controlli(lavoro, tid, k):
-    """I controlli della ricerca al nodo k (./untitled controlli, vedi controlli.h): il JSON del solver, o None."""
-    info = _leggi(os.path.join(_cartella(lavoro, tid), 'info.json'))
-    if not info:
-        return None
-    exe = solver.compila(os.path.join(lavoro, 'bin'))
-    r = subprocess.run([exe, 'controlli', str(info['seme']), str(info['classi']), '1' if info['ritardi'] else '0',
-                        'passi.bin', str(k)], cwd=_cartella(lavoro, tid), capture_output=True, text=True, timeout=20)
+def _solver(lavoro, argomenti, cartella=None):
+    """Il JSON che il solver stampa con questi argomenti (i dati di un caso, un passo), o None."""
+    r = subprocess.run([solver.compila(os.path.join(lavoro, 'bin'))] + [str(a) for a in argomenti], cwd=cartella,
+                       capture_output=True, text=True, timeout=20)
     try:
         return json.loads(r.stdout) if r.returncode == 0 else None
     except ValueError:
         return None
 
 
-def percorso_passi(lavoro, tid):
-    return os.path.join(_cartella(lavoro, tid), 'passi.bin')
+def _caso(info):
+    return [info['seme'], info['classi'], 1 if info['ritardi'] else 0]
+
+
+def dati(lavoro, info):
+    """I dati del caso (./untitled dati): giorni, ore, lezioni e ore di ingresso."""
+    return _solver(lavoro, ['dati'] + _caso(info))
+
+
+def passo(lavoro, tid, k):
+    """Il nodo k della ricerca (./untitled passo, vedi passo.h): l'orario fin li' e i controlli della cella."""
+    info = _leggi(os.path.join(_cartella(lavoro, tid), 'info.json'))
+    return info and _solver(lavoro, ['passo'] + _caso(info) + ['passi.bin', k], _cartella(lavoro, tid))
 
 
 def storico(lavoro):

@@ -10,14 +10,18 @@ Due pagine, senza login e senza database:
   si allunga e, se è in fondo, segue la ricerca; c'è il pulsante «Ferma». Le celle hanno tutte la stessa misura.
   Sotto l'orario, per la cella del passo: il controllo della classe (può avere lezione, può avere un'ora buca) con i
   suoi numeri, la coda di priorità in ordine, e per ogni docente della classe il valore di tutti i controlli, da solo
-  e in coppia (`./untitled controlli`, vedi `controlli.h`: usa le stesse funzioni della ricerca).
+  e in coppia (calcolati dal solver con le stesse funzioni della ricerca).
 
-Un test alla volta, con un limite di nodi da 0,1 a 20 milioni (ogni passo si registra: 6 byte per nodo). Il solver lo
-lancia il sito: `./untitled caso SEME CLASSI RITARDI LIMITE FILE PASSI` (vedi `caso.h` e `passi.h`), che genera i dati
-dal seme come le prove (`data_initialization/generatore.c`), scrive lo stato in `FILE` ogni mezzo secondo e ogni nodo
-in `PASSI`. Il sito rigenera gli stessi dati con `generatore.py` e ricostruisce un passo qualunque da `PASSI`
-(`passi.py`). Ogni test è una cartella in `sito/lavoro/test/<n>` (o in `SITO_LAVORO`) con `info.json`, `stato.json` e
-i passi.
+Un test alla volta, con un limite di nodi da 0,1 a 20 milioni (ogni passo si registra: 6 byte per nodo).
+
+Il sito mostra soltanto: tutto il calcolo lo fa il solver, che il sito lancia in tre modi (vedi `main.c`):
+- `./untitled caso SEME CLASSI RITARDI LIMITE FILE PASSI` (`caso.h`): la ricerca; scrive lo stato in `FILE` ogni mezzo
+  secondo e ogni nodo in `PASSI` (`passi.h`);
+- `./untitled dati SEME CLASSI RITARDI`: i dati del caso (lezioni e ore di ingresso);
+- `./untitled passo SEME CLASSI RITARDI PASSI K` (`passo.h`): il nodo K, con l'orario fin lì, il controllo della
+  classe, la coda e i controlli dei docenti.
+
+Ogni test è una cartella in `sito/lavoro/test/<n>` (o in `SITO_LAVORO`) con `info.json`, `stato.json` e i passi.
 
 ## Avvio
 

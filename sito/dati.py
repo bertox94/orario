@@ -1,30 +1,6 @@
-"""I dati di un caso (generatore.py: gli stessi del solver per ogni seme) riassunti per la pagina del test: le classi
-con le lezioni, i docenti, le codocenze e il loro grafo; e i docenti nell'ordine del solver (per i passi)."""
-import functools
+"""I dati di un caso (dal solver: ./untitled dati) riassunti per la pagina del test: le classi con le lezioni, i
+docenti, le codocenze e il loro grafo."""
 import math
-
-from . import generatore
-
-
-def dati_del_caso(info):
-    """I dati del test, rigenerati dal seme (identici a quelli del solver, data_initialization/generatore.c)."""
-    return _genera(info["seme"], info["classi"], bool(info["ritardi"]))
-
-
-@functools.lru_cache(maxsize=32)
-def _genera(seme, classi, ritardi):
-    return generatore.genera(seme, classi, ritardi)
-
-
-def docenti_in_ordine(dati):
-    """I nomi dei docenti nell'ordine del solver (data_initialization/generatore.c): docente e poi codocente di ogni
-    lezione, alla loro prima comparsa (come data_initialization/generatore.c). L'indice nei passi e' la posizione qui."""
-    nomi = []
-    for l in dati['lezioni']:
-        for d in (l['docente'], l.get('codocente')):
-            if d and d not in nomi:
-                nomi.append(d)
-    return nomi
 
 
 def riassunto_dati(dati):

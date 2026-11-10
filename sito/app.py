@@ -5,7 +5,7 @@ import os
 
 from flask import Flask, abort, flash, jsonify, redirect, render_template, request, url_for
 
-from . import dati, passi, test_realtime
+from . import dati, test_realtime
 
 LAVORO = os.environ.get('SITO_LAVORO') or os.path.join(os.path.dirname(os.path.abspath(__file__)), 'lavoro')
 MAX_MILIONI = 20  # i passi occupano 6 byte per nodo: 20 milioni di nodi sono 120 MB
@@ -53,24 +53,20 @@ def crea_app():
         t = test_realtime.test(LAVORO, tid)
         if not t:
             abort(404)
-        d = dati.dati_del_caso(t['info'])
+        d = test_realtime.dati(LAVORO, t['info'])
+        if not d:
+            abort(500)
         classi, docenti, coppie, riepilogo = dati.riassunto_dati(d)
         return render_template('test.html', t=t, classi=classi, docenti=docenti, coppie=coppie, riepilogo=riepilogo,
                                grafo=dati.grafo(coppie), ore=d['ore'])
 
     @app.route('/test/<int:tid>/passo/<int:k>')
     def passo(tid, k):
-        """Il nodo k della ricerca: la cella che sta decidendo, quella del nodo prima e l'orario fin li'."""
-        t = test_realtime.test(LAVORO, tid)
-        if not t or not t['stato'].get('celle'):
+        """Il nodo k: l'orario fin li', la cella che la ricerca sta per decidere e tutti i suoi controlli."""
+        p = test_realtime.passo(LAVORO, tid, k)
+        if not p:
             abort(404)
-        x = passi.nodo(test_realtime.percorso_passi(LAVORO, tid), k, t['stato']['celle'])
-        if x is None:
-            abort(404)
-        pos, prima, orario = x
-        nomi = dati.docenti_in_ordine(dati.dati_del_caso(t['info']))
-        nome = lambda i: nomi[i] if 0 <= i < len(nomi) else None  # noqa: E731
-        return jsonify({'k': k, 'pos': pos, 'prima': prima, 'orario': [[nome(a), nome(b)] for a, b in orario]})
+        return jsonify(p)
 
     @app.route('/test/<int:tid>/stato.json')
     def stato(tid):
@@ -78,14 +74,6 @@ def crea_app():
         if not t:
             abort(404)
         return jsonify(t['stato'])
-
-    @app.route('/test/<int:tid>/controlli/<int:k>')
-    def controlli(tid, k):
-        """Al nodo k: il controllo della classe, la coda di priorita' e i controlli dei docenti della classe."""
-        c = test_realtime.controlli(LAVORO, tid, k)
-        if c is None:
-            abort(404)
-        return jsonify(c)
 
     @app.route('/ferma', methods=['POST'])
     def ferma():

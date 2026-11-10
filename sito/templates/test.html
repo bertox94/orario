@@ -94,7 +94,6 @@
 {% set i, s = t.info, t.stato %}
 <script>
 const URL_STATO = '{{ url_for('stato', tid=i.id) }}', URL_PASSO = '{{ url_for('passo', tid=i.id, k=0)[:-1] }}';
-const URL_CONTROLLI = '{{ url_for('controlli', tid=i.id, k=0)[:-1] }}';
 const slider = document.getElementById('slider'), tabella = document.getElementById('orario');
 const testo = document.getElementById('testo-passo');
 const numero = n => Number(n).toLocaleString('it-IT');
@@ -165,16 +164,10 @@ async function vai(k) {
   richiesto = k;
   const r = await fetch(URL_PASSO + k);
   if (!r.ok || richiesto !== k) return;  // un altro passo chiesto nel frattempo: vale l'ultimo
-  disegnaPasso(await r.json());
-  // i controlli della cella, quando lo slider si ferma un attimo
-  clearTimeout(attesaControlli);
-  attesaControlli = setTimeout(async () => {
-    const c = await fetch(URL_CONTROLLI + k);
-    if (richiesto !== k) return;
-    disegnaControlli(c.ok ? await c.json() : null);
-  }, 150);
+  const p = await r.json();
+  disegnaPasso(p);
+  disegnaControlli(p);
 }
-let attesaControlli = null;
 // «Prec.» e «Succ.» anche accanto al titolo della cella (la pagina resta dov'e')
 document.getElementById('controlli').addEventListener('click', e => {
   const b = e.target.closest('button[data-passo]');
