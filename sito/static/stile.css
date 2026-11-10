@@ -113,3 +113,7 @@ ol.coda li { counter-increment: coda; background: #fff; border: 1px solid var(--
 ol.coda li::before { content: counter(coda) ". "; color: var(--tenue); }
 ol.coda li.della-classe { border-color: var(--accento); background: #e3edfb; }
 table.controlli td strong { white-space: nowrap; }
+.testa-cella { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 32px; }
+.testa-cella h2 { margin: 0 8px 0 0; }
+/* i controlli occupano sempre almeno lo schermo: cambiando passo la pagina non salta */
+#controlli { min-height: 100vh; }

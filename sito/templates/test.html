@@ -175,6 +175,11 @@ async function vai(k) {
   }, 150);
 }
 let attesaControlli = null;
+// «Prec.» e «Succ.» anche accanto al titolo della cella (la pagina resta dov'e')
+document.getElementById('controlli').addEventListener('click', e => {
+  const b = e.target.closest('button[data-passo]');
+  if (b) vai(Number(slider.value) + Number(b.dataset.passo));
+});
 
 // ---- sotto l'orario: il controllo della classe, la coda di priorita' e i controlli dei docenti della classe ----
 const NOMI_CONTROLLI = {
@@ -185,11 +190,18 @@ const NOMI_CONTROLLI = {
 const segno = v => `<td class="${v ? 'si' : 'no'}">${v ? '✓' : '✗'}</td>`;
 function disegnaControlli(c) {
   const box = document.getElementById('controlli');
-  if (!c || c.completo) { box.innerHTML = c ? '<p class="nota">Orario completo: nessuna cella da decidere.</p>' : ''; return; }
+  if (!c || c.completo) {
+    box.innerHTML = c ? `<div class="testa-cella"><h2>Orario completo</h2>
+      <button type="button" class="secondario" data-passo="-1" title="Il passo prima (←)">◀ Prec.</button></div>
+      <p class="nota">Nessuna cella da decidere.</p>` : '';
+    return;
+  }
   const {giorni, ore, classi} = forma, O = ore.length, C = classi.length;
   const dove = `${giorni[Math.floor(c.pos / (O * C))]} ${ore[Math.floor(c.pos / C) % O]}, ${classi[c.pos % C]}`;
   const k = c.classe;
-  let h = `<h2>La cella ${numero(c.pos + 1)}: ${esc(dove)}</h2>`;
+  let h = `<div class="testa-cella"><h2>La cella ${numero(c.pos + 1)}: ${esc(dove)}</h2>
+    <button type="button" class="secondario" data-passo="-1" title="Il passo prima (←)">◀ Prec.</button>
+    <button type="button" class="secondario" data-passo="1" title="Il passo dopo (→)">Succ. ▶</button></div>`;
   // la classe
   h += `<h3>Il controllo della classe</h3><table class="dati controlli"><tbody>
     <tr><th>La classe può avere lezione</th>${segno(k.ha_attivita)}
