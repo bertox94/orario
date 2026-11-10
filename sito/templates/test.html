@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% block titolo %}Test {{ t.info.id }} · orario{% endblock %}
+{% block contenuto %}
+{% set i, s = t.info, t.stato %}
+<p class="nota"><a href="{{ url_for('indice') }}">← Test e storico</a></p>
+<h1>Test {{ i.id }}: seme {{ i.seme }}, {{ i.classi }} classi, {{ 'con' if i.ritardi else 'senza' }} ritardi</h1>
+<p><span id="esito" class="esito"></span> <span id="numeri"></span>
+  <span class="nota">{{ ('limite ' ~ (i.limite|numero) ~ ' nodi') if i.limite else 'senza limite di nodi' }}</span></p>
+<form method="post" action="{{ url_for('ferma') }}" id="ferma" {{ 'hidden' if not s.gira }}>
+  <input type="hidden" name="poi" value="{{ request.path }}"><button class="secondario">Ferma</button>
+</form>
+
+<h2 id="titolo-orario">L'orario</h2>
+<div class="posizione">
+  <input type="range" id="posizione" min="0" max="1" value="0" disabled aria-label="Dove è la ricerca">
+  <span id="testo-posizione" class="nota"></span>
+</div>
+<div class="scorre"><table class="orario" id="orario"></table></div>
+<p class="nota">Le celle già decise, in ordine: per ogni giorno e ogni ora, tutte le classi. La cella gialla è quella
+  che la ricerca sta decidendo; «–» è un'ora buca. Mentre il test gira si aggiorna ogni secondo.</p>
+{% endblock %}
+{% block script %}
+{% set i, s = t.info, t.stato %}
+<script>
+// Segue la ricerca: legge lo stato del test ogni secondo finche' gira, e ridisegna l'orario fino alla cella
+// che la ricerca sta decidendo.
+const URL_STATO = '{{ url_for('stato', tid=i.id) }}';
+const tabella = document.getElementById('orario'), slider = document.getElementById('posizione');
+const numero = n => Number(n).toLocaleString('it-IT');
+const esc = x => String(x).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+let forma = '';
+
+function disegna(s) {
+  const esito = s.esito || 'in corso';
+  const e = document.getElementById('esito');
+  e.textContent = esito;
+  e.className = 'esito esito-' + esito.replace(/ /g, '-');
+  document.getElementById('numeri').textContent = `${numero(s.nodi || 0)} nodi in ${(s.secondi || 0).toFixed(1)} s`;
+  document.getElementById('ferma').hidden = !s.gira;
+  if (!s.giorni) return;
+  const G = s.giorni.length, O = s.ore.length, C = s.classi.length, pos = s.pos;
+  document.getElementById('titolo-orario').textContent = esito === 'trovato' ? "L'orario trovato"
+    : s.gira ? 'Dove è la ricerca' : esito === 'nessuna soluzione' ? "Nessun orario" : 'Dove si è fermata la ricerca';
+  slider.max = s.celle;
+  slider.value = pos;
+  document.getElementById('testo-posizione').textContent = esito === 'trovato' ? `tutte le ${numero(s.celle)} celle`
+    : esito === 'nessuna soluzione' ? `la ricerca ha provato tutto · la cella più avanti raggiunta: ${numero(s.pos_max + 1)} di ${numero(s.celle)}`
+    : `cella ${numero(pos + 1)} di ${numero(s.celle)} · la più avanti raggiunta: ${numero(s.pos_max + 1)}`;
+  // l'intestazione si scrive una volta sola
+  const chiave = s.giorni.join() + s.ore.join() + s.classi.join();
+  if (chiave !== forma) {
+    forma = chiave;
+    let h = '<thead><tr><th rowspan="2">Classe</th>' + s.giorni.map(g => `<th colspan="${O}" class="giorno">${esc(g)}</th>`).join('') +
+      '</tr><tr>' + s.giorni.map(() => s.ore.map((o, k) => `<th class="${k ? '' : 'inizio-giorno'}">${esc(o)}</th>`).join('')).join('') +
+      '</tr></thead><tbody>';
+    for (let c = 0; c < C; c++) {
+      h += `<tr><th>${esc(s.classi[c])}</th>`;
+      for (let g = 0; g < G; g++) for (let o = 0; o < O; o++) h += `<td class="${o ? '' : 'inizio-giorno'}"></td>`;
+      h += '</tr>';
+    }
+    tabella.innerHTML = h + '</tbody>';
+  }
+  const righe = tabella.tBodies[0].rows;
+  for (let c = 0; c < C; c++) for (let g = 0; g < G; g++) for (let o = 0; o < O; o++) {
+    const k = (g * O + o) * C + c, td = righe[c].cells[1 + g * O + o], x = s.orario[k];
+    td.innerHTML = x ? (x[0] ? esc(x[0]) + (x[1] ? `<br><span class="cod">${esc(x[1])}</span>` : '') : '–') : '';
+    td.classList.toggle('buca', !!x && !x[0]);
+    td.classList.toggle('attuale', s.gira && k === pos);
+  }
+  // mentre gira, la cella gialla resta in vista: si scorre solo la tabella
+  const gialla = tabella.querySelector('td.attuale');
+  if (gialla) {
+    const box = tabella.parentElement, a = gialla.getBoundingClientRect(), b = box.getBoundingClientRect();
+    const sinistra = tabella.tBodies[0].rows[0].cells[0].offsetWidth;
+    if (a.left < b.left + sinistra) box.scrollLeft -= b.left + sinistra - a.left + 40;
+    else if (a.right > b.right) box.scrollLeft += a.right - b.right + 40;
+  }
+}
+
+async function segui() {
+  try {
+    const s = await (await fetch(URL_STATO, {cache: 'no-store'})).json();
+    disegna(s);
+    if (!s.gira) return;
+  } catch (e) { /* si riprova */ }
+  setTimeout(segui, 1000);
+}
+disegna({{ s|tojson }});
+{% if s.gira %}setTimeout(segui, 1000);{% endif %}
+</script>
+{% endblock %}
