@@ -14,6 +14,7 @@
 #include "priority_queue/prio_queue.h"
 #include "data_initialization/database_initializers.h"
 #include "ricerca.h"
+#include "vincoli.h"
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
@@ -38,16 +39,7 @@ int g_ora(const int p) { return p / actual_classi_sezione % actual_ore_giornalie
 
 int g_classe(const int p) { return p % actual_classi_sezione; }
 
-// La cella che si sta decidendo, con gli indici di partenza negli array piatti che la riguardano.
-typedef struct {
-    int pos, giorno, ora, cla;
-    int base2d_ci;     // classe, docente: ore_classi_docenti[base2d_ci + p] e simili
-    int base3d_goi;    // giorno, ora, docente: prof_gia_impegnato_giorno_ora[base3d_goi + p]
-    int base3d_gci;    // giorno, classe, docente: ore_fatte_da_un_prof_in_una_classe_in_giorno[base3d_gci + p]
-    int base4d_queue;  // la coda dei docenti di questa cella: queue_mul[base4d_queue ...]
-} Cella;
-
-static Cella cella(const int pos) {
+Cella cella(const int pos) {
     Cella c = {pos, g_giorno(pos), g_ora(pos), g_classe(pos)};
     c.base2d_ci = c.cla * INSEGNANTE_SZ;
     c.base3d_goi = c.giorno * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + c.ora * INSEGNANTE_SZ;
@@ -58,7 +50,7 @@ static Cella cella(const int pos) {
 }
 
 // le ore che restano al docente p nella classe della cella (da solo e in codocenza)
-static int ore_rimaste(const Cella *c, const int p) {
+int ore_rimaste(const Cella *c, const int p) {
     return ore_classi_docenti[c->base2d_ci + p] - ore_classi_docenti_svolte[c->base2d_ci + p];
 }
 
@@ -178,7 +170,7 @@ int sabato_esaurisci_priorita_subito(const Cella *c, const int prof) {
 }
 
 // I controlli del docente p1 in questa cella, prima di provarlo in coppia o da solo.
-static int docente_puo_insegnare(const Cella *c, const int p1) {
+int docente_puo_insegnare(const Cella *c, const int p1) {
     return prof_è_disponibile(c, p1)
            && deve_ancora_svolgere_ore_in_questa_classe(c, p1)
            && prof_fa_al_max_n_ore(c, p1)
@@ -190,7 +182,7 @@ static int docente_puo_insegnare(const Cella *c, const int p1) {
 // I controlli del secondo docente p2 della coppia, insieme a p1. Le coppie si provano nell'ordine della coda: p1 e'
 // quello che viene prima, p2 uno di quelli dopo. Quindi p2 non e' sempre il codocente della lezione: puo' essere il
 // docente, e p1 il suo codocente. (Che p2 abbia ancora ore nella classe lo dicono le ore insieme rimaste.)
-static int secondo_della_coppia_puo_insegnare(const Cella *c, const int p1, const int p2) {
+int secondo_della_coppia_puo_insegnare(const Cella *c, const int p1, const int p2) {
     return prof_è_disponibile(c, p2)
            && docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(c, p1, p2)
            && prof_fa_al_max_n_ore(c, p2)
@@ -201,7 +193,7 @@ static int secondo_della_coppia_puo_insegnare(const Cella *c, const int p1, cons
 }
 
 // I controlli per mettere p1 da solo.
-static int docente_puo_insegnare_da_solo(const Cella *c, const int p1) {
+int docente_puo_insegnare_da_solo(const Cella *c, const int p1) {
     return deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(c, p1)
            && sabato_esaurisci_priorita_subito(c, p1);
 }
@@ -235,12 +227,12 @@ static void segna_ora(const Cella *c, QueueItem *it, const int delta) {
     ore_fatte_da_un_prof_in_una_classe_in_giorno[c->base3d_gci + p] += delta;
 }
 
-static void segna_da_solo(const Cella *c, QueueItem *it, const int delta) {
+void segna_da_solo(const Cella *c, QueueItem *it, const int delta) {
     segna_ora(c, it, delta);
     ore_classi_docenti_alone_svolte[c->base2d_ci + it->teacher] += delta;
 }
 
-static void segna_coppia(const Cella *c, QueueItem *it, QueueItem *jt, const int delta) {
+void segna_coppia(const Cella *c, QueueItem *it, QueueItem *jt, const int delta) {
     segna_ora(c, it, delta);
     segna_ora(c, jt, delta);
     if (delta > 0) increment_ore_classi_codocenza_svolte(c->cla, it->teacher, jt->teacher);

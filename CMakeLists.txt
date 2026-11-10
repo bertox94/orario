@@ -20,6 +20,9 @@ add_executable(untitled main.c
         caso.c
         passi.h
         passi.c
+        vincoli.h
+        controlli.h
+        controlli.c
         prove.h
         prove.c
         priority_queue/prio_queue.c
