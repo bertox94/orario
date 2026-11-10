@@ -59,5 +59,29 @@
   "nodi": 0,
   "cella_max": 0,
   "passi": "d41d8cd98f00b204e9800998ecf8427e"
+ },
+ "seme 5, 6 classi, con ritardi, 100000 nodi": {
+  "esito": "trovato",
+  "nodi": 1222,
+  "cella_max": 216,
+  "passi": "e979df2f44860bc4874785f222b566a4"
+ },
+ "seme 8, 4 classi, con ritardi, 100000 nodi": {
+  "esito": "trovato",
+  "nodi": 271,
+  "cella_max": 144,
+  "passi": "d2901b9fd0fcba0b9a8084f13ef6cb95"
+ },
+ "seme 5, 9 classi, con ritardi, 100000 nodi": {
+  "esito": "limite di nodi",
+  "nodi": 100000,
+  "cella_max": 300,
+  "passi": "735e4a95276fbfa9a4c77622404f38d2"
+ },
+ "seme 7, 10 classi, con ritardi, 100000 nodi": {
+  "esito": "limite di nodi",
+  "nodi": 100000,
+  "cella_max": 319,
+  "passi": "ca86423e98a671c210c4b218a521d250"
  }
 }
