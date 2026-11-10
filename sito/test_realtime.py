@@ -89,6 +89,20 @@ def test(lavoro, tid):
     return {'info': info, 'stato': stato}
 
 
+def controlli(lavoro, tid, k):
+    """I controlli della ricerca al nodo k (./untitled controlli, vedi controlli.h): il JSON del solver, o None."""
+    info = _leggi(os.path.join(_cartella(lavoro, tid), 'info.json'))
+    if not info:
+        return None
+    exe = solver.compila(os.path.join(lavoro, 'bin'))
+    r = subprocess.run([exe, 'controlli', str(info['seme']), str(info['classi']), '1' if info['ritardi'] else '0',
+                        'passi.bin', str(k)], cwd=_cartella(lavoro, tid), capture_output=True, text=True, timeout=20)
+    try:
+        return json.loads(r.stdout) if r.returncode == 0 else None
+    except ValueError:
+        return None
+
+
 def percorso_passi(lavoro, tid):
     return os.path.join(_cartella(lavoro, tid), 'passi.bin')
 

@@ -87,11 +87,14 @@
 <p class="nota">Ogni passo è un nodo della ricerca: la cella gialla è quella che la ricerca sta per decidere,
   l'azzurra la scelta appena messa; «–» è un'ora buca. Mentre il test gira lo slider si allunga e, se è in fondo,
   segue la ricerca.</p>
+
+<div id="controlli"></div>
 {% endblock %}
 {% block script %}
 {% set i, s = t.info, t.stato %}
 <script>
 const URL_STATO = '{{ url_for('stato', tid=i.id) }}', URL_PASSO = '{{ url_for('passo', tid=i.id, k=0)[:-1] }}';
+const URL_CONTROLLI = '{{ url_for('controlli', tid=i.id, k=0)[:-1] }}';
 const slider = document.getElementById('slider'), tabella = document.getElementById('orario');
 const testo = document.getElementById('testo-passo');
 const numero = n => Number(n).toLocaleString('it-IT');
@@ -163,6 +166,63 @@ async function vai(k) {
   const r = await fetch(URL_PASSO + k);
   if (!r.ok || richiesto !== k) return;  // un altro passo chiesto nel frattempo: vale l'ultimo
   disegnaPasso(await r.json());
+  // i controlli della cella, quando lo slider si ferma un attimo
+  clearTimeout(attesaControlli);
+  attesaControlli = setTimeout(async () => {
+    const c = await fetch(URL_CONTROLLI + k);
+    if (richiesto !== k) return;
+    disegnaControlli(c.ok ? await c.json() : null);
+  }, 150);
+}
+let attesaControlli = null;
+
+// ---- sotto l'orario: il controllo della classe, la coda di priorita' e i controlli dei docenti della classe ----
+const NOMI_CONTROLLI = {
+  libero: "libero a quest'ora", ore_nella_classe: 'ha ancora ore nella classe', max_ore_oggi: 'meno di 3 ore oggi nella classe',
+  ore_contigue: 'le ore di oggi sono di seguito', max_classi_oggi: 'al massimo 3 classi oggi', entrato: 'è già entrato',
+  ore_da_solo: 'ha ancora ore da solo', sabato: 'regola del sabato', ore_insieme: 'hanno ancora ore insieme',
+};
+const segno = v => `<td class="${v ? 'si' : 'no'}">${v ? '✓' : '✗'}</td>`;
+function disegnaControlli(c) {
+  const box = document.getElementById('controlli');
+  if (!c || c.completo) { box.innerHTML = c ? '<p class="nota">Orario completo: nessuna cella da decidere.</p>' : ''; return; }
+  const {giorni, ore, classi} = forma, O = ore.length, C = classi.length;
+  const dove = `${giorni[Math.floor(c.pos / (O * C))]} ${ore[Math.floor(c.pos / C) % O]}, ${classi[c.pos % C]}`;
+  const k = c.classe;
+  let h = `<h2>La cella ${numero(c.pos + 1)}: ${esc(dove)}</h2>`;
+  // la classe
+  h += `<h3>Il controllo della classe</h3><table class="dati controlli"><tbody>
+    <tr><th>La classe può avere lezione</th>${segno(k.ha_attivita)}
+      <td class="nota">le restano ${k.ore_rimanenti} ore e ${k.celle_obbligatorie_rimanenti} celle obbligatorie da riempire` +
+      ` (le ore devono bastare); ore buche oggi: ${k.ore_buche_oggi} (dopo un'ora buca non ha più lezione)</td></tr>
+    <tr><th>Può avere un'ora buca</th>${segno(k.ora_buca_possibile)}<td class="nota">solo dopo le ore obbligatorie</td></tr>
+  </tbody></table>`;
+  // la coda
+  h += `<h3>La coda di priorità</h3><p class="nota">L'ordine in cui la ricerca prova i docenti: prima chi ha più ore ancora
+    da mettere (il numero). In evidenza i docenti di ${esc(classi[c.pos % C])}.</p><ol class="coda">` +
+    c.coda.map(x => `<li class="${x.nella_classe ? 'della-classe' : ''}">${esc(x.docente)} <strong>${x.priorita}</strong></li>`).join('') + '</ol>';
+  // i docenti della classe
+  const base = c.docenti.length ? c.docenti[0].controlli.map(x => x[0]) : [];
+  h += `<h3>I controlli dei docenti della classe</h3><div class="scorre"><table class="dati controlli"><thead><tr>
+    <th>Coda</th><th>Docente</th><th class="num">Ore rimaste qui</th>` + base.map(n => `<th>${NOMI_CONTROLLI[n]}</th>`).join('') +
+    `<th>Può insegnare</th><th>${NOMI_CONTROLLI.ore_da_solo}</th><th>${NOMI_CONTROLLI.sabato}</th><th>Da solo</th></tr></thead><tbody>` +
+    c.docenti.map(x => `<tr><td class="num">${x.posto}°</td><td><strong>${esc(x.docente)}</strong></td><td class="num">${x.ore_rimaste}</td>` +
+      x.controlli.map(y => segno(y[1])).join('') + `<td class="esito-cella ${x.puo ? 'si' : 'no'}">${x.puo ? 'sì' : 'no'}</td>` +
+      x.da_solo.controlli.map(y => segno(y[1])).join('') +
+      `<td class="esito-cella ${k.ha_attivita && x.puo && x.da_solo.puo ? 'si' : 'no'}">${k.ha_attivita && x.puo && x.da_solo.puo ? 'si prova' : 'no'}</td></tr>`).join('') +
+    '</tbody></table></div>';
+  // le coppie
+  const coppie = c.docenti.flatMap(x => x.coppie.map(y => ({primo: x, y})));
+  if (coppie.length) {
+    const nomi = coppie[0].y.controlli.map(x => x[0]);
+    h += `<h3>Le coppie</h3><p class="nota">Ogni coppia si prova una volta: il primo è quello che viene prima nella coda (deve
+      poter insegnare, tabella sopra), i controlli qui sono sul secondo.</p><div class="scorre"><table class="dati controlli"><thead><tr>
+      <th>Primo</th><th>può insegnare</th><th>Secondo</th>` + nomi.map(n => `<th>${NOMI_CONTROLLI[n]}</th>`).join('') + '<th>In coppia</th></tr></thead><tbody>' +
+      coppie.map(({primo, y}) => { const ok = k.ha_attivita && primo.puo && y.puo; return `<tr><td><strong>${esc(primo.docente)}</strong></td>${segno(primo.puo)}` +
+        `<td><strong>${esc(y.con)}</strong></td>` + y.controlli.map(z => segno(z[1])).join('') +
+        `<td class="esito-cella ${ok ? 'si' : 'no'}">${ok ? 'si prova' : 'no'}</td></tr>`; }).join('') + '</tbody></table></div>';
+  }
+  box.innerHTML = h;
 }
 slider.addEventListener('input', () => { clearTimeout(attesa); attesa = setTimeout(() => vai(Number(slider.value)), 60); });
 document.getElementById('prec').addEventListener('click', () => vai(Number(slider.value) - 1));

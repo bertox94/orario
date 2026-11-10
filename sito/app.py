@@ -79,6 +79,14 @@ def crea_app():
             abort(404)
         return jsonify(t['stato'])
 
+    @app.route('/test/<int:tid>/controlli/<int:k>')
+    def controlli(tid, k):
+        """Al nodo k: il controllo della classe, la coda di priorita' e i controlli dei docenti della classe."""
+        c = test_realtime.controlli(LAVORO, tid, k)
+        if c is None:
+            abort(404)
+        return jsonify(c)
+
     @app.route('/ferma', methods=['POST'])
     def ferma():
         test_realtime.ferma(LAVORO)
