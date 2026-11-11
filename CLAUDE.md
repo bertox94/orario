@@ -9,8 +9,8 @@ codice e messaggi di commit sono in italiano.
   vincoli, la coda, `cerca_orario`); `vincoli.h` dichiara i vincoli per chi li valuta uno per uno; `main.c` lancia:
   - `./untitled`: i dati di prova (`data_initialization/dati_di_prova.c`), su console solo il tempo;
   - `./untitled test N`: le prove con i dati casuali (`prove.c`), su stdout solo i test che arrivano al limite;
-  - `./untitled caso|dati|passo ...`: per il sito (`caso.c`, `data_initialization/generatore.c`, `passo.c`,
-    `passi.c`).
+  - `./untitled caso|dati|passo|ultima ...`: per il sito (`caso.c`, `data_initialization/generatore.c`, `passo.c`,
+    `ultima.c`, `passi.c`).
   Niente variabili globali né `static` (richiesta di Alb dell'11 novembre 2026): i dati stanno in una `Scuola`
   (`data_initialization/database_initializers.h`), lo stato della ricerca in una `Ricerca` (`ricerca.h`), e ogni
   funzione le riceve come argomento. Restano `static` solo le tabelle di nomi costanti negli header.

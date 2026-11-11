@@ -11,14 +11,7 @@
 static void rimetti_stato(Ricerca *r, const int pos) {
     for (int i = 0; i < pos; i++) {
         const Cella c = cella(r, i);
-        const teaching_slot t = r->orario[i];
-        if (t.insegnante1 < 0) {
-            r->n_ore_buche[c.base2d_gc]++;
-            continue;
-        }
-        r->ore_classe_svolte[c.cla]++;
-        if (t.insegnante2 < 0) segna_da_solo(r, &c, t.insegnante1, 1);
-        else segna_coppia(r, &c, t.insegnante1, t.insegnante2, 1);
+        segna_cella(r, &c, r->orario[i], 1);
     }
 }
 

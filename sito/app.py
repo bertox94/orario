@@ -68,6 +68,22 @@ def crea_app():
             abort(404)
         return jsonify(p)
 
+    @app.route('/test/<int:tid>/ultima.json')
+    def ultima(tid):
+        """La cella più avanti di un test finito: le visite e i controlli contati su tutte le visite."""
+        u = test_realtime.ultima(LAVORO, tid)
+        if u is None:
+            abort(404)
+        return jsonify(u)
+
+    @app.route('/test/<int:tid>/visita/<int:i>')
+    def visita(tid, i):
+        """Il nodo della visita i alla cella più avanti."""
+        nodo = test_realtime.visita(LAVORO, tid, i)
+        if nodo is None:
+            abort(404)
+        return jsonify({'nodo': nodo})
+
     @app.route('/test/<int:tid>/stato.json')
     def stato(tid):
         t = test_realtime.test(LAVORO, tid)

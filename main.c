@@ -5,6 +5,7 @@
 // ./untitled test N    le prove con i dati casuali (prove.h)
 // ./untitled caso SEME CLASSI RITARDI LIMITE FILE [PASSI]   un caso casuale per il sito (caso.h)
 // ./untitled passo SEME CLASSI RITARDI PASSI K               il nodo K di quel caso: orario e controlli (passo.h)
+// ./untitled ultima SEME CLASSI RITARDI PASSI [VISITE]       la cella piu' avanti di quel caso (ultima.h)
 // ./untitled dati SEME CLASSI RITARDI                         i dati di quel caso in JSON (generatore.h)
 
 #include <stdio.h>
@@ -17,6 +18,7 @@
 #include "prove.h"
 #include "caso.h"
 #include "passo.h"
+#include "ultima.h"
 #include "verifica_dati.h"
 #include "verifica_orario.h"
 #include "data_initialization/generatore.h"
@@ -44,6 +46,14 @@ int main(const int argc, char **argv) {
             return 2;
         }
         return stampa_passo(strtoull(argv[2], NULL, 10), atoi(argv[3]), atoi(argv[4]), argv[5], atoll(argv[6]));
+    }
+    if (argc > 1 && !strcmp(argv[1], "ultima")) {  // la cella piu' avanti e i suoi controlli, per il sito
+        if (argc < 6) {
+            fprintf(stderr, "Uso: %s ultima SEME CLASSI RITARDI PASSI [VISITE]\n", argv[0]);
+            return 2;
+        }
+        return stampa_ultima_cella(strtoull(argv[2], NULL, 10), atoi(argv[3]), atoi(argv[4]), argv[5],
+                                   argc > 6 ? argv[6] : NULL);
     }
     if (argc > 1 && !strcmp(argv[1], "dati")) {  // i dati di un caso, per il sito
         if (argc < 5) {

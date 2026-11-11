@@ -57,5 +57,7 @@ int docente_puo_insegnare_da_solo(const Ricerca *r, const Cella *c, int p1);
 // mettere (delta 1) o togliere (-1) un'ora in questa cella: di un docente da solo, o di una coppia
 void segna_da_solo(Ricerca *r, const Cella *c, int p, int delta);
 void segna_coppia(Ricerca *r, const Cella *c, int p1, int p2, int delta);
+// la scelta t (ora buca, docente da solo o coppia) messa o tolta dallo stato, per chi lo ricostruisce da un orario
+void segna_cella(Ricerca *r, const Cella *c, teaching_slot t, int delta);
 
 #endif //UNTITLED_VINCOLI_H

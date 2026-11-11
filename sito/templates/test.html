@@ -78,6 +78,21 @@
   {% else %}<p class="nota">Nessuna codocenza.</p>{% endif %}
 </details>
 
+<div id="ultima" hidden>
+  <h2>La cella più avanti</h2>
+  <p id="ultima-testo"></p>
+  <div class="passi visite">
+    <button type="button" class="secondario" id="visita-prima" title="La prima visita">⏮</button>
+    <button type="button" class="secondario" id="visita-prec">◀ Visita prima</button>
+    <span id="visita-testo"></span>
+    <button type="button" class="secondario" id="visita-succ">Visita dopo ▶</button>
+    <button type="button" class="secondario" id="visita-ultima" title="L'ultima visita">⏭</button>
+  </div>
+  <div class="scorre" id="ultima-tabella"></div>
+  <p class="nota">Per ogni docente della classe, in quante visite ogni controllo gli ha detto di no (su tutte le visite,
+    non solo quella mostrata). «sì» e «no» senza numero: sempre. Calcolato dal solver con le funzioni della ricerca.</p>
+</div>
+
 <h2>La ricerca, passo per passo</h2>
 <div class="passi">
   <button type="button" class="secondario" id="prec" title="Il passo prima (←)">◀ Prec.</button>
@@ -101,6 +116,7 @@
 {% block script %}
 {% set i, s = t.info, t.stato %}
 <script>
+const URL_ULTIMA = '{{ url_for('ultima', tid=i.id) }}', URL_VISITA = '{{ url_for('visita', tid=i.id, i=0)[:-1] }}';
 const URL_STATO = '{{ url_for('stato', tid=i.id) }}', URL_PASSO = '{{ url_for('passo', tid=i.id, k=0)[:-1] }}';
 const slider = document.getElementById('slider'), tabella = document.getElementById('orario');
 const testo = document.getElementById('testo-passo');
@@ -304,6 +320,68 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowRight') { e.preventDefault(); vai(Number(slider.value) + 1); }
 });
 
+// ---- la cella piu' avanti: le visite, da scorrere, e i controlli contati su tutte le visite ----
+let ultima = null, visita = 0;  // visita: quella mostrata, da 1
+// quante volte un controllo ha detto di no, su tutte le visite
+function contato(n) {
+  const no = ultima.visite - n;
+  if (!no) return '<td class="si">sì</td>';
+  if (!n) return '<td class="no">no</td>';
+  return `<td class="a-volte">no ${Math.max(1, Math.round(100 * no / ultima.visite))}%</td>`;
+}
+// va alla visita i: il sito dice a che nodo e', e lo slider salta li' (se nel frattempo ne e' stata chiesta un'altra,
+// vale l'ultima)
+async function vaiAllaVisita(i) {
+  visita = Math.max(1, Math.min(ultima.visite, i));
+  const questa = visita;
+  for (const [id, spento] of [['visita-prima', visita === 1], ['visita-prec', visita === 1],
+                              ['visita-succ', visita === ultima.visite], ['visita-ultima', visita === ultima.visite]])
+    document.getElementById(id).disabled = spento;
+  document.getElementById('visita-testo').textContent = `visita ${numero(visita)} di ${numero(ultima.visite)}`;
+  const r = await fetch(URL_VISITA + visita);
+  if (!r.ok || questa !== visita) return;
+  const nodo = (await r.json()).nodo;
+  document.getElementById('visita-testo').textContent += ` · nodo ${numero(nodo)}`;
+  vai(nodo);
+}
+async function mostraUltima() {
+  const r = await fetch(URL_ULTIMA);
+  if (!r.ok) return;
+  ultima = await r.json();
+  if (ultima.completo || !ultima.visite || !forma) return;
+  const {giorni, ore, classi} = forma, O = ore.length, C = classi.length, k = ultima.pos;
+  document.getElementById('ultima').hidden = false;
+  document.getElementById('ultima-testo').innerHTML =
+    `La cella ${numero(k + 1)} di ${numero(ultima.celle)}: <strong>${esc(giorni[Math.floor(k / (O * C))])} ` +
+    `${esc(ore[Math.floor(k / C) % O])}, ${esc(classi[k % C])}</strong>. La ricerca ci è arrivata ` +
+    `${numero(ultima.visite)} volte e non è mai riuscita a metterci una lezione: ogni volta è tornata indietro.`;
+  const nome = n => n === 'ore_nella_classe' ? 'ha ancora ore nella classe' : NOMI_CONTROLLI[n];
+  const val = (lista, n) => contato(lista.find(y => y[0] === n)[1]);
+  const D = ['libero', 'ore_nella_classe', 'max_ore_oggi', 'ore_contigue', 'max_classi_oggi', 'entrato'];
+  let h = '<table class="dati controlli conti"><thead><tr><th>Docente</th>' + D.map(n => `<th>${nome(n)}</th>`).join('') +
+    `<th>Può insegnare</th><th>${nome('ore_da_solo')}</th><th>${nome('sabato')}</th><th>Da solo si prova</th></tr></thead><tbody>` +
+    ultima.docenti.map(d => `<tr><th>${esc(d.docente)}</th>` + D.map(n => val(d.controlli, n)).join('') + contato(d.puo) +
+      val(d.da_solo.controlli, 'ore_da_solo') + val(d.da_solo.controlli, 'sabato') + contato(d.da_solo.puo) + '</tr>').join('') +
+    '</tbody></table>';
+  if (ultima.coppie.length)
+    h += `<table class="dati controlli conti"><thead><tr><th>Coppia</th><th>${nome('ore_insieme')}</th><th>${nome('sabato')}</th>` +
+      '<th>In coppia si prova</th></tr></thead><tbody>' +
+      ultima.coppie.map(c => `<tr><th>${esc(c.a)} con ${esc(c.b)}</th>` + val(c.controlli, 'ore_insieme') +
+        val(c.controlli, 'sabato') + contato(c.puo) + '</tr>').join('') + '</tbody></table>';
+  document.getElementById('ultima-tabella').innerHTML = h;
+  vaiAllaVisita(ultima.visite);
+}
+document.getElementById('visita-prima').addEventListener('click', () => vaiAllaVisita(1));
+document.getElementById('visita-prec').addEventListener('click', () => vaiAllaVisita(visita - 1));
+document.getElementById('visita-succ').addEventListener('click', () => vaiAllaVisita(visita + 1));
+document.getElementById('visita-ultima').addEventListener('click', () => vaiAllaVisita(ultima.visite));
+// si chiede quando il test e' finito senza orario (se l'orario c'e', non c'e' una cella piu' avanti da guardare)
+function chiediUltima(s) {
+  if (ultima || s.gira || s.esito === 'trovato' || s.esito === 'errore nei dati' || !s.passi) return;
+  ultima = {};
+  mostraUltima();
+}
+
 // mentre il test gira: lo stato ogni secondo; lo slider si allunga e, se e' in fondo, segue la ricerca
 async function segui() {
   try {
@@ -314,6 +392,7 @@ async function segui() {
       slider.max = Math.max(1, s.passi);
       if (inFondo) vai(s.passi);
     }
+    chiediUltima(s);
     if (!s.gira) return;
   } catch (e) { /* si riprova */ }
   setTimeout(segui, 1000);
@@ -323,5 +402,6 @@ mostraStato(iniziale);
 slider.max = Math.max(1, iniziale.passi || 1);
 if (iniziale.passi) vai(iniziale.passi);
 if (iniziale.gira) setTimeout(segui, 1000);
+chiediUltima(iniziale);
 </script>
 {% endblock %}

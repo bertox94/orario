@@ -5,6 +5,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import threading
 import time
 
@@ -93,10 +94,10 @@ def test(lavoro, tid):
     return {'info': info, 'stato': stato}
 
 
-def _solver(lavoro, argomenti, cartella=None):
+def _solver(lavoro, argomenti, cartella=None, attesa=20):
     """Il JSON che il solver stampa con questi argomenti (i dati di un caso, un passo), o None."""
     r = subprocess.run([solver.compila(os.path.join(lavoro, 'bin'))] + [str(a) for a in argomenti], cwd=cartella,
-                       capture_output=True, text=True, timeout=20)
+                       capture_output=True, text=True, timeout=attesa)
     try:
         return json.loads(r.stdout) if r.returncode == 0 else None
     except ValueError:
@@ -116,6 +117,34 @@ def passo(lavoro, tid, k):
     """Il nodo k della ricerca (./untitled passo, vedi passo.h): l'orario fin li' e i controlli della cella."""
     info = _leggi(os.path.join(_cartella(lavoro, tid), 'info.json'))
     return info and _solver(lavoro, ['passo'] + _caso(info) + ['passi.bin', k], _cartella(lavoro, tid))
+
+
+def ultima(lavoro, tid):
+    """La cella più avanti di un test finito (./untitled ultima, vedi ultima.h): quante visite e, per ogni docente
+    della classe, in quante visite ogni controllo era vero. Il solver rilegge tutti i passi: il risultato si tiene
+    nella cartella del test, in ultima.json, con il nodo di ogni visita in visite.bin. None se il test gira ancora o
+    non c'è."""
+    d = _cartella(lavoro, tid)
+    info = _leggi(os.path.join(d, 'info.json'))
+    if not info or in_corso() == tid:
+        return None
+    u = _leggi(os.path.join(d, 'ultima.json'))
+    if u is None:
+        u = _solver(lavoro, ['ultima'] + _caso(info) + ['passi.bin', 'visite.bin'], d, attesa=120)
+        if u is not None:
+            _scrivi(os.path.join(d, 'ultima.json'), u)
+    return u
+
+
+def visita(lavoro, tid, i):
+    """Il nodo della visita i (da 1) alla cella più avanti: letto da visite.bin, 8 byte per visita. None se non c'è."""
+    try:
+        with open(os.path.join(_cartella(lavoro, tid), 'visite.bin'), 'rb') as f:
+            f.seek(8 * (i - 1))
+            b = f.read(8)
+    except OSError:
+        return None
+    return int.from_bytes(b, sys.byteorder) if i >= 1 and len(b) == 8 else None
 
 
 def storico(lavoro):

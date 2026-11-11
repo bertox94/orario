@@ -25,6 +25,8 @@ add_executable(untitled main.c
         passi.h
         passi.c
         vincoli.h
+        ultima.h
+        ultima.c
         passo.h
         passo.c
         json.h

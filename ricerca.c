@@ -275,6 +275,19 @@ void segna_coppia(Ricerca *r, const Cella *c, const int p1, const int p2, const 
     *ore_codocenza_svolte(r, c->cla, p1, p2) += delta;
 }
 
+// La scelta t nella cella c messa (delta = 1) o tolta (delta = -1) dallo stato della ricerca: un'ora buca, un docente
+// da solo o una coppia. Per chi ricostruisce lo stato da un orario gia' scritto (passo.c, ultima.c); la ricerca fa le
+// stesse cose dentro prova_lezioni e prova_ora_buca.
+void segna_cella(Ricerca *r, const Cella *c, const teaching_slot t, const int delta) {
+    if (t.insegnante1 < 0) {
+        r->n_ore_buche[c->base2d_gc] += delta;
+        return;
+    }
+    r->ore_classe_svolte[c->cla] += delta;
+    if (t.insegnante2 < 0) segna_da_solo(r, c, t.insegnante1, delta);
+    else segna_coppia(r, c, t.insegnante1, t.insegnante2, delta);
+}
+
 // ---- la ricerca ----
 
 // Prova tutte le lezioni possibili in questa cella, nell'ordine della coda (i docenti della classe, da chi ha piu' ore

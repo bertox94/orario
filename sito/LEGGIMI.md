@@ -15,6 +15,9 @@ Due pagine, senza login e senza database:
   e in coppia (calcolati dal solver con le stesse funzioni della ricerca).
   Quando l'orario è trovato, in cima c'è «L'orario trovato»: l'esito della verifica indipendente del solver
   (`verifica_orario.h`), controllo per controllo, e un pulsante che porta lo slider all'orario completo.
+  Quando l'orario non è stato trovato c'è «La cella più avanti»: la cella più lontana a cui la ricerca è arrivata, i
+  tasti per scorrere le visite (lo slider salta a quel nodo) e, per ogni docente della classe, in quante visite ogni
+  controllo gli ha detto di no (`./untitled ultima`, vedi `ultima.h`).
   Se i dati non passano la verifica del solver (`verifica_dati.h`) l'esito è «errore nei dati»: la ricerca non parte e
   la pagina mostra il motivo, sopra i dati del caso.
 
@@ -25,9 +28,12 @@ Il sito mostra soltanto: tutto il calcolo lo fa il solver, che il sito lancia in
   secondo e ogni nodo in `PASSI` (`passi.h`);
 - `./untitled dati SEME CLASSI RITARDI`: i dati del caso (lezioni e ore di ingresso);
 - `./untitled passo SEME CLASSI RITARDI PASSI K` (`passo.h`): il nodo K, con l'orario fin lì, il controllo della
-  classe, la coda e i controlli dei docenti.
+  classe, la coda e i controlli dei docenti;
+- `./untitled ultima SEME CLASSI RITARDI PASSI VISITE` (`ultima.h`): la cella più avanti e i controlli contati su tutte
+  le visite; in `VISITE` il nodo di ogni visita, che il sito legge per saltarci.
 
-Ogni test è una cartella in `sito/lavoro/test/<n>` (o in `SITO_LAVORO`) con `info.json`, `stato.json` e i passi.
+Ogni test è una cartella in `sito/lavoro/test/<n>` (o in `SITO_LAVORO`) con `info.json`, `stato.json`, i passi e,
+per i test senza orario, `ultima.json` e `visite.bin`.
 
 ## Avvio
 

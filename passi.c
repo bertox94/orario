@@ -42,6 +42,16 @@ void passi_chiudi(Passi *x) {
     free(x);
 }
 
+// ---- rileggere tutti i nodi, uno dopo l'altro ----
+
+int passi_prossimo(FILE *f, int *pos, teaching_slot *prima) {
+    int16_t r[3];
+    if (fread(r, sizeof r, 1, f) != 1) return 0;
+    *pos = r[0];
+    *prima = (teaching_slot){r[1], r[2]};
+    return 1;
+}
+
 // ---- rileggere un nodo ----
 static long dimensione(FILE *x) {
     fseek(x, 0, SEEK_END);

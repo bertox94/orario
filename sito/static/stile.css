@@ -130,3 +130,9 @@ table.controlli td.esito-cella { white-space: nowrap; }
   background: #fff; max-width: 900px; }
 .verifica.non-valido { border-left-color: var(--male); }
 .verifica h2 { margin-top: 10px; }
+/* la cella piu' avanti: le visite e i controlli contati su tutte le visite */
+.visite { margin: 8px 0 12px; }
+.visite span { min-width: 260px; text-align: center; }
+table.conti { margin-bottom: 12px; }
+table.conti td { text-align: center; white-space: nowrap; }
+table.conti td.a-volte { color: var(--avviso); background: #fff4d6; }
