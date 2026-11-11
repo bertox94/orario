@@ -130,31 +130,49 @@ static int dopo_l_ingresso(const Orario *x, char *d, const size_t n) {
     return 1;
 }
 
-// 3 e 4. Un docente in una classe in un giorno: al massimo MAX_ORE_PROF_IN_UNA_CLASSE ore (quale == 3), e tutte di
-// seguito (quale == 4: tra la prima e l'ultima non ci sono ore in cui manca).
-static int ore_del_giorno_in_una_classe(const Orario *x, const int quale, char *d, const size_t n) {
+// Le ore del docente p nella classe c nel giorno g: quante sono, e la prima e l'ultima (-1 se non ce ne sono).
+static int ore_del_giorno(const Orario *x, const int g, const int c, const int p, int *prima, int *ultima) {
+    int ore = 0;
+    *prima = *ultima = -1;
+    for (int o = 0; o < x->O; o++) {
+        if (!presente(x, g, o, c, p)) continue;
+        ore++;
+        if (*prima < 0) *prima = o;
+        *ultima = o;
+    }
+    return ore;
+}
+
+// 3. Un docente in una classe in un giorno: al massimo MAX_ORE_PROF_IN_UNA_CLASSE ore.
+static int massimo_ore_al_giorno(const Orario *x, char *d, const size_t n) {
     const Scuola *s = x->s;
     for (int g = 0; g < x->G; g++)
         for (int c = 0; c < x->C; c++)
             for (int p = 0; p < x->P; p++) {
-                int ore = 0, prima = -1, ultima = -1;
-                for (int o = 0; o < x->O; o++) {
-                    if (!presente(x, g, o, c, p)) continue;
-                    ore++;
-                    if (prima < 0) prima = o;
-                    ultima = o;
-                }
-                if (quale == 3 && ore > MAX_ORE_PROF_IN_UNA_CLASSE) {
-                    snprintf(d, n, "%s in %s %s: %d ore, il massimo è %d", s->insegnanti[p], s->classe_sezione[c],
-                             s->giorni_settimana[g], ore, MAX_ORE_PROF_IN_UNA_CLASSE);
-                    return 0;
-                }
-                if (quale == 4 && ore && ultima - prima + 1 != ore) {
-                    snprintf(d, n, "%s in %s %s: %d ore tra le %s e le %s, non di seguito", s->insegnanti[p],
-                             s->classe_sezione[c], s->giorni_settimana[g], ore, s->ore_giornaliere[prima],
-                             s->ore_giornaliere[ultima]);
-                    return 0;
-                }
+                int prima, ultima;
+                const int ore = ore_del_giorno(x, g, c, p, &prima, &ultima);
+                if (ore <= MAX_ORE_PROF_IN_UNA_CLASSE) continue;
+                snprintf(d, n, "%s in %s %s: %d ore, il massimo è %d", s->insegnanti[p], s->classe_sezione[c],
+                         s->giorni_settimana[g], ore, MAX_ORE_PROF_IN_UNA_CLASSE);
+                return 0;
+            }
+    return 1;
+}
+
+// 4. Le ore di un docente in una classe in un giorno sono di seguito: tra la prima e l'ultima non ci sono ore in cui
+// manca.
+static int ore_di_seguito(const Orario *x, char *d, const size_t n) {
+    const Scuola *s = x->s;
+    for (int g = 0; g < x->G; g++)
+        for (int c = 0; c < x->C; c++)
+            for (int p = 0; p < x->P; p++) {
+                int prima, ultima;
+                const int ore = ore_del_giorno(x, g, c, p, &prima, &ultima);
+                if (!ore || ultima - prima + 1 == ore) continue;
+                snprintf(d, n, "%s in %s %s: %d ore tra le %s e le %s, non di seguito", s->insegnanti[p],
+                         s->classe_sezione[c], s->giorni_settimana[g], ore, s->ore_giornaliere[prima],
+                         s->ore_giornaliere[ultima]);
+                return 0;
             }
     return 1;
 }
@@ -232,8 +250,8 @@ int verifica_orario(const Scuola *s, const teaching_slot *celle, ControlloOrario
     k[0].ok = ore_giuste(&x, k[0].dettaglio, n);
     k[1].ok = una_classe_per_volta(&x, k[1].dettaglio, n);
     k[2].ok = dopo_l_ingresso(&x, k[2].dettaglio, n);
-    k[3].ok = ore_del_giorno_in_una_classe(&x, 3, k[3].dettaglio, n);
-    k[4].ok = ore_del_giorno_in_una_classe(&x, 4, k[4].dettaglio, n);
+    k[3].ok = massimo_ore_al_giorno(&x, k[3].dettaglio, n);
+    k[4].ok = ore_di_seguito(&x, k[4].dettaglio, n);
     k[5].ok = classi_al_giorno(&x, k[5].dettaglio, n);
     k[6].ok = ore_obbligatorie(&x, k[6].dettaglio, n);
     k[7].ok = dopo_l_ora_buca(&x, k[7].dettaglio, n);
