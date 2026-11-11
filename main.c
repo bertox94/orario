@@ -57,7 +57,7 @@ int main(const int argc, char **argv) {
     inizializza_dati();
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
 
-    char errore[512];
+    char errore[VERIFICA_DATI_ERRORE];
     if (!verifica_dati(errore, sizeof errore)) {  // l'orario non puo' esistere: la ricerca non parte
         printf("Errore nei dati: %s\n", errore);
         return 1;

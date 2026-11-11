@@ -12,7 +12,7 @@
 static const char *file_stato;
 static clock_t inizio, ultima_scrittura;
 static const char *esito = "in corso";
-static char errore[512];  // il motivo, quando l'esito e' «errore nei dati»
+static char errore[VERIFICA_DATI_ERRORE];  // il motivo, quando l'esito e' «errore nei dati»
 // la foto dell'orario all'ultimo nodo scritto: durante la ricerca orario[] cambia, la foto no
 static teaching_slot foto[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ];
 static int foto_pos = 0;

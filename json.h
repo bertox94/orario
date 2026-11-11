@@ -5,10 +5,14 @@
 
 #include <stdio.h>
 
-// una stringa tra virgolette (i nomi non hanno caratteri di controllo: basta proteggere virgolette e barre)
+// una stringa tra virgolette: protette virgolette e barre, e l'a capo (il motivo di un errore nei dati ha piu' righe)
 static inline void json_stringa(FILE *r, const char *s) {
     fputc('"', r);
     for (; *s; s++) {
+        if (*s == '\n') {
+            fputs("\\n", r);
+            continue;
+        }
         if (*s == '"' || *s == '\\') fputc('\\', r);
         fputc(*s, r);
     }
