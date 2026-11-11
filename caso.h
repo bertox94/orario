@@ -11,6 +11,8 @@
 //   "esito": "in corso" | "trovato" | "limite di nodi" | "nessuna soluzione" | "errore nei dati" |
 //            "dati non generati",
 //   "errore": "..."   solo con «errore nei dati»: il controllo che non vale (verifica_dati.h); la ricerca non parte
+//   "verifica": {"ok": 1 | 0, "controlli": [[nome, 1 | 0, dettaglio], ...]}   solo con «trovato»: la verifica
+//            indipendente dell'orario (verifica_orario.h); il dettaglio e' la prima cosa che non va
 //   "nodi": N, "secondi": S, "pos": P, "pos_max": M, "celle": C,
 //   "giorni": [...], "ore": [...], "classi": [...],
 //   "orario": [[docente, codocente], ...]   le prime P celle, quelle gia' decise (null: nessuno)
