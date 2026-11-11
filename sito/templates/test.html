@@ -84,15 +84,16 @@
   <button type="button" class="secondario" id="succ" title="Il passo dopo (→)">Succ. ▶</button>
 </div>
 <p id="testo-passo" class="testo-passo"></p>
-<div class="scorre"><table class="orario" id="orario"></table></div>
-<p class="nota">Ogni passo è un nodo della ricerca: la cella gialla è quella che la ricerca sta per decidere,
-  l'azzurra la scelta appena messa; «–» è un'ora buca. Mentre il test gira lo slider si allunga e, se è in fondo,
-  segue la ricerca.</p>
-
 <h3>L'orario visto dai docenti</h3>
 <div class="scorre"><table class="orario docenti" id="orario-docenti"></table></div>
 <p class="nota">Lo stesso passo, una riga per docente: la classe dove insegna a ogni ora e, in grigio, con chi è in
   coppia. Le ore tratteggiate sono prima del suo ingresso; l'azzurra è la scelta appena messa.</p>
+
+<h3>L'orario per classi</h3>
+<div class="scorre"><table class="orario" id="orario"></table></div>
+<p class="nota">Ogni passo è un nodo della ricerca: la cella gialla è quella che la ricerca sta per decidere,
+  l'azzurra la scelta appena messa; «–» è un'ora buca. Mentre il test gira lo slider si allunga e, se è in fondo,
+  segue la ricerca.</p>
 
 <div id="controlli"></div>
 {% endblock %}
