@@ -7,6 +7,7 @@
 <p><span id="esito" class="esito"></span> <span id="numeri"></span>
   <span class="nota">limite {{ i.limite|numero }} nodi</span></p>
 <p id="errore" class="errore-dati" hidden></p>
+<div id="verifica" class="verifica" hidden></div>
 <form method="post" action="{{ url_for('ferma') }}" id="ferma" {{ 'hidden' if not s.gira }}>
   <input type="hidden" name="poi" value="{{ request.path }}"><button class="secondario">Ferma</button>
 </form>
@@ -121,10 +122,34 @@ function mostraStato(s) {
   // errore nei dati: l'orario non puo' esistere, la ricerca non e' partita; il motivo lo da' il solver
   document.getElementById('errore').hidden = !s.errore;
   document.getElementById('errore').textContent = s.errore ? 'La ricerca non è partita: ' + s.errore : '';
+  mostraVerifica(s.verifica);
   if (s.giorni && !forma) {
     forma = {giorni: s.giorni, ore: s.ore, classi: s.classi};
     disegnaGriglia();
   }
+}
+
+// l'orario trovato: l'esito della verifica indipendente del solver (verifica_orario.h), controllo per controllo, e un
+// pulsante che porta lo slider all'ultimo passo, dove c'e' l'orario completo
+let verificaMostrata = false;
+function mostraVerifica(v) {
+  if (!v || verificaMostrata) return;
+  verificaMostrata = true;
+  const box = document.getElementById('verifica');
+  box.hidden = false;
+  box.classList.toggle('non-valido', !v.ok);
+  box.innerHTML = `<h2>L'orario trovato</h2>
+    <p><span class="esito ${v.ok ? 'esito-trovato' : 'esito-errore-nei-dati'}">${v.ok ? 'verificato' : 'non valido'}</span>
+      ${v.ok ? 'Ricontrollato da capo, senza usare la ricerca: rispetta tutte le regole.'
+             : 'Ricontrollato da capo, senza usare la ricerca: non rispetta tutte le regole.'}
+      <button type="button" class="secondario piccolo" id="mostra-orario">Mostra l'orario</button></p>
+    <table class="dati controlli"><tbody>` +
+    v.controlli.map(([nome, ok, dettaglio]) => `<tr><td class="${ok ? 'si' : 'no'}">${ok ? '✓' : '✗'}</td>
+      <td>${esc(nome)}</td><td class="nota">${esc(dettaglio)}</td></tr>`).join('') + '</tbody></table>';
+  document.getElementById('mostra-orario').addEventListener('click', () => {
+    vai(Number(slider.max));
+    document.getElementById('prec').scrollIntoView({behavior: 'smooth', block: 'start'});
+  });
 }
 
 // le due griglie vuote, una volta sola: una riga per classe e una riga per docente, una colonna per ogni ora della

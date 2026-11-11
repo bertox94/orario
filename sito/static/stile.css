@@ -125,3 +125,8 @@ table.controlli tr.docente td { border-top: 1px solid var(--bordo); }
 table.controlli td.esito-cella { white-space: nowrap; }
 
 .errore-dati { white-space: pre-line; color: var(--male); background: #fdecea; padding: 8px 12px; border-radius: 6px; max-width: 900px; }
+/* l'orario trovato: l'esito della verifica indipendente */
+.verifica { margin: 14px 0; padding: 4px 14px 12px; border: 1px solid var(--riga); border-left: 4px solid var(--ok); border-radius: 6px;
+  background: #fff; max-width: 900px; }
+.verifica.non-valido { border-left-color: var(--male); }
+.verifica h2 { margin-top: 10px; }

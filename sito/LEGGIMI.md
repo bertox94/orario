@@ -13,6 +13,8 @@ Due pagine, senza login e senza database:
   Sotto l'orario, per la cella del passo: il controllo della classe (può avere lezione, può avere un'ora buca) con i
   suoi numeri, la coda di priorità in ordine, e per ogni docente della classe il valore di tutti i controlli, da solo
   e in coppia (calcolati dal solver con le stesse funzioni della ricerca).
+  Quando l'orario è trovato, in cima c'è «L'orario trovato»: l'esito della verifica indipendente del solver
+  (`verifica_orario.h`), controllo per controllo, e un pulsante che porta lo slider all'orario completo.
   Se i dati non passano la verifica del solver (`verifica_dati.h`) l'esito è «errore nei dati»: la ricerca non parte e
   la pagina mostra il motivo, sopra i dati del caso.
 
