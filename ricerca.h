@@ -30,6 +30,8 @@ struct Ricerca {
     int ore_classi_codocenza_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ];
     // di un docente in una classe in un giorno
     int ore_fatte_da_un_prof_in_una_classe_in_giorno[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
+    // in quante classi diverse un docente ha insegnato in un giorno (giorno * INSEGNANTE_SZ + docente)
+    int classi_fatte_da_un_prof_in_giorno[GIORNO_SETTIMANA_SZ * INSEGNANTE_SZ];
     // il docente insegna gia' in quel giorno e a quell'ora (in un'altra classe)
     int prof_gia_impegnato_giorno_ora[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ];
     // ore buche gia' messe in un giorno in una classe (dopo un'ora buca la classe non ha piu' lezione quel giorno)

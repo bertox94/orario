@@ -149,26 +149,12 @@ int prof_fa_ore_contigue(const Ricerca *r, const Cella *c, const int p) {
     return prima->insegnante1 == p || prima->insegnante2 == p;
 }
 
-// oggi insegna al massimo in MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO classi diverse, contando questa: si scorrono
-// le celle di oggi gia' decise (in ogni ora il docente e' in una classe sola: trovata quella si passa all'ora dopo)
+// oggi insegna al massimo in MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO classi diverse, contando questa: va bene se
+// in questa classe oggi c'e' gia' stato (non e' una classe in piu'), o se le classi di oggi sono meno del massimo
 int ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(const Ricerca *r, const Cella *c, const int p) {
-    const int n_classi = r->scuola->actual_classi_sezione;
-    const int inizio = c->pos - c->ora * n_classi - c->cla;  // la prima cella di oggi
-    int classi[MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO];
-    int n = 0;
-    classi[n++] = c->cla;
-    for (int i = inizio; i < c->pos; i++) {
-        if (r->orario[i].insegnante1 != p && r->orario[i].insegnante2 != p) continue;
-        const int classe = i % n_classi;
-        int gia = 0;
-        for (int j = 0; j < n && !gia; j++) gia = classi[j] == classe;
-        if (!gia) {
-            if (n >= MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO) return 0;
-            classi[n++] = classe;
-        }
-        i += n_classi - 1 - classe;  // all'ultima cella di quest'ora: il ciclo passa all'ora dopo
-    }
-    return 1;
+    return r->ore_fatte_da_un_prof_in_una_classe_in_giorno[c->base3d_gci + p] > 0
+           || r->classi_fatte_da_un_prof_in_giorno[c->giorno * INSEGNANTE_SZ + p]
+              < MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO;
 }
 
 // e' gia' entrato a scuola
@@ -263,12 +249,16 @@ int docente_puo_insegnare_da_solo(const Ricerca *r, const Cella *c, const int p1
 // ---- mettere e togliere un docente ----
 
 // Un'ora del docente p in questa cella (delta = 1) o tolta (delta = -1): priorita' nella coda, impegnato a quest'ora,
-// ore fatte nella classe e ore fatte oggi nella classe.
+// ore fatte nella classe, ore fatte oggi nella classe e classi di oggi.
 static void segna_ora(Ricerca *r, const Cella *c, const int p, const int delta) {
     r->queue_items[p].priority -= delta;
     r->prof_gia_impegnato_giorno_ora[c->base3d_goi + p] = delta > 0;
     r->ore_classi_docenti_svolte[c->base2d_ci + p] += delta;
-    r->ore_fatte_da_un_prof_in_una_classe_in_giorno[c->base3d_gci + p] += delta;
+    // le ore di oggi in questa classe; la prima che entra e l'ultima che esce cambiano anche le classi di oggi
+    int *ore_oggi = &r->ore_fatte_da_un_prof_in_una_classe_in_giorno[c->base3d_gci + p];
+    if (*ore_oggi == 0) r->classi_fatte_da_un_prof_in_giorno[c->giorno * INSEGNANTE_SZ + p]++;
+    *ore_oggi += delta;
+    if (*ore_oggi == 0) r->classi_fatte_da_un_prof_in_giorno[c->giorno * INSEGNANTE_SZ + p]--;
 }
 
 void segna_da_solo(Ricerca *r, const Cella *c, const int p, const int delta) {
