@@ -61,7 +61,7 @@ int main(const int argc, char **argv) {
         return 1;
     }
     Ricerca *r = nuova_ricerca(s);
-    print_orario(r, 0);
+    cerca_orario(r, 0);
 
     const double secondi = (clock() - inizio) / (double) CLOCKS_PER_SEC;
     printf(r->trovato ? "Orario trovato in %.2f s\n" : "Nessun orario possibile (%.2f s)\n", secondi);

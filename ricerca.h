@@ -5,7 +5,7 @@
 //
 // Tutto quello che la ricerca sa e cambia sta in una Ricerca: la scuola (che legge soltanto), l'orario, le ore gia'
 // messe, la coda dei docenti, il conto dei nodi. Chi la lancia la crea con nuova_ricerca, puo' mettere un limite di
-// nodi e una funzione da chiamare a ogni nodo, e chiama print_orario(r, 0).
+// nodi e una funzione da chiamare a ogni nodo, e chiama cerca_orario(r, 0).
 
 #include "data_initialization/database_initializers.h"
 #include "priority_queue/prio_queue.h"
@@ -50,7 +50,7 @@ struct Ricerca {
     int trovato;  // l'orario e' completo: e' in orario
     int fermato;  // si e' fermata al limite di nodi
 
-    // il conto dei nodi (le chiamate di print_orario) e i limiti: non cambiano la ricerca, la fermano soltanto
+    // il conto dei nodi (le chiamate di cerca_orario) e i limiti: non cambiano la ricerca, la fermano soltanto
     long long int nodi;         // nodi visitati
     long long int limite_nodi;  // dopo tanti nodi la ricerca si ferma (0: nessun limite)
     int pos_max;                // la cella piu' avanti raggiunta
@@ -66,9 +66,9 @@ struct Ricerca {
 Ricerca *nuova_ricerca(const Scuola *s);
 void libera_ricerca(Ricerca *r);
 
-// Decide la cella pos e scende alle celle dopo (print_orario(r, 0): tutto l'orario). Ritorna 1 se la ricerca e'
+// Decide la cella pos e scende alle celle dopo (cerca_orario(r, 0): tutto l'orario). Ritorna 1 se la ricerca e'
 // finita (trovato o fermato dicono come): allora r->orario e' l'orario trovato, o quello del nodo dove si e' fermata.
 // Ritorna 0 se non c'e' nessun orario.
-int print_orario(Ricerca *r, int pos);
+int cerca_orario(Ricerca *r, int pos);
 
 #endif //UNTITLED_RICERCA_H

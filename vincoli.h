@@ -27,7 +27,7 @@ int ore_rimaste_alla_classe(const Ricerca *r, const Cella *c);
 // le celle obbligatorie che la classe deve ancora riempire, contando questa
 int celle_obbligatorie_rimaste(const Ricerca *r, const Cella *c);
 // la classe puo' avere lezione in questa cella
-int activities_for_this_class_and_hour(const Ricerca *r, const Cella *c);
+int la_classe_puo_avere_lezione(const Ricerca *r, const Cella *c);
 // i posti che restano alla classe nei giorni dopo oggi
 int posti_nei_giorni_dopo(const Ricerca *r, const Cella *c);
 // la classe puo' avere un'ora buca in questa cella

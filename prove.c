@@ -26,7 +26,7 @@ static Esito un_test(const int seme, const int classi, const int ritardi) {
     Ricerca *r = nuova_ricerca(s);
     r->limite_nodi = PROVE_LIMITE_NODI;
     const clock_t inizio = clock();
-    print_orario(r, 0);
+    cerca_orario(r, 0);
     e.secondi = (clock() - inizio) / (double) CLOCKS_PER_SEC;
     e.al_limite = r->fermato;
     e.pos_max = r->pos_max;

@@ -64,7 +64,7 @@ int stampa_passo(const unsigned long long int seme, const int classi, const int 
 
     // la classe
     const char *stati[] = {"deve", "può", "non può"};  // nell'ordine di StatoClasse
-    const int lezione = activities_for_this_class_and_hour(r, &c);
+    const int lezione = la_classe_puo_avere_lezione(r, &c);
     printf(",\"classe\":{\"stato\":\"%s\",\"ha_attivita\":%d,\"ore_rimanenti\":%d,"
            "\"celle_obbligatorie_rimanenti\":%d,\"ore_buche_oggi\":%d,\"ora_buca_possibile\":%d,"
            "\"posti_nei_giorni_dopo\":%d}",

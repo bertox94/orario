@@ -116,7 +116,7 @@ int esegui_caso(const unsigned long long int seme, const int classi, const int r
     r->ogni_nodo = segui;
     r->di_chi = k;
     scrivi_stato(k, s, r, 1);
-    print_orario(r, 0);
+    cerca_orario(r, 0);
     passi_chiudi(k->passi);
     k->esito = r->trovato ? "trovato" : r->fermato ? "limite di nodi" : "nessuna soluzione";
     if (r->trovato) k->verificato = verifica_orario(s, r->orario, k->verifica);

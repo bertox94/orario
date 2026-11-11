@@ -2,10 +2,10 @@
 //
 // L'orario e' un elenco di celle (giorno, ora, classe) in quest'ordine: per ogni giorno, per ogni ora, tutte le classi.
 // La cella pos e' giorno = pos / (ore * classi), ora = (pos / classi) % ore, classe = pos % classi.
-// print_orario(pos) decide la cella pos e scende a pos + 1: prova, nell'ordine della coda dei docenti (chi ha piu' ore
+// cerca_orario(pos) decide la cella pos e scende a pos + 1: prova, nell'ordine della coda dei docenti (chi ha piu' ore
 // da fare prima), ogni docente in coppia con un altro (una codocenza) e poi da solo; dopo le ore obbligatorie prova
 // anche l'ora buca. Quando tutte le celle sono decise (pos == orario_len) l'orario e' completo e la ricerca finisce
-// (si cerca un orario solo): print_orario ritorna 1 e chi l'ha chiamata ritorna subito anche lui, senza provare
+// (si cerca un orario solo): cerca_orario ritorna 1 e chi l'ha chiamata ritorna subito anche lui, senza provare
 // altro, cosi' l'orario trovato resta in r->orario. La lanciano main.c, prove.c e caso.c.
 //
 // Niente variabili globali: la scuola e lo stato della ricerca arrivano a ogni funzione nella Ricerca r (ricerca.h).
@@ -95,7 +95,7 @@ int celle_obbligatorie_rimaste(const Ricerca *r, const Cella *c) {
 // - le ore che le restano (contando questa) devono bastare per le celle obbligatorie che restano: una lezione in
 //   un'ora facoltativa deve lasciare almeno un'ora per ognuna delle celle obbligatorie dei giorni dopo;
 // - dopo un'ora buca la giornata della classe e' finita.
-int activities_for_this_class_and_hour(const Ricerca *r, const Cella *c) {
+int la_classe_puo_avere_lezione(const Ricerca *r, const Cella *c) {
     if (ore_rimaste_alla_classe(r, c) < celle_obbligatorie_rimaste(r, c)) return 0;
     return r->n_ore_buche[c->base2d_gc] == 0;
 }
@@ -122,7 +122,7 @@ int la_classe_puo_avere_ora_buca(const Ricerca *r, const Cella *c) {
 //   non puo' fare attivita'  non lezione, solo un'ora buca          si mette l'ora buca
 // (Ne' lezione ne' ora buca non succede con dati che hanno passato la verifica: verifica_dati.h.)
 StatoClasse stato_della_classe(const Ricerca *r, const Cella *c) {
-    const int lezione = activities_for_this_class_and_hour(r, c), buca = la_classe_puo_avere_ora_buca(r, c);
+    const int lezione = la_classe_puo_avere_lezione(r, c), buca = la_classe_puo_avere_ora_buca(r, c);
     assert(lezione || buca);
     return lezione && buca ? PUO_FARE_ATTIVITA : lezione ? DEVE_FARE_ATTIVITA : NON_PUO_FARE_ATTIVITA;
 }
@@ -281,7 +281,7 @@ void segna_coppia(Ricerca *r, const Cella *c, const int p1, const int p2, const 
 // da fare in tutto): ogni docente (ii) prima in coppia con
 // ognuno di quelli dopo di lui nella coda (jj) con cui ha ore insieme qui, poi da solo. In una coppia il docente della
 // lezione puo' essere tanto ii quanto jj: la coppia si prova una volta sola, quando si arriva al primo dei due.
-// Ritorna 1 se la ricerca e' finita (vedi print_orario): allora non si prova altro e non si toglie niente.
+// Ritorna 1 se la ricerca e' finita (vedi cerca_orario): allora non si prova altro e non si toglie niente.
 static int prova_lezioni(Ricerca *r, const Cella *c) {
     r->ore_classe_svolte[c->cla]++;  // la lezione di questa cella conta gia' tra le ore della classe
     for (int ii = 0; ii < c->n_coda; ii++) {
@@ -292,13 +292,13 @@ static int prova_lezioni(Ricerca *r, const Cella *c) {
             if (!secondo_della_coppia_puo_insegnare(r, c, p1, p2)) continue;
             segna_coppia(r, c, p1, p2, 1);
             r->orario[c->pos] = (teaching_slot){p1, p2};
-            if (print_orario(r, c->pos + 1)) return 1;
+            if (cerca_orario(r, c->pos + 1)) return 1;
             segna_coppia(r, c, p1, p2, -1);
         }
         if (docente_puo_insegnare_da_solo(r, c, p1)) {
             segna_da_solo(r, c, p1, 1);
             r->orario[c->pos] = (teaching_slot){p1, -1};
-            if (print_orario(r, c->pos + 1)) return 1;
+            if (cerca_orario(r, c->pos + 1)) return 1;
             segna_da_solo(r, c, p1, -1);
         }
     }
@@ -310,7 +310,7 @@ static int prova_lezioni(Ricerca *r, const Cella *c) {
 static int prova_ora_buca(Ricerca *r, const Cella *c) {
     r->orario[c->pos] = (teaching_slot){-1, -1};
     r->n_ore_buche[c->base2d_gc]++;
-    if (print_orario(r, c->pos + 1)) return 1;
+    if (cerca_orario(r, c->pos + 1)) return 1;
     r->n_ore_buche[c->base2d_gc]--;
     return 0;
 }
@@ -318,7 +318,7 @@ static int prova_ora_buca(Ricerca *r, const Cella *c) {
 // Decide la cella pos e scende alle celle dopo. Ritorna 1 se la ricerca e' finita: l'orario e' completo (trovato) o
 // si e' arrivati al limite di nodi (fermato). Ritorna 0 se in questa cella non c'e' piu' niente da provare: chi l'ha
 // chiamata toglie la sua scelta e prova la successiva (si torna indietro).
-int print_orario(Ricerca *r, const int pos) {
+int cerca_orario(Ricerca *r, const int pos) {
     if (r->limite_nodi && r->nodi >= r->limite_nodi) {  // il limite di nodi: la ricerca si ferma qui
         r->fermato = 1;
         return 1;
