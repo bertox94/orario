@@ -67,7 +67,16 @@ static int set_insegnante(Scuola *s, const char in[]) {
     return registra(s->insegnanti, &s->actual_insegnanti, INSEGNANTE_SZ, in);
 }
 
-// ---- le ore in coppia ----
+// ---- le ore ----
+
+int get_ore_insegnante_in_una_classe(const Scuola *s, const int cla, const int p) {
+    return s->ore_classi_docenti[cla * INSEGNANTE_SZ + p];
+}
+
+int get_ore_insegnante_da_solo_in_una_classe(const Scuola *s, const int cla, const int p) {
+    return s->ore_classi_docenti_alone[cla * INSEGNANTE_SZ + p];
+}
+
 
 // dove stanno le ore della coppia p1, p2 nella classe
 static int *ore_codocenza(const Scuola *s, const int cla, int p1, int p2) {

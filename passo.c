@@ -85,7 +85,8 @@ int stampa_passo(const unsigned long long int seme, const int classi, const int 
         const int p = coda[i]->teacher;
         printf("%s{\"docente\":", i ? "," : "");
         json_stringa(stdout, s->insegnanti[p]);
-        printf(",\"priorita\":%d,\"nella_classe\":%d}", coda[i]->priority, s->ore_classi_docenti[c.base2d_ci + p] > 0);
+        printf(",\"priorita\":%d,\"nella_classe\":%d}", coda[i]->priority,
+               get_ore_insegnante_in_una_classe(s, c.cla, p) > 0);
     }
 
     // i docenti della classe, nell'ordine della coda, con tutti i controlli
@@ -93,7 +94,7 @@ int stampa_passo(const unsigned long long int seme, const int classi, const int 
     int scritti = 0;
     for (int i = 0; i < n_coda; i++) {
         const int p1 = coda[i]->teacher;
-        if (s->ore_classi_docenti[c.base2d_ci + p1] == 0) continue;
+        if (get_ore_insegnante_in_una_classe(s, c.cla, p1) == 0) continue;
         printf("%s{\"docente\":", scritti++ ? "," : "");
         json_stringa(stdout, s->insegnanti[p1]);
         printf(",\"posto\":%d,\"priorita\":%d,\"ore_rimaste\":%d,\"puo\":%d,\"controlli\":[", i + 1, coda[i]->priority,

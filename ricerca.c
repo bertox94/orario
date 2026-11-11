@@ -31,12 +31,12 @@ Ricerca *nuova_ricerca(const Scuola *s) {
     for (int p = 0; p < s->actual_insegnanti; p++) {
         r->queue_items[p] = (QueueItem){p, 0};
         for (int c = 0; c < s->actual_classi_sezione; c++)
-            r->queue_items[p].priority += s->ore_classi_docenti[c * INSEGNANTE_SZ + p];
+            r->queue_items[p].priority += get_ore_insegnante_in_una_classe(s, c, p);
     }
     // ogni cella ha il suo blocco di puntatori: i docenti della sua classe (gli altri li' non possono insegnare)
     for (int c = 0; c < s->actual_classi_sezione; c++) {
         for (int p = 0; p < s->actual_insegnanti; p++)
-            r->queue_sz_classe[c] += s->ore_classi_docenti[c * INSEGNANTE_SZ + p] > 0;
+            r->queue_sz_classe[c] += get_ore_insegnante_in_una_classe(s, c, p) > 0;
         if (r->queue_sz_classe[c] > r->queue_sz) r->queue_sz = r->queue_sz_classe[c];
     }
     r->queue_mul = malloc(sizeof(QueueItem *) * r->orario_len * r->queue_sz);
@@ -45,7 +45,7 @@ Ricerca *nuova_ricerca(const Scuola *s) {
         const int c = pos % s->actual_classi_sezione;
         QueueItem **coda = &r->queue_mul[pos * r->queue_sz];
         for (int p = 0; p < s->actual_insegnanti; p++)
-            if (s->ore_classi_docenti[c * INSEGNANTE_SZ + p] > 0) *coda++ = &r->queue_items[p];
+            if (get_ore_insegnante_in_una_classe(s, c, p) > 0) *coda++ = &r->queue_items[p];
     }
     return r;
 }

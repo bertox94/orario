@@ -22,15 +22,10 @@ static int ingresso(const Scuola *s, const int p) {
     return s->ora_di_entrata_prof[p];
 }
 
-// le ore del docente p nella classe c, da solo e in coppia (anche quelle che fa come codocente)
-static int ore_in_classe(const Scuola *s, const int c, const int p) {
-    return s->ore_classi_docenti[c * INSEGNANTE_SZ + p];
-}
-
 // le ore del docente p in tutte le classi
 static int ore_in_tutto(const Scuola *s, const int p) {
     int ore = 0;
-    for (int c = 0; c < s->actual_classi_sezione; c++) ore += ore_in_classe(s, c, p);
+    for (int c = 0; c < s->actual_classi_sezione; c++) ore += get_ore_insegnante_in_una_classe(s, c, p);
     return ore;
 }
 
@@ -57,10 +52,11 @@ static int le_ore_del_docente_in_una_classe_stanno_nella_settimana(const Scuola 
     for (int p = 0; p < s->actual_insegnanti; p++) {
         const int al_giorno = MIN(MAX_ORE_PROF_IN_UNA_CLASSE, s->actual_ore_giornaliere - ingresso(s, p));
         for (int c = 0; c < s->actual_classi_sezione; c++) {
-            if (ore_in_classe(s, c, p) <= G * al_giorno) continue;
+            const int ore = get_ore_insegnante_in_una_classe(s, c, p);
+            if (ore <= G * al_giorno) continue;
             snprintf(errore, dimensione, "%s in %s: %d ore, ma %sne può fare al massimo %d (%d al giorno per %d "
-                     "giorni)", s->insegnanti[p], s->classe_sezione[c], ore_in_classe(s, c, p), entrando(s, p).testo,
-                     G * al_giorno, al_giorno, G);
+                     "giorni)", s->insegnanti[p], s->classe_sezione[c], ore, entrando(s, p).testo, G * al_giorno,
+                     al_giorno, G);
             return 0;
         }
     }
@@ -88,8 +84,10 @@ static int le_classi_del_docente_stanno_in_tre_al_giorno(const Scuola *s, char *
     const int disponibili = MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO * s->actual_giorni_settimana;
     for (int p = 0; p < s->actual_insegnanti; p++) {
         int servono = 0;
-        for (int c = 0; c < s->actual_classi_sezione; c++)
-            servono += (ore_in_classe(s, c, p) + MAX_ORE_PROF_IN_UNA_CLASSE - 1) / MAX_ORE_PROF_IN_UNA_CLASSE;
+        for (int c = 0; c < s->actual_classi_sezione; c++) {
+            const int ore = get_ore_insegnante_in_una_classe(s, c, p);
+            servono += (ore + MAX_ORE_PROF_IN_UNA_CLASSE - 1) / MAX_ORE_PROF_IN_UNA_CLASSE;
+        }
         if (servono <= disponibili) continue;
         snprintf(errore, dimensione, "%s: con al massimo %d ore al giorno in una classe, le sue classi gli prendono in "
                  "tutto almeno %d giorni, ma con %d classi al giorno per %d giorni ne ha %d", s->insegnanti[p],
@@ -132,9 +130,9 @@ static int lezioni_possibili(const Scuola *s, const int c, const int h, char *da
     int possibili = 0, con_ore = 0, non_entrati = 0;
     size_t scritti = 0;
     for (int p = 0; p < s->actual_insegnanti; p++) {
-        if (!ore_in_classe(s, c, p)) continue;  // non e' un docente di questa classe
+        if (!get_ore_insegnante_in_una_classe(s, c, p)) continue;  // non e' un docente di questa classe
         for (int q = p; q < s->actual_insegnanti; q++) {  // q == p: il docente da solo; q > p: la coppia p, q
-            const int ore = q == p ? s->ore_classi_docenti_alone[c * INSEGNANTE_SZ + p]
+            const int ore = q == p ? get_ore_insegnante_da_solo_in_una_classe(s, c, p)
                                    : get_ore_insegnanti_codocenza_in_una_classe(s, c, p, q);
             if (!ore) continue;
             const int tardi = ingresso(s, q) > ingresso(s, p) ? q : p;  // chi dei due entra piu' tardi

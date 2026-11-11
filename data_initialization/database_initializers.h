@@ -67,6 +67,9 @@ void set_classe_insegnante_ore_cod(Scuola *s, const char cla[], const char prof[
 
 // l'indice del docente con questo nome (-1 se non c'e')
 int p_insegnante(const Scuola *s, const char in[]);
+// le ore del docente p nella classe: in tutto (da solo, in coppia, e quelle che fa come codocente) e da solo
+int get_ore_insegnante_in_una_classe(const Scuola *s, int cla, int p);
+int get_ore_insegnante_da_solo_in_una_classe(const Scuola *s, int cla, int p);
 // le ore che p1 e p2 hanno insieme nella classe (in qualunque ordine)
 int get_ore_insegnanti_codocenza_in_una_classe(const Scuola *s, int cla, int p1, int p2);
 // una coppia di docenti sempre nello stesso ordine: prima l'indice minore

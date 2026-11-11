@@ -74,7 +74,7 @@ static int ore_giuste(const Orario *x, char *d, const size_t n) {
                 else insieme[a < b ? a * P + b : b * P + a]++;
             }
         for (int p = 0; p < P && ok; p++) {
-            const int solo = s->ore_classi_docenti_alone[c * INSEGNANTE_SZ + p];
+            const int solo = get_ore_insegnante_da_solo_in_una_classe(s, c, p);
             if (da_solo[p] != solo) {
                 snprintf(d, n, "%s in %s da solo: %d ore nell'orario, %d nei dati", s->insegnanti[p],
                          s->classe_sezione[c], da_solo[p], solo);
