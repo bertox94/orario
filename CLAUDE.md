@@ -25,15 +25,16 @@ codice e messaggi di commit sono in italiano.
 - **Non cambiare come il solver calcola gli orari** (ricerca, ordine della coda, controlli) se Alb non lo chiede
   esplicitamente. Uscite e comandi per il sito si possono toccare: non devono cambiare il percorso della ricerca.
 - Prima di ogni commit che tocca il solver: `python3 tests/non_regressione.py` deve finire con «tutto come atteso»
-  (confronta esito, nodi e l'impronta di ogni passo su 14 casi, alcuni fermati dalla verifica dei dati). Dopo una modifica voluta alla ricerca:
+  (confronta esito, nodi e l'impronta di ogni passo su 14 casi, alcuni fermati dalla verifica dei dati). Dopo una
+  modifica voluta alla ricerca:
   `python3 tests/non_regressione.py --aggiorna`, e dirlo nel commit.
-- Le modifiche si fanno in un ramo e si portano in `main` con una PR. Quando Alb ha dato l'«ok» a una modifica (dopo
-  la proposta o la discussione del codice, vedi sotto), la PR si unisce subito in `main`, senza aspettare un secondo
-  «unisci» (richiesta di Alb dell'11 novembre 2026). Senza il suo «ok» non si unisce niente.
-- Come si lavora (richiesta di Alb del 10 novembre 2026):
-  - controlli nuovi: si fanno le modifiche in locale, si mostra il codice ad Alb e se ne discute; il push solo dopo;
-  - altri lavori: prima una proposta di modifica, il commit quando Alb è d'accordo;
-  - sempre un commit per ogni modifica (per esempio un commit per ogni controllo aggiunto).
+- Come si lavora (richieste di Alb del 10 e dell'11 novembre 2026):
+  - si lavora direttamente in `main`: niente rami e niente PR;
+  - prima di ogni commit si spiegano ad Alb le modifiche (il codice, cosa cambia, come è stato provato) e si
+    aspetta il suo «ok» esplicito, dato dopo averle viste. Senza «ok» niente commit: le modifiche restano in locale;
+  - per un lavoro nuovo, prima una proposta a parole; poi le modifiche in locale, la spiegazione e l'«ok»;
+  - un commit per ogni modifica (per esempio un commit per ogni controllo aggiunto), e ogni funzione deve dire il
+    vero già nel commit in cui nasce: due passi che da soli lascerebbero qualcosa di sbagliato vanno insieme.
 
 ## Raspberry
 
