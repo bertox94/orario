@@ -50,7 +50,7 @@ static const char *entrando(const int p) {
 // 1. Un docente in una classe. Al giorno ci puo' fare al massimo 3 ore, e meno se entra cosi' tardi che gliene restano
 // meno di 3 (O ore al giorno, ingresso k: O - k). In G giorni: ore <= G x min(3, O - k).
 // Per una coppia non serve un controllo a parte: le ore insieme sono anche ore di chi dei due entra piu' tardi.
-static int docente_in_una_classe(void) {
+static int le_ore_del_docente_in_una_classe_stanno_nella_settimana(void) {
     const int G = actual_giorni_settimana;
     for (int p = 0; p < actual_insegnanti; p++) {
         const int al_giorno = MIN(MAX_ORE_PROF_IN_UNA_CLASSE, actual_ore_giornaliere - ingresso(p));
@@ -66,7 +66,7 @@ static int docente_in_una_classe(void) {
 
 // 2. Un docente in tutto. E' in una sola classe per volta, quindi fa al massimo un'ora per ogni ora che e' a scuola:
 // ore in tutte le classi <= G x (O - k).
-static int docente_in_tutto(void) {
+static int le_ore_del_docente_stanno_nella_settimana(void) {
     const int G = actual_giorni_settimana;
     for (int p = 0; p < actual_insegnanti; p++) {
         const int al_giorno = actual_ore_giornaliere - ingresso(p);
@@ -81,7 +81,7 @@ static int docente_in_tutto(void) {
 // 3. Un docente e le classi al giorno. In una classe fa al massimo 3 ore al giorno: una classe dove ha n ore lo vede
 // in almeno n / 3 giorni (arrotondato in su). Ogni giorno insegna in al massimo 3 classi, quindi in una settimana ha
 // 3 x G «giorni in una classe» da spendere: la somma dei giorni che servono alle sue classi deve starci.
-static int docente_classi_al_giorno(void) {
+static int le_classi_del_docente_stanno_in_tre_al_giorno(void) {
     const int disponibili = MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO * actual_giorni_settimana;
     for (int p = 0; p < actual_insegnanti; p++) {
         int servono = 0;
@@ -149,7 +149,7 @@ static int lezioni_possibili(const int c, const int h, char *dati, const size_t 
 // cella resta senza docente. E' il controllo che scarta i casi con molti docenti che entrano tardi.
 // Il motivo: una frase, e sotto i numeri di ogni docente e di ogni coppia della classe (le sue ore, da quando c'e',
 // quante ne puo' fare in quelle ore).
-static int classe_ore_obbligatorie(void) {
+static int le_lezioni_bastano_per_le_ore_obbligatorie(void) {
     const int G = actual_giorni_settimana;
     for (int c = 0; c < actual_classi_sezione; c++) {
         for (int h = 0; h < MIN(PRIME_N_ORE_OBBLIGATORIE, actual_ore_giornaliere); h++) {
@@ -174,7 +174,7 @@ static int classe_ore_obbligatorie(void) {
 // 5. Ora per ora. A un'ora obbligatoria ogni classe ha lezione e ogni lezione ha almeno un docente tutto suo: i
 // docenti gia' entrati a quell'ora (tra quelli che hanno lezioni) devono essere almeno quante le classi.
 // Il motivo: una frase, e sotto i nomi dei docenti gia' entrati a quell'ora e una frase per gli altri.
-static int docenti_entrati_a_ogni_ora(void) {
+static int i_docenti_entrati_bastano_per_le_classi(void) {
     const int C = actual_classi_sezione;
     for (int h = 0; h < MIN(PRIME_N_ORE_OBBLIGATORIE, actual_ore_giornaliere); h++) {
         int entrati = 0, docenti = 0;  // docenti: quelli che hanno lezioni
@@ -204,9 +204,9 @@ static int docenti_entrati_a_ogni_ora(void) {
 int verifica_dati(char *testo, const size_t lunghezza) {
     errore = testo;
     dimensione = lunghezza;
-    return docente_in_una_classe()
-           && docente_in_tutto()
-           && docente_classi_al_giorno()
-           && classe_ore_obbligatorie()
-           && docenti_entrati_a_ogni_ora();
+    return le_ore_del_docente_in_una_classe_stanno_nella_settimana()
+           && le_ore_del_docente_stanno_nella_settimana()
+           && le_classi_del_docente_stanno_in_tre_al_giorno()
+           && le_lezioni_bastano_per_le_ore_obbligatorie()
+           && i_docenti_entrati_bastano_per_le_classi();
 }
