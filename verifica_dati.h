@@ -14,10 +14,11 @@
 //  2. docente in tutto: ore <= G x (O - k)
 //  3. docente, classi al giorno: una classe con n ore gli prende almeno n / 3 giorni (arrotondato in su); la somma
 //     su tutte le sue classi <= 3 x G
-//  4. classe, ore obbligatorie: per ogni ora h < M, le lezioni possibili dalla prima ora fino ad h (per ogni docente
+//  4. classe in tutto: ore <= G x O
+//  5. classe, ore obbligatorie: per ogni ora h < M, le lezioni possibili dalla prima ora fino ad h (per ogni docente
 //     da solo e per ogni coppia: dal loro ingresso, al massimo 3 al giorno, non piu' delle loro ore) sono almeno le
 //     (h + 1) x G celle da riempire
-//  5. ora per ora: a ogni ora obbligatoria i docenti gia' entrati sono almeno quante le classi
+//  6. ora per ora: a ogni ora obbligatoria i docenti gia' entrati sono almeno quante le classi
 //
 // Chi la chiama: main.c per i dati di prova (stampa «Errore nei dati: ...») e caso.c per i casi del sito (esito
 // «errore nei dati», con il motivo nel campo «errore» dello stato). Le prove (./untitled test N) saltano i casi

@@ -11,7 +11,7 @@ codice e messaggi di commit sono in italiano.
   - `./untitled test N`: le prove con i dati casuali (`prove.c`), su stdout solo i test che arrivano al limite;
   - `./untitled caso|dati|passo ...`: per il sito (`caso.c`, `data_initialization/generatore.c`, `passo.c`,
     `passi.c`).
-  Prima della ricerca, `verifica_dati.c` (richiesta di Alb del 10 novembre 2026): cinque controlli sui dati, condizioni
+  Prima della ricerca, `verifica_dati.c` (richiesta di Alb del 10 novembre 2026): sei controlli sui dati, condizioni
   necessarie; se uno non vale la ricerca non parte («errore nei dati», con il motivo); le prove saltano i casi che non la passano.
   Dopo la ricerca, `verifica_orario.c` (richiesta di Alb dell'11 novembre 2026): ricontrolla l'orario trovato senza
   usare niente della ricerca (otto controlli); l'esito va nello stato del test (`verifica`).
