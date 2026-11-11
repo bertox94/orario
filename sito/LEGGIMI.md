@@ -8,6 +8,8 @@ Due pagine, senza login e senza database:
   completo o al limite, con «Prec.» e «Succ.» (o ← e →); per ogni passo l'orario fin lì, con la cella che la ricerca
   sta per decidere (gialla), la scelta appena messa (azzurra) e quando torna indietro. Mentre il test gira lo slider
   si allunga e, se è in fondo, segue la ricerca; c'è il pulsante «Ferma». Le celle hanno tutte la stessa misura.
+  Sotto, lo stesso passo visto dai docenti: una riga per docente, con la classe dove insegna a ogni ora, con chi è
+  in coppia e, tratteggiate, le ore prima del suo ingresso.
   Sotto l'orario, per la cella del passo: il controllo della classe (può avere lezione, può avere un'ora buca) con i
   suoi numeri, la coda di priorità in ordine, e per ogni docente della classe il valore di tutti i controlli, da solo
   e in coppia (calcolati dal solver con le stesse funzioni della ricerca).

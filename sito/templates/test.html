@@ -89,6 +89,11 @@
   l'azzurra la scelta appena messa; «–» è un'ora buca. Mentre il test gira lo slider si allunga e, se è in fondo,
   segue la ricerca.</p>
 
+<h3>L'orario visto dai docenti</h3>
+<div class="scorre"><table class="orario docenti" id="orario-docenti"></table></div>
+<p class="nota">Lo stesso passo, una riga per docente: la classe dove insegna a ogni ora e, in grigio, con chi è in
+  coppia. Le ore tratteggiate sono prima del suo ingresso; l'azzurra è la scelta appena messa.</p>
+
 <div id="controlli"></div>
 {% endblock %}
 {% block script %}
@@ -97,6 +102,10 @@
 const URL_STATO = '{{ url_for('stato', tid=i.id) }}', URL_PASSO = '{{ url_for('passo', tid=i.id, k=0)[:-1] }}';
 const slider = document.getElementById('slider'), tabella = document.getElementById('orario');
 const testo = document.getElementById('testo-passo');
+const tabellaDocenti = document.getElementById('orario-docenti');
+// i docenti del caso, in ordine di nome, con l'ora (indice) da cui sono a scuola
+const DOCENTI = {{ docenti|map(attribute='nome')|list|tojson }}, INGRESSI = {{ docenti|map(attribute='ingresso')|list|tojson }};
+const RIGA_DOCENTE = Object.fromEntries(DOCENTI.map((n, i) => [n, i]));
 const numero = n => Number(n).toLocaleString('it-IT');
 const esc = x => String(x).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 let forma = null;  // giorni, ore, classi (dallo stato)
@@ -117,19 +126,19 @@ function mostraStato(s) {
   }
 }
 
-// la griglia vuota, una volta sola: celle tutte della stessa misura (table-layout fixed)
+// le due griglie vuote, una volta sola: una riga per classe e una riga per docente, una colonna per ogni ora della
+// settimana; celle tutte della stessa misura (table-layout fixed)
 function disegnaGriglia() {
   const {giorni, ore, classi} = forma, O = ore.length;
-  let h = '<colgroup><col class="col-classe">' + giorni.map(() => ore.map(() => '<col class="col-cella">').join('')).join('') +
-    '</colgroup><thead><tr><th rowspan="2">Classe</th>' + giorni.map(g => `<th colspan="${O}" class="giorno">${esc(g)}</th>`).join('') +
+  const griglia = (titolo, righe, classeCella) =>
+    '<colgroup><col class="col-classe">' + giorni.map(() => ore.map(() => '<col class="col-cella">').join('')).join('') +
+    `</colgroup><thead><tr><th rowspan="2">${titolo}</th>` + giorni.map(g => `<th colspan="${O}" class="giorno">${esc(g)}</th>`).join('') +
     '</tr><tr>' + giorni.map(() => ore.map((o, k) => `<th class="${k ? '' : 'inizio-giorno'}">${esc(o)}</th>`).join('')).join('') +
-    '</tr></thead><tbody>';
-  for (const c of classi) {
-    h += `<tr><th>${esc(c)}</th>`;
-    for (let g = 0; g < giorni.length; g++) for (let o = 0; o < O; o++) h += `<td class="${o ? '' : 'inizio-giorno'}"></td>`;
-    h += '</tr>';
-  }
-  tabella.innerHTML = h + '</tbody>';
+    '</tr></thead><tbody>' + righe.map((nome, r) => `<tr><th>${esc(nome)}</th>` +
+      giorni.map(() => ore.map((_, o) => `<td class="${o ? '' : 'inizio-giorno'} ${classeCella(r, o)}"></td>`).join('')).join('') +
+      '</tr>').join('') + '</tbody>';
+  tabella.innerHTML = griglia('Classe', classi, () => '');
+  tabellaDocenti.innerHTML = griglia('Docente', DOCENTI, (r, o) => o < INGRESSI[r] ? 'non-entrato' : '');
 }
 
 // il passo k: l'orario fino alla cella che la ricerca sta decidendo
@@ -150,6 +159,22 @@ function disegnaPasso(p) {
     td.classList.toggle('attuale', k === pos);
     td.classList.toggle('appena', k === pos - 1);
   }
+  // lo stesso orario visto dai docenti: per ogni cella decisa, la classe nella riga di ciascuno dei due docenti
+  const righeDocenti = tabellaDocenti.tBodies[0].rows;
+  for (const td of tabellaDocenti.querySelectorAll('td')) {
+    td.textContent = '';
+    td.classList.remove('appena');
+  }
+  p.orario.forEach((x, k) => {
+    if (!x || !x[0]) return;
+    const colonna = 1 + Math.floor(k / C);  // giorno * O + ora
+    x.forEach((nome, i) => {
+      if (!nome || !(nome in RIGA_DOCENTE)) return;
+      const td = righeDocenti[RIGA_DOCENTE[nome]].cells[colonna], con = x[1 - i];
+      td.innerHTML = `<span class="riga">${esc(classi[k % C])}</span>` + (con ? `<span class="riga cod">${esc(con)}</span>` : '');
+      td.classList.toggle('appena', k === pos - 1);
+    });
+  });
   // la cella gialla (o l'azzurra) in vista, scorrendo solo la tabella
   const segno = tabella.querySelector('td.attuale') || tabella.querySelector('td.appena');
   if (segno) {
