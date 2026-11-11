@@ -27,16 +27,26 @@ Ricerca *nuova_ricerca(const Scuola *s) {
     r->scuola = s;
     r->orario_len = s->actual_giorni_settimana * s->actual_ore_giornaliere * s->actual_classi_sezione;
     for (int i = 0; i < r->orario_len; i++) r->orario[i] = (teaching_slot){-1, -1};
-    // la coda: ogni docente con tutte le sue ore; ogni cella ha il suo blocco di puntatori
-    r->queue_sz = s->actual_insegnanti;
-    for (int p = 0; p < r->queue_sz; p++) {
+    // la coda: ogni docente con tutte le sue ore
+    for (int p = 0; p < s->actual_insegnanti; p++) {
         r->queue_items[p] = (QueueItem){p, 0};
         for (int c = 0; c < s->actual_classi_sezione; c++)
             r->queue_items[p].priority += s->ore_classi_docenti[c * INSEGNANTE_SZ + p];
     }
+    // ogni cella ha il suo blocco di puntatori: i docenti della sua classe (gli altri li' non possono insegnare)
+    for (int c = 0; c < s->actual_classi_sezione; c++) {
+        for (int p = 0; p < s->actual_insegnanti; p++)
+            r->queue_sz_classe[c] += s->ore_classi_docenti[c * INSEGNANTE_SZ + p] > 0;
+        if (r->queue_sz_classe[c] > r->queue_sz) r->queue_sz = r->queue_sz_classe[c];
+    }
     r->queue_mul = malloc(sizeof(QueueItem *) * r->orario_len * r->queue_sz);
     assert(r->queue_mul);
-    for (int i = 0; i < r->orario_len * r->queue_sz; i++) r->queue_mul[i] = &r->queue_items[i % r->queue_sz];
+    for (int pos = 0; pos < r->orario_len; pos++) {
+        const int c = pos % s->actual_classi_sezione;
+        QueueItem **coda = &r->queue_mul[pos * r->queue_sz];
+        for (int p = 0; p < s->actual_insegnanti; p++)
+            if (s->ore_classi_docenti[c * INSEGNANTE_SZ + p] > 0) *coda++ = &r->queue_items[p];
+    }
     return r;
 }
 
@@ -49,12 +59,15 @@ void libera_ricerca(Ricerca *r) {
 
 Cella cella(const Ricerca *r, const int pos) {
     const Scuola *s = r->scuola;
-    Cella c = {pos, pos / s->actual_classi_sezione / s->actual_ore_giornaliere,
-               pos / s->actual_classi_sezione % s->actual_ore_giornaliere, pos % s->actual_classi_sezione};
+    Cella c = {.pos = pos,
+               .giorno = pos / s->actual_classi_sezione / s->actual_ore_giornaliere,
+               .ora = pos / s->actual_classi_sezione % s->actual_ore_giornaliere,
+               .cla = pos % s->actual_classi_sezione};
     c.base2d_ci = c.cla * INSEGNANTE_SZ;
     c.base3d_goi = c.giorno * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + c.ora * INSEGNANTE_SZ;
     c.base3d_gci = c.giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + c.cla * INSEGNANTE_SZ;
     c.coda = &r->queue_mul[pos * r->queue_sz];
+    c.n_coda = r->queue_sz_classe[c.cla];
     return c;
 }
 
@@ -271,16 +284,17 @@ void segna_coppia(Ricerca *r, const Cella *c, const int p1, const int p2, const 
 
 // ---- la ricerca ----
 
-// Prova tutte le lezioni possibili in questa cella, nell'ordine della coda: ogni docente (ii) prima in coppia con
+// Prova tutte le lezioni possibili in questa cella, nell'ordine della coda (i docenti della classe, da chi ha piu' ore
+// da fare in tutto): ogni docente (ii) prima in coppia con
 // ognuno di quelli dopo di lui nella coda (jj) con cui ha ore insieme qui, poi da solo. In una coppia il docente della
 // lezione puo' essere tanto ii quanto jj: la coppia si prova una volta sola, quando si arriva al primo dei due.
 // Ritorna 1 se la ricerca e' finita (vedi print_orario): allora non si prova altro e non si toglie niente.
 static int prova_lezioni(Ricerca *r, const Cella *c) {
     r->ore_classe_svolte[c->cla]++;  // la lezione di questa cella conta gia' tra le ore della classe
-    for (int ii = 0; ii < r->queue_sz; ii++) {
+    for (int ii = 0; ii < c->n_coda; ii++) {
         const int p1 = c->coda[ii]->teacher;
         if (!docente_puo_insegnare(r, c, p1)) continue;
-        for (int jj = ii + 1; jj < r->queue_sz; jj++) {
+        for (int jj = ii + 1; jj < c->n_coda; jj++) {
             const int p2 = c->coda[jj]->teacher;
             if (!secondo_della_coppia_puo_insegnare(r, c, p1, p2)) continue;
             segna_coppia(r, c, p1, p2, 1);
@@ -324,7 +338,7 @@ int print_orario(Ricerca *r, const int pos) {
         return 1;
     }
     const Cella c = cella(r, pos);
-    sort_queue(c.coda, r->queue_sz);
+    sort_queue(c.coda, c.n_coda);
     switch (stato_della_classe(r, &c)) {
         case DEVE_FARE_ATTIVITA: return prova_lezioni(r, &c);
         case PUO_FARE_ATTIVITA: return prova_lezioni(r, &c) || prova_ora_buca(r, &c);

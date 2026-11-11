@@ -36,11 +36,13 @@ struct Ricerca {
     int n_ore_buche[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ];
 
     // la coda dei docenti: un elemento per docente (queue_items[p] e' quello del docente p) e, per ogni cella, un
-    // blocco di queue_sz puntatori a quegli elementi, che la cella ordina quando la ricerca ci arriva. Ogni cella ha
-    // il suo blocco perche' mentre scorre il suo le celle dopo riordinano il loro.
+    // blocco di puntatori agli elementi dei docenti della sua classe (solo loro possono insegnare li'), che la cella
+    // ordina quando la ricerca ci arriva. Ogni cella ha il suo blocco perche' mentre scorre il suo le celle dopo
+    // riordinano il loro.
     QueueItem queue_items[INSEGNANTE_SZ];
-    QueueItem **queue_mul;  // il blocco della cella pos comincia a queue_mul[pos * queue_sz]
-    int queue_sz;           // quanti docenti
+    QueueItem **queue_mul;                   // il blocco della cella pos comincia a queue_mul[pos * queue_sz]
+    int queue_sz;                            // quanto e' lungo un blocco: i docenti della classe che ne ha di piu'
+    int queue_sz_classe[CLASSE_SEZIONE_SZ];  // quanti docenti ha ogni classe: i puntatori usati nei suoi blocchi
 
     // come e' finita
     int trovato;  // l'orario e' completo: e' in orario

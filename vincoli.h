@@ -12,7 +12,8 @@ typedef struct {
     int base2d_ci;     // classe, docente: ore_classi_docenti[base2d_ci + p] e simili
     int base3d_goi;    // giorno, ora, docente: prof_gia_impegnato_giorno_ora[base3d_goi + p]
     int base3d_gci;    // giorno, classe, docente: ore_fatte_da_un_prof_in_una_classe_in_giorno[base3d_gci + p]
-    QueueItem **coda;  // la coda dei docenti di questa cella: queue_sz puntatori
+    QueueItem **coda;  // la coda di questa cella: i docenti della classe
+    int n_coda;        // quanti sono
 } Cella;
 
 Cella cella(const Ricerca *r, int pos);

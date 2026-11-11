@@ -58,8 +58,12 @@ int stampa_passo(const unsigned long long int seme, const int classi, const int 
         return 0;
     }
     const Cella c = cella(r, pos);
-    sort_queue(c.coda, r->queue_sz);
-    QueueItem **coda = c.coda;
+    // la coda di tutti i docenti, in ordine: quella della ricerca in questa cella ha solo i docenti della classe,
+    // nello stesso ordine
+    QueueItem *coda[INSEGNANTE_SZ];
+    const int n_coda = s->actual_insegnanti;
+    for (int p = 0; p < n_coda; p++) coda[p] = &r->queue_items[p];
+    sort_queue(coda, n_coda);
 
     // la classe
     const char *stati[] = {"deve", "può", "non può"};  // nell'ordine di StatoClasse
@@ -77,7 +81,7 @@ int stampa_passo(const unsigned long long int seme, const int classi, const int 
 
     // la coda, in ordine
     printf(",\"coda\":[");
-    for (int i = 0; i < r->queue_sz; i++) {
+    for (int i = 0; i < n_coda; i++) {
         const int p = coda[i]->teacher;
         printf("%s{\"docente\":", i ? "," : "");
         json_stringa(stdout, s->insegnanti[p]);
@@ -87,7 +91,7 @@ int stampa_passo(const unsigned long long int seme, const int classi, const int 
     // i docenti della classe, nell'ordine della coda, con tutti i controlli
     printf("],\"docenti\":[");
     int scritti = 0;
-    for (int i = 0; i < r->queue_sz; i++) {
+    for (int i = 0; i < n_coda; i++) {
         const int p1 = coda[i]->teacher;
         if (s->ore_classi_docenti[c.base2d_ci + p1] == 0) continue;
         printf("%s{\"docente\":", scritti++ ? "," : "");
@@ -107,7 +111,7 @@ int stampa_passo(const unsigned long long int seme, const int classi, const int 
         primo = controllo(primo, "sabato", sabato_esaurisci_priorita_subito(r, &c, p1));
         printf("]},\"coppie\":[");
         int coppie = 0;
-        for (int j = i + 1; j < r->queue_sz; j++) {  // con quelli dopo di lui nella coda, come la ricerca
+        for (int j = i + 1; j < n_coda; j++) {  // con quelli dopo di lui nella coda, come la ricerca
             const int p2 = coda[j]->teacher;
             if (get_ore_insegnanti_codocenza_in_una_classe(s, c.cla, p1, p2) == 0) continue;
             printf("%s{\"con\":", coppie++ ? "," : "");
