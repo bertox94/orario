@@ -2,36 +2,44 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-static FILE *passi = NULL, *istantanee = NULL;
+struct Passi {
+    FILE *passi, *istantanee;
+};
 
-int passi_apri(const char *percorso) {
+Passi *passi_apri(const char *percorso) {
     char ist[1024];
     snprintf(ist, sizeof ist, "%s.ist", percorso);
-    passi = fopen(percorso, "wb");
-    istantanee = fopen(ist, "wb");
-    return passi && istantanee;
+    Passi *x = malloc(sizeof(Passi));
+    if (!x) return NULL;
+    x->passi = fopen(percorso, "wb");
+    x->istantanee = fopen(ist, "wb");
+    if (x->passi && x->istantanee) return x;
+    passi_chiudi(x);
+    return NULL;
 }
 
-void passi_nodo(const long long int nodo, const int pos, const teaching_slot *orario, const int celle) {
-    if (!passi) return;
+void passi_nodo(Passi *x, const long long int nodo, const int pos, const teaching_slot *orario, const int celle) {
+    if (!x) return;
     const int16_t r[3] = {(int16_t) pos, (int16_t) (pos > 0 ? orario[pos - 1].insegnante1 : -1),
                           (int16_t) (pos > 0 ? orario[pos - 1].insegnante2 : -1)};
-    fwrite(r, sizeof r, 1, passi);
+    fwrite(r, sizeof r, 1, x->passi);
     if (nodo % PASSI_ISTANTANEA) return;
     for (int i = 0; i < celle; i++) {
         const int16_t c[2] = {(int16_t) orario[i].insegnante1, (int16_t) orario[i].insegnante2};
-        fwrite(c, sizeof c, 1, istantanee);
+        fwrite(c, sizeof c, 1, x->istantanee);
     }
     // il sito legge mentre la ricerca va avanti: fino a qui tutto scritto
-    fflush(passi);
-    fflush(istantanee);
+    fflush(x->passi);
+    fflush(x->istantanee);
 }
 
-void passi_chiudi(void) {
-    if (passi) fclose(passi);
-    if (istantanee) fclose(istantanee);
-    passi = istantanee = NULL;
+void passi_chiudi(Passi *x) {
+    if (!x) return;
+    if (x->passi) fclose(x->passi);
+    if (x->istantanee) fclose(x->istantanee);
+    free(x);
 }
 
 // ---- rileggere un nodo ----
@@ -50,7 +58,7 @@ int passi_leggi(const char *percorso, const long long int k, const int celle, te
     const long per_istantanea = 2L * sizeof(int16_t) * celle;
     long long int j = k / PASSI_ISTANTANEA;
     if (j > dimensione(i) / per_istantanea) j = dimensione(i) / per_istantanea;
-    static int16_t c[2 * GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ];
+    int16_t c[2 * GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ];
     for (int n = 0; n < 2 * celle; n++) c[n] = -1;
     if (j) {
         fseek(i, (j - 1) * per_istantanea, SEEK_SET);

@@ -17,9 +17,12 @@
 
 #define PASSI_ISTANTANEA 16384
 
-int passi_apri(const char *percorso);
-void passi_nodo(long long int nodo, int pos, const teaching_slot *orario, int celle);
-void passi_chiudi(void);
+// Scrivere: passi_apri apre i due file (NULL se non ci riesce), passi_nodo aggiunge un nodo (con x == NULL non fa
+// niente: i passi non sono stati chiesti), passi_chiudi chiude.
+typedef struct Passi Passi;
+Passi *passi_apri(const char *percorso);
+void passi_nodo(Passi *x, long long int nodo, int pos, const teaching_slot *orario, int celle);
+void passi_chiudi(Passi *x);
 
 // Rilegge il nodo k (da 1) dal file: riempie orario[] fino alla cella che il nodo sta per decidere e la ritorna
 // (-1: il nodo non c'e'); in *pos_prima la cella che decideva il nodo prima (-1 per il primo nodo). celle: quante celle

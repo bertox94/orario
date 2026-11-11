@@ -21,16 +21,17 @@ typedef struct {
 static Esito un_test(const int seme, const int classi, const int ritardi) {
     Esito e = {0};
     char errore[VERIFICA_DATI_ERRORE];
-    if (!genera_dati_casuali(seme, classi, ritardi) || !verifica_dati(errore, sizeof errore)) return e;
-    orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
-    limite_nodi = PROVE_LIMITE_NODI;
+    Scuola *s = nuova_scuola();
+    if (!genera_dati_casuali(s, seme, classi, ritardi) || !verifica_dati(s, errore, sizeof errore)) return e;
+    Ricerca *r = nuova_ricerca(s);
+    r->limite_nodi = PROVE_LIMITE_NODI;
     const clock_t inizio = clock();
-    print_orario(0);
+    print_orario(r, 0);
     e.secondi = (clock() - inizio) / (double) CLOCKS_PER_SEC;
-    e.al_limite = fermato;
-    e.pos_max = pos_max;
-    e.celle = orario_len;
-    return e;
+    e.al_limite = r->fermato;
+    e.pos_max = r->pos_max;
+    e.celle = r->orario_len;
+    return e;  // il processo finisce qui: la memoria torna al sistema
 }
 
 // Ogni test in un processo a parte (fork): lo stato della ricerca e i dati sono globali, cosi' ognuno parte da zero.

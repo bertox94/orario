@@ -50,30 +50,29 @@ int main(const int argc, char **argv) {
             fprintf(stderr, "Uso: %s dati SEME CLASSI RITARDI\n", argv[0]);
             return 2;
         }
-        if (!genera_dati_casuali(strtoull(argv[2], NULL, 10), atoi(argv[3]), atoi(argv[4]))) return 1;
-        stampa_dati_casuali();
-        return 0;
+        return !stampa_dati_casuali(strtoull(argv[2], NULL, 10), atoi(argv[3]), atoi(argv[4]));
     }
     const clock_t inizio = clock();
-    inizializza_dati();
-    orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
-
+    Scuola *s = nuova_scuola();
+    inizializza_dati(s);
     char errore[VERIFICA_DATI_ERRORE];
-    if (!verifica_dati(errore, sizeof errore)) {  // l'orario non puo' esistere: la ricerca non parte
+    if (!verifica_dati(s, errore, sizeof errore)) {  // l'orario non puo' esistere: la ricerca non parte
         printf("Errore nei dati: %s\n", errore);
         return 1;
     }
-    print_orario(0);
+    Ricerca *r = nuova_ricerca(s);
+    print_orario(r, 0);
 
     const double secondi = (clock() - inizio) / (double) CLOCKS_PER_SEC;
-    printf(trovato ? "Orario trovato in %.2f s\n" : "Nessun orario possibile (%.2f s)\n", secondi);
-    if (trovato) {  // la verifica indipendente: non stampa niente se l'orario e' valido
+    printf(r->trovato ? "Orario trovato in %.2f s\n" : "Nessun orario possibile (%.2f s)\n", secondi);
+    int valido = 1;
+    if (r->trovato) {  // la verifica indipendente: non stampa niente se l'orario e' valido
         ControlloOrario k[VERIFICA_ORARIO_CONTROLLI];
-        if (!verifica_orario(orario, k)) {
-            for (int i = 0; i < VERIFICA_ORARIO_CONTROLLI; i++)
-                if (!k[i].ok) printf("ORARIO NON VALIDO: %s (%s)\n", k[i].nome, k[i].dettaglio);
-            return 1;
-        }
+        valido = verifica_orario(s, r->orario, k);
+        for (int i = 0; i < VERIFICA_ORARIO_CONTROLLI; i++)
+            if (!k[i].ok) printf("ORARIO NON VALIDO: %s (%s)\n", k[i].nome, k[i].dettaglio);
     }
-    return 0;
+    libera_ricerca(r);
+    libera_scuola(s);
+    return !valido;
 }

@@ -10,17 +10,11 @@
 // piu' alta.
 typedef struct el {
     int teacher;
-    double priority;
+    int priority;
 } QueueItem;
 
-// queue_mul: per ogni cella (giorno, ora, classe) un blocco di INSEGNANTE_SZ puntatori agli stessi elementi, che la
-// cella ordina quando la ricerca ci arriva (per priorita', a parita' per indice del docente). queue_sz: quanti docenti
-// in coda.
-extern QueueItem **queue_mul;
-extern int queue_sz;
-
-// Il docente prof ha `priority` ore in piu': lo aggiunge in coda (in tutti i blocchi) se non c'e', se no aumenta la
-// sua priorita'.
-void add_to_queue(int prof, int priority);
+// Ordina n puntatori a elementi della coda: dalla priorita' piu' alta (piu' ore da fare) alla piu' bassa; a parita'
+// prima il docente con l'indice minore, cosi' l'ordine e' uno solo e non dipende da come si ordina.
+void sort_queue(QueueItem **coda, int n);
 
 #endif //UNTITLED_PRIO_QUEUE_H

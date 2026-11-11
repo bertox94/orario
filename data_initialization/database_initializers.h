@@ -5,10 +5,10 @@
 #ifndef UNTITLED_CONSTANTS_H
 #define UNTITLED_CONSTANTS_H
 
-// I dati della scuola e lo stato della ricerca. Gli array a piu' dimensioni sono piatti: classe, docente ->
-// classe * INSEGNANTE_SZ + docente; giorno, ora, docente -> (giorno * ORA_GIORNALIERA_SZ + ora) * INSEGNANTE_SZ + docente;
-// giorno, classe, docente -> (giorno * CLASSE_SEZIONE_SZ + classe) * INSEGNANTE_SZ + docente. Gli array "_svolte" sono le
-// ore gia' messe nell'orario fino alla cella che la ricerca sta decidendo.
+// I dati della scuola: giorni, ore, classi, docenti, le ore di ogni docente in ogni classe (da solo e in coppia) e le
+// ore di ingresso. Stanno tutti in una Scuola, che chi lancia il programma crea (nuova_scuola) e passa a chi la
+// riempie (inizializza_dati, genera_dati_casuali) e a chi la legge (la verifica dei dati, la ricerca, la verifica
+// dell'orario). Gli array a due dimensioni sono piatti: classe, docente -> classe * INSEGNANTE_SZ + docente.
 
 // le dimensioni massime
 #define GIORNO_SETTIMANA_SZ 6
@@ -29,62 +29,50 @@ typedef struct {
     int insegnante2;
 } teaching_slot;
 
-extern char giorni_settimana[GIORNO_SETTIMANA_SZ][MAX_LEN_WORDS];
-extern char ore_giornaliere[ORA_GIORNALIERA_SZ][MAX_LEN_WORDS];
-extern char classe_sezione[CLASSE_SEZIONE_SZ][MAX_LEN_WORDS];
-extern char insegnanti[INSEGNANTE_SZ][MAX_LEN_WORDS];
+typedef struct {
+    // i nomi, nell'ordine in cui sono stati registrati (l'ordine da' gli indici)
+    char giorni_settimana[GIORNO_SETTIMANA_SZ][MAX_LEN_WORDS];
+    char ore_giornaliere[ORA_GIORNALIERA_SZ][MAX_LEN_WORDS];
+    char classe_sezione[CLASSE_SEZIONE_SZ][MAX_LEN_WORDS];
+    char insegnanti[INSEGNANTE_SZ][MAX_LEN_WORDS];
+    // quanti giorni, ore, classi e docenti ci sono davvero (gli array sono grandi per il massimo)
+    int actual_giorni_settimana;
+    int actual_ore_giornaliere;
+    int actual_classi_sezione;
+    int actual_insegnanti;
+    // ore di ogni docente in ogni classe: in tutto (da solo, in coppia, e quelle che fa come codocente) e da solo
+    int ore_classi_docenti[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
+    int ore_classi_docenti_alone[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
+    // ore di ogni classe
+    int ore_classi[CLASSE_SEZIONE_SZ];
+    // ore di ogni coppia docente-codocente in ogni classe (classe, docente con l'indice minore, l'altro): si leggono
+    // con get_ore_insegnanti_codocenza_in_una_classe
+    int ore_classi_codocenza[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ];
+    // l'ora (indice) da cui il docente e' a scuola: 0 per tutti, tranne chi entra tardi
+    int ora_di_entrata_prof[INSEGNANTE_SZ];
+} Scuola;
 
-extern int actual_giorni_settimana;
-extern int actual_ore_giornaliere;
-extern int actual_classi_sezione;
-extern int actual_insegnanti;
+// Una scuola vuota (e' grande: sta nella memoria dinamica). libera_scuola quando non serve piu'.
+Scuola *nuova_scuola(void);
+void libera_scuola(Scuola *s);
 
-extern int ore_classi_docenti[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
-extern int ore_classi_docenti_alone[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
-// ore di ogni docente in ogni classe (in tutto e da solo, senza codocente), e quante gia' messe
-extern int ore_classi_docenti_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
-extern int ore_classi_docenti_alone_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
+// Registrare giorni e ore; una lezione registra anche la classe e i docenti, se non ci sono ancora.
+void set_giorno_settimana(Scuola *s, const char giorno[]);
+void set_ora_giornaliera(Scuola *s, const char ora[]);
+// il docente prof fa `ore` ore nella classe cla, tutte da solo
+void set_classe_insegnante_ore(Scuola *s, const char cla[], const char prof[], int ore);
+// prof fa `ore` ore nella classe, di cui ore_cod insieme a cod (e ore - ore_cod da solo)
+void set_classe_insegnante_ore_cod(Scuola *s, const char cla[], const char prof[], int ore, const char cod[],
+                                   int ore_cod);
 
-extern int ore_classi[CLASSE_SEZIONE_SZ];
-// ore di ogni classe, e quante gia' messe
-extern int ore_classe_svolte[CLASSE_SEZIONE_SZ];
-
-// ore di ogni coppia docente-codocente in ogni classe (classe, docente con l'indice minore, l'altro), e quante gia' messe
-extern int ore_classi_codocenza[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ];
-extern int ore_classi_codocenza_svolte[CLASSE_SEZIONE_SZ * INSEGNANTE_SZ * INSEGNANTE_SZ];
-
-// ore gia' messe di un docente in una classe in un giorno
-extern int ore_fatte_da_un_prof_in_una_classe_in_giorno[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ];
-
-// il docente insegna gia' in quel giorno e a quell'ora (in un'altra classe)
-extern int prof_gia_impegnato_giorno_ora[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ];
-
-// l'ora (indice) da cui il docente e' a scuola: 0 per tutti, tranne chi entra tardi
-extern int ora_di_entrata_prof[INSEGNANTE_SZ];
-
-// ore buche gia' messe in un giorno in una classe (dopo un'ora buca la classe non ha piu' lezione quel giorno)
-extern int n_ore_buche[GIORNO_SETTIMANA_SZ * CLASSE_SEZIONE_SZ];
-
-void set_giorno_settimana(char giorno[]);
-
-void set_ora_giornaliera(char ora[]);
-
-void set_classe_insegnante_ore(char cla[], char prof[], const int ore);
-
-void set_classe_insegnante_ore_cod(char cla[], char prof[], const int ore, char cod[], const int ore_cod);
-
-int p_insegnante(const char in[]);
-
-void increment_ore_classi_codocenza_svolte(int cla, int p1, int p2);
-
-void decrement_ore_classi_codocenza_svolte(int cla, int p1, int p2);
-
-int get_ore_insegnanti_codocenza_svolte_in_una_classe(int cla, int p1, int p2);
-
-int get_ore_insegnanti_codocenza_in_una_classe(int cla, int p1, int p2);
+// l'indice del docente con questo nome (-1 se non c'e')
+int p_insegnante(const Scuola *s, const char in[]);
+// le ore che p1 e p2 hanno insieme nella classe (in qualunque ordine)
+int get_ore_insegnanti_codocenza_in_una_classe(const Scuola *s, int cla, int p1, int p2);
+// una coppia di docenti sempre nello stesso ordine: prima l'indice minore
+void swap_min_first(int *p1, int *p2);
 
 // i dati di prova (dati_di_prova.c): giorni, ore, lezioni e ore di ingresso
-void inizializza_dati();
-
+void inizializza_dati(Scuola *s);
 
 #endif //UNTITLED_CONSTANTS_H

@@ -11,8 +11,12 @@ codice e messaggi di commit sono in italiano.
   - `./untitled test N`: le prove con i dati casuali (`prove.c`), su stdout solo i test che arrivano al limite;
   - `./untitled caso|dati|passo ...`: per il sito (`caso.c`, `data_initialization/generatore.c`, `passo.c`,
     `passi.c`).
+  Niente variabili globali né `static` (richiesta di Alb dell'11 novembre 2026): i dati stanno in una `Scuola`
+  (`data_initialization/database_initializers.h`), lo stato della ricerca in una `Ricerca` (`ricerca.h`), e ogni
+  funzione le riceve come argomento. Restano `static` solo le tabelle di nomi costanti negli header.
   Prima della ricerca, `verifica_dati.c` (richiesta di Alb del 10 novembre 2026): sei controlli sui dati, condizioni
-  necessarie; se uno non vale la ricerca non parte («errore nei dati», con il motivo); le prove saltano i casi che non la passano.
+  necessarie; se uno non vale la ricerca non parte («errore nei dati», con il motivo); le prove saltano i casi che
+  non la passano.
   Dopo la ricerca, `verifica_orario.c` (richiesta di Alb dell'11 novembre 2026): ricontrolla l'orario trovato senza
   usare niente della ricerca (otto controlli); l'esito va nello stato del test (`verifica`).
   Il solver scrive solo quello che serve al sito: niente `orario.txt`, niente stampe in più.

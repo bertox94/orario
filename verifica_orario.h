@@ -24,12 +24,12 @@
 #define VERIFICA_ORARIO_CONTROLLI 8
 
 typedef struct {
-    const char *nome;     // che cosa controlla
+    char nome[100];       // che cosa controlla
     int ok;               // 1: l'orario lo rispetta
     char dettaglio[200];  // se no, la prima cosa che non va
 } ControlloOrario;
 
 // Riempie i VERIFICA_ORARIO_CONTROLLI controlli; 1 se l'orario li rispetta tutti.
-int verifica_orario(const teaching_slot *orario, ControlloOrario controlli[VERIFICA_ORARIO_CONTROLLI]);
+int verifica_orario(const Scuola *s, const teaching_slot *orario, ControlloOrario controlli[VERIFICA_ORARIO_CONTROLLI]);
 
 #endif //UNTITLED_VERIFICA_ORARIO_H

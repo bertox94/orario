@@ -6,60 +6,68 @@
 // da fare prima), ogni docente in coppia con un altro (una codocenza) e poi da solo; dopo le ore obbligatorie prova
 // anche l'ora buca. Quando tutte le celle sono decise (pos == orario_len) l'orario e' completo e la ricerca finisce
 // (si cerca un orario solo): print_orario ritorna 1 e chi l'ha chiamata ritorna subito anche lui, senza provare
-// altro, cosi' l'orario trovato resta in orario[]. La lanciano main.c, prove.c e caso.c.
+// altro, cosi' l'orario trovato resta in r->orario. La lanciano main.c, prove.c e caso.c.
+//
+// Niente variabili globali: la scuola e lo stato della ricerca arrivano a ogni funzione nella Ricerca r (ricerca.h).
 
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "priority_queue/prio_queue.h"
-#include "data_initialization/database_initializers.h"
 #include "ricerca.h"
 #include "vincoli.h"
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
-// ---- lo stato della ricerca ----
+// ---- creare la ricerca ----
 
-int trovato = 0;                                  // l'orario e' stato trovato: la ricerca finisce
-teaching_slot orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ] = {
-    [0 ... GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ - 1] = (teaching_slot){-1, -1}
-};
-int orario_len;                                   // giorni * ore * classi
+Ricerca *nuova_ricerca(const Scuola *s) {
+    Ricerca *r = calloc(1, sizeof(Ricerca));
+    assert(r);
+    r->scuola = s;
+    r->orario_len = s->actual_giorni_settimana * s->actual_ore_giornaliere * s->actual_classi_sezione;
+    for (int i = 0; i < r->orario_len; i++) r->orario[i] = (teaching_slot){-1, -1};
+    // la coda: ogni docente con tutte le sue ore; ogni cella ha il suo blocco di puntatori
+    r->queue_sz = s->actual_insegnanti;
+    for (int p = 0; p < r->queue_sz; p++) {
+        r->queue_items[p] = (QueueItem){p, 0};
+        for (int c = 0; c < s->actual_classi_sezione; c++)
+            r->queue_items[p].priority += s->ore_classi_docenti[c * INSEGNANTE_SZ + p];
+    }
+    r->queue_mul = malloc(sizeof(QueueItem *) * r->orario_len * r->queue_sz);
+    assert(r->queue_mul);
+    for (int i = 0; i < r->orario_len * r->queue_sz; i++) r->queue_mul[i] = &r->queue_items[i % r->queue_sz];
+    return r;
+}
 
-// il conto dei nodi e i limiti (vedi ricerca.h): non cambiano la ricerca
-long long int nodi = 0, limite_nodi = 0;
-void (*ogni_nodo)(int pos) = NULL;
-int fermato = 0, pos_max = 0;
+void libera_ricerca(Ricerca *r) {
+    free(r->queue_mul);
+    free(r);
+}
 
 // ---- la cella ----
 
-int g_giorno(const int p) { return p / actual_classi_sezione / actual_ore_giornaliere % actual_giorni_settimana; }
-
-int g_ora(const int p) { return p / actual_classi_sezione % actual_ore_giornaliere; }
-
-int g_classe(const int p) { return p % actual_classi_sezione; }
-
-Cella cella(const int pos) {
-    Cella c = {pos, g_giorno(pos), g_ora(pos), g_classe(pos)};
+Cella cella(const Ricerca *r, const int pos) {
+    const Scuola *s = r->scuola;
+    Cella c = {pos, pos / s->actual_classi_sezione / s->actual_ore_giornaliere,
+               pos / s->actual_classi_sezione % s->actual_ore_giornaliere, pos % s->actual_classi_sezione};
     c.base2d_ci = c.cla * INSEGNANTE_SZ;
     c.base3d_goi = c.giorno * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + c.ora * INSEGNANTE_SZ;
     c.base3d_gci = c.giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + c.cla * INSEGNANTE_SZ;
-    c.base4d_queue = c.giorno * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ
-                     + c.ora * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + c.cla * INSEGNANTE_SZ;
+    c.coda = &r->queue_mul[pos * r->queue_sz];
     return c;
 }
 
 // le ore che restano al docente p nella classe della cella (da solo e in codocenza)
-int ore_rimaste(const Cella *c, const int p) {
-    return ore_classi_docenti[c->base2d_ci + p] - ore_classi_docenti_svolte[c->base2d_ci + p];
+int ore_rimaste(const Ricerca *r, const Cella *c, const int p) {
+    return r->scuola->ore_classi_docenti[c->base2d_ci + p] - r->ore_classi_docenti_svolte[c->base2d_ci + p];
 }
 
 // ---- i vincoli della classe ----
 
 // le ore che la classe deve ancora fare, contando la cella che si sta decidendo
-int ore_rimaste_alla_classe(const Cella *c) {
-    return ore_classi[c->cla] - ore_classe_svolte[c->cla];
+int ore_rimaste_alla_classe(const Ricerca *r, const Cella *c) {
+    return r->scuola->ore_classi[c->cla] - r->ore_classe_svolte[c->cla];
 }
 
 // La classe puo' avere lezione in questa cella?
@@ -68,17 +76,17 @@ int ore_rimaste_alla_classe(const Cella *c) {
 //   + ora (oggi); dopo l'ultima ora obbligatoria il conto si ferma a PRIME_N_ORE_OBBLIGATORIE - 1, cosi' una lezione
 //   in un'ora facoltativa lascia almeno un'ora per ognuna delle celle obbligatorie dei giorni dopo;
 // - dopo un'ora buca la giornata della classe e' finita.
-int activities_for_this_class_and_hour(const Cella *c) {
-    const int ore_rimanenti = ore_rimaste_alla_classe(c);
+int activities_for_this_class_and_hour(const Ricerca *r, const Cella *c) {
+    const int ore_rimanenti = ore_rimaste_alla_classe(r, c);
     const int slot_obbligatori_prima = c->giorno * PRIME_N_ORE_OBBLIGATORIE + MIN(c->ora, PRIME_N_ORE_OBBLIGATORIE - 1);
-    const int slot_mancanti = PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana - slot_obbligatori_prima;
+    const int slot_mancanti = PRIME_N_ORE_OBBLIGATORIE * r->scuola->actual_giorni_settimana - slot_obbligatori_prima;
     if (ore_rimanenti < slot_mancanti) return 0;
-    return n_ore_buche[c->giorno * CLASSE_SEZIONE_SZ + c->cla] == 0;
+    return r->n_ore_buche[c->giorno * CLASSE_SEZIONE_SZ + c->cla] == 0;
 }
 
 // I posti che restano alla classe nei giorni dopo oggi: tutte le ore, obbligatorie e no.
-int posti_nei_giorni_dopo(const Cella *c) {
-    return (actual_giorni_settimana - 1 - c->giorno) * actual_ore_giornaliere;
+int posti_nei_giorni_dopo(const Ricerca *r, const Cella *c) {
+    return (r->scuola->actual_giorni_settimana - 1 - c->giorno) * r->scuola->actual_ore_giornaliere;
 }
 
 // La classe puo' avere un'ora buca in questa cella?
@@ -87,9 +95,9 @@ int posti_nei_giorni_dopo(const Cella *c) {
 //   non sta nei giorni dopo non si potrebbe piu' mettere. Se non ci stanno, la lezione a quest'ora e' tassativa.
 // Cosi' l'ultimo giorno l'ora buca e' permessa solo a una classe che ha finito le ore: a orario completo ogni classe
 // le ha fatte tutte, e quindi (nessuno puo' farne piu' delle sue) anche ogni docente e ogni coppia.
-int la_classe_puo_avere_ora_buca(const Cella *c) {
+int la_classe_puo_avere_ora_buca(const Ricerca *r, const Cella *c) {
     if (c->ora < PRIME_N_ORE_OBBLIGATORIE) return 0;
-    return ore_rimaste_alla_classe(c) <= posti_nei_giorni_dopo(c);
+    return ore_rimaste_alla_classe(r, c) <= posti_nei_giorni_dopo(r, c);
 }
 
 // Lo stato della classe in questa cella, dalle due domande sopra: decide che cosa prova la ricerca.
@@ -97,8 +105,8 @@ int la_classe_puo_avere_ora_buca(const Cella *c) {
 //   puo' fare attivita'      puo' avere lezione e un'ora buca       si provano i docenti, poi l'ora buca
 //   non puo' fare attivita'  non lezione, solo un'ora buca          si mette l'ora buca
 // (Ne' lezione ne' ora buca non succede con dati che hanno passato la verifica: verifica_dati.h.)
-StatoClasse stato_della_classe(const Cella *c) {
-    const int lezione = activities_for_this_class_and_hour(c), buca = la_classe_puo_avere_ora_buca(c);
+StatoClasse stato_della_classe(const Ricerca *r, const Cella *c) {
+    const int lezione = activities_for_this_class_and_hour(r, c), buca = la_classe_puo_avere_ora_buca(r, c);
     assert(lezione || buca);
     return lezione && buca ? PUO_FARE_ATTIVITA : lezione ? DEVE_FARE_ATTIVITA : NON_PUO_FARE_ATTIVITA;
 }
@@ -106,83 +114,91 @@ StatoClasse stato_della_classe(const Cella *c) {
 // ---- i vincoli del docente ----
 
 // a quest'ora non insegna gia' in un'altra classe
-int prof_è_disponibile(const Cella *c, const int p) {
-    return !prof_gia_impegnato_giorno_ora[c->base3d_goi + p];
+int prof_è_disponibile(const Ricerca *r, const Cella *c, const int p) {
+    return !r->prof_gia_impegnato_giorno_ora[c->base3d_goi + p];
 }
 
 // ha ancora ore da fare in questa classe
-int deve_ancora_svolgere_ore_in_questa_classe(const Cella *c, const int p) {
-    return ore_classi_docenti_svolte[c->base2d_ci + p] < ore_classi_docenti[c->base2d_ci + p];
+int deve_ancora_svolgere_ore_in_questa_classe(const Ricerca *r, const Cella *c, const int p) {
+    return r->ore_classi_docenti_svolte[c->base2d_ci + p] < r->scuola->ore_classi_docenti[c->base2d_ci + p];
 }
 
 // oggi in questa classe ha fatto meno di MAX_ORE_PROF_IN_UNA_CLASSE ore
-int prof_fa_al_max_n_ore(const Cella *c, const int p) {
-    return ore_fatte_da_un_prof_in_una_classe_in_giorno[c->base3d_gci + p] < MAX_ORE_PROF_IN_UNA_CLASSE;
+int prof_fa_al_max_n_ore(const Ricerca *r, const Cella *c, const int p) {
+    return r->ore_fatte_da_un_prof_in_una_classe_in_giorno[c->base3d_gci + p] < MAX_ORE_PROF_IN_UNA_CLASSE;
 }
 
 // le sue ore di oggi in questa classe sono di seguito: se ne ha gia' fatte, l'ultima e' l'ora prima (la cella
 // pos - classi, stessa classe un'ora prima)
-int prof_fa_ore_contigue(const Cella *c, const int p) {
-    if (!ore_fatte_da_un_prof_in_una_classe_in_giorno[c->base3d_gci + p]) return 1;
-    const teaching_slot *prima = &orario[c->pos - actual_classi_sezione];
+int prof_fa_ore_contigue(const Ricerca *r, const Cella *c, const int p) {
+    if (!r->ore_fatte_da_un_prof_in_una_classe_in_giorno[c->base3d_gci + p]) return 1;
+    const teaching_slot *prima = &r->orario[c->pos - r->scuola->actual_classi_sezione];
     return prima->insegnante1 == p || prima->insegnante2 == p;
 }
 
 // oggi insegna al massimo in MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO classi diverse, contando questa: si scorrono
 // le celle di oggi gia' decise (in ogni ora il docente e' in una classe sola: trovata quella si passa all'ora dopo)
-int ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(const Cella *c, const int p) {
-    const int inizio = c->giorno * actual_ore_giornaliere * actual_classi_sezione;
+int ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(const Ricerca *r, const Cella *c, const int p) {
+    const int n_classi = r->scuola->actual_classi_sezione;
+    const int inizio = c->pos - c->ora * n_classi - c->cla;  // la prima cella di oggi
     int classi[MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO];
     int n = 0;
     classi[n++] = c->cla;
     for (int i = inizio; i < c->pos; i++) {
-        if (orario[i].insegnante1 != p && orario[i].insegnante2 != p) continue;
-        const int classe = g_classe(i);
+        if (r->orario[i].insegnante1 != p && r->orario[i].insegnante2 != p) continue;
+        const int classe = i % n_classi;
         int gia = 0;
         for (int j = 0; j < n && !gia; j++) gia = classi[j] == classe;
         if (!gia) {
             if (n >= MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO) return 0;
             classi[n++] = classe;
         }
-        i = inizio + (g_ora(i) + 1) * actual_classi_sezione - 1;  // all'ora dopo (il ciclo aggiunge 1)
+        i += n_classi - 1 - classe;  // all'ultima cella di quest'ora: il ciclo passa all'ora dopo
     }
     return 1;
 }
 
 // e' gia' entrato a scuola
-int verifica_ora_ingresso(const int p, const int ora) {
-    return ora >= ora_di_entrata_prof[p];
+int verifica_ora_ingresso(const Ricerca *r, const int p, const int ora) {
+    return ora >= r->scuola->ora_di_entrata_prof[p];
+}
+
+// dove stanno le ore gia' messe della coppia p1, p2 nella classe (come le ore nei dati: prima l'indice minore)
+static int *ore_codocenza_svolte(const Ricerca *r, const int cla, int p1, int p2) {
+    swap_min_first(&p1, &p2);
+    return (int *) &r->ore_classi_codocenza_svolte[cla * INSEGNANTE_SZ * INSEGNANTE_SZ + p1 * INSEGNANTE_SZ + p2];
 }
 
 // p1 e p2 hanno ancora ore da fare insieme in questa classe (una codocenza: vale in tutti e due i versi, chiunque dei
 // due sia il docente della lezione e chiunque il codocente)
-int docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(const Cella *c, const int p1, const int p2) {
-    return get_ore_insegnanti_codocenza_svolte_in_una_classe(c->cla, p1, p2) <
-           get_ore_insegnanti_codocenza_in_una_classe(c->cla, p1, p2);
+int docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(const Ricerca *r, const Cella *c, const int p1,
+                                                                   const int p2) {
+    return *ore_codocenza_svolte(r, c->cla, p1, p2)
+           < get_ore_insegnanti_codocenza_in_una_classe(r->scuola, c->cla, p1, p2);
 }
 
 // ha ancora ore da fare da solo (senza codocente) in questa classe
-int deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(const Cella *c, const int p) {
-    return ore_classi_docenti_alone_svolte[c->base2d_ci + p] < ore_classi_docenti_alone[c->base2d_ci + p];
+int deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(const Ricerca *r, const Cella *c, const int p) {
+    return r->ore_classi_docenti_alone_svolte[c->base2d_ci + p] < r->scuola->ore_classi_docenti_alone[c->base2d_ci + p];
 }
 
 // La regola del sabato. Il sabato e' l'ultimo giorno: un docente che e' nell'ora prima in questa classe e ha ancora
 // ore da fare qui non potrebbe tornare dopo (le ore di un giorno sono di seguito) e non ci sono altri giorni, quindi
 // deve continuare adesso. Dice quale dei docenti dell'ora prima deve esserci: 1 il primo, 2 il secondo, 3 tutti e due,
 // 0 nessuno (non e' sabato, e' la prima ora, o nessuno dei due ha ancora ore qui).
-static int sabato_chi_deve_continuare(const Cella *c, int *prev_prof1, int *prev_prof2) {
-    if (c->giorno != actual_giorni_settimana - 1 || c->ora == 0) return 0;
-    *prev_prof1 = orario[c->pos - actual_classi_sezione].insegnante1;
-    *prev_prof2 = orario[c->pos - actual_classi_sezione].insegnante2;
-    const int r1 = *prev_prof1 != -1 && ore_rimaste(c, *prev_prof1) > 0;
-    const int r2 = *prev_prof2 != -1 && ore_rimaste(c, *prev_prof2) > 0;
+static int sabato_chi_deve_continuare(const Ricerca *r, const Cella *c, int *prev_prof1, int *prev_prof2) {
+    if (c->giorno != r->scuola->actual_giorni_settimana - 1 || c->ora == 0) return 0;
+    *prev_prof1 = r->orario[c->pos - r->scuola->actual_classi_sezione].insegnante1;
+    *prev_prof2 = r->orario[c->pos - r->scuola->actual_classi_sezione].insegnante2;
+    const int r1 = *prev_prof1 != -1 && ore_rimaste(r, c, *prev_prof1) > 0;
+    const int r2 = *prev_prof2 != -1 && ore_rimaste(r, c, *prev_prof2) > 0;
     return r1 + 2 * r2;
 }
 
 // la coppia (prof1, prof2) rispetta la regola del sabato: contiene chi deve continuare (tutti e due, se tutti e due)
-int sabato_esaurisci_priorita_subito_cod(const Cella *c, const int prof1, const int prof2) {
+int sabato_esaurisci_priorita_subito_cod(const Ricerca *r, const Cella *c, const int prof1, const int prof2) {
     int prev_prof1, prev_prof2;
-    switch (sabato_chi_deve_continuare(c, &prev_prof1, &prev_prof2)) {
+    switch (sabato_chi_deve_continuare(r, c, &prev_prof1, &prev_prof2)) {
         case 3: return prof1 == prev_prof1 && prof2 == prev_prof2 || prof1 == prev_prof2 && prof2 == prev_prof1;
         case 1: return prof1 == prev_prof1 || prof2 == prev_prof1;
         case 2: return prof1 == prev_prof2 || prof2 == prev_prof2;
@@ -192,9 +208,9 @@ int sabato_esaurisci_priorita_subito_cod(const Cella *c, const int prof1, const 
 
 // il docente prof da solo rispetta la regola del sabato: e' lui che deve continuare (se devono continuare tutti e due,
 // da solo non va bene)
-int sabato_esaurisci_priorita_subito(const Cella *c, const int prof) {
+int sabato_esaurisci_priorita_subito(const Ricerca *r, const Cella *c, const int prof) {
     int prev_prof1, prev_prof2;
-    switch (sabato_chi_deve_continuare(c, &prev_prof1, &prev_prof2)) {
+    switch (sabato_chi_deve_continuare(r, c, &prev_prof1, &prev_prof2)) {
         case 3: return 0;
         case 1: return prof == prev_prof1;
         case 2: return prof == prev_prof2;
@@ -203,140 +219,116 @@ int sabato_esaurisci_priorita_subito(const Cella *c, const int prof) {
 }
 
 // I controlli del docente p1 in questa cella, prima di provarlo in coppia o da solo.
-int docente_puo_insegnare(const Cella *c, const int p1) {
-    return prof_è_disponibile(c, p1)
-           && deve_ancora_svolgere_ore_in_questa_classe(c, p1)
-           && prof_fa_al_max_n_ore(c, p1)
-           && prof_fa_ore_contigue(c, p1)
-           && ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(c, p1)
-           && verifica_ora_ingresso(p1, c->ora);
+int docente_puo_insegnare(const Ricerca *r, const Cella *c, const int p1) {
+    return prof_è_disponibile(r, c, p1)
+           && deve_ancora_svolgere_ore_in_questa_classe(r, c, p1)
+           && prof_fa_al_max_n_ore(r, c, p1)
+           && prof_fa_ore_contigue(r, c, p1)
+           && ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(r, c, p1)
+           && verifica_ora_ingresso(r, p1, c->ora);
 }
 
 // I controlli del secondo docente p2 della coppia, insieme a p1. Le coppie si provano nell'ordine della coda: p1 e'
 // quello che viene prima, p2 uno di quelli dopo. Quindi p2 non e' sempre il codocente della lezione: puo' essere il
 // docente, e p1 il suo codocente. (Che p2 abbia ancora ore nella classe lo dicono le ore insieme rimaste.)
-int secondo_della_coppia_puo_insegnare(const Cella *c, const int p1, const int p2) {
-    return prof_è_disponibile(c, p2)
-           && docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(c, p1, p2)
-           && prof_fa_al_max_n_ore(c, p2)
-           && prof_fa_ore_contigue(c, p2)
-           && sabato_esaurisci_priorita_subito_cod(c, p1, p2)
-           && ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(c, p2)
-           && verifica_ora_ingresso(p2, c->ora);
+int secondo_della_coppia_puo_insegnare(const Ricerca *r, const Cella *c, const int p1, const int p2) {
+    return prof_è_disponibile(r, c, p2)
+           && docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(r, c, p1, p2)
+           && prof_fa_al_max_n_ore(r, c, p2)
+           && prof_fa_ore_contigue(r, c, p2)
+           && sabato_esaurisci_priorita_subito_cod(r, c, p1, p2)
+           && ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(r, c, p2)
+           && verifica_ora_ingresso(r, p2, c->ora);
 }
 
 // I controlli per mettere p1 da solo.
-int docente_puo_insegnare_da_solo(const Cella *c, const int p1) {
-    return deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(c, p1)
-           && sabato_esaurisci_priorita_subito(c, p1);
-}
-
-// ---- la coda dei docenti ----
-
-// dalla priorita' piu' alta (piu' ore da fare) alla piu' bassa; a parita' prima il docente con l'indice minore, cosi'
-// l'ordine e' sempre lo stesso (qsort non e' stabile: senza questo dipendeva dal sistema)
-int compare_queue_items(const void *a, const void *b) {
-    const QueueItem *itemA = *(const QueueItem **) a;
-    const QueueItem *itemB = *(const QueueItem **) b;
-    if (itemA->priority < itemB->priority) return 1;
-    if (itemA->priority > itemB->priority) return -1;
-    return (itemA->teacher > itemB->teacher) - (itemA->teacher < itemB->teacher);
-}
-
-// Ordina la coda della cella (ogni cella ha la sua copia dei puntatori, vedi prio_queue.h).
-void sort_queue_mul(const size_t start, const size_t n) {
-    qsort(&queue_mul[start], n, sizeof(QueueItem *), compare_queue_items);
+int docente_puo_insegnare_da_solo(const Ricerca *r, const Cella *c, const int p1) {
+    return deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(r, c, p1)
+           && sabato_esaurisci_priorita_subito(r, c, p1);
 }
 
 // ---- mettere e togliere un docente ----
 
-// Un'ora del docente di it in questa cella (delta = 1) o tolta (delta = -1): priorita' nella coda, impegnato a
-// quest'ora, ore fatte nella classe e ore fatte oggi nella classe.
-static void segna_ora(const Cella *c, QueueItem *it, const int delta) {
-    const int p = it->teacher;
-    it->priority -= delta;
-    prof_gia_impegnato_giorno_ora[c->base3d_goi + p] = delta > 0;
-    ore_classi_docenti_svolte[c->base2d_ci + p] += delta;
-    ore_fatte_da_un_prof_in_una_classe_in_giorno[c->base3d_gci + p] += delta;
+// Un'ora del docente p in questa cella (delta = 1) o tolta (delta = -1): priorita' nella coda, impegnato a quest'ora,
+// ore fatte nella classe e ore fatte oggi nella classe.
+static void segna_ora(Ricerca *r, const Cella *c, const int p, const int delta) {
+    r->queue_items[p].priority -= delta;
+    r->prof_gia_impegnato_giorno_ora[c->base3d_goi + p] = delta > 0;
+    r->ore_classi_docenti_svolte[c->base2d_ci + p] += delta;
+    r->ore_fatte_da_un_prof_in_una_classe_in_giorno[c->base3d_gci + p] += delta;
 }
 
-void segna_da_solo(const Cella *c, QueueItem *it, const int delta) {
-    segna_ora(c, it, delta);
-    ore_classi_docenti_alone_svolte[c->base2d_ci + it->teacher] += delta;
+void segna_da_solo(Ricerca *r, const Cella *c, const int p, const int delta) {
+    segna_ora(r, c, p, delta);
+    r->ore_classi_docenti_alone_svolte[c->base2d_ci + p] += delta;
 }
 
-void segna_coppia(const Cella *c, QueueItem *it, QueueItem *jt, const int delta) {
-    segna_ora(c, it, delta);
-    segna_ora(c, jt, delta);
-    if (delta > 0) increment_ore_classi_codocenza_svolte(c->cla, it->teacher, jt->teacher);
-    else decrement_ore_classi_codocenza_svolte(c->cla, it->teacher, jt->teacher);
+void segna_coppia(Ricerca *r, const Cella *c, const int p1, const int p2, const int delta) {
+    segna_ora(r, c, p1, delta);
+    segna_ora(r, c, p2, delta);
+    *ore_codocenza_svolte(r, c->cla, p1, p2) += delta;
 }
 
 // ---- la ricerca ----
-
-int print_orario(int pos);
 
 // Prova tutte le lezioni possibili in questa cella, nell'ordine della coda: ogni docente (ii) prima in coppia con
 // ognuno di quelli dopo di lui nella coda (jj) con cui ha ore insieme qui, poi da solo. In una coppia il docente della
 // lezione puo' essere tanto ii quanto jj: la coppia si prova una volta sola, quando si arriva al primo dei due.
 // Ritorna 1 se la ricerca e' finita (vedi print_orario): allora non si prova altro e non si toglie niente.
-static int prova_lezioni(const Cella *c) {
-    const int fine = c->base4d_queue + queue_sz;
-    ore_classe_svolte[c->cla]++;  // la lezione di questa cella conta gia' tra le ore della classe
-    for (int ii = c->base4d_queue; ii < fine; ii++) {
-        QueueItem *it = queue_mul[ii];
-        const int p1 = it->teacher;
-        if (!docente_puo_insegnare(c, p1)) continue;
-        for (int jj = ii + 1; jj < fine; jj++) {
-            QueueItem *jt = queue_mul[jj];
-            const int p2 = jt->teacher;
-            if (!secondo_della_coppia_puo_insegnare(c, p1, p2)) continue;
-            segna_coppia(c, it, jt, 1);
-            orario[c->pos] = (teaching_slot){p1, p2};
-            if (print_orario(c->pos + 1)) return 1;
-            segna_coppia(c, it, jt, -1);
+static int prova_lezioni(Ricerca *r, const Cella *c) {
+    r->ore_classe_svolte[c->cla]++;  // la lezione di questa cella conta gia' tra le ore della classe
+    for (int ii = 0; ii < r->queue_sz; ii++) {
+        const int p1 = c->coda[ii]->teacher;
+        if (!docente_puo_insegnare(r, c, p1)) continue;
+        for (int jj = ii + 1; jj < r->queue_sz; jj++) {
+            const int p2 = c->coda[jj]->teacher;
+            if (!secondo_della_coppia_puo_insegnare(r, c, p1, p2)) continue;
+            segna_coppia(r, c, p1, p2, 1);
+            r->orario[c->pos] = (teaching_slot){p1, p2};
+            if (print_orario(r, c->pos + 1)) return 1;
+            segna_coppia(r, c, p1, p2, -1);
         }
-        if (docente_puo_insegnare_da_solo(c, p1)) {
-            segna_da_solo(c, it, 1);
-            orario[c->pos] = (teaching_slot){p1, -1};
-            if (print_orario(c->pos + 1)) return 1;
-            segna_da_solo(c, it, -1);
+        if (docente_puo_insegnare_da_solo(r, c, p1)) {
+            segna_da_solo(r, c, p1, 1);
+            r->orario[c->pos] = (teaching_slot){p1, -1};
+            if (print_orario(r, c->pos + 1)) return 1;
+            segna_da_solo(r, c, p1, -1);
         }
     }
-    ore_classe_svolte[c->cla]--;
+    r->ore_classe_svolte[c->cla]--;
     return 0;
 }
 
 // L'ora buca: da li' la classe non ha piu' lezione oggi. Ritorna 1 se la ricerca e' finita.
-static int prova_ora_buca(const Cella *c) {
-    orario[c->pos] = (teaching_slot){-1, -1};
-    n_ore_buche[c->giorno * CLASSE_SEZIONE_SZ + c->cla]++;
-    if (print_orario(c->pos + 1)) return 1;
-    n_ore_buche[c->giorno * CLASSE_SEZIONE_SZ + c->cla]--;
+static int prova_ora_buca(Ricerca *r, const Cella *c) {
+    r->orario[c->pos] = (teaching_slot){-1, -1};
+    r->n_ore_buche[c->giorno * CLASSE_SEZIONE_SZ + c->cla]++;
+    if (print_orario(r, c->pos + 1)) return 1;
+    r->n_ore_buche[c->giorno * CLASSE_SEZIONE_SZ + c->cla]--;
     return 0;
 }
 
 // Decide la cella pos e scende alle celle dopo. Ritorna 1 se la ricerca e' finita: l'orario e' completo (trovato) o
 // si e' arrivati al limite di nodi (fermato). Ritorna 0 se in questa cella non c'e' piu' niente da provare: chi l'ha
 // chiamata toglie la sua scelta e prova la successiva (si torna indietro).
-int print_orario(const int pos) {
-    if (limite_nodi && nodi >= limite_nodi) {  // il limite di nodi: la ricerca si ferma qui
-        fermato = 1;
+int print_orario(Ricerca *r, const int pos) {
+    if (r->limite_nodi && r->nodi >= r->limite_nodi) {  // il limite di nodi: la ricerca si ferma qui
+        r->fermato = 1;
         return 1;
     }
-    nodi++;
-    if (pos > pos_max) pos_max = pos;
-    if (ogni_nodo) ogni_nodo(pos);
-    if (pos == orario_len) {  // tutte le celle decise: l'orario e' completo
-        trovato = 1;
+    r->nodi++;
+    if (pos > r->pos_max) r->pos_max = pos;
+    if (r->ogni_nodo) r->ogni_nodo(r, pos);
+    if (pos == r->orario_len) {  // tutte le celle decise: l'orario e' completo
+        r->trovato = 1;
         return 1;
     }
-    const Cella c = cella(pos);
-    sort_queue_mul(c.base4d_queue, queue_sz);
-    switch (stato_della_classe(&c)) {
-        case DEVE_FARE_ATTIVITA: return prova_lezioni(&c);
-        case PUO_FARE_ATTIVITA: return prova_lezioni(&c) || prova_ora_buca(&c);
-        case NON_PUO_FARE_ATTIVITA: return prova_ora_buca(&c);
+    const Cella c = cella(r, pos);
+    sort_queue(c.coda, r->queue_sz);
+    switch (stato_della_classe(r, &c)) {
+        case DEVE_FARE_ATTIVITA: return prova_lezioni(r, &c);
+        case PUO_FARE_ATTIVITA: return prova_lezioni(r, &c) || prova_ora_buca(r, &c);
+        case NON_PUO_FARE_ATTIVITA: return prova_ora_buca(r, &c);
     }
     return 0;
 }
