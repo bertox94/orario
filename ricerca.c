@@ -7,6 +7,7 @@
 // anche l'ora buca. Quando tutte le celle sono decise (pos == orario_len) l'orario e' completo: si stampa in
 // la ricerca finisce (si cerca un orario solo): l'orario resta in orario[]. La lanciano main.c, prove.c e caso.c.
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -55,6 +56,11 @@ int ore_rimaste(const Cella *c, const int p) {
 
 // ---- i vincoli della classe ----
 
+// le ore che la classe deve ancora fare, contando la cella che si sta decidendo
+int ore_rimaste_alla_classe(const Cella *c) {
+    return ore_classi[c->cla] - ore_classe_svolte[c->cla];
+}
+
 // La classe puo' avere lezione in questa cella?
 // - le ore che le restano (contando questa) devono bastare per le celle obbligatorie che restano: le prime
 //   PRIME_N_ORE_OBBLIGATORIE ore di ogni giorno. Prima di questa cella ce ne sono giorno * PRIME_N_ORE_OBBLIGATORIE
@@ -62,11 +68,38 @@ int ore_rimaste(const Cella *c, const int p) {
 //   in un'ora facoltativa lascia almeno un'ora per ognuna delle celle obbligatorie dei giorni dopo;
 // - dopo un'ora buca la giornata della classe e' finita.
 int activities_for_this_class_and_hour(const Cella *c) {
-    const int ore_rimanenti = ore_classi[c->cla] - ore_classe_svolte[c->cla];
+    const int ore_rimanenti = ore_rimaste_alla_classe(c);
     const int slot_obbligatori_prima = c->giorno * PRIME_N_ORE_OBBLIGATORIE + MIN(c->ora, PRIME_N_ORE_OBBLIGATORIE - 1);
     const int slot_mancanti = PRIME_N_ORE_OBBLIGATORIE * actual_giorni_settimana - slot_obbligatori_prima;
     if (ore_rimanenti < slot_mancanti) return 0;
     return n_ore_buche[c->giorno * CLASSE_SEZIONE_SZ + c->cla] == 0;
+}
+
+// I posti che restano alla classe nei giorni dopo oggi: tutte le ore, obbligatorie e no.
+int posti_nei_giorni_dopo(const Cella *c) {
+    return (actual_giorni_settimana - 1 - c->giorno) * actual_ore_giornaliere;
+}
+
+// La classe puo' avere un'ora buca in questa cella?
+// - solo dopo le ore obbligatorie;
+// - le ore che le restano devono stare nei giorni dopo: dopo un'ora buca oggi non ha piu' lezione, quindi quello che
+//   non sta nei giorni dopo non si potrebbe piu' mettere. Se non ci stanno, la lezione a quest'ora e' tassativa.
+// Cosi' l'ultimo giorno l'ora buca e' permessa solo a una classe che ha finito le ore: a orario completo ogni classe
+// le ha fatte tutte, e quindi (nessuno puo' farne piu' delle sue) anche ogni docente e ogni coppia.
+int la_classe_puo_avere_ora_buca(const Cella *c) {
+    if (c->ora < PRIME_N_ORE_OBBLIGATORIE) return 0;
+    return ore_rimaste_alla_classe(c) <= posti_nei_giorni_dopo(c);
+}
+
+// Lo stato della classe in questa cella, dalle due domande sopra: decide che cosa prova la ricerca.
+//   deve fare attivita'      puo' avere lezione, non un'ora buca    si provano i docenti
+//   puo' fare attivita'      puo' avere lezione e un'ora buca       si provano i docenti, poi l'ora buca
+//   non puo' fare attivita'  non lezione, solo un'ora buca          si mette l'ora buca
+// (Ne' lezione ne' ora buca non succede con dati che hanno passato la verifica: verifica_dati.h.)
+StatoClasse stato_della_classe(const Cella *c) {
+    const int lezione = activities_for_this_class_and_hour(c), buca = la_classe_puo_avere_ora_buca(c);
+    assert(lezione || buca);
+    return lezione && buca ? PUO_FARE_ATTIVITA : lezione ? DEVE_FARE_ATTIVITA : NON_PUO_FARE_ATTIVITA;
 }
 
 // ---- i vincoli del docente ----
@@ -247,6 +280,7 @@ void print_orario(int pos);
 // lezione puo' essere tanto ii quanto jj: la coppia si prova una volta sola, quando si arriva al primo dei due.
 static void prova_lezioni(const Cella *c) {
     const int fine = c->base4d_queue + queue_sz;
+    ore_classe_svolte[c->cla]++;  // la lezione di questa cella conta gia' tra le ore della classe
     for (int ii = c->base4d_queue; ii < fine; ii++) {
         QueueItem *it = queue_mul[ii];
         const int p1 = it->teacher;
@@ -267,11 +301,11 @@ static void prova_lezioni(const Cella *c) {
             segna_da_solo(c, it, -1);
         }
     }
+    ore_classe_svolte[c->cla]--;
 }
 
-// L'ora buca: solo dopo le ore obbligatorie; da li' la classe non ha piu' lezione oggi.
+// L'ora buca: da li' la classe non ha piu' lezione oggi.
 static void prova_ora_buca(const Cella *c) {
-    if (c->ora < PRIME_N_ORE_OBBLIGATORIE) return;
     orario[c->pos] = (teaching_slot){-1, -1};
     n_ore_buche[c->giorno * CLASSE_SEZIONE_SZ + c->cla]++;
     print_orario(c->pos + 1);
@@ -293,10 +327,16 @@ void print_orario(const int pos) {
     }
     const Cella c = cella(pos);
     sort_queue_mul(c.base4d_queue, queue_sz);
-    if (activities_for_this_class_and_hour(&c)) {
-        ore_classe_svolte[c.cla]++;  // la lezione di questa cella conta gia' tra le ore della classe
-        prova_lezioni(&c);
-        ore_classe_svolte[c.cla]--;
+    switch (stato_della_classe(&c)) {  // finite le prove di questa cella si torna indietro
+        case DEVE_FARE_ATTIVITA:
+            prova_lezioni(&c);
+            break;
+        case PUO_FARE_ATTIVITA:
+            prova_lezioni(&c);
+            prova_ora_buca(&c);
+            break;
+        case NON_PUO_FARE_ATTIVITA:
+            prova_ora_buca(&c);
+            break;
     }
-    prova_ora_buca(&c);
 }

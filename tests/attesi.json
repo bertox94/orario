@@ -28,7 +28,7 @@
   "esito": "limite di nodi",
   "nodi": 100000,
   "cella_max": 247,
-  "passi": "0fba367dede35ec53e7038dc9fb1013c"
+  "passi": "7d1f0c423bc82ae42eb7fead74443e01"
  },
  "seme 3, 10 classi, con ritardi, 100000 nodi": {
   "esito": "errore nei dati",
@@ -38,9 +38,9 @@
  },
  "seme 5, 9 classi, senza ritardi, 100000 nodi": {
   "esito": "trovato",
-  "nodi": 326,
+  "nodi": 359,
   "cella_max": 324,
-  "passi": "71c2805f26e5b0327ca2270e69b3b9cc"
+  "passi": "f09ea6b3fbd46685e6236e465d69e5c2"
  },
  "seme 0, 8 classi, con ritardi, 100000 nodi": {
   "esito": "errore nei dati",
@@ -67,10 +67,10 @@
   "passi": "e979df2f44860bc4874785f222b566a4"
  },
  "seme 8, 4 classi, con ritardi, 100000 nodi": {
-  "esito": "trovato",
-  "nodi": 271,
-  "cella_max": 144,
-  "passi": "d2901b9fd0fcba0b9a8084f13ef6cb95"
+  "esito": "limite di nodi",
+  "nodi": 100000,
+  "cella_max": 140,
+  "passi": "390718e32f59f8d82d5bcec371f1329b"
  },
  "seme 5, 9 classi, con ritardi, 100000 nodi": {
   "esito": "limite di nodi",

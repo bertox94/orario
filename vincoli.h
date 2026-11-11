@@ -24,8 +24,18 @@ int g_classe(int p);
 // le ore che restano al docente p nella classe della cella
 int ore_rimaste(const Cella *c, int p);
 
+// i controlli della classe
+// le ore che la classe deve ancora fare, contando questa cella
+int ore_rimaste_alla_classe(const Cella *c);
 // la classe puo' avere lezione in questa cella
 int activities_for_this_class_and_hour(const Cella *c);
+// i posti che restano alla classe nei giorni dopo oggi
+int posti_nei_giorni_dopo(const Cella *c);
+// la classe puo' avere un'ora buca in questa cella
+int la_classe_puo_avere_ora_buca(const Cella *c);
+// lo stato della classe in questa cella: che cosa prova la ricerca (vedi ricerca.c)
+typedef enum { DEVE_FARE_ATTIVITA, PUO_FARE_ATTIVITA, NON_PUO_FARE_ATTIVITA } StatoClasse;
+StatoClasse stato_della_classe(const Cella *c);
 
 // i controlli di un docente
 int prof_è_disponibile(const Cella *c, int p);

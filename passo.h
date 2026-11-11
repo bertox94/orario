@@ -7,7 +7,8 @@
 // a quel nodo (le ore gia' messe, la coda) e stampa su stdout, in JSON:
 // - "pos": la cella che la ricerca sta per decidere, "prima": quella del nodo prima (null per il primo; se pos <=
 //   prima la ricerca e' tornata indietro), "orario": [[docente, codocente], ...] le celle gia' decise;
-// - "classe": il controllo della classe (puo' avere lezione?) con i suoi numeri, e se puo' avere un'ora buca;
+// - "classe": lo stato della classe ("deve", "può", "non può" fare attivita': vedi stato_della_classe in
+//   ricerca.c), il controllo «puo' avere lezione» con i suoi numeri, e se puo' avere un'ora buca;
 // - "coda": la coda di priorita' in ordine;
 // - "docenti": per ogni docente con ore in quella classe il valore di ogni controllo (tutti, non solo fino al primo
 //   falso), da solo e in coppia con ognuno di quelli dopo di lui nella coda con cui ha ore insieme.

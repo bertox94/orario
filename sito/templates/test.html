@@ -226,11 +226,18 @@ function disegnaControlli(c) {
     <button type="button" class="secondario" data-passo="-1" title="Il passo prima (←)">◀ Prec.</button>
     <button type="button" class="secondario" data-passo="1" title="Il passo dopo (→)">Succ. ▶</button></div>`;
   // la classe
-  h += `<h3>Il controllo della classe</h3><table class="dati controlli"><tbody>
+  const STATI = {
+    'deve': 'deve fare attività: la ricerca prova i docenti',
+    'può': 'può fare attività: la ricerca prova i docenti, poi l\'ora buca',
+    'non può': 'non può fare attività: la ricerca mette l\'ora buca',
+  };
+  h += `<h3>Il controllo della classe</h3><p>In questa cella la classe <strong>${esc(STATI[k.stato] || k.stato)}</strong>.</p>
+    <table class="dati controlli"><tbody>
     <tr><th>La classe può avere lezione</th>${segno(k.ha_attivita)}
       <td class="nota">le restano ${k.ore_rimanenti} ore e ${k.celle_obbligatorie_rimanenti} celle obbligatorie da riempire` +
       ` (le ore devono bastare); ore buche oggi: ${k.ore_buche_oggi} (dopo un'ora buca non ha più lezione)</td></tr>
-    <tr><th>Può avere un'ora buca</th>${segno(k.ora_buca_possibile)}<td class="nota">solo dopo le ore obbligatorie</td></tr>
+    <tr><th>Può avere un'ora buca</th>${segno(k.ora_buca_possibile)}<td class="nota">solo dopo le ore obbligatorie, e se le
+      ${k.ore_rimanenti} ore che le restano stanno nei ${k.posti_nei_giorni_dopo} posti dei giorni dopo (se no la lezione è tassativa)</td></tr>
   </tbody></table>`;
   // la coda
   h += `<h3>La coda di priorità</h3><p class="nota">L'ordine in cui la ricerca prova i docenti: prima chi ha più ore ancora
