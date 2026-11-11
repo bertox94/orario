@@ -114,9 +114,7 @@ int esegui_caso(const unsigned long long int seme, const int classi, const int r
     print_orario(0);
     passi_chiudi();
     esito = trovato ? "trovato" : fermato ? "limite di nodi" : "nessuna soluzione";
-    // l'orario trovato e' la foto (fatta quando la ricerca ha deciso l'ultima cella): finita la ricerca orario[]
-    // non lo contiene piu', perche' tornando indietro le celle vengono riscritte
-    if (trovato) verificato = verifica_orario(foto, verifica);
+    if (trovato) verificato = verifica_orario(orario, verifica);
     if (!trovato && !fermato) foto_pos = 0;  // nessuna soluzione: non resta niente da mostrare
     scrivi_stato(0);
     return 0;

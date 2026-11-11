@@ -9,7 +9,7 @@
 
 extern teaching_slot orario[];
 extern int orario_len;
-extern int trovato;                 // l'orario e' completo
+extern int trovato;                 // l'orario e' completo: e' in orario[]
 
 // Il conto dei nodi (le chiamate di print_orario) e i limiti: non cambiano la ricerca, la fermano soltanto.
 extern long long int nodi;          // nodi visitati
@@ -20,7 +20,9 @@ extern int pos_max;                 // la cella piu' avanti raggiunta
 // fino a pos - 1 (per seguirla dal sito, vedi caso.c). Non cambia la ricerca.
 extern void (*ogni_nodo)(int pos);
 
-// Decide la cella pos e scende alle celle dopo (print_orario(0): tutto l'orario).
-void print_orario(int pos);
+// Decide la cella pos e scende alle celle dopo (print_orario(0): tutto l'orario). Ritorna 1 se la ricerca e' finita
+// (trovato o fermato dicono come): allora orario[] e' l'orario trovato, o quello del nodo dove si e' fermata.
+// Ritorna 0 se non c'e' nessun orario.
+int print_orario(int pos);
 
 #endif //UNTITLED_RICERCA_H

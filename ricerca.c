@@ -4,8 +4,9 @@
 // La cella pos e' giorno = pos / (ore * classi), ora = (pos / classi) % ore, classe = pos % classi.
 // print_orario(pos) decide la cella pos e scende a pos + 1: prova, nell'ordine della coda dei docenti (chi ha piu' ore
 // da fare prima), ogni docente in coppia con un altro (una codocenza) e poi da solo; dopo le ore obbligatorie prova
-// anche l'ora buca. Quando tutte le celle sono decise (pos == orario_len) l'orario e' completo: si stampa in
-// la ricerca finisce (si cerca un orario solo): l'orario resta in orario[]. La lanciano main.c, prove.c e caso.c.
+// anche l'ora buca. Quando tutte le celle sono decise (pos == orario_len) l'orario e' completo e la ricerca finisce
+// (si cerca un orario solo): print_orario ritorna 1 e chi l'ha chiamata ritorna subito anche lui, senza provare
+// altro, cosi' l'orario trovato resta in orario[]. La lanciano main.c, prove.c e caso.c.
 
 #include <assert.h>
 #include <stdio.h>
@@ -273,12 +274,13 @@ void segna_coppia(const Cella *c, QueueItem *it, QueueItem *jt, const int delta)
 
 // ---- la ricerca ----
 
-void print_orario(int pos);
+int print_orario(int pos);
 
 // Prova tutte le lezioni possibili in questa cella, nell'ordine della coda: ogni docente (ii) prima in coppia con
 // ognuno di quelli dopo di lui nella coda (jj) con cui ha ore insieme qui, poi da solo. In una coppia il docente della
 // lezione puo' essere tanto ii quanto jj: la coppia si prova una volta sola, quando si arriva al primo dei due.
-static void prova_lezioni(const Cella *c) {
+// Ritorna 1 se la ricerca e' finita (vedi print_orario): allora non si prova altro e non si toglie niente.
+static int prova_lezioni(const Cella *c) {
     const int fine = c->base4d_queue + queue_sz;
     ore_classe_svolte[c->cla]++;  // la lezione di questa cella conta gia' tra le ore della classe
     for (int ii = c->base4d_queue; ii < fine; ii++) {
@@ -291,52 +293,50 @@ static void prova_lezioni(const Cella *c) {
             if (!secondo_della_coppia_puo_insegnare(c, p1, p2)) continue;
             segna_coppia(c, it, jt, 1);
             orario[c->pos] = (teaching_slot){p1, p2};
-            print_orario(c->pos + 1);
+            if (print_orario(c->pos + 1)) return 1;
             segna_coppia(c, it, jt, -1);
         }
         if (docente_puo_insegnare_da_solo(c, p1)) {
             segna_da_solo(c, it, 1);
             orario[c->pos] = (teaching_slot){p1, -1};
-            print_orario(c->pos + 1);
+            if (print_orario(c->pos + 1)) return 1;
             segna_da_solo(c, it, -1);
         }
     }
     ore_classe_svolte[c->cla]--;
+    return 0;
 }
 
-// L'ora buca: da li' la classe non ha piu' lezione oggi.
-static void prova_ora_buca(const Cella *c) {
+// L'ora buca: da li' la classe non ha piu' lezione oggi. Ritorna 1 se la ricerca e' finita.
+static int prova_ora_buca(const Cella *c) {
     orario[c->pos] = (teaching_slot){-1, -1};
     n_ore_buche[c->giorno * CLASSE_SEZIONE_SZ + c->cla]++;
-    print_orario(c->pos + 1);
+    if (print_orario(c->pos + 1)) return 1;
     n_ore_buche[c->giorno * CLASSE_SEZIONE_SZ + c->cla]--;
+    return 0;
 }
 
-void print_orario(const int pos) {
-    if (trovato || fermato) return;
+// Decide la cella pos e scende alle celle dopo. Ritorna 1 se la ricerca e' finita: l'orario e' completo (trovato) o
+// si e' arrivati al limite di nodi (fermato). Ritorna 0 se in questa cella non c'e' piu' niente da provare: chi l'ha
+// chiamata toglie la sua scelta e prova la successiva (si torna indietro).
+int print_orario(const int pos) {
     if (limite_nodi && nodi >= limite_nodi) {  // il limite di nodi: la ricerca si ferma qui
         fermato = 1;
-        return;
+        return 1;
     }
     nodi++;
     if (pos > pos_max) pos_max = pos;
     if (ogni_nodo) ogni_nodo(pos);
     if (pos == orario_len) {  // tutte le celle decise: l'orario e' completo
         trovato = 1;
-        return;
+        return 1;
     }
     const Cella c = cella(pos);
     sort_queue_mul(c.base4d_queue, queue_sz);
-    switch (stato_della_classe(&c)) {  // finite le prove di questa cella si torna indietro
-        case DEVE_FARE_ATTIVITA:
-            prova_lezioni(&c);
-            break;
-        case PUO_FARE_ATTIVITA:
-            prova_lezioni(&c);
-            prova_ora_buca(&c);
-            break;
-        case NON_PUO_FARE_ATTIVITA:
-            prova_ora_buca(&c);
-            break;
+    switch (stato_della_classe(&c)) {
+        case DEVE_FARE_ATTIVITA: return prova_lezioni(&c);
+        case PUO_FARE_ATTIVITA: return prova_lezioni(&c) || prova_ora_buca(&c);
+        case NON_PUO_FARE_ATTIVITA: return prova_ora_buca(&c);
     }
+    return 0;
 }
