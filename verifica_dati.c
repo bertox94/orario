@@ -173,13 +173,28 @@ static int classe_ore_obbligatorie(void) {
 
 // 5. Ora per ora. A un'ora obbligatoria ogni classe ha lezione e ogni lezione ha almeno un docente tutto suo: i
 // docenti gia' entrati a quell'ora (tra quelli che hanno lezioni) devono essere almeno quante le classi.
+// Il motivo: una frase, e sotto i nomi dei docenti gia' entrati a quell'ora e una frase per gli altri.
 static int docenti_entrati_a_ogni_ora(void) {
+    const int C = actual_classi_sezione;
     for (int h = 0; h < MIN(PRIME_N_ORE_OBBLIGATORIE, actual_ore_giornaliere); h++) {
-        int entrati = 0;
-        for (int p = 0; p < actual_insegnanti; p++) entrati += ingresso(p) <= h && ore_in_tutto(p) > 0;
-        if (entrati >= actual_classi_sezione) continue;
-        snprintf(errore, dimensione, "alle %s sono entrati solo %d docenti, ma le classi sono %d e l'ora è obbligatoria",
-                 ore_giornaliere[h], entrati, actual_classi_sezione);
+        int entrati = 0, docenti = 0;  // docenti: quelli che hanno lezioni
+        for (int p = 0; p < actual_insegnanti; p++) {
+            if (!ore_in_tutto(p)) continue;
+            docenti++;
+            entrati += ingresso(p) <= h;
+        }
+        if (entrati >= C) continue;
+        // la causa: i ritardi, se qualcuno deve ancora entrare; se no i docenti sono proprio pochi
+        int n = snprintf(errore, dimensione, "Alle %s, %s, ci sono solo %d docenti per %d classi: almeno %d "
+                         "%s senza docente", ore_giornaliere[h], entrati < docenti ? "a causa delle entrate in ritardo"
+                                                                         : "perché i docenti sono pochi",
+                         entrati, C, C - entrati, C - entrati == 1 ? "classe resta" : "classi restano");
+        for (int p = 0; p < actual_insegnanti && n > 0 && (size_t) n < dimensione; p++)
+            if (ore_in_tutto(p) && ingresso(p) <= h) n += snprintf(errore + n, dimensione - n, "\n- %s", insegnanti[p]);
+        if (entrati < docenti && n > 0 && (size_t) n < dimensione)
+            snprintf(errore + n, dimensione - n, entrati ? "\nGli altri alle %s non sono ancora entrati."
+                                                         : "\nNessun docente alle %s è già entrato.",
+                     ore_giornaliere[h]);
         return 0;
     }
     return 1;
