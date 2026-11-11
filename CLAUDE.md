@@ -25,7 +25,9 @@ codice e messaggi di commit sono in italiano.
 - Prima di ogni commit che tocca il solver: `python3 tests/non_regressione.py` deve finire con «tutto come atteso»
   (confronta esito, nodi e l'impronta di ogni passo su 14 casi, alcuni fermati dalla verifica dei dati). Dopo una modifica voluta alla ricerca:
   `python3 tests/non_regressione.py --aggiorna`, e dirlo nel commit.
-- Le modifiche si fanno in un ramo e si portano in `main` con una PR; unire solo quando Alb lo dice.
+- Le modifiche si fanno in un ramo e si portano in `main` con una PR. Quando Alb ha dato l'«ok» a una modifica (dopo
+  la proposta o la discussione del codice, vedi sotto), la PR si unisce subito in `main`, senza aspettare un secondo
+  «unisci» (richiesta di Alb dell'11 novembre 2026). Senza il suo «ok» non si unisce niente.
 - Come si lavora (richiesta di Alb del 10 novembre 2026):
   - controlli nuovi: si fanno le modifiche in locale, si mostra il codice ad Alb e se ne discute; il push solo dopo;
   - altri lavori: prima una proposta di modifica, il commit quando Alb è d'accordo;
