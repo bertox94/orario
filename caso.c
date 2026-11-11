@@ -26,15 +26,6 @@ typedef struct {
     Passi *passi;  // il file dei passi (NULL: non chiesto)
 } Caso;
 
-static void elenco(FILE *f, const char *campo, const char nomi[][MAX_LEN_WORDS], const int n) {
-    fprintf(f, ",\"%s\":[", campo);
-    for (int i = 0; i < n; i++) {
-        if (i) fputc(',', f);
-        json_stringa(f, nomi[i]);
-    }
-    fputc(']', f);
-}
-
 // Lo stato del caso su file (vedi caso.h). r e' la ricerca, o NULL se non e' partita.
 static void scrivi_stato(const Caso *k, const Scuola *s, const Ricerca *r, const int in_corso) {
     char provvisorio[1024];
@@ -61,16 +52,16 @@ static void scrivi_stato(const Caso *k, const Scuola *s, const Ricerca *r, const
     fprintf(f, ",\"nodi\":%lld,\"secondi\":%.2f,\"pos\":%d,\"pos_max\":%d,\"celle\":%d", r ? r->nodi : 0,
             (clock() - k->inizio) / (double) CLOCKS_PER_SEC, k->foto_pos, r ? r->pos_max : 0,
             s->actual_giorni_settimana * s->actual_ore_giornaliere * s->actual_classi_sezione);
-    elenco(f, "giorni", s->giorni_settimana, s->actual_giorni_settimana);
-    elenco(f, "ore", s->ore_giornaliere, s->actual_ore_giornaliere);
-    elenco(f, "classi", s->classe_sezione, s->actual_classi_sezione);
+    fputs(",\"giorni\":", f);
+    json_nomi(f, s->giorni_settimana, s->actual_giorni_settimana);
+    fputs(",\"ore\":", f);
+    json_nomi(f, s->ore_giornaliere, s->actual_ore_giornaliere);
+    fputs(",\"classi\":", f);
+    json_nomi(f, s->classe_sezione, s->actual_classi_sezione);
     fputs(",\"orario\":[", f);
     for (int i = 0; i < k->foto_pos; i++) {
-        fputs(i ? ",[" : "[", f);
-        json_nome(f, k->foto[i].insegnante1 < 0 ? NULL : s->insegnanti[k->foto[i].insegnante1]);
-        fputc(',', f);
-        json_nome(f, k->foto[i].insegnante2 < 0 ? NULL : s->insegnanti[k->foto[i].insegnante2]);
-        fputc(']', f);
+        if (i) fputc(',', f);
+        json_cella(f, s, k->foto[i]);
     }
     fputs("]}\n", f);
     fclose(f);

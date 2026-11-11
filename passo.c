@@ -46,11 +46,8 @@ int stampa_passo(const unsigned long long int seme, const int classi, const int 
     else printf("%d", prima);
     printf(",\"orario\":[");
     for (int i = 0; i < pos; i++) {
-        printf(i ? ",[" : "[");
-        json_nome(stdout, r->orario[i].insegnante1 < 0 ? NULL : s->insegnanti[r->orario[i].insegnante1]);
-        putchar(',');
-        json_nome(stdout, r->orario[i].insegnante2 < 0 ? NULL : s->insegnanti[r->orario[i].insegnante2]);
-        putchar(']');
+        if (i) putchar(',');
+        json_cella(stdout, s, r->orario[i]);
     }
     putchar(']');
     if (pos >= r->orario_len) {  // orario completo: nessuna cella da decidere

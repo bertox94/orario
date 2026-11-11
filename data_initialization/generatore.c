@@ -186,17 +186,11 @@ int genera_dati_casuali(Scuola *s, const unsigned long long int seme, const int 
 // Il caso gen in JSON su stdout: le lezioni come sono state generate (classe, docente, ore e, se c'e', codocente e ore
 // insieme), classe per classe, e le ore di ingresso di chi entra tardi.
 static void stampa(const Generatore *gen, const Scuola *s) {
-    printf("{\"giorni\":[");
-    for (int g = 0; g < s->actual_giorni_settimana; g++) {
-        if (g) putchar(',');
-        json_stringa(stdout, s->giorni_settimana[g]);
-    }
-    printf("],\"ore\":[");
-    for (int h = 0; h < s->actual_ore_giornaliere; h++) {
-        if (h) putchar(',');
-        json_stringa(stdout, s->ore_giornaliere[h]);
-    }
-    printf("],\"lezioni\":[");
+    printf("{\"giorni\":");
+    json_nomi(stdout, s->giorni_settimana, s->actual_giorni_settimana);
+    printf(",\"ore\":");
+    json_nomi(stdout, s->ore_giornaliere, s->actual_ore_giornaliere);
+    printf(",\"lezioni\":[");
     char nome[MAX_LEN_WORDS];
     int scritte = 0;
     for (int c = 0; c < s->actual_classi_sezione; c++)
