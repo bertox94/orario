@@ -18,6 +18,9 @@
 
 #define MAX_LEN_WORDS 50
 
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
 #define PRIME_N_ORE_OBBLIGATORIE 5                      // le prime 5 ore di ogni giorno hanno sempre lezione
 #define MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO 3    // un docente insegna al massimo in 3 classi al giorno
 #define MAX_ORE_PROF_IN_UNA_CLASSE 3                    // e al massimo 3 ore al giorno nella stessa classe

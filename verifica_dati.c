@@ -12,9 +12,6 @@
 // massimo MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO (3) classi al giorno; le prime PRIME_N_ORE_OBBLIGATORIE (5) ore
 // di ogni giorno ogni classe ha lezione.
 
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
-
 // ---- i dati, come servono ai controlli ----
 
 // l'ora (indice) da cui il docente p e' a scuola: 0 la prima

@@ -17,8 +17,6 @@
 #include "ricerca.h"
 #include "vincoli.h"
 
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-
 // ---- creare la ricerca ----
 
 Ricerca *nuova_ricerca(const Scuola *s) {
@@ -65,6 +63,7 @@ Cella cella(const Ricerca *r, const int pos) {
                .cla = pos % s->actual_classi_sezione};
     c.base2d_ci = c.cla * INSEGNANTE_SZ;
     c.base3d_goi = c.giorno * ORA_GIORNALIERA_SZ * INSEGNANTE_SZ + c.ora * INSEGNANTE_SZ;
+    c.base2d_gc = c.giorno * CLASSE_SEZIONE_SZ + c.cla;
     c.base3d_gci = c.giorno * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ + c.cla * INSEGNANTE_SZ;
     c.coda = &r->queue_mul[pos * r->queue_sz];
     c.n_coda = r->queue_sz_classe[c.cla];
@@ -83,18 +82,22 @@ int ore_rimaste_alla_classe(const Ricerca *r, const Cella *c) {
     return r->scuola->ore_classi[c->cla] - r->ore_classe_svolte[c->cla];
 }
 
+// Le celle obbligatorie (le prime PRIME_N_ORE_OBBLIGATORIE ore di ogni giorno) che la classe deve ancora riempire,
+// contando questa. Prima di questa cella ce ne sono giorno * PRIME_N_ORE_OBBLIGATORIE + ora (oggi); dopo l'ultima ora
+// obbligatoria il conto si ferma a PRIME_N_ORE_OBBLIGATORIE - 1: cosi' in un'ora facoltativa risulta una cella in
+// piu', quella che una lezione qui consumerebbe senza riempirne una obbligatoria.
+int celle_obbligatorie_rimaste(const Ricerca *r, const Cella *c) {
+    const int prima = c->giorno * PRIME_N_ORE_OBBLIGATORIE + MIN(c->ora, PRIME_N_ORE_OBBLIGATORIE - 1);
+    return PRIME_N_ORE_OBBLIGATORIE * r->scuola->actual_giorni_settimana - prima;
+}
+
 // La classe puo' avere lezione in questa cella?
-// - le ore che le restano (contando questa) devono bastare per le celle obbligatorie che restano: le prime
-//   PRIME_N_ORE_OBBLIGATORIE ore di ogni giorno. Prima di questa cella ce ne sono giorno * PRIME_N_ORE_OBBLIGATORIE
-//   + ora (oggi); dopo l'ultima ora obbligatoria il conto si ferma a PRIME_N_ORE_OBBLIGATORIE - 1, cosi' una lezione
-//   in un'ora facoltativa lascia almeno un'ora per ognuna delle celle obbligatorie dei giorni dopo;
+// - le ore che le restano (contando questa) devono bastare per le celle obbligatorie che restano: una lezione in
+//   un'ora facoltativa deve lasciare almeno un'ora per ognuna delle celle obbligatorie dei giorni dopo;
 // - dopo un'ora buca la giornata della classe e' finita.
 int activities_for_this_class_and_hour(const Ricerca *r, const Cella *c) {
-    const int ore_rimanenti = ore_rimaste_alla_classe(r, c);
-    const int slot_obbligatori_prima = c->giorno * PRIME_N_ORE_OBBLIGATORIE + MIN(c->ora, PRIME_N_ORE_OBBLIGATORIE - 1);
-    const int slot_mancanti = PRIME_N_ORE_OBBLIGATORIE * r->scuola->actual_giorni_settimana - slot_obbligatori_prima;
-    if (ore_rimanenti < slot_mancanti) return 0;
-    return r->n_ore_buche[c->giorno * CLASSE_SEZIONE_SZ + c->cla] == 0;
+    if (ore_rimaste_alla_classe(r, c) < celle_obbligatorie_rimaste(r, c)) return 0;
+    return r->n_ore_buche[c->base2d_gc] == 0;
 }
 
 // I posti che restano alla classe nei giorni dopo oggi: tutte le ore, obbligatorie e no.
@@ -133,7 +136,7 @@ int prof_è_disponibile(const Ricerca *r, const Cella *c, const int p) {
 
 // ha ancora ore da fare in questa classe
 int deve_ancora_svolgere_ore_in_questa_classe(const Ricerca *r, const Cella *c, const int p) {
-    return r->ore_classi_docenti_svolte[c->base2d_ci + p] < r->scuola->ore_classi_docenti[c->base2d_ci + p];
+    return ore_rimaste(r, c, p) > 0;
 }
 
 // oggi in questa classe ha fatto meno di MAX_ORE_PROF_IN_UNA_CLASSE ore
@@ -306,9 +309,9 @@ static int prova_lezioni(Ricerca *r, const Cella *c) {
 // L'ora buca: da li' la classe non ha piu' lezione oggi. Ritorna 1 se la ricerca e' finita.
 static int prova_ora_buca(Ricerca *r, const Cella *c) {
     r->orario[c->pos] = (teaching_slot){-1, -1};
-    r->n_ore_buche[c->giorno * CLASSE_SEZIONE_SZ + c->cla]++;
+    r->n_ore_buche[c->base2d_gc]++;
     if (print_orario(r, c->pos + 1)) return 1;
-    r->n_ore_buche[c->giorno * CLASSE_SEZIONE_SZ + c->cla]--;
+    r->n_ore_buche[c->base2d_gc]--;
     return 0;
 }
 

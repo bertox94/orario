@@ -11,6 +11,7 @@ typedef struct {
     int pos, giorno, ora, cla;
     int base2d_ci;     // classe, docente: ore_classi_docenti[base2d_ci + p] e simili
     int base3d_goi;    // giorno, ora, docente: prof_gia_impegnato_giorno_ora[base3d_goi + p]
+    int base2d_gc;     // giorno, classe: n_ore_buche[base2d_gc]
     int base3d_gci;    // giorno, classe, docente: ore_fatte_da_un_prof_in_una_classe_in_giorno[base3d_gci + p]
     QueueItem **coda;  // la coda di questa cella: i docenti della classe
     int n_coda;        // quanti sono
@@ -23,6 +24,8 @@ int ore_rimaste(const Ricerca *r, const Cella *c, int p);
 // i controlli della classe
 // le ore che la classe deve ancora fare, contando questa cella
 int ore_rimaste_alla_classe(const Ricerca *r, const Cella *c);
+// le celle obbligatorie che la classe deve ancora riempire, contando questa
+int celle_obbligatorie_rimaste(const Ricerca *r, const Cella *c);
 // la classe puo' avere lezione in questa cella
 int activities_for_this_class_and_hour(const Ricerca *r, const Cella *c);
 // i posti che restano alla classe nei giorni dopo oggi

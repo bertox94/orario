@@ -13,7 +13,7 @@ static void rimetti_stato(Ricerca *r, const int pos) {
         const Cella c = cella(r, i);
         const teaching_slot t = r->orario[i];
         if (t.insegnante1 < 0) {
-            r->n_ore_buche[c.giorno * CLASSE_SEZIONE_SZ + c.cla]++;
+            r->n_ore_buche[c.base2d_gc]++;
             continue;
         }
         r->ore_classe_svolte[c.cla]++;
@@ -73,10 +73,8 @@ int stampa_passo(const unsigned long long int seme, const int classi, const int 
            "\"posti_nei_giorni_dopo\":%d}",
            stati[stato_della_classe(r, &c)], lezione,
            ore_rimaste_alla_classe(r, &c),
-           PRIME_N_ORE_OBBLIGATORIE * s->actual_giorni_settimana
-           - (c.giorno * PRIME_N_ORE_OBBLIGATORIE
-              + (c.ora < PRIME_N_ORE_OBBLIGATORIE - 1 ? c.ora : PRIME_N_ORE_OBBLIGATORIE - 1)),
-           r->n_ore_buche[c.giorno * CLASSE_SEZIONE_SZ + c.cla], la_classe_puo_avere_ora_buca(r, &c),
+           celle_obbligatorie_rimaste(r, &c),
+           r->n_ore_buche[c.base2d_gc], la_classe_puo_avere_ora_buca(r, &c),
            posti_nei_giorni_dopo(r, &c));
 
     // la coda, in ordine
