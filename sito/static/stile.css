@@ -56,6 +56,10 @@ table.orario col.col-classe { width: 64px; }
 table.orario col.col-cella { width: 92px; }
 table.orario td { height: 40px; padding: 2px 5px; line-height: 16px; overflow: hidden; box-sizing: border-box; }
 table.orario .riga { display: block; height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* l'orario visto dai docenti: una riga per docente, il nome in una colonna piu' larga; tratteggiate le ore prima
+   del suo ingresso */
+table.orario.docenti col.col-classe { width: 120px; }
+table.orario td.non-entrato { background: repeating-linear-gradient(45deg, #fff, #fff 4px, var(--riga) 4px, var(--riga) 5px); }
 /* le codocenze: il grafo e l'elenco delle coppie */
 .codocenze { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
 svg.grafo { width: 100%; max-width: 560px; height: auto; background: #fff; border: 1px solid var(--riga); }
