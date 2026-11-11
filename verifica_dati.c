@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-// La verifica dei dati (vedi verifica_dati.h): cinque controlli, uno per funzione, nell'ordine in cui si fanno. Ognuno
+// La verifica dei dati (vedi verifica_dati.h): sei controlli, uno per funzione, nell'ordine in cui si fanno. Ognuno
 // ritorna 1 se i dati lo passano; se no scrive il motivo in errore e ritorna 0. Leggono soltanto i dati.
 //
 // Le regole della ricerca su cui si basano (vincoli.h): un docente e' in una sola classe per volta, non insegna prima
@@ -97,6 +97,19 @@ static int le_classi_del_docente_stanno_in_tre_al_giorno(void) {
     return 1;
 }
 
+// 4. Una classe in tutto. Ha una lezione per volta: le sue ore devono stare nelle G x O ore della settimana. (Senza
+// questo la ricerca arriverebbe in fondo con delle ore ancora da mettere.)
+static int le_ore_della_classe_stanno_nella_settimana(void) {
+    const int posti = actual_giorni_settimana * actual_ore_giornaliere;
+    for (int c = 0; c < actual_classi_sezione; c++) {
+        if (ore_classi[c] <= posti) continue;
+        snprintf(errore, dimensione, "%s: %d ore, ma in una settimana ce ne stanno al massimo %d (%d al giorno per %d "
+                 "giorni)", classe_sezione[c], ore_classi[c], posti, actual_ore_giornaliere, actual_giorni_settimana);
+        return 0;
+    }
+    return 1;
+}
+
 // Quante lezioni puo' fare in una settimana, tra la prima ora e l'ora h, un docente da solo o una coppia che ha `ore`
 // ore nella classe ed entra all'ora `entra` (per una coppia: chi dei due entra piu' tardi): ogni giorno le ore tra
 // l'ingresso e h, al massimo 3, e in tutto non piu' delle sue ore.
@@ -144,7 +157,7 @@ static int lezioni_possibili(const int c, const int h, char *dati, const size_t 
     return possibili;
 }
 
-// 4. Una classe e le ore obbligatorie. Per ogni ora obbligatoria h la classe ha lezione dalla prima ora fino ad h
+// 5. Una classe e le ore obbligatorie. Per ogni ora obbligatoria h la classe ha lezione dalla prima ora fino ad h
 // tutti i giorni: (h + 1) x G celle da riempire. Se le lezioni possibili (lezioni_possibili) non bastano, qualche
 // cella resta senza docente. E' il controllo che scarta i casi con molti docenti che entrano tardi.
 // Il motivo: una frase, e sotto i numeri di ogni docente e di ogni coppia della classe (le sue ore, da quando c'e',
@@ -171,7 +184,7 @@ static int le_lezioni_bastano_per_le_ore_obbligatorie(void) {
     return 1;
 }
 
-// 5. Ora per ora. A un'ora obbligatoria ogni classe ha lezione e ogni lezione ha almeno un docente tutto suo: i
+// 6. Ora per ora. A un'ora obbligatoria ogni classe ha lezione e ogni lezione ha almeno un docente tutto suo: i
 // docenti gia' entrati a quell'ora (tra quelli che hanno lezioni) devono essere almeno quante le classi.
 // Il motivo: una frase, e sotto i nomi dei docenti gia' entrati a quell'ora e una frase per gli altri.
 static int i_docenti_entrati_bastano_per_le_classi(void) {
@@ -200,13 +213,14 @@ static int i_docenti_entrati_bastano_per_le_classi(void) {
     return 1;
 }
 
-// I cinque controlli in ordine: si ferma al primo che non vale, con il suo motivo in testo.
+// I sei controlli in ordine: si ferma al primo che non vale, con il suo motivo in testo.
 int verifica_dati(char *testo, const size_t lunghezza) {
     errore = testo;
     dimensione = lunghezza;
     return le_ore_del_docente_in_una_classe_stanno_nella_settimana()
            && le_ore_del_docente_stanno_nella_settimana()
            && le_classi_del_docente_stanno_in_tre_al_giorno()
+           && le_ore_della_classe_stanno_nella_settimana()
            && le_lezioni_bastano_per_le_ore_obbligatorie()
            && i_docenti_entrati_bastano_per_le_classi();
 }
