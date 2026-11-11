@@ -16,6 +16,8 @@ add_executable(untitled main.c
         data_initialization/generatore.c
         verifica_dati.h
         verifica_dati.c
+        verifica_orario.h
+        verifica_orario.c
         ricerca.h
         ricerca.c
         caso.h

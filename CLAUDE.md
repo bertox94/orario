@@ -13,6 +13,8 @@ codice e messaggi di commit sono in italiano.
     `passi.c`).
   Prima della ricerca, `verifica_dati.c` (richiesta di Alb del 10 novembre 2026): cinque controlli sui dati, condizioni
   necessarie; se uno non vale la ricerca non parte («errore nei dati», con il motivo); le prove saltano i casi che non la passano.
+  Dopo la ricerca, `verifica_orario.c` (richiesta di Alb dell'11 novembre 2026): ricontrolla l'orario trovato senza
+  usare niente della ricerca (otto controlli); l'esito va nello stato del test (`verifica`).
   Il solver scrive solo quello che serve al sito: niente `orario.txt`, niente stampe in più.
 - **Il sito** (`sito/`, Flask, senza login né database): test in tempo reale, storico, la ricerca passo per passo con
   i controlli di ogni cella. Mostra soltanto: dati, passi e controlli li calcola il solver. Vedi `sito/LEGGIMI.md`.

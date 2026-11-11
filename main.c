@@ -18,7 +18,16 @@
 #include "caso.h"
 #include "passo.h"
 #include "verifica_dati.h"
+#include "verifica_orario.h"
 #include "data_initialization/generatore.h"
+
+// L'orario trovato, copiato quando la ricerca ha deciso l'ultima cella (finita la ricerca orario[] non lo contiene
+// piu': tornando indietro le celle vengono riscritte). Serve alla verifica indipendente.
+static teaching_slot orario_trovato[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ];
+
+static void copia_orario_trovato(const int pos) {
+    if (pos == orario_len) memcpy(orario_trovato, orario, sizeof(teaching_slot) * orario_len);
+}
 
 int main(const int argc, char **argv) {
     if (argc > 1 && !strcmp(argv[1], "test")) {  // le prove con i dati casuali
@@ -62,9 +71,18 @@ int main(const int argc, char **argv) {
         printf("Errore nei dati: %s\n", errore);
         return 1;
     }
+    ogni_nodo = copia_orario_trovato;
     print_orario(0);
 
     const double secondi = (clock() - inizio) / (double) CLOCKS_PER_SEC;
     printf(trovato ? "Orario trovato in %.2f s\n" : "Nessun orario possibile (%.2f s)\n", secondi);
+    if (trovato) {  // la verifica indipendente: non stampa niente se l'orario e' valido
+        ControlloOrario k[VERIFICA_ORARIO_CONTROLLI];
+        if (!verifica_orario(orario_trovato, k)) {
+            for (int i = 0; i < VERIFICA_ORARIO_CONTROLLI; i++)
+                if (!k[i].ok) printf("ORARIO NON VALIDO: %s (%s)\n", k[i].nome, k[i].dettaglio);
+            return 1;
+        }
+    }
     return 0;
 }
