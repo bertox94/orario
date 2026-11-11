@@ -124,4 +124,4 @@ table.controlli td.vuoto { color: var(--bordo); text-align: center; }
 table.controlli tr.docente td { border-top: 1px solid var(--bordo); }
 table.controlli td.esito-cella { white-space: nowrap; }
 
-.errore-dati { color: var(--male); background: #fdecea; padding: 8px 12px; border-radius: 6px; max-width: 900px; }
+.errore-dati { white-space: pre-line; color: var(--male); background: #fdecea; padding: 8px 12px; border-radius: 6px; max-width: 900px; }

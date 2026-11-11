@@ -104,30 +104,67 @@ static int lezioni_fino_a(const int ore, const int entra, const int h) {
     return MIN(ore, actual_giorni_settimana * MIN(MAX_ORE_PROF_IN_UNA_CLASSE, MAX(0, h + 1 - entra)));
 }
 
+// Le lezioni che i docenti della classe c possono fare in una settimana tra la prima ora e l'ora h: la somma di
+// lezioni_fino_a per ogni docente da solo (le sue ore senza codocente) e per ogni coppia (le ore insieme; entra quando
+// entra il piu' tardivo dei due). Con dati != NULL scrive anche i numeri: una riga per ogni docente o coppia che
+// in quelle ore puo' fare almeno una lezione, e in fondo una frase per gli altri (hanno ore nella classe ma in quelle
+// ore non sono ancora entrati: e' l'unico modo di non poterne fare nessuna). In per_i_ritardi (se non e' NULL) mette 1
+// quando almeno uno ne farebbe di piu' entrando alla prima ora: se resta 0, i ritardi non c'entrano.
+static int lezioni_possibili(const int c, const int h, char *dati, const size_t n, int *per_i_ritardi) {
+    int possibili = 0, con_ore = 0, non_entrati = 0;
+    size_t scritti = 0;
+    for (int p = 0; p < actual_insegnanti; p++) {
+        if (!ore_in_classe(c, p)) continue;  // non e' un docente di questa classe
+        for (int q = p; q < actual_insegnanti; q++) {  // q == p: il docente da solo; q > p: la coppia p, q
+            const int ore = q == p ? ore_classi_docenti_alone[c * INSEGNANTE_SZ + p]
+                                   : get_ore_insegnanti_codocenza_in_una_classe(c, p, q);
+            if (!ore) continue;
+            const int tardi = ingresso(q) > ingresso(p) ? q : p;  // chi dei due entra piu' tardi
+            const int fa = lezioni_fino_a(ore, ingresso(tardi), h);
+            possibili += fa;
+            if (per_i_ritardi && fa < lezioni_fino_a(ore, 0, h)) *per_i_ritardi = 1;  // senza ritardo ne farebbe di piu'
+            if (fa) con_ore++;
+            else non_entrati++;
+            if (!dati || !fa || scritti >= n) continue;  // nei numeri solo chi puo' fare almeno un'ora
+            char chi[2 * MAX_LEN_WORDS + 10], entra[2 * MAX_LEN_WORDS + 20];
+            if (q == p) snprintf(chi, sizeof chi, "%s da solo", insegnanti[p]);
+            else snprintf(chi, sizeof chi, "%s con %s", insegnanti[p], insegnanti[q]);
+            if (!ingresso(tardi)) snprintf(entra, sizeof entra, "dalla prima ora");
+            else if (q == p) snprintf(entra, sizeof entra, "entra alle %s", ore_giornaliere[ingresso(p)]);
+            else snprintf(entra, sizeof entra, "%s entra alle %s", insegnanti[tardi], ore_giornaliere[ingresso(tardi)]);
+            scritti += snprintf(dati + scritti, n - scritti, "\n- %s: %d %s, %s: ne può fare %d", chi, ore,
+                                ore == 1 ? "ora" : "ore", entra, fa);
+        }
+    }
+    if (dati && non_entrati && scritti < n) {
+        const char *quando = h ? "in queste ore" : "alla prima ora";
+        if (con_ore) snprintf(dati + scritti, n - scritti, "\nGli altri %s non sono ancora entrati.", quando);
+        else snprintf(dati + scritti, n - scritti, "\nNessuno dei suoi docenti %s è già entrato.", quando);
+    }
+    return possibili;
+}
+
 // 4. Una classe e le ore obbligatorie. Per ogni ora obbligatoria h la classe ha lezione dalla prima ora fino ad h
-// tutti i giorni: (h + 1) x G celle da riempire. Le lezioni che possono starci sono la somma di lezioni_fino_a per
-// ogni docente da solo (le sue ore senza codocente) e per ogni coppia (le ore insieme): se non bastano, qualche cella
-// resta senza docente. E' il controllo che scarta i casi con molti docenti che entrano tardi.
+// tutti i giorni: (h + 1) x G celle da riempire. Se le lezioni possibili (lezioni_possibili) non bastano, qualche
+// cella resta senza docente. E' il controllo che scarta i casi con molti docenti che entrano tardi.
+// Il motivo: una frase, e sotto i numeri di ogni docente e di ogni coppia della classe (le sue ore, da quando c'e',
+// quante ne puo' fare in quelle ore).
 static int classe_ore_obbligatorie(void) {
     const int G = actual_giorni_settimana;
     for (int c = 0; c < actual_classi_sezione; c++) {
         for (int h = 0; h < MIN(PRIME_N_ORE_OBBLIGATORIE, actual_ore_giornaliere); h++) {
-            int possibili = 0;
-            for (int p = 0; p < actual_insegnanti; p++) {
-                if (!ore_in_classe(c, p)) continue;  // non e' un docente di questa classe
-                possibili += lezioni_fino_a(ore_classi_docenti_alone[c * INSEGNANTE_SZ + p], ingresso(p), h);
-                for (int q = p + 1; q < actual_insegnanti; q++)
-                    possibili += lezioni_fino_a(get_ore_insegnanti_codocenza_in_una_classe(c, p, q),
-                                                MAX(ingresso(p), ingresso(q)), h);
-            }
+            int ritardi = 0;  // la causa: i ritardi, o (se entrando tutti alla prima ora non cambia niente) le poche ore
+            const int possibili = lezioni_possibili(c, h, NULL, 0, &ritardi);
             if (possibili >= (h + 1) * G) continue;
-            // nel messaggio: «alle 08» per la prima ora, «dalle 08 alle 10» per le altre
-            char quando[2 * MAX_LEN_WORDS + 20];
-            if (h) snprintf(quando, sizeof quando, "dalle %s alle %s", ore_giornaliere[0], ore_giornaliere[h]);
-            else snprintf(quando, sizeof quando, "alle %s", ore_giornaliere[0]);
-            snprintf(errore, dimensione, "%s: %s servono %d lezioni in una settimana (%d al giorno), ma con le ore e "
-                     "gli ingressi dei suoi docenti ce ne possono essere al massimo %d", classe_sezione[c], quando,
-                     (h + 1) * G, h + 1, possibili);
+            char quando[40];
+            if (h) snprintf(quando, sizeof quando, "nelle prime %d ore", h + 1);
+            else snprintf(quando, sizeof quando, "nella prima ora");
+            const int n = snprintf(errore, dimensione, "%s: %s, in una settimana, %s è possibile fare solo %d ore "
+                                   "invece delle %d richieste", classe_sezione[c], quando,
+                                   ritardi ? "a causa delle entrate in ritardo"
+                                           : "perché i suoi docenti hanno poche ore (al massimo 3 al giorno ciascuno)",
+                                   possibili, (h + 1) * G);
+            if (n > 0 && (size_t) n < dimensione) lezioni_possibili(c, h, errore + n, dimensione - n, NULL);
             return 0;
         }
     }

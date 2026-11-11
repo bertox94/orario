@@ -20,7 +20,7 @@ typedef struct {
 // si generano: un test che non arriva al limite.)
 static Esito un_test(const int seme, const int classi, const int ritardi) {
     Esito e = {0};
-    char errore[512];
+    char errore[VERIFICA_DATI_ERRORE];
     if (!genera_dati_casuali(seme, classi, ritardi) || !verifica_dati(errore, sizeof errore)) return e;
     orario_len = actual_giorni_settimana * actual_ore_giornaliere * actual_classi_sezione;
     limite_nodi = PROVE_LIMITE_NODI;

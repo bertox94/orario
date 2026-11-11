@@ -24,6 +24,8 @@
 // che non la passano.
 //
 // 1 se i dati passano tutti i controlli; se no 0, con il primo che non vale spiegato in errore.
+// (Il motivo puo' avere piu' righe: la frase e, sotto, i numeri. VERIFICA_DATI_ERRORE e' lo spazio che serve.)
+#define VERIFICA_DATI_ERRORE 4096
 int verifica_dati(char *errore, size_t dimensione);
 
 #endif //UNTITLED_VERIFICA_DATI_H
