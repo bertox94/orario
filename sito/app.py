@@ -168,10 +168,23 @@ def crea_app():
             flash(str(e))
         return redirect(url_for('pagina_notturni'))
 
+    @app.route('/notturni/notte', methods=['POST'])
+    def notte_notturni():
+        """Il giro della notte: se parte da solo, e a che ora."""
+        ora = request.form.get('ora') or ''
+        try:
+            ora = datetime.datetime.strptime(ora, '%H:%M').strftime('%H:%M')
+        except ValueError:
+            flash('L\'ora va scritta come 02:00.')
+            return redirect(url_for('pagina_notturni'))
+        notturni.cambia_notte(LAVORO, request.form.get('acceso') == 'si', ora)
+        return redirect(url_for('pagina_notturni'))
+
     @app.route('/notturni/ferma', methods=['POST'])
     def ferma_giro():
         notturni.ferma_giro()
         return redirect(url_for('pagina_notturni'))
 
     notturni.chiudi_giri_interrotti(LAVORO)
+    notturni.avvia_orologio(LAVORO)
     return app

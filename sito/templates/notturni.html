@@ -19,6 +19,12 @@
   <form method="post" action="{{ url_for('ferma_giro') }}"><button class="secondario" id="ferma-giro">Ferma</button></form>
   <span id="stato-giro"></span>
 </div>
+<form method="post" action="{{ url_for('notte_notturni') }}" class="giro notte">
+  <label><input type="checkbox" name="acceso" value="si" {{ 'checked' if n.notte.acceso }}> Avvia il giro da solo ogni notte alle</label>
+  <input type="time" name="ora" value="{{ n.notte.ora }}" required>
+  <button class="secondario">Salva</button>
+</form>
+<p class="nota" id="stato-notte"></p>
 
 <h2>Cerca nuovi casi</h2>
 <form method="post" action="{{ url_for('cerca_notturni') }}" class="modulo">
@@ -93,10 +99,16 @@ function mostra(n) {
     const riassunto = Object.entries(conta).map(([k, v]) => `${v} ${k}`).join(', ');
     t = inCorso ? `Giro ${g.id} in corso: ${fatti} test fatti su ${g.test.length}`
                 : `Ultimo giro: il ${g.id}, del ${quando(g.inizio)}, ${g.stato}; ${fatti} test su ${g.test.length}`;
+    if (g.da_solo) t += ', partito da solo';
     t += `, limite ${numero(g.limite)} nodi` + (riassunto ? ` (${riassunto})` : '') + '.';
   }
   if (n.realtime !== null && !occupato) t += ' Sta girando un test in tempo reale: giro e ricerca si possono avviare quando finisce.';
   document.getElementById('stato-giro').textContent = t;
+  const salto = n.notte.saltato;
+  document.getElementById('stato-notte').textContent =
+    (n.notte.acceso ? `Il giro parte da solo alle ${n.notte.ora}, se il sito è acceso e a quell'ora non gira altro.`
+                    : 'Il giro parte solo con il tasto.') +
+    (salto ? ` Il giro delle ${salto.ora} del ${quando(salto.quando).slice(0, 5)} è saltato: ${salto.motivo}` : '');
 }
 
 // mentre un giro o una ricerca girano: la pagina si aggiorna ogni secondo e mezzo

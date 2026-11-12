@@ -23,7 +23,9 @@ Due pagine, senza login e senza database:
   limite di nodi è uno solo per tutti e si cambia dalla pagina. «Avvia il giro» esegue i test uno dopo l'altro e, per
   ognuno, confronta esito, nodi e cella più avanti con l'ultima volta fatta con lo stesso limite: «uguale», «diverso»,
   «primo» o «limite cambiato». «Cerca nuovi casi» fa le prove di `./untitled test N` (per quanti ordini delle classi
-  si chiedono, con il limite dei notturni) e aggiunge all'elenco i casi che arrivano al limite e non ci sono già. Dei test notturni si tengono solo i numeri (in `lavoro/notturni/`), non i passi. Un giro,
+  si chiedono, con il limite dei notturni) e aggiunge all'elenco i casi che arrivano al limite e non ci sono già. Dei test notturni si tengono solo i numeri (in `lavoro/notturni/`), non i passi. Il giro può partire da solo ogni notte, a un'ora
+  scelta nella pagina: se a quell'ora gira altro salta (e la pagina lo dice), se il sito era spento si aspetta la notte
+  dopo. Un giro,
   una ricerca di nuovi casi e un test in tempo reale non girano insieme.
 
 Un test alla volta, con un limite di nodi da 0,1 a 20 milioni (ogni passo si registra: 6 byte per nodo).

@@ -142,4 +142,6 @@ table.controlli td.esito-cella { white-space: nowrap; }
 .confronto-uguale { color: var(--ok); background: #e6f4ea; }
 .confronto-diverso { color: var(--male); background: #fdecea; font-weight: 600; }
 .confronto-limite-cambiato { color: var(--avviso); background: #fff4d6; }
+.notte { margin-top: 10px; }
+.notte label { display: flex; align-items: center; gap: 6px; }
 form.accanto { display: inline-block; margin: 0 0 8px; }

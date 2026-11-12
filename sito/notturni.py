@@ -3,7 +3,8 @@ un giro, per vedere se i loro numeri cambiano.
 
 Tutto sta in lavoro/notturni/, in file JSON:
 - test.json: l'elenco dei test, ognuno con il suo numero;
-- impostazioni.json: il limite di nodi, uno solo per tutti i test (lo usa il giro, e si cambia dalla pagina);
+- impostazioni.json: il limite di nodi, uno solo per tutti i test (lo usa il giro, e si cambia dalla pagina), e il
+  giro della notte: se parte da solo, a che ora, l'ultimo giorno in cui e' scattato e l'ultima volta che e' saltato;
 - giri/<n>.json: un giro, con il limite usato e il risultato di ogni test (esito, nodi, cella piu' avanti, tempo);
 - ricerca.json: l'ultima ricerca di nuovi casi.
 
@@ -15,7 +16,12 @@ reale.
 
 «Cerca nuovi casi» lancia ./untitled test N ORDINI LIMITE (prove.h), le stesse prove che si fanno dal terminale, e
 aggiunge all'elenco i casi che arrivano al limite e non ci sono gia'.
+
+Il giro della notte: se e' acceso, all'ora scelta il sito avvia il giro da solo, una volta al giorno. Se a quell'ora
+gira altro (un giro, una ricerca, un test in tempo reale) il giro di quella notte salta, e la pagina lo dice. Se il
+sito a quell'ora era spento, si aspetta la notte dopo.
 """
+import datetime
 import json
 import os
 import re
@@ -28,11 +34,13 @@ import time
 from . import solver, test_realtime
 
 LIMITE = 10000000   # il limite di nodi finche' non lo si cambia dalla pagina
+ORA_DELLA_NOTTE = '02:00'  # l'ora del giro della notte finche' non la si cambia dalla pagina
 CONFRONTATI = ('esito', 'nodi', 'pos_max')
 
 _lock = threading.Lock()
 _giro = {'id': None, 'processo': None, 'fermare': False}  # il giro in corso
 _cerca = {'in_corso': False, 'processo': None}             # la ricerca di nuovi casi in corso
+_orologio = {'partito': False}                             # il thread che guarda l'ora per il giro della notte
 # una riga di ./untitled test: «seme 0, 5 classi, senza ritardi, ordine 2: ...» (l'ordine c'e' solo se non e' 0)
 _RIGA = re.compile(r'seme (\d+), (\d+) classi, (con|senza) ritardi(?:, ordine (\d+))?:')
 
@@ -62,12 +70,22 @@ def elenco(lavoro):
     return _leggi(_cartella(lavoro, 'test.json'), [])
 
 
+def _impostazioni(lavoro):
+    return _leggi(_cartella(lavoro, 'impostazioni.json'), {})
+
+
+def _imposta(lavoro, **valori):
+    """Cambia alcune impostazioni e lascia le altre come sono."""
+    with _lock:
+        _scrivi(_cartella(lavoro, 'impostazioni.json'), dict(_impostazioni(lavoro), **valori))
+
+
 def limite(lavoro):
-    return _leggi(_cartella(lavoro, 'impostazioni.json'), {}).get('limite', LIMITE)
+    return _impostazioni(lavoro).get('limite', LIMITE)
 
 
 def cambia_limite(lavoro, nodi):
-    _scrivi(_cartella(lavoro, 'impostazioni.json'), {'limite': nodi})
+    _imposta(lavoro, limite=nodi)
 
 
 def aggiungi(lavoro, seme, classi, ritardi, ordine):
@@ -193,8 +211,9 @@ def _esegui_giro(lavoro, gid, nodi, tests):
             _giro.update(id=None, processo=None, fermare=False)
 
 
-def avvia_giro(lavoro):
-    """Lancia un giro su tutti i test dell'elenco e ritorna il suo numero. ValueError se non si puo'."""
+def avvia_giro(lavoro, da_solo=False):
+    """Lancia un giro su tutti i test dell'elenco e ritorna il suo numero. ValueError se non si puo'. da_solo: e' il
+    giro della notte, partito senza il tasto."""
     with _lock:
         if _giro['id'] is not None:
             raise ValueError('C\'è già un giro in corso.')
@@ -209,7 +228,7 @@ def avvia_giro(lavoro):
         nodi = limite(lavoro)
         _scrivi(_cartella(lavoro, 'giri', '%d.json' % gid),
                 {'id': gid, 'inizio': time.time(), 'fine': None, 'limite': nodi, 'stato': 'in corso', 'adesso': None,
-                 'test': [t['id'] for t in tests], 'risultati': {}})
+                 'da_solo': da_solo, 'test': [t['id'] for t in tests], 'risultati': {}})
         _giro.update(id=gid, processo=None, fermare=False)
     threading.Thread(target=_esegui_giro, args=(lavoro, gid, nodi, tests), daemon=True).start()
     return gid
@@ -223,6 +242,59 @@ def ferma_giro():
         _giro['fermare'] = True
         if _giro['processo'] is not None:
             _giro['processo'].terminate()
+
+
+# ---- il giro della notte ----
+
+def notte(lavoro):
+    """Il giro della notte: se e' acceso, a che ora ('HH:MM'), e l'ultima volta che e' saltato (o None)."""
+    i = _impostazioni(lavoro)
+    return {'acceso': i.get('notte_acceso', False), 'ora': i.get('notte_ora', ORA_DELLA_NOTTE),
+            'saltato': i.get('notte_saltato')}
+
+
+def cambia_notte(lavoro, acceso, ora):
+    _imposta(lavoro, notte_acceso=acceso, notte_ora=ora)
+
+
+def controlla_la_notte(lavoro, adesso):
+    """Se il giro della notte e' acceso, `adesso` (un datetime) e' nel minuto scelto e oggi non e' ancora scattato,
+    avvia il giro. Se gira altro il giro di questa notte salta, e se ne tiene il motivo; con l'elenco vuoto non
+    succede niente."""
+    n, oggi = notte(lavoro), adesso.strftime('%Y-%m-%d')
+    if not n['acceso'] or adesso.strftime('%H:%M') != n['ora'] or _impostazioni(lavoro).get('notte_giorno') == oggi:
+        return
+    _imposta(lavoro, notte_giorno=oggi)
+    if not elenco(lavoro):
+        return
+    motivo = {'giro': 'c\'era già un giro in corso.',
+              'ricerca': 'stava girando la ricerca di nuovi casi.'}.get(occupato())
+    if motivo is None and test_realtime.in_corso() is not None:
+        motivo = 'stava girando un test in tempo reale.'
+    try:
+        if motivo is None:
+            avvia_giro(lavoro, da_solo=True)
+    except (ValueError, RuntimeError) as e:  # qualcosa e' partito proprio adesso, o il solver non compila
+        motivo = str(e)
+    _imposta(lavoro, notte_saltato=motivo and {'quando': adesso.timestamp(), 'ora': n['ora'], 'motivo': motivo})
+
+
+def avvia_orologio(lavoro):
+    """All'avvio del sito: un thread guarda l'ora ogni venti secondi (cosi' nessun minuto si perde) per il giro della
+    notte."""
+    with _lock:
+        if _orologio['partito']:
+            return
+        _orologio['partito'] = True
+
+    def guarda():
+        while True:
+            try:
+                controlla_la_notte(lavoro, datetime.datetime.now())
+            except Exception:  # un file illeggibile, il disco pieno: si riprova al prossimo sguardo
+                pass
+            time.sleep(20)
+    threading.Thread(target=guarda, daemon=True).start()
 
 
 # ---- cercare nuovi casi ----
@@ -330,4 +402,5 @@ def situazione(lavoro):
                 r = dict(r, limite=limite_prima)
         tests.append(dict(t, risultato=r))
     return {'limite': nodi, 'giro': g, 'in_corso': in_corso(), 'tests': tests,
-            'realtime': test_realtime.in_corso(), 'ricerca': ricerca(lavoro), 'cerca_in_corso': cerca_in_corso()}
+            'realtime': test_realtime.in_corso(), 'ricerca': ricerca(lavoro), 'cerca_in_corso': cerca_in_corso(),
+            'notte': notte(lavoro)}
