@@ -109,8 +109,8 @@ int stampa_ultima_cella(const unsigned long long int seme, const int classi, con
                 coppie[n_coppie++] = (ContiCoppia){.p1 = p, .p2 = q};
 
     // tutti i nodi, in ordine: lo stato si aggiorna a ogni nodo, i conti a ogni visita della cella piu' avanti
-    FILE *f = fopen(file_passi, "rb"), *v = file_visite ? fopen(file_visite, "wb") : NULL;
-    if (!f || (file_visite && !v)) return 1;
+    FILE *f = fopen(file_passi, "rb"), *v = fopen(file_visite, "wb");
+    if (!f || !v) return 1;
     int pos, decise = 0;
     teaching_slot prima;
     long long int nodo = 0, visite = 0;
@@ -120,11 +120,11 @@ int stampa_ultima_cella(const unsigned long long int seme, const int classi, con
         decise = pos;
         if (pos != pos_max) continue;
         visite++;
-        if (v) fwrite(&nodo, sizeof nodo, 1, v);
+        fwrite(&nodo, sizeof nodo, 1, v);
         conta_visita(r, &ultima, docenti, coppie, n_coppie);
     }
     fclose(f);
-    if (v) fclose(v);
+    fclose(v);
 
     printf("{\"pos\":%d,\"celle\":%d,\"visite\":%lld,\"docenti\":[", pos_max, r->orario_len, visite);
     int scritti = 0;

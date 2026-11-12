@@ -19,8 +19,7 @@
 
 #define PASSI_ISTANTANEA 16384
 
-// Scrivere: passi_apri apre i due file (NULL se non ci riesce), passi_nodo aggiunge un nodo (con x == NULL non fa
-// niente: i passi non sono stati chiesti), passi_chiudi chiude.
+// Scrivere: passi_apri apre i due file (NULL se non ci riesce), passi_nodo aggiunge un nodo, passi_chiudi chiude.
 typedef struct Passi Passi;
 Passi *passi_apri(const char *percorso);
 void passi_nodo(Passi *x, long long int nodo, int pos, const teaching_slot *orario, int celle);
