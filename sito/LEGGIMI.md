@@ -23,11 +23,16 @@ Due pagine, senza login e senza database:
   limite di nodi è uno solo per tutti e si cambia dalla pagina. «Avvia il giro» esegue i test uno dopo l'altro e, per
   ognuno, confronta esito, nodi e cella più avanti con l'ultima volta fatta con lo stesso limite: «uguale», «diverso»,
   «primo» o «limite cambiato». Con un clic sulla riga di un test si vedono le sue 5 esecuzioni precedenti (di qualunque
-  limite) e i loro tempi; nella riga, se i numeri sono rimasti uguali o quante volte sono cambiati. «Cerca nuovi casi» fa le prove di `./untitled test N` (per quanti ordini delle classi
-  si chiedono, con il limite dei notturni) e aggiunge all'elenco i casi che arrivano al limite e non ci sono già. Dei test notturni si tengono solo i numeri (in `lavoro/notturni/`), non i passi. Il giro può partire da solo ogni notte, a un'ora
-  scelta nella pagina: se a quell'ora gira altro salta (e la pagina lo dice), se il sito era spento si aspetta la notte
-  dopo. Un giro,
-  una ricerca di nuovi casi e un test in tempo reale non girano insieme.
+  limite) e i loro tempi; nella riga, se i numeri sono rimasti uguali o quante volte sono cambiati. Dei test notturni si tengono solo i
+  numeri (in `lavoro/notturni/`), non i passi. Con il giro della notte acceso, ogni notte all'ora scelta nella pagina
+  si aggiunge all'elenco un livello e parte il giro. Un livello sono tutti i casi con una classe in più della notte
+  prima, partendo da 3: per i semi e gli ordini scelti nella pagina, senza e con ritardi, senza filtri (che il caso
+  abbia un errore nei dati, un orario o nessuna risposta non conta). Il giro della notte dovrebbe finire entro l'ora di
+  fine (dalle 22 alle 8, se non si cambiano): se va oltre finisce lo stesso, ma dalla sera dopo non si aggiungono altri
+  livelli finché un giro della notte non torna a finire in tempo; i test si tolgono a mano, con ×. Se all'ora di
+  partenza gira altro la notte salta, senza test nuovi (e la pagina lo dice); se il sito era spento si aspetta la notte
+  dopo. Un giro e un test in tempo reale non girano
+  insieme.
 
 Un test alla volta, con un limite di nodi da 0,1 a 20 milioni (ogni passo si registra: 6 byte per nodo).
 

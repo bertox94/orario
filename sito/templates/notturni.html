@@ -3,7 +3,7 @@
 {% block contenuto %}
 <h1>Test notturni</h1>
 <p class="nota">Un elenco di casi che si rieseguono tutti insieme, in un giro, per vedere se i loro numeri cambiano. Un caso
-  si aggiunge dalla pagina di un test in tempo reale, con «Aggiungi ai notturni», oppure con «Cerca nuovi casi».</p>
+  si aggiunge dalla pagina di un test in tempo reale, con «Aggiungi ai notturni»; con il giro della notte acceso, ogni notte si aggiungono da soli i casi con una classe in più.</p>
 
 <form method="post" action="{{ url_for('limite_notturni') }}" class="modulo">
   <label>Ogni test si ferma dopo
@@ -20,26 +20,15 @@
   <span id="stato-giro"></span>
 </div>
 <form method="post" action="{{ url_for('notte_notturni') }}" class="giro notte">
-  <label><input type="checkbox" name="acceso" value="si" {{ 'checked' if n.notte.acceso }}> Avvia il giro da solo ogni notte alle</label>
+  <label><input type="checkbox" name="acceso" value="si" {{ 'checked' if n.notte.acceso }}> Ogni notte avvia il giro da solo, dalle</label>
   <input type="time" name="ora" value="{{ n.notte.ora }}" required>
+  <label>alle <input type="time" name="fine" value="{{ n.notte.fine }}" required>.</label>
+  <label>Prima aggiungi i casi con una classe in più: semi da 0 a
+    <input type="number" name="semi" min="0" max="{{ max_semi }}" value="{{ n.notte.semi }}" required></label>
+  <label>ordini da 0 a <input type="number" name="ordini" min="0" max="{{ max_ordini }}" value="{{ n.notte.ordini }}" required></label>
   <button class="secondario">Salva</button>
 </form>
 <p class="nota" id="stato-notte"></p>
-
-<h2>Cerca nuovi casi</h2>
-<form method="post" action="{{ url_for('cerca_notturni') }}" class="modulo">
-  <label>N <input type="number" name="n" min="0" max="{{ max_n }}" value="{{ n.ricerca.n if n.ricerca else 5 }}"></label>
-  <label>Ordini delle classi
-    <input type="number" name="ordini" min="1" max="{{ max_ordini }}" value="{{ n.ricerca.ordini if n.ricerca else 1 }}"></label>
-  <button id="cerca">Cerca nuovi casi</button>
-</form>
-<div class="giro">
-  <form method="post" action="{{ url_for('ferma_ricerca') }}"><button class="secondario" id="ferma-ricerca">Ferma</button></form>
-  <span id="stato-ricerca"></span>
-</div>
-<p class="nota">Le stesse prove di <code>./untitled test N</code>: semi da 0 a N, classi da 3 a 3 + N, senza e con ritardi,
-  ognuna con tanti ordini delle classi quanti ne chiedi (il primo è quello generato). I casi che arrivano al limite dei
-  test notturni senza una risposta entrano nell'elenco, se non ci sono già.</p>
 
 <h2>I test</h2>
 <div class="scorre"><table class="dati" id="notturni">
@@ -99,21 +88,11 @@ function riga(t, adesso, inCorso, limite) {
 }
 
 function mostra(n) {
-  const g = n.giro, inCorso = n.in_corso !== null, c = n.ricerca, occupato = inCorso || n.cerca_in_corso;
-  document.querySelector('#notturni tbody').innerHTML = n.tests.map(t => riga(t, inCorso && g ? g.adesso : null, occupato, n.limite)).join('');
+  const g = n.giro, inCorso = n.in_corso !== null;
+  document.querySelector('#notturni tbody').innerHTML = n.tests.map(t => riga(t, inCorso && g ? g.adesso : null, inCorso, n.limite)).join('');
   document.getElementById('notturni').hidden = !n.tests.length;
   document.getElementById('nessun-test').hidden = !!n.tests.length;
-  document.getElementById('avvia-giro').disabled = occupato || !n.tests.length || n.realtime !== null;
-  document.getElementById('cerca').disabled = occupato || n.realtime !== null;
-  document.getElementById('ferma-ricerca').hidden = !n.cerca_in_corso;
-  let s = 'Nessuna ricerca ancora.';
-  if (c) {
-    s = (n.cerca_in_corso ? 'Ricerca in corso' : `Ultima ricerca: del ${quando(c.inizio)}, ${c.stato}`) +
-      ` (N ${c.n}, ${c.ordini} ${c.ordini === 1 ? 'ordine' : 'ordini'}, ${numero(c.prove)} prove, limite ${numero(c.limite)} nodi): ` +
-      `${c.trovati} casi arrivati al limite, ${c.aggiunti} aggiunti, ${c.gia_presenti} c'erano già.` +
-      (n.cerca_in_corso && c.ultimo ? ` L'ultimo: ${c.ultimo}.` : '');
-  }
-  document.getElementById('stato-ricerca').textContent = s;
+  document.getElementById('avvia-giro').disabled = inCorso || !n.tests.length || n.realtime !== null;
   document.getElementById('ferma-giro').hidden = !inCorso;
   let t = 'Nessun giro ancora.';
   if (g) {
@@ -123,24 +102,28 @@ function mostra(n) {
     t = inCorso ? `Giro ${g.id} in corso: ${fatti} test fatti su ${g.test.length}`
                 : `Ultimo giro: il ${g.id}, del ${quando(g.inizio)}, ${g.stato}; ${fatti} test su ${g.test.length}`;
     if (g.da_solo) t += ', partito da solo';
+    if (g.fuori_tempo) t += ', finito oltre l\'ora';
     t += `, limite ${numero(g.limite)} nodi` + (riassunto ? ` (${riassunto})` : '') + '.';
   }
-  if (n.realtime !== null && !occupato) t += ' Sta girando un test in tempo reale: giro e ricerca si possono avviare quando finisce.';
+  if (n.realtime !== null && !inCorso) t += ' Sta girando un test in tempo reale: il giro si può avviare quando finisce.';
   document.getElementById('stato-giro').textContent = t;
-  const salto = n.notte.saltato;
+  const salto = n.notte.saltato, nt = n.notte;
+  const livello = nt.classi === null ? 'Le classi sono finite: non ci sono altri livelli.'
+    : nt.fuori_tempo ? `L'ultimo giro della notte è finito dopo le ${nt.fine}: non si aggiungono altri test finché un giro della notte non finisce in tempo (toglierne alcuni con ×).`
+    : `Il prossimo livello: ${nt.classi} classi, ${nt.nuovi} test nuovi.`;
   document.getElementById('stato-notte').textContent =
-    (n.notte.acceso ? `Il giro parte da solo alle ${n.notte.ora}, se il sito è acceso e a quell'ora non gira altro.`
-                    : 'Il giro parte solo con il tasto.') +
-    (salto ? ` Il giro delle ${salto.ora} del ${quando(salto.quando).slice(0, 5)} è saltato: ${salto.motivo}` : '');
+    (nt.acceso ? `Alle ${nt.ora}, se il sito è acceso e non gira altro, si aggiunge un livello e parte il giro, che dovrebbe finire entro le ${nt.fine}. `
+               : 'Il giro parte solo con il tasto, e i test si aggiungono solo a mano. ') + livello +
+    (salto ? ` Il giro delle ${salto.ora} del ${quando(salto.quando).slice(0, 5)} è saltato, senza test nuovi: ${salto.motivo}` : '');
 }
 
-// mentre un giro o una ricerca girano: la pagina si aggiorna ogni secondo e mezzo
+// mentre un giro gira: la pagina si aggiorna ogni secondo e mezzo
 async function segui() {
   try {
     const n = await (await fetch(URL_STATO, {cache: 'no-store'})).json();
     ultima = n;
     mostra(n);
-    if (n.in_corso === null && !n.cerca_in_corso) return;
+    if (n.in_corso === null) return;
   } catch (e) { /* si riprova */ }
   setTimeout(segui, 1500);
 }
@@ -156,6 +139,6 @@ document.querySelector('#notturni tbody').addEventListener('click', e => {
   mostra(ultima);
 });
 mostra(iniziale);
-if (iniziale.in_corso !== null || iniziale.cerca_in_corso) setTimeout(segui, 1500);
+if (iniziale.in_corso !== null) setTimeout(segui, 1500);
 </script>
 {% endblock %}

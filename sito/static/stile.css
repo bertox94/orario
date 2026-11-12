@@ -144,6 +144,7 @@ table.controlli td.esito-cella { white-space: nowrap; }
 .confronto-limite-cambiato { color: var(--avviso); background: #fff4d6; }
 .notte { margin-top: 10px; }
 .notte label { display: flex; align-items: center; gap: 6px; }
+.notte input[type=number] { width: 70px; }
 tr.test { cursor: pointer; }
 tr.precedenti > td { background: var(--riga); padding: 8px 10px 4px; }
 tr.precedenti table.dati { font-size: 13px; }

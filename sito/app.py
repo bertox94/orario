@@ -9,8 +9,8 @@ from . import dati, notturni, test_realtime
 
 LAVORO = os.environ.get('SITO_LAVORO') or os.path.join(os.path.dirname(os.path.abspath(__file__)), 'lavoro')
 MAX_MILIONI = 20  # i passi occupano 6 byte per nodo: 20 milioni di nodi sono 120 MB
+MAX_SEMI_LIVELLO, MAX_ORDINI_LIVELLO = 50, 20  # un livello della notte: semi e ordini al massimo
 MAX_MILIONI_NOTTURNI = 200  # nei notturni i passi non si tengono: il limite e' solo il tempo di un giro
-MAX_N_CERCA, MAX_ORDINI_CERCA = 30, 20  # «Cerca nuovi casi»: (N + 1) * (N + 1) * 2 * ordini prove
 
 
 def numero(v):
@@ -46,9 +46,8 @@ def crea_app():
             flash('Seme e ordine delle classi da 0 in su, classi da 1 a 120, limite di nodi da 0,1 a %d milioni.'
                   % MAX_MILIONI)
             return redirect(url_for('indice'))
-        if notturni.occupato():
-            flash('Nei test notturni sta girando %s: aspetta che finisca, o fermalo.'
-                  % {'giro': 'un giro', 'ricerca': 'la ricerca di nuovi casi'}[notturni.occupato()])
+        if notturni.in_corso() is not None:
+            flash('Sta girando un giro di test notturni: aspetta che finisca, o fermalo.')
             return redirect(url_for('indice'))
         try:
             tid = test_realtime.avvia(LAVORO, seme, classi, f.get('ritardi') == 'con', ordine, milioni)
@@ -102,7 +101,7 @@ def crea_app():
     @app.route('/notturni')
     def pagina_notturni():
         return render_template('notturni.html', n=notturni.situazione(LAVORO), max_milioni=MAX_MILIONI_NOTTURNI,
-                               max_n=MAX_N_CERCA, max_ordini=MAX_ORDINI_CERCA)
+                               max_semi=MAX_SEMI_LIVELLO, max_ordini=MAX_ORDINI_LIVELLO)
 
     @app.route('/notturni/stato.json')
     def stato_notturni():
@@ -117,8 +116,8 @@ def crea_app():
         except ValueError:
             flash('Il limite di nodi va da 0,1 a %d milioni.' % MAX_MILIONI_NOTTURNI)
             return redirect(url_for('pagina_notturni'))
-        if notturni.occupato():
-            flash('Sta girando un giro o una ricerca di nuovi casi: il limite si cambia quando ha finito.')
+        if notturni.in_corso() is not None:
+            flash('C\'è un giro in corso: il limite si cambia quando è finito.')
         else:
             notturni.cambia_limite(LAVORO, int(round(milioni * 1000000)))
         return redirect(url_for('pagina_notturni'))
@@ -143,23 +142,6 @@ def crea_app():
             notturni.togli(LAVORO, tid)
         return redirect(url_for('pagina_notturni'))
 
-    @app.route('/notturni/cerca', methods=['POST'])
-    def cerca_notturni():
-        """Cerca nuovi casi: le prove di ./untitled test N, e i casi che arrivano al limite entrano nell'elenco."""
-        try:
-            n, ordini = int(request.form.get('n') or 0), int(request.form.get('ordini') or 1)
-            if not 0 <= n <= MAX_N_CERCA or not 1 <= ordini <= MAX_ORDINI_CERCA:
-                raise ValueError('N da 0 a %d, ordini da 1 a %d.' % (MAX_N_CERCA, MAX_ORDINI_CERCA))
-            notturni.cerca(LAVORO, n, ordini)
-        except (ValueError, RuntimeError) as e:
-            flash(str(e))
-        return redirect(url_for('pagina_notturni'))
-
-    @app.route('/notturni/ferma-ricerca', methods=['POST'])
-    def ferma_ricerca():
-        notturni.ferma_ricerca()
-        return redirect(url_for('pagina_notturni'))
-
     @app.route('/notturni/avvia', methods=['POST'])
     def avvia_giro():
         try:
@@ -170,14 +152,18 @@ def crea_app():
 
     @app.route('/notturni/notte', methods=['POST'])
     def notte_notturni():
-        """Il giro della notte: se parte da solo, e a che ora."""
-        ora = request.form.get('ora') or ''
+        """Il giro della notte: se parte da solo, da che ora a che ora, e i semi e gli ordini di ogni livello."""
+        f = request.form
         try:
-            ora = datetime.datetime.strptime(ora, '%H:%M').strftime('%H:%M')
+            ora, fine = (datetime.datetime.strptime(f.get(k) or '', '%H:%M').strftime('%H:%M') for k in ('ora', 'fine'))
+            semi, ordini = int(f.get('semi') or 0), int(f.get('ordini') or 0)
+            if ora == fine or not 0 <= semi <= MAX_SEMI_LIVELLO or not 0 <= ordini <= MAX_ORDINI_LIVELLO:
+                raise ValueError
         except ValueError:
-            flash('L\'ora va scritta come 02:00.')
+            flash('Le ore vanno scritte come 22:00 e devono essere diverse; semi da 0 a %d, ordini da 0 a %d.'
+                  % (MAX_SEMI_LIVELLO, MAX_ORDINI_LIVELLO))
             return redirect(url_for('pagina_notturni'))
-        notturni.cambia_notte(LAVORO, request.form.get('acceso') == 'si', ora)
+        notturni.cambia_notte(LAVORO, f.get('acceso') == 'si', ora, fine, semi, ordini)
         return redirect(url_for('pagina_notturni'))
 
     @app.route('/notturni/ferma', methods=['POST'])
