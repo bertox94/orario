@@ -24,6 +24,8 @@ codice e messaggi di commit sono in italiano.
   Il solver scrive solo quello che serve al sito: niente `orario.txt`, niente stampe in più.
 - **Il sito** (`sito/`, Flask, senza login né database): test in tempo reale, storico, la ricerca passo per passo con
   i controlli di ogni cella. Mostra soltanto: dati, passi e controlli li calcola il solver. Vedi `sito/LEGGIMI.md`.
+  In questo ramo (`test-notturni`) anche i test notturni (`sito/notturni.py`): un elenco di casi rieseguiti in un giro,
+  con un limite di nodi unico e il confronto con il giro prima.
 - `bf_search/`: SQL di Alb, da non toccare senza chiedere.
 
 ## Regole

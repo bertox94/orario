@@ -8,6 +8,10 @@
   <span class="nota">limite {{ i.limite|numero }} nodi</span></p>
 <p id="errore" class="errore-dati" hidden></p>
 <div id="verifica" class="verifica" hidden></div>
+<form method="post" action="{{ url_for('aggiungi_notturno') }}" class="accanto">
+  <input type="hidden" name="test" value="{{ i.id }}"><input type="hidden" name="poi" value="{{ request.path }}">
+  <button class="secondario piccolo" title="Il caso di questo test entra nell'elenco dei test notturni">Aggiungi ai notturni</button>
+</form>
 <form method="post" action="{{ url_for('ferma') }}" id="ferma" {{ 'hidden' if not s.gira }}>
   <input type="hidden" name="poi" value="{{ request.path }}"><button class="secondario">Ferma</button>
 </form>

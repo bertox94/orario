@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block titolo %}Orario · test notturni{% endblock %}
+{% block contenuto %}
+<h1>Test notturni</h1>
+<p class="nota">Un elenco di casi che si rieseguono tutti insieme, in un giro, per vedere se i loro numeri cambiano. Un caso
+  si aggiunge dalla pagina di un test in tempo reale, con «Aggiungi ai notturni».</p>
+
+<form method="post" action="{{ url_for('limite_notturni') }}" class="modulo">
+  <label>Ogni test si ferma dopo
+    <span><input type="number" name="milioni" min="0.1" max="{{ max_milioni }}" step="0.1" value="{{ '%g'|format(n.limite / 1000000) }}"> milioni di nodi</span></label>
+  <button class="secondario">Cambia il limite</button>
+</form>
+<p class="nota">È l'unico limite dei test notturni: lo usano tutti i test. Cambiandolo, al giro dopo i numeri non si
+  confrontano con quelli di prima («limite cambiato»).</p>
+
+<h2>Il giro</h2>
+<div class="giro">
+  <form method="post" action="{{ url_for('avvia_giro') }}"><button id="avvia-giro">Avvia il giro</button></form>
+  <form method="post" action="{{ url_for('ferma_giro') }}"><button class="secondario" id="ferma-giro">Ferma</button></form>
+  <span id="stato-giro"></span>
+</div>
+
+<h2>I test</h2>
+<div class="scorre"><table class="dati" id="notturni">
+  <thead><tr><th class="num">Test</th><th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th><th class="num">Ordine</th>
+    <th>Esito</th><th class="num">Nodi</th><th class="num">Cella più avanti</th><th class="num">Tempo</th><th>Rispetto a prima</th><th></th></tr></thead>
+  <tbody></tbody>
+</table></div>
+<p class="nota" id="nessun-test" hidden>Nessun test notturno ancora.</p>
+{% endblock %}
+{% block script %}
+<script>
+const URL_STATO = '{{ url_for('stato_notturni') }}', URL_TOGLI = '{{ url_for('togli_notturno', tid=0)[:-1] }}';
+const numero = n => Number(n).toLocaleString('it-IT');
+const esc = x => String(x).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+const quando = t => new Date(t * 1000).toLocaleString('it-IT', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'});
+
+// la riga di un test: i suoi valori e l'ultimo risultato (in corsivo se e' di un giro con un altro limite)
+function riga(t, adesso, inCorso) {
+  const r = t.risultato;
+  let risultato = '<td colspan="5" class="nota">' + (adesso === t.id ? 'sta girando…' : 'mai eseguito') + '</td>';
+  if (r && adesso !== t.id) {
+    const esito = r.esito + (r.verificato === false ? ' (non valido)' : '');
+    risultato = `<td><span class="esito esito-${esc(r.esito.replace(/ /g, '-'))}" title="${esc(r.errore || '')}">${esc(esito)}</span></td>` +
+      `<td class="num">${r.nodi == null ? '' : numero(r.nodi)}</td>` +
+      `<td class="num">${r.celle ? numero(Math.min(r.pos_max + 1, r.celle)) + ' / ' + numero(r.celle) : ''}</td>` +
+      `<td class="num">${r.secondi == null ? '' : r.secondi.toFixed(1) + ' s'}</td>` +
+      `<td><span class="confronto confronto-${esc((r.confronto || '').replace(/ /g, '-'))}">${esc(r.confronto || '')}</span>` +
+      (r.limite ? ` <span class="nota">a ${numero(r.limite)} nodi</span>` : '') + '</td>';
+  }
+  return `<tr><td class="num">${t.id}</td><td class="num">${t.seme}</td><td class="num">${t.classi}</td>` +
+    `<td>${t.ritardi ? 'con' : 'senza'}</td><td class="num">${t.ordine}</td>${risultato}` +
+    `<td><form method="post" action="${URL_TOGLI}${t.id}" onsubmit="return confirm('Togliere il test ${t.id} dai notturni?')">` +
+    `<button class="piccolo secondario" title="Togli" ${inCorso ? 'disabled' : ''}>×</button></form></td></tr>`;
+}
+
+function mostra(n) {
+  const g = n.giro, inCorso = n.in_corso !== null;
+  document.querySelector('#notturni tbody').innerHTML = n.tests.map(t => riga(t, inCorso && g ? g.adesso : null, inCorso)).join('');
+  document.getElementById('notturni').hidden = !n.tests.length;
+  document.getElementById('nessun-test').hidden = !!n.tests.length;
+  document.getElementById('avvia-giro').disabled = inCorso || !n.tests.length || n.realtime !== null;
+  document.getElementById('ferma-giro').hidden = !inCorso;
+  let t = 'Nessun giro ancora.';
+  if (g) {
+    const fatti = Object.keys(g.risultati).length, conta = {};
+    for (const r of Object.values(g.risultati)) conta[r.confronto] = (conta[r.confronto] || 0) + 1;
+    const riassunto = Object.entries(conta).map(([k, v]) => `${v} ${k}`).join(', ');
+    t = inCorso ? `Giro ${g.id} in corso: ${fatti} test fatti su ${g.test.length}`
+                : `Ultimo giro: il ${g.id}, del ${quando(g.inizio)}, ${g.stato}; ${fatti} test su ${g.test.length}`;
+    t += `, limite ${numero(g.limite)} nodi` + (riassunto ? ` (${riassunto})` : '') + '.';
+  }
+  if (n.realtime !== null && !inCorso) t += ' Sta girando un test in tempo reale: il giro si può avviare quando finisce.';
+  document.getElementById('stato-giro').textContent = t;
+}
+
+// mentre un giro gira: la pagina si aggiorna ogni secondo e mezzo
+async function segui() {
+  try {
+    const n = await (await fetch(URL_STATO, {cache: 'no-store'})).json();
+    mostra(n);
+    if (n.in_corso === null) return;
+  } catch (e) { /* si riprova */ }
+  setTimeout(segui, 1500);
+}
+const iniziale = {{ n|tojson }};
+mostra(iniziale);
+if (iniziale.in_corso !== null) setTimeout(segui, 1500);
+</script>
+{% endblock %}

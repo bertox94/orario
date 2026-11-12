@@ -18,6 +18,13 @@ Due pagine, senza login e senza database:
   Se i dati non passano la verifica del solver (`verifica_dati.h`) l'esito è «errore nei dati»: la ricerca non parte e
   la pagina mostra il motivo, sopra i dati del caso.
 
+- **Test notturni** (`/notturni`): un elenco di casi (seme, classi, ritardi, ordine delle classi) che si rieseguono
+  tutti insieme, in un giro. Un caso si aggiunge dalla pagina di un test in tempo reale («Aggiungi ai notturni»). Il
+  limite di nodi è uno solo per tutti e si cambia dalla pagina. «Avvia il giro» esegue i test uno dopo l'altro e, per
+  ognuno, confronta esito, nodi e cella più avanti con l'ultima volta fatta con lo stesso limite: «uguale», «diverso»,
+  «primo» o «limite cambiato». Dei test notturni si tengono solo i numeri (in `lavoro/notturni/`), non i passi. Un giro
+  e un test in tempo reale non girano insieme.
+
 Un test alla volta, con un limite di nodi da 0,1 a 20 milioni (ogni passo si registra: 6 byte per nodo).
 
 Il sito mostra soltanto: tutto il calcolo lo fa il solver, che il sito lancia in tre modi (vedi `main.c`):

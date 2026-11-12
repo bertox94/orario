@@ -130,3 +130,16 @@ table.controlli td.esito-cella { white-space: nowrap; }
   background: #fff; max-width: 900px; }
 .verifica.non-valido { border-left-color: var(--male); }
 .verifica h2 { margin-top: 10px; }
+/* le due schede in cima: test in tempo reale e test notturni */
+.schede { display: flex; gap: 4px; border-bottom: 1px solid var(--bordo); margin-bottom: 18px; }
+.schede a { padding: 8px 16px; text-decoration: none; color: var(--tenue); border: 1px solid transparent;
+  border-bottom: 0; border-radius: 6px 6px 0 0; margin-bottom: -1px; }
+.schede a.attiva { color: var(--testo); font-weight: 600; background: var(--sfondo); border-color: var(--bordo); }
+/* i test notturni: il giro e il confronto con il giro prima */
+.giro { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.modulo label span { display: flex; align-items: center; gap: 6px; color: var(--testo); font-size: 15px; }
+.confronto { padding: 1px 8px; border-radius: 10px; font-size: 13px; background: var(--riga); }
+.confronto-uguale { color: var(--ok); background: #e6f4ea; }
+.confronto-diverso { color: var(--male); background: #fdecea; font-weight: 600; }
+.confronto-limite-cambiato { color: var(--avviso); background: #fff4d6; }
+form.accanto { display: inline-block; margin: 0 0 8px; }
