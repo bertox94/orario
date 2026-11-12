@@ -29,7 +29,7 @@ CASI_ORDINE = [(0, 8, 0, 1, 100000), (5, 6, 1, 2, 100000), (1, 9, 0, 3, 100000)]
 def esegui():
     with tempfile.TemporaryDirectory() as d:
         exe = os.path.join(d, 'untitled')
-        sorgenti = [f for c in ('.', 'data_initialization', 'priority_queue')
+        sorgenti = [f for c in ('.', 'ricerca', 'ricerca/coda', 'dati', 'verifiche', 'comandi')
                     for f in sorted(glob.glob(os.path.join(RADICE, c, '*.c')))]
         subprocess.run(['gcc', '-O2', '-std=gnu11', '-w'] + sorgenti + ['-o', exe, '-lm'], check=True)
         trovati = {}

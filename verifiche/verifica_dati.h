@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-#include "data_initialization/database_initializers.h"
+#include "../dati/database_initializers.h"
 
 // La verifica dei dati, prima della ricerca: condizioni necessarie che si vedono dai dati senza cercare. Se una non
 // vale l'orario non esiste e la ricerca non parte («errore nei dati»); se valgono tutte non e' garantito niente.

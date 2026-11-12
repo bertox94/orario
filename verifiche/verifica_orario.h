@@ -1,7 +1,7 @@
 #ifndef UNTITLED_VERIFICA_ORARIO_H
 #define UNTITLED_VERIFICA_ORARIO_H
 
-#include "data_initialization/database_initializers.h"
+#include "../dati/database_initializers.h"
 
 // La verifica dell'orario trovato, indipendente dalla ricerca: non usa niente di ricerca.c (ne' i vincoli, ne' lo
 // stato delle ore gia' messe). Legge solo i dati della scuola e l'orario finito, cella per cella, e rifa' i conti.

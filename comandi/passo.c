@@ -1,8 +1,8 @@
 #include "passo.h"
 #include "passi.h"
-#include "ricerca.h"
-#include "vincoli.h"
-#include "data_initialization/generatore.h"
+#include "../ricerca/ricerca.h"
+#include "../ricerca/vincoli.h"
+#include "../dati/generatore.h"
 #include "json.h"
 
 #include <stdio.h>

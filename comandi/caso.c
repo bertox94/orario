@@ -1,9 +1,9 @@
 #include "caso.h"
-#include "ricerca.h"
-#include "data_initialization/generatore.h"
+#include "../ricerca/ricerca.h"
+#include "../dati/generatore.h"
 #include "passi.h"
-#include "verifica_dati.h"
-#include "verifica_orario.h"
+#include "../verifiche/verifica_dati.h"
+#include "../verifiche/verifica_orario.h"
 #include "json.h"
 
 #include <stdio.h>

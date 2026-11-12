@@ -5,7 +5,7 @@
 
 #include <stdio.h>
 
-#include "data_initialization/database_initializers.h"
+#include "../dati/database_initializers.h"
 
 // una stringa tra virgolette: protette virgolette e barre, e l'a capo (il motivo di un errore nei dati ha piu' righe)
 static inline void json_stringa(FILE *r, const char *s) {

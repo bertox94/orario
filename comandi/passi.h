@@ -13,7 +13,7 @@
 // Ogni cella si scrive subito prima di entrare nella cella dopo (in cerca_orario non ci sono altri punti in cui
 // cambia orario[pos]), quindi il record di un nodo dice tutto quello che e' cambiato dal nodo prima.
 
-#include "data_initialization/database_initializers.h"
+#include "../dati/database_initializers.h"
 
 #define PASSI_ISTANTANEA 16384
 

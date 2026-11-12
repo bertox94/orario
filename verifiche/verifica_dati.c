@@ -1,5 +1,5 @@
 #include "verifica_dati.h"
-#include "data_initialization/database_initializers.h"
+#include "../dati/database_initializers.h"
 
 #include <stdio.h>
 

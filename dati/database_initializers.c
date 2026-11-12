@@ -2,7 +2,7 @@
 // Created by Alberto Tiraboschi on 09/06/2026.
 //
 
-#include "../data_initialization/database_initializers.h"
+#include "database_initializers.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,7 +1,7 @@
 #include "prove.h"
-#include "ricerca.h"
-#include "data_initialization/generatore.h"
-#include "verifica_dati.h"
+#include "../ricerca/ricerca.h"
+#include "../dati/generatore.h"
+#include "../verifiche/verifica_dati.h"
 
 #include <stdio.h>
 #include <sys/wait.h>

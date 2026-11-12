@@ -7,8 +7,8 @@
 // messe, la coda dei docenti, il conto dei nodi. Chi la lancia la crea con nuova_ricerca, puo' mettere un limite di
 // nodi e una funzione da chiamare a ogni nodo, e chiama cerca_orario(r, 0).
 
-#include "data_initialization/database_initializers.h"
-#include "priority_queue/prio_queue.h"
+#include "../dati/database_initializers.h"
+#include "coda/prio_queue.h"
 
 typedef struct Ricerca Ricerca;
 

@@ -1,7 +1,7 @@
 #include "generatore.h"
 #include "database_initializers.h"
 #include "nomi_docenti.h"
-#include "../json.h"
+#include "../comandi/json.h"
 
 #include <assert.h>
 #include <stdint.h>

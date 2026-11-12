@@ -5,16 +5,22 @@ codice e messaggi di commit sono in italiano.
 
 ## Cosa c'è (tutto in `main`, dal 10 novembre 2026)
 
+- **Le cartelle del solver** (richiesta di Alb del 12 novembre 2026; nella radice resta solo `main.c`):
+  - `ricerca/`: la ricerca e i vincoli (`ricerca.c`, `ricerca.h`, `vincoli.h`); `ricerca/coda/`: la coda di priorità;
+  - `dati/`: la scuola e i casi casuali (`database_initializers`, `generatore`, `nomi_docenti.h`);
+  - `verifiche/`: la verifica dei dati prima della ricerca e quella dell'orario dopo;
+  - `comandi/`: i comandi per il sito e per le prove (`caso`, `passo`, `prove`), il file dei passi (`passi`) e
+    l'uscita in JSON (`json.h`).
+  Chi compila elenca queste cartelle: `CMakeLists.txt`, `sito/solver.py`, `tests/non_regressione.py`.
 - **Il solver** (C): ricerca con backtracking dell'orario, un orario solo. `ricerca.c` è la ricerca (la cella, i
   vincoli, la coda, `cerca_orario`); `vincoli.h` dichiara i vincoli per chi li valuta uno per uno; `main.c` lancia:
   - `./untitled test N [ORDINI LIMITE]`: le prove con i dati casuali (`prove.c`), su stdout solo i test che arrivano
     al limite;
-  - `./untitled caso|dati|passo ...`: per il sito (`caso.c`, `data_initialization/generatore.c`, `passo.c`,
-    `passi.c`).
+  - `./untitled caso|dati|passo ...`: per il sito (`caso.c`, `dati/generatore.c`, `passo.c`, `passi.c`).
   I casi casuali hanno anche un ordine delle classi (`ORDINE`, 0 quello generato: stessi dati, classi in un altro
   ordine, quindi un'altra strada della ricerca), uguale a quello del sito vecchio.
   Niente variabili globali né `static` (richiesta di Alb dell'11 novembre 2026): i dati stanno in una `Scuola`
-  (`data_initialization/database_initializers.h`), lo stato della ricerca in una `Ricerca` (`ricerca.h`), e ogni
+  (`dati/database_initializers.h`), lo stato della ricerca in una `Ricerca` (`ricerca.h`), e ogni
   funzione le riceve come argomento. Restano `static` solo le tabelle di nomi costanti negli header.
   Prima della ricerca, `verifica_dati.c` (richiesta di Alb del 10 novembre 2026): sei controlli sui dati, condizioni
   necessarie; se uno non vale la ricerca non parte («errore nei dati», con il motivo); le prove saltano i casi che

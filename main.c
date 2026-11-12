@@ -11,10 +11,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "prove.h"
-#include "caso.h"
-#include "passo.h"
-#include "data_initialization/generatore.h"
+#include "comandi/prove.h"
+#include "comandi/caso.h"
+#include "comandi/passo.h"
+#include "dati/generatore.h"
 
 int main(const int argc, char **argv) {
     if (argc > 1 && !strcmp(argv[1], "test")) {  // le prove con i dati casuali

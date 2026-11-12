@@ -5,7 +5,7 @@ import os
 import subprocess
 
 RADICE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CARTELLE = ['.', 'data_initialization', 'priority_queue']
+CARTELLE = ['.', 'ricerca', 'ricerca/coda', 'dati', 'verifiche', 'comandi']  # dove stanno i sorgenti del solver
 
 
 def _sorgenti():

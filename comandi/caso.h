@@ -3,7 +3,7 @@
 
 // Un caso casuale seguito dal sito: ./untitled caso SEME CLASSI RITARDI ORDINE LIMITE FILE PASSI
 //
-// Genera i dati come le prove (data_initialization/generatore.c: stesso seme, stesse classi, stessi ritardi e stesso
+// Genera i dati come le prove (dati/generatore.c: stesso seme, stesse classi, stessi ritardi e stesso
 // ordine delle classi: stessi dati), cerca un orario fermandosi
 // a LIMITE nodi (0: senza limite) e scrive lo stato della ricerca in FILE, un oggetto JSON, ogni mezzo secondo e alla
 // fine (scritto in FILE.tmp e poi rinominato: chi legge trova sempre un JSON intero):
