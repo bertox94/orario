@@ -12,6 +12,12 @@ codice e messaggi di commit sono in italiano.
   - `comandi/`: i comandi per il sito e per le prove (`caso`, `passo`, `prove`), il file dei passi (`passi`) e
     l'uscita in JSON (`json.h`).
   Chi compila elenca queste cartelle: `CMakeLists.txt`, `sito/solver.py`, `tests/non_regressione.py`.
+- **Le potature** (ramo `potature`, richiesta di Alb del 12 novembre 2026; `ricerca/potature.c`): i sei controlli
+  della verifica dei dati rifatti a ogni nodo su quello che resta. Sono condizioni necessarie: scartano solo rami senza
+  orario, quindi l'orario trovato è lo stesso e cambiano solo i nodi. Per ora sono spente (la ricerca è quella di
+  prima) e si accendono per le misure con la variabile d'ambiente `POTATURE` (un bit per potatura, 63 tutte); `caso`
+  allora scrive su stderr quante volte è scattata ognuna. Misura del 12 novembre su 341 casi a 2 milioni di nodi:
+  175 orari trovati senza, 297 con tutte, nessuno perso. Da fare: renderle veloci, scegliere quali tenere, il sito.
 - **Il solver** (C): ricerca con backtracking dell'orario, un orario solo. `ricerca.c` è la ricerca (la cella, i
   vincoli, la coda, `cerca_orario`); `vincoli.h` dichiara i vincoli per chi li valuta uno per uno; `main.c` lancia:
   - `./untitled test N [ORDINI LIMITE]`: le prove con i dati casuali (`prove.c`), su stdout solo i test che arrivano

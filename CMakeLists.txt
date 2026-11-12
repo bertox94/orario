@@ -16,6 +16,8 @@ add_executable(untitled main.c
         ricerca/ricerca.h
         ricerca/ricerca.c
         ricerca/vincoli.h
+        ricerca/potature.h
+        ricerca/potature.c
         ricerca/coda/prio_queue.c
         ricerca/coda/prio_queue.h
         comandi/caso.h

@@ -122,6 +122,11 @@ int esegui_caso(const unsigned long long int seme, const int classi, const int r
     if (r->trovato) k->verificato = verifica_orario(s, r->orario, k->verifica);
     if (!r->trovato && !r->fermato) k->foto_pos = 0;  // nessuna soluzione: non resta niente da mostrare
     scrivi_stato(k, s, r, 0);
+    if (r->potature_attive) {  // per le misure: quante volte ogni potatura ha fatto tornare indietro
+        fprintf(stderr, "potate");
+        for (int i = 0; i < 6; i++) fprintf(stderr, " %lld", r->potate[i]);
+        fprintf(stderr, "\n");
+    }
     libera_ricerca(r);
     libera_scuola(s);
     free(k);

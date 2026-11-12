@@ -16,6 +16,7 @@
 
 #include "ricerca.h"
 #include "vincoli.h"
+#include "potature.h"
 
 // ---- creare la ricerca ----
 
@@ -45,10 +46,14 @@ Ricerca *nuova_ricerca(const Scuola *s) {
         for (int p = 0; p < s->actual_insegnanti; p++)
             if (get_ore_insegnante_in_una_classe(s, c, p) > 0) *coda++ = &r->queue_items[p];
     }
+    // le potature: accese quelle che dice la variabile d'ambiente POTATURE (un bit per potatura; senza: nessuna)
+    prepara_potature(r);
+    r->potature_attive = getenv("POTATURE") ? atoi(getenv("POTATURE")) & TUTTE_LE_POTATURE : 0;
     return r;
 }
 
 void libera_ricerca(Ricerca *r) {
+    libera_potature(r);
     free(r->queue_mul);
     free(r);
 }
@@ -329,6 +334,13 @@ int cerca_orario(Ricerca *r, const int pos) {
     if (pos == r->orario_len) {  // tutte le celle decise: l'orario e' completo
         r->trovato = 1;
         return 1;
+    }
+    if (r->potature_attive) {  // da qui un orario non puo' piu' uscire: si torna indietro subito
+        const int quale = potatura(r, pos);
+        if (quale >= 0) {
+            r->potate[quale]++;
+            return 0;
+        }
     }
     const Cella c = cella(r, pos);
     sort_queue(c.coda, c.n_coda);
