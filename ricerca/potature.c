@@ -28,10 +28,10 @@ struct Potature {
     int *posto;                                  // posto[p * CLASSE_SEZIONE_SZ + i]: il suo posto tra i docenti di lei
     Voce *voci;                                  // voci[inizio_voci[k] + i]: l'i-esima voce della classe k
     int inizio_voci[CLASSE_SEZIONE_SZ + 1];
-    // l'appunto: per il docente al posto i della classe k, oggi[inizio_docenti[k] + i], valido se nodo[...] e' il
-    // numero del nodo di adesso
+    // l'appunto: per il docente al posto i della classe k, oggi[inizio_docenti[k] + i], valido se nodo[...] e'
+    // adesso, il numero di questa chiamata di potatura
     Oggi *oggi;
-    long long int *nodo;
+    long long int *nodo, adesso;
     int inizio_docenti[CLASSE_SEZIONE_SZ + 1];
 };
 
@@ -158,9 +158,9 @@ static Oggi calcola_oggi(const Punto *x, const int k, const int p) {
 static Oggi puo_fare_oggi(const Punto *x, const int k, const int i) {
     struct Potature *t = x->r->potature;
     const int dove = t->inizio_docenti[k] + i;
-    if (t->nodo[dove] != x->r->nodi) {
+    if (t->nodo[dove] != t->adesso) {
         t->oggi[dove] = calcola_oggi(x, k, t->docenti[k * INSEGNANTE_SZ + i]);
-        t->nodo[dove] = x->r->nodi;
+        t->nodo[dove] = t->adesso;
     }
     return t->oggi[dove];
 }
@@ -374,6 +374,7 @@ int potatura(const Ricerca *r, const int pos) {
     x.r = r, x.s = s, x.giorno = pos / C / O, x.ora = pos / C % O, x.cla = pos % C, x.G = G, x.O = O, x.C = C;
     x.M = MIN(PRIME_N_ORE_OBBLIGATORIE, O), x.dopo = G - 1 - x.giorno;
     x.n_classi = x.n_docenti_classi = x.n_docenti_ore = 0;
+    r->potature->adesso++;  // un nodo nuovo: l'appunto di prima non vale piu'
     if (pos % (C * O) == 0) guarda_tutto(&x);  // la prima cella di un giorno (e della ricerca)
     else guarda_quello_che_e_cambiato(&x, pos);
     int (*const controlli[N_POTATURE])(const Punto *) = {

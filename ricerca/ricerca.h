@@ -46,8 +46,8 @@ struct Ricerca {
     int queue_sz;                            // quanto e' lungo un blocco: i docenti della classe che ne ha di piu'
     int queue_sz_classe[CLASSE_SEZIONE_SZ];  // quanti docenti ha ogni classe: i puntatori usati nei suoi blocchi
 
-    // le potature (potature.h): quali sono accese (un bit per potatura; 0: nessuna, la ricerca di prima), quello che
-    // preparano, e quante volte ognuna ha fatto tornare indietro la ricerca
+    // le potature (potature.h): quali sono accese (un bit per potatura; nuova_ricerca mette POTATURE_ACCESE, 0 le
+    // spegne tutte), quello che preparano, e quante volte ognuna ha fatto tornare indietro la ricerca
     int potature_attive;
     struct Potature *potature;
     long long int potate[8];

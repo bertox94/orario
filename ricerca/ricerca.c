@@ -7,6 +7,8 @@
 // anche l'ora buca. Quando tutte le celle sono decise (pos == orario_len) l'orario e' completo e la ricerca finisce
 // (si cerca un orario solo): cerca_orario ritorna 1 e chi l'ha chiamata ritorna subito anche lui, senza provare
 // altro, cosi' l'orario trovato resta in r->orario. La lanciano prove.c e caso.c.
+// Prima di decidere una cella guarda le potature (potature.h): se da li' un orario non puo' piu' uscire, torna
+// indietro subito.
 //
 // Niente variabili globali: la scuola e lo stato della ricerca arrivano a ogni funzione nella Ricerca r (ricerca.h).
 
@@ -46,9 +48,8 @@ Ricerca *nuova_ricerca(const Scuola *s) {
         for (int p = 0; p < s->actual_insegnanti; p++)
             if (get_ore_insegnante_in_una_classe(s, c, p) > 0) *coda++ = &r->queue_items[p];
     }
-    // le potature: accese quelle che dice la variabile d'ambiente POTATURE (un bit per potatura; senza: nessuna)
     prepara_potature(r);
-    r->potature_attive = getenv("POTATURE") ? atoi(getenv("POTATURE")) & TUTTE_LE_POTATURE : 0;
+    r->potature_attive = POTATURE_ACCESE;
     return r;
 }
 

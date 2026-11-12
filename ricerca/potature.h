@@ -30,6 +30,11 @@ enum {
     N_POTATURE
 };
 #define TUTTE_LE_POTATURE ((1 << N_POTATURE) - 1)
+// Quelle accese in una ricerca nuova: la 1, la 2, la 4 e la 5. La 3 e la 6 sono giuste ma non ripagano il loro costo:
+// misurate il 12 novembre 2026 su 341 casi casuali a 2 milioni di nodi, queste quattro trovano gli stessi 297 orari di
+// tutte e sei (senza potature: 175) in tre quarti del tempo.
+#define POTATURE_ACCESE (1 << POTATURA_ORE_DOCENTE_IN_CLASSE | 1 << POTATURA_ORE_DOCENTE | 1 << POTATURA_ORE_CLASSE \
+                         | 1 << POTATURA_LEZIONI_OBBLIGATORIE)
 
 // Prepara quello che serve alle potature (per ogni classe, i suoi docenti e le sue lezioni): una volta, dopo
 // nuova_ricerca. libera_potature quando non serve piu'.
