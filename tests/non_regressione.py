@@ -6,7 +6,7 @@
 
 Compila il solver in una cartella temporanea e per ogni caso di CASI (seme, classi, ritardi, limite di nodi) lancia
 ./untitled caso: confronta l'esito, i nodi, la cella piu' avanti e l'impronta del file dei passi, cioe' di ogni nodo
-visitato e di ogni scelta fatta, nell'ordine. Controlla anche che i dati di prova (./untitled) diano un orario.
+visitato e di ogni scelta fatta, nell'ordine.
 """
 import glob
 import hashlib
@@ -29,7 +29,7 @@ def esegui():
         sorgenti = [f for c in ('.', 'data_initialization', 'priority_queue')
                     for f in sorted(glob.glob(os.path.join(RADICE, c, '*.c')))]
         subprocess.run(['gcc', '-O2', '-std=gnu11', '-w'] + sorgenti + ['-o', exe, '-lm'], check=True)
-        trovati = {'dati di prova': subprocess.run([exe], capture_output=True, text=True).stdout.split(' in ')[0]}
+        trovati = {}
         for seme, classi, ritardi, limite in CASI:
             subprocess.run([exe, 'caso', str(seme), str(classi), str(ritardi), str(limite), 'stato.json', 'passi.bin'],
                            cwd=d, check=False)

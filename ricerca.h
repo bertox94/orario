@@ -1,7 +1,7 @@
 #ifndef UNTITLED_RICERCA_H
 #define UNTITLED_RICERCA_H
 
-// La ricerca (ricerca.c), per chi la lancia: main.c con i dati di prova, prove.c e caso.c con i dati casuali.
+// La ricerca (ricerca.c), per chi la lancia: prove.c e caso.c, con i dati casuali.
 //
 // Tutto quello che la ricerca sa e cambia sta in una Ricerca: la scuola (che legge soltanto), l'orario, le ore gia'
 // messe, la coda dei docenti, il conto dei nodi. Chi la lancia la crea con nuova_ricerca, puo' mettere un limite di

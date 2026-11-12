@@ -5,7 +5,7 @@ import os
 import subprocess
 
 RADICE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CARTELLE = ['.', 'constants', 'data_initialization', 'priority_queue']
+CARTELLE = ['.', 'data_initialization', 'priority_queue']
 
 
 def _sorgenti():

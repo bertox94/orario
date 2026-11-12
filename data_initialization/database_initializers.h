@@ -7,7 +7,7 @@
 
 // I dati della scuola: giorni, ore, classi, docenti, le ore di ogni docente in ogni classe (da solo e in coppia) e le
 // ore di ingresso. Stanno tutti in una Scuola, che chi lancia il programma crea (nuova_scuola) e passa a chi la
-// riempie (inizializza_dati, genera_dati_casuali) e a chi la legge (la verifica dei dati, la ricerca, la verifica
+// riempie (genera_dati_casuali) e a chi la legge (la verifica dei dati, la ricerca, la verifica
 // dell'orario). Gli array a due dimensioni sono piatti: classe, docente -> classe * INSEGNANTE_SZ + docente.
 
 // le dimensioni massime
@@ -77,8 +77,5 @@ int get_ore_insegnante_da_solo_in_una_classe(const Scuola *s, int cla, int p);
 int get_ore_insegnanti_codocenza_in_una_classe(const Scuola *s, int cla, int p1, int p2);
 // una coppia di docenti sempre nello stesso ordine: prima l'indice minore
 void swap_min_first(int *p1, int *p2);
-
-// i dati di prova (dati_di_prova.c): giorni, ore, lezioni e ore di ingresso
-void inizializza_dati(Scuola *s);
 
 #endif //UNTITLED_CONSTANTS_H

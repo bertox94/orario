@@ -134,7 +134,7 @@ static int genera(Generatore *gen, Scuola *s, const unsigned long long int seme,
     for (int t = 0; t < MAX_TENTATIVI && !ok; t++) ok = tenta(gen, n_classi);
     if (!ok) return 0;
 
-    // come inizializza_dati(): giorni e ore, le lezioni (classe per classe), le ore di ingresso
+    // nella scuola: giorni e ore, le lezioni (classe per classe), le ore di ingresso
     char giorni[][4] = {"Lun", "Mar", "Mer", "Gio", "Ven", "Sab"}, ore[][3] = {"08", "09", "10", "11", "12", "13"};
     for (int g = 0; g < 6; g++) set_giorno_settimana(s, giorni[g]);
     for (int h = 0; h < 6; h++) set_ora_giornaliera(s, ore[h]);
