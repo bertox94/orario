@@ -22,9 +22,8 @@
 //     (h + 1) x G celle da riempire
 //  6. ora per ora: a ogni ora obbligatoria i docenti gia' entrati sono almeno quante le classi
 //
-// Chi la chiama: main.c per i dati di prova (stampa «Errore nei dati: ...») e caso.c per i casi del sito (esito
-// «errore nei dati», con il motivo nel campo «errore» dello stato). Le prove (./untitled test N) saltano i casi
-// che non la passano.
+// Chi la chiama: caso.c per i casi del sito (esito «errore nei dati», con il motivo nel campo «errore» dello stato)
+// e prove.c (./untitled test N), che salta i casi che non la passano.
 //
 // 1 se i dati passano tutti i controlli; se no 0, con il primo che non vale spiegato in errore.
 // (Il motivo puo' avere piu' righe: la frase e, sotto, i numeri. VERIFICA_DATI_ERRORE e' lo spazio che serve.)

@@ -7,7 +7,6 @@ codice e messaggi di commit sono in italiano.
 
 - **Il solver** (C): ricerca con backtracking dell'orario, un orario solo. `ricerca.c` è la ricerca (la cella, i
   vincoli, la coda, `cerca_orario`); `vincoli.h` dichiara i vincoli per chi li valuta uno per uno; `main.c` lancia:
-  - `./untitled`: i dati di prova (`data_initialization/dati_di_prova.c`), su console solo il tempo;
   - `./untitled test N`: le prove con i dati casuali (`prove.c`), su stdout solo i test che arrivano al limite;
   - `./untitled caso|dati|passo|ultima ...`: per il sito (`caso.c`, `data_initialization/generatore.c`, `passo.c`,
     `ultima.c`, `passi.c`).

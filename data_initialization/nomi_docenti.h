@@ -1,10 +1,9 @@
 #ifndef UNTITLED_NOMI_DOCENTI_H
 #define UNTITLED_NOMI_DOCENTI_H
 
-// Nomi di docenti: personaggi di fantasia come quelli dei dati del programma (constants/professors.h), ma tutti
-// diversi da quelli, mescolati tra le varie saghe. Per i docenti dei dati casuali: il docente d (da 0) si chiama
-// NOMI_DOCENTI_CASUALI[d], oltre la fine dell'elenco D%03d. In questa versione nessun file lo usa ancora.
-// Solo ASCII e al massimo 16 caratteri.
+// Nomi di docenti: personaggi di fantasia, mescolati tra le varie saghe, tutti diversi; in fondo quelli che erano dei
+// dati di prova. Per i docenti dei dati casuali (generatore.c): il docente d (da 0) si chiama
+// NOMI_DOCENTI_CASUALI[d], oltre la fine dell'elenco D%03d. Solo ASCII e al massimo 16 caratteri.
 // Cambiare l'elenco cambia solo i nomi, non la ricerca (che lavora sugli indici dei docenti).
 
 static const char *const NOMI_DOCENTI_CASUALI[] = {
@@ -39,7 +38,17 @@ static const char *const NOMI_DOCENTI_CASUALI[] = {
     "Stitch", "Jigen", "Lilo", "Goemon", "Rapunzel", "Fujiko", "Gothel", "Zenigata", "Elsa", "Actarus", "Olaf", "Alcor",
     "Kristoff", "Venusia", "Moana", "Heidi", "Maui", "Rottenmeier", "Jafar", "Asterix", "Iago", "Obelix", "Abu",
     "Panoramix", "Genio", "Idefix", "Cruella", "Gargamella", "Pongo", "Puffetta", "Brontolo", "Birba", "Eolo",
-    "Gongolo", "Cucciolo", "Grimilde"
+    "Gongolo", "Cucciolo", "Grimilde",
+    // i docenti dei vecchi dati di prova
+    "Goku", "Vegeta", "Junior", "Crillin", "Freezer", "Cell", "M. Bu", "Bulma", "Chichi", "Janemba", "Gogeta", "Taipei",
+    "M. Tartarughe", "Trunks", "Gohan", "Goten", "Sandokan", "Doraemon", "Jesus", "Naruto", "Sasuke", "Tsunade",
+    "Orochimaru", "Jiraya", "Sakura", "H. Potter", "Piton", "R. Weasley", "H. Granger", "MC. Granitt", "A. Silente",
+    "Hagrid", "D. Malfoy", "Voldemort", "Itachi", "Lupin", "Brook", "Ash", "E. Jaeger", "M. Uchiha", "Mufasa", "Simba",
+    "Scar", "Sarabi", "Pumba", "Timon", "Rafiki", "Zazu", "Jasmine", "Aladino", "Biancaneve", "Dotto", "Pisolo",
+    "Mammolo", "Sauron", "B. Baggins", "S. Gamgee", "Merry", "Pipino", "Elrond", "Arwen", "Gandalf", "Saruman",
+    "Legolas", "F. Baggins", "Aragorn", "Gimli", "Glorfindel", "Galadriel", "Haldir", "Eomer", "Eowyn", "Celeborn",
+    "Lurtz", "T. Bombadil", "Boromir", "Faramir", "Barbalbero", "Isildur", "Denethor", "G. Vermilinguo", "Radagast",
+    "Theoden", "Morgoth", "Gothmog", "Feanor", "Fingolfin"
 };
 
 #define N_NOMI_DOCENTI_CASUALI ((int) (sizeof NOMI_DOCENTI_CASUALI / sizeof NOMI_DOCENTI_CASUALI[0]))

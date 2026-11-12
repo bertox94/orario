@@ -16,7 +16,7 @@
 // ritardi i dati di un seme sono gli stessi, tranne le ore di ingresso. Un caso con i ritardi puo' essere impossibile.
 //
 // Le classi si chiamano C01, C02...; i docenti con i nomi di nomi_docenti.h (oltre l'elenco D346, D347...).
-// Registra nella scuola s giorni, ore e lezioni come inizializza_dati(). Ritorna 0 se non riesce a generare i dati.
+// Registra nella scuola s giorni, ore, lezioni e ore di ingresso. Ritorna 0 se non riesce a generare i dati.
 int genera_dati_casuali(Scuola *s, unsigned long long int seme, int n_classi, int con_ritardi);
 
 // I dati del caso in JSON su stdout (./untitled dati, per il sito): giorni, ore, lezioni e ore di ingresso. Ritorna 0

@@ -6,7 +6,7 @@
 // da fare prima), ogni docente in coppia con un altro (una codocenza) e poi da solo; dopo le ore obbligatorie prova
 // anche l'ora buca. Quando tutte le celle sono decise (pos == orario_len) l'orario e' completo e la ricerca finisce
 // (si cerca un orario solo): cerca_orario ritorna 1 e chi l'ha chiamata ritorna subito anche lui, senza provare
-// altro, cosi' l'orario trovato resta in r->orario. La lanciano main.c, prove.c e caso.c.
+// altro, cosi' l'orario trovato resta in r->orario. La lanciano prove.c e caso.c.
 //
 // Niente variabili globali: la scuola e lo stato della ricerca arrivano a ogni funzione nella Ricerca r (ricerca.h).
 
