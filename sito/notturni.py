@@ -4,17 +4,23 @@ un giro, per vedere se i loro numeri cambiano.
 Tutto sta in lavoro/notturni/, in file JSON:
 - test.json: l'elenco dei test, ognuno con il suo numero;
 - impostazioni.json: il limite di nodi, uno solo per tutti i test (lo usa il giro, e si cambia dalla pagina);
-- giri/<n>.json: un giro, con il limite usato e il risultato di ogni test (esito, nodi, cella piu' avanti, tempo).
+- giri/<n>.json: un giro, con il limite usato e il risultato di ogni test (esito, nodi, cella piu' avanti, tempo);
+- ricerca.json: l'ultima ricerca di nuovi casi.
 
 Un giro esegue i test uno dopo l'altro con ./untitled caso (caso.h), in una cartella provvisoria: del test si tengono
 solo i numeri, il file dei passi si cancella. Ogni risultato si confronta con l'ultimo dello stesso test fatto con lo
 stesso limite: «uguale» o «diverso» (esito, nodi, cella piu' avanti; il tempo no, dipende dal computer). Con un
 limite diverso i numeri non si confrontano: «limite cambiato». Un giro alla volta, e mai insieme a un test in tempo
 reale.
+
+«Cerca nuovi casi» lancia ./untitled test N ORDINI LIMITE (prove.h), le stesse prove che si fanno dal terminale, e
+aggiunge all'elenco i casi che arrivano al limite e non ci sono gia'.
 """
 import json
 import os
+import re
 import shutil
+import signal
 import subprocess
 import threading
 import time
@@ -26,6 +32,9 @@ CONFRONTATI = ('esito', 'nodi', 'pos_max')
 
 _lock = threading.Lock()
 _giro = {'id': None, 'processo': None, 'fermare': False}  # il giro in corso
+_cerca = {'in_corso': False, 'processo': None}             # la ricerca di nuovi casi in corso
+# una riga di ./untitled test: «seme 0, 5 classi, senza ritardi, ordine 2: ...» (l'ordine c'e' solo se non e' 0)
+_RIGA = re.compile(r'seme (\d+), (\d+) classi, (con|senza) ritardi(?:, ordine (\d+))?:')
 
 
 def _cartella(lavoro, *pezzi):
@@ -189,6 +198,8 @@ def avvia_giro(lavoro):
     with _lock:
         if _giro['id'] is not None:
             raise ValueError('C\'è già un giro in corso.')
+        if _cerca['in_corso']:
+            raise ValueError('Sta girando la ricerca di nuovi casi: aspetta che finisca, o fermala.')
         if test_realtime.in_corso() is not None:
             raise ValueError('Sta girando un test in tempo reale: aspetta che finisca, o fermalo.')
         tests = elenco(lavoro)
@@ -214,6 +225,84 @@ def ferma_giro():
             _giro['processo'].terminate()
 
 
+# ---- cercare nuovi casi ----
+
+def cerca_in_corso():
+    with _lock:
+        return _cerca['in_corso']
+
+
+def ricerca(lavoro):
+    """L'ultima ricerca di nuovi casi (o None): quanti ne ha trovati e aggiunti, e se sta ancora girando."""
+    return _leggi(_cartella(lavoro, 'ricerca.json'), None)
+
+
+def _cerca_casi(lavoro, exe, r):
+    """Lancia ./untitled test N ORDINI LIMITE e legge le righe man mano: ogni caso che arriva al limite entra nei test
+    notturni, se non c'e' gia'."""
+    percorso = _cartella(lavoro, 'ricerca.json')
+    try:
+        p = subprocess.Popen([exe, 'test', str(r['n']), str(r['ordini']), str(r['limite'])],
+                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, start_new_session=True)
+        with _lock:
+            _cerca['processo'] = p
+        for riga in p.stdout:
+            m = _RIGA.match(riga)
+            if not m:
+                continue
+            _, nuovo = aggiungi(lavoro, int(m.group(1)), int(m.group(2)), m.group(3) == 'con', int(m.group(4) or 0))
+            r['trovati'] += 1
+            r['aggiunti' if nuovo else 'gia_presenti'] += 1
+            r['ultimo'] = riga.split(':')[0]
+            _scrivi(percorso, r)
+        r['stato'] = 'finita' if p.wait() == 0 else 'fermata'
+    except Exception as e:
+        r['stato'] = 'errore: %s' % e
+    finally:
+        r['fine'] = time.time()
+        _scrivi(percorso, r)
+        with _lock:
+            _cerca.update(in_corso=False, processo=None)
+
+
+def cerca(lavoro, n, ordini):
+    """Cerca nuovi casi: le stesse prove di ./untitled test N (semi da 0 a N, classi da 3 a 3 + N, senza e con
+    ritardi), per `ordini` ordini delle classi e con il limite dei test notturni. In sottofondo. ValueError se non si
+    puo'."""
+    with _lock:
+        if _cerca['in_corso']:
+            raise ValueError('La ricerca di nuovi casi sta già girando.')
+        if _giro['id'] is not None:
+            raise ValueError('C\'è un giro in corso: aspetta che finisca, o fermalo.')
+        if test_realtime.in_corso() is not None:
+            raise ValueError('Sta girando un test in tempo reale: aspetta che finisca, o fermalo.')
+        _cerca.update(in_corso=True, processo=None)
+    try:
+        exe = solver.compila(os.path.join(lavoro, 'bin'))
+    except Exception:
+        with _lock:
+            _cerca.update(in_corso=False, processo=None)
+        raise
+    r = {'n': n, 'ordini': ordini, 'limite': limite(lavoro), 'prove': (n + 1) * (n + 1) * 2 * ordini,
+         'inizio': time.time(), 'fine': None, 'stato': 'in corso', 'trovati': 0, 'aggiunti': 0, 'gia_presenti': 0,
+         'ultimo': None}
+    _scrivi(_cartella(lavoro, 'ricerca.json'), r)
+    threading.Thread(target=_cerca_casi, args=(lavoro, exe, r), daemon=True).start()
+
+
+def ferma_ricerca():
+    """Ferma la ricerca di nuovi casi: quelli gia' trovati restano nell'elenco."""
+    with _lock:
+        if _cerca['processo'] is not None:  # ogni prova gira in un processo figlio: si ferma tutto il gruppo
+            os.killpg(_cerca['processo'].pid, signal.SIGTERM)
+
+
+def occupato():
+    """Che cosa sta girando nei test notturni: 'giro', 'ricerca' o None. Finche' gira, niente test in tempo reale."""
+    with _lock:
+        return 'giro' if _giro['id'] is not None else 'ricerca' if _cerca['in_corso'] else None
+
+
 def chiudi_giri_interrotti(lavoro):
     """All'avvio del sito: un giro rimasto «in corso» (il sito si e' fermato mentre girava) risulta «interrotto»."""
     for gid in _giri(lavoro):
@@ -221,6 +310,10 @@ def chiudi_giri_interrotti(lavoro):
         if g and g.get('stato') == 'in corso':
             g.update(stato='interrotto', adesso=None, fine=g.get('fine') or time.time())
             _scrivi(_cartella(lavoro, 'giri', '%d.json' % gid), g)
+    r = ricerca(lavoro)
+    if r and r.get('stato') == 'in corso':  # lo stesso per una ricerca di nuovi casi
+        r.update(stato='interrotta', fine=time.time())
+        _scrivi(_cartella(lavoro, 'ricerca.json'), r)
 
 
 def situazione(lavoro):
@@ -237,4 +330,4 @@ def situazione(lavoro):
                 r = dict(r, limite=limite_prima)
         tests.append(dict(t, risultato=r))
     return {'limite': nodi, 'giro': g, 'in_corso': in_corso(), 'tests': tests,
-            'realtime': test_realtime.in_corso()}
+            'realtime': test_realtime.in_corso(), 'ricerca': ricerca(lavoro), 'cerca_in_corso': cerca_in_corso()}

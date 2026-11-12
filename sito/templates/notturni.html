@@ -3,7 +3,7 @@
 {% block contenuto %}
 <h1>Test notturni</h1>
 <p class="nota">Un elenco di casi che si rieseguono tutti insieme, in un giro, per vedere se i loro numeri cambiano. Un caso
-  si aggiunge dalla pagina di un test in tempo reale, con «Aggiungi ai notturni».</p>
+  si aggiunge dalla pagina di un test in tempo reale, con «Aggiungi ai notturni», oppure con «Cerca nuovi casi».</p>
 
 <form method="post" action="{{ url_for('limite_notturni') }}" class="modulo">
   <label>Ogni test si ferma dopo
@@ -19,6 +19,21 @@
   <form method="post" action="{{ url_for('ferma_giro') }}"><button class="secondario" id="ferma-giro">Ferma</button></form>
   <span id="stato-giro"></span>
 </div>
+
+<h2>Cerca nuovi casi</h2>
+<form method="post" action="{{ url_for('cerca_notturni') }}" class="modulo">
+  <label>N <input type="number" name="n" min="0" max="{{ max_n }}" value="{{ n.ricerca.n if n.ricerca else 5 }}"></label>
+  <label>Ordini delle classi
+    <input type="number" name="ordini" min="1" max="{{ max_ordini }}" value="{{ n.ricerca.ordini if n.ricerca else 1 }}"></label>
+  <button id="cerca">Cerca nuovi casi</button>
+</form>
+<div class="giro">
+  <form method="post" action="{{ url_for('ferma_ricerca') }}"><button class="secondario" id="ferma-ricerca">Ferma</button></form>
+  <span id="stato-ricerca"></span>
+</div>
+<p class="nota">Le stesse prove di <code>./untitled test N</code>: semi da 0 a N, classi da 3 a 3 + N, senza e con ritardi,
+  ognuna con tanti ordini delle classi quanti ne chiedi (il primo è quello generato). I casi che arrivano al limite dei
+  test notturni senza una risposta entrano nell'elenco, se non ci sono già.</p>
 
 <h2>I test</h2>
 <div class="scorre"><table class="dati" id="notturni">
@@ -55,11 +70,21 @@ function riga(t, adesso, inCorso) {
 }
 
 function mostra(n) {
-  const g = n.giro, inCorso = n.in_corso !== null;
-  document.querySelector('#notturni tbody').innerHTML = n.tests.map(t => riga(t, inCorso && g ? g.adesso : null, inCorso)).join('');
+  const g = n.giro, inCorso = n.in_corso !== null, c = n.ricerca, occupato = inCorso || n.cerca_in_corso;
+  document.querySelector('#notturni tbody').innerHTML = n.tests.map(t => riga(t, inCorso && g ? g.adesso : null, occupato)).join('');
   document.getElementById('notturni').hidden = !n.tests.length;
   document.getElementById('nessun-test').hidden = !!n.tests.length;
-  document.getElementById('avvia-giro').disabled = inCorso || !n.tests.length || n.realtime !== null;
+  document.getElementById('avvia-giro').disabled = occupato || !n.tests.length || n.realtime !== null;
+  document.getElementById('cerca').disabled = occupato || n.realtime !== null;
+  document.getElementById('ferma-ricerca').hidden = !n.cerca_in_corso;
+  let s = 'Nessuna ricerca ancora.';
+  if (c) {
+    s = (n.cerca_in_corso ? 'Ricerca in corso' : `Ultima ricerca: del ${quando(c.inizio)}, ${c.stato}`) +
+      ` (N ${c.n}, ${c.ordini} ${c.ordini === 1 ? 'ordine' : 'ordini'}, ${numero(c.prove)} prove, limite ${numero(c.limite)} nodi): ` +
+      `${c.trovati} casi arrivati al limite, ${c.aggiunti} aggiunti, ${c.gia_presenti} c'erano già.` +
+      (n.cerca_in_corso && c.ultimo ? ` L'ultimo: ${c.ultimo}.` : '');
+  }
+  document.getElementById('stato-ricerca').textContent = s;
   document.getElementById('ferma-giro').hidden = !inCorso;
   let t = 'Nessun giro ancora.';
   if (g) {
@@ -70,21 +95,21 @@ function mostra(n) {
                 : `Ultimo giro: il ${g.id}, del ${quando(g.inizio)}, ${g.stato}; ${fatti} test su ${g.test.length}`;
     t += `, limite ${numero(g.limite)} nodi` + (riassunto ? ` (${riassunto})` : '') + '.';
   }
-  if (n.realtime !== null && !inCorso) t += ' Sta girando un test in tempo reale: il giro si può avviare quando finisce.';
+  if (n.realtime !== null && !occupato) t += ' Sta girando un test in tempo reale: giro e ricerca si possono avviare quando finisce.';
   document.getElementById('stato-giro').textContent = t;
 }
 
-// mentre un giro gira: la pagina si aggiorna ogni secondo e mezzo
+// mentre un giro o una ricerca girano: la pagina si aggiorna ogni secondo e mezzo
 async function segui() {
   try {
     const n = await (await fetch(URL_STATO, {cache: 'no-store'})).json();
     mostra(n);
-    if (n.in_corso === null) return;
+    if (n.in_corso === null && !n.cerca_in_corso) return;
   } catch (e) { /* si riprova */ }
   setTimeout(segui, 1500);
 }
 const iniziale = {{ n|tojson }};
 mostra(iniziale);
-if (iniziale.in_corso !== null) setTimeout(segui, 1500);
+if (iniziale.in_corso !== null || iniziale.cerca_in_corso) setTimeout(segui, 1500);
 </script>
 {% endblock %}
