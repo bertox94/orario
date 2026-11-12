@@ -2,20 +2,37 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 
 // Le potature: vedi potature.h. Una funzione per potatura, con lo stesso nome del controllo della verifica dei dati
 // che rifa'.
 
-// Una lezione che la classe deve fare: un docente da solo (q < 0) o una coppia (p < q).
+// Una lezione che la classe deve fare: un docente da solo (q < 0) o una coppia (p < q). ip e iq: il posto dei due
+// tra i docenti della classe; ore: quante ne ha in tutto.
 typedef struct {
-    int p, q;
+    int p, q, ip, iq, ore;
 } Voce;
 
-// Per ogni classe, i suoi docenti e le sue voci: non cambiano durante la ricerca.
+// Quello che un docente puo' ancora fare oggi in una classe (vedi potature.h): da che ora puo' cominciare e quante ore
+// al massimo. Fino all'ora h compresa ne puo' fare fino_a(oggi, h): quelle tra `comincia` e h, non piu' di `massimo`.
+typedef struct {
+    int comincia, massimo;
+} Oggi;
+
+// Per ogni classe, i suoi docenti e le sue voci; per ogni docente, le sue classi: non cambiano durante la ricerca.
+// In piu' un appunto che si riscrive a ogni nodo: quello che ogni docente puo' fare oggi in ogni sua classe, calcolato
+// la prima volta che una potatura lo chiede in quel nodo (lo chiedono in quattro).
 struct Potature {
     int *docenti, n_docenti[CLASSE_SEZIONE_SZ];  // docenti[k * INSEGNANTE_SZ + i]: l'i-esimo docente della classe k
+    int *classi, n_classi[INSEGNANTE_SZ];        // classi[p * CLASSE_SEZIONE_SZ + i]: l'i-esima classe del docente p
+    int *posto;                                  // posto[p * CLASSE_SEZIONE_SZ + i]: il suo posto tra i docenti di lei
     Voce *voci;                                  // voci[inizio_voci[k] + i]: l'i-esima voce della classe k
     int inizio_voci[CLASSE_SEZIONE_SZ + 1];
+    // l'appunto: per il docente al posto i della classe k, oggi[inizio_docenti[k] + i], valido se nodo[...] e' il
+    // numero del nodo di adesso
+    Oggi *oggi;
+    long long int *nodo;
+    int inizio_docenti[CLASSE_SEZIONE_SZ + 1];
 };
 
 void prepara_potature(Ricerca *r) {
@@ -24,40 +41,53 @@ void prepara_potature(Ricerca *r) {
     struct Potature *t = calloc(1, sizeof *t);
     assert(t);
     t->docenti = malloc(sizeof(int) * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ);
-    assert(t->docenti);
+    t->classi = malloc(sizeof(int) * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ);
+    t->posto = malloc(sizeof(int) * CLASSE_SEZIONE_SZ * INSEGNANTE_SZ);
+    assert(t->docenti && t->classi && t->posto);
+    // i docenti di ogni classe e le classi di ogni docente; intanto si contano le voci
     int n_voci = 0;
-    for (int giro = 0; giro < 2; giro++) {  // prima si contano le voci, poi si scrivono
-        if (giro) {
-            t->voci = malloc(sizeof(Voce) * (n_voci ? n_voci : 1));
-            assert(t->voci);
+    for (int k = 0; k < C; k++) {
+        t->inizio_docenti[k + 1] = t->inizio_docenti[k];
+        for (int p = 0; p < T; p++) {
+            if (!get_ore_insegnante_in_una_classe(s, k, p)) continue;
+            t->classi[p * CLASSE_SEZIONE_SZ + t->n_classi[p]] = k;
+            t->posto[p * CLASSE_SEZIONE_SZ + t->n_classi[p]++] = t->n_docenti[k];
+            t->docenti[k * INSEGNANTE_SZ + t->n_docenti[k]++] = p;
+            t->inizio_docenti[k + 1]++;
+            n_voci += get_ore_insegnante_da_solo_in_una_classe(s, k, p) > 0;
+            for (int q = p + 1; q < T; q++) n_voci += get_ore_insegnanti_codocenza_in_una_classe(s, k, p, q) > 0;
         }
-        n_voci = 0;
-        for (int k = 0; k < C; k++) {
-            t->inizio_voci[k] = n_voci;
-            t->n_docenti[k] = 0;
-            for (int p = 0; p < T; p++) {
-                if (!get_ore_insegnante_in_una_classe(s, k, p)) continue;
-                t->docenti[k * INSEGNANTE_SZ + t->n_docenti[k]++] = p;
-                if (get_ore_insegnante_da_solo_in_una_classe(s, k, p)) {
-                    if (giro) t->voci[n_voci] = (Voce){p, -1};
-                    n_voci++;
-                }
-                for (int q = p + 1; q < T; q++) {
-                    if (!get_ore_insegnanti_codocenza_in_una_classe(s, k, p, q)) continue;
-                    if (giro) t->voci[n_voci] = (Voce){p, q};
-                    n_voci++;
-                }
+    }
+    // le voci di ogni classe: i suoi docenti da soli e a coppie
+    t->voci = malloc(sizeof(Voce) * (n_voci + 1));
+    t->oggi = malloc(sizeof(Oggi) * (t->inizio_docenti[C] + 1));
+    t->nodo = calloc(t->inizio_docenti[C] + 1, sizeof(long long int));
+    assert(t->voci && t->oggi && t->nodo);
+    n_voci = 0;
+    for (int k = 0; k < C; k++) {
+        t->inizio_voci[k] = n_voci;
+        for (int ip = 0; ip < t->n_docenti[k]; ip++) {
+            const int p = t->docenti[k * INSEGNANTE_SZ + ip], solo = get_ore_insegnante_da_solo_in_una_classe(s, k, p);
+            if (solo) t->voci[n_voci++] = (Voce){p, -1, ip, -1, solo};
+            for (int iq = ip + 1; iq < t->n_docenti[k]; iq++) {
+                const int q = t->docenti[k * INSEGNANTE_SZ + iq];
+                const int insieme = get_ore_insegnanti_codocenza_in_una_classe(s, k, p, q);
+                if (insieme) t->voci[n_voci++] = (Voce){p, q, ip, iq, insieme};
             }
         }
-        t->inizio_voci[C] = n_voci;
     }
+    t->inizio_voci[C] = n_voci;
     r->potature = t;
 }
 
 void libera_potature(Ricerca *r) {
     if (!r->potature) return;
     free(r->potature->docenti);
+    free(r->potature->classi);
+    free(r->potature->posto);
     free(r->potature->voci);
+    free(r->potature->oggi);
+    free(r->potature->nodo);
     free(r->potature);
     r->potature = NULL;
 }
@@ -70,6 +100,10 @@ typedef struct {
     int giorno, ora, cla;  // la cella pos, la prima non decisa
     int G, O, C, M;        // giorni, ore al giorno, classi, ore obbligatorie
     int dopo;              // i giorni dopo oggi
+    // Che cosa guardare (vedi potatura): le classi per le potature 1, 4 e 5, i docenti per la 3 e per la 2.
+    int classi[CLASSE_SEZIONE_SZ], n_classi;
+    int docenti_classi[INSEGNANTE_SZ], n_docenti_classi;
+    int docenti_ore[INSEGNANTE_SZ], n_docenti_ore;
 } Punto;
 
 // la prima ora di oggi non ancora decisa nella classe k
@@ -100,39 +134,62 @@ static int ha_ora_buca_oggi(const Punto *x, const int k) {
     return x->r->n_ore_buche[x->giorno * CLASSE_SEZIONE_SZ + k] > 0;
 }
 
-// Quante ore il docente p puo' ancora fare oggi nella classe k, dalla prima ora libera della classe fino all'ora
-// `fino_a` compresa (vedi potature.h).
-static int puo_fare_oggi(const Punto *x, const int k, const int p, const int fino_a) {
+// Quello che puo' ancora fare oggi nella classe k il docente che sta al posto i tra i suoi (vedi potature.h): calcolato
+// una volta per nodo, poi letto dall'appunto.
+static Oggi calcola_oggi(const Punto *x, const int k, const int p) {
     const Ricerca *r = x->r;
     const int da = prima_ora_libera(x, k);
-    if (da > fino_a || ha_ora_buca_oggi(x, k)) return 0;
+    if (da >= x->O || ha_ora_buca_oggi(x, k)) return (Oggi){da, 0};
     const int fatte = r->ore_fatte_da_un_prof_in_una_classe_in_giorno[
         (x->giorno * CLASSE_SEZIONE_SZ + k) * INSEGNANTE_SZ + p];
     if (fatte) {  // oggi qui ha gia' insegnato: solo continuando subito, dall'ora prima
         const teaching_slot prima = r->orario[(x->giorno * x->O + da - 1) * x->C + k];
-        if (prima.insegnante1 != p && prima.insegnante2 != p) return 0;  // il suo blocco si e' chiuso
-        if (impegnato(x, da, p)) return 0;                               // e adesso e' in un'altra classe
-        return MIN(MAX_ORE_PROF_IN_UNA_CLASSE - fatte, fino_a - da + 1);
+        if (prima.insegnante1 != p && prima.insegnante2 != p) return (Oggi){da, 0};  // il suo blocco si e' chiuso
+        if (impegnato(x, da, p)) return (Oggi){da, 0};                               // e adesso e' in un'altra classe
+        return (Oggi){da, MAX_ORE_PROF_IN_UNA_CLASSE - fatte};
     }
     if (r->classi_fatte_da_un_prof_in_giorno[x->giorno * INSEGNANTE_SZ + p]
-        >= MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO) return 0;  // oggi una classe nuova non la puo' piu' prendere
+        >= MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO) return (Oggi){da, 0};  // oggi niente classi nuove
     int comincia = MAX(da, ingresso(x, p));
-    if (comincia <= fino_a && impegnato(x, comincia, p)) comincia++;  // a quell'ora e' in un'altra classe
-    return MIN(MAX_ORE_PROF_IN_UNA_CLASSE, MAX(0, fino_a - comincia + 1));
+    if (comincia < x->O && impegnato(x, comincia, p)) comincia++;  // a quell'ora e' in un'altra classe
+    return (Oggi){comincia, MAX_ORE_PROF_IN_UNA_CLASSE};
+}
+
+static Oggi puo_fare_oggi(const Punto *x, const int k, const int i) {
+    struct Potature *t = x->r->potature;
+    const int dove = t->inizio_docenti[k] + i;
+    if (t->nodo[dove] != x->r->nodi) {
+        t->oggi[dove] = calcola_oggi(x, k, t->docenti[k * INSEGNANTE_SZ + i]);
+        t->nodo[dove] = x->r->nodi;
+    }
+    return t->oggi[dove];
+}
+
+static int fino_a(const Oggi oggi, const int h) {
+    return MIN(oggi.massimo, MAX(0, h - oggi.comincia + 1));
 }
 
 // ---- le potature ----
+// Ognuna guarda le classi o i docenti che il punto le indica (tutti, o solo quelli per cui qualcosa e' cambiato).
+
+// le ore che restano a una voce della classe k
+static int ore_rimaste_alla_voce(const Punto *x, const int k, const Voce v) {
+    const Ricerca *r = x->r;
+    if (v.q < 0) return v.ore - r->ore_classi_docenti_alone_svolte[k * INSEGNANTE_SZ + v.p];
+    return v.ore - r->ore_classi_codocenza_svolte[k * INSEGNANTE_SZ * INSEGNANTE_SZ + v.p * INSEGNANTE_SZ + v.q];
+}
 
 // 1. Un docente in una classe: le ore che gli restano li' stanno in quelle che ci puo' ancora fare, oggi
 // (puo_fare_oggi) e nei giorni dopo (al massimo 3 al giorno, e meno se entra tardi).
 static int le_ore_del_docente_in_una_classe_stanno_nel_resto(const Punto *x) {
     const struct Potature *t = x->r->potature;
-    for (int k = 0; k < x->C; k++) {
+    for (int j = 0; j < x->n_classi; j++) {
+        const int k = x->classi[j];
         for (int i = 0; i < t->n_docenti[k]; i++) {
             const int p = t->docenti[k * INSEGNANTE_SZ + i], restano = ore_rimaste_in_classe(x, k, p);
             if (!restano) continue;
             const int al_giorno = MIN(MAX_ORE_PROF_IN_UNA_CLASSE, x->O - ingresso(x, p));
-            if (restano > x->dopo * al_giorno + puo_fare_oggi(x, k, p, x->O - 1)) return 0;
+            if (restano > x->dopo * al_giorno + fino_a(puo_fare_oggi(x, k, i), x->O - 1)) return 0;
         }
     }
     return 1;
@@ -141,8 +198,8 @@ static int le_ore_del_docente_in_una_classe_stanno_nel_resto(const Punto *x) {
 // 2. Un docente in tutto: le ore che gli restano stanno nelle ore libere che ha ancora, oggi (dal suo ingresso, da
 // quest'ora, dove non insegna gia') e nei giorni dopo (tutte le ore dal suo ingresso).
 static int le_ore_del_docente_stanno_nel_resto(const Punto *x) {
-    for (int p = 0; p < x->s->actual_insegnanti; p++) {
-        const int restano = ore_rimaste_in_tutto(x, p);
+    for (int j = 0; j < x->n_docenti_ore; j++) {
+        const int p = x->docenti_ore[j], restano = ore_rimaste_in_tutto(x, p);
         if (!restano) continue;
         const int da = MAX(x->ora, ingresso(x, p));
         int libere = x->dopo * (x->O - ingresso(x, p)) + MAX(0, x->O - da);
@@ -157,28 +214,19 @@ static int le_ore_del_docente_stanno_nel_resto(const Punto *x) {
 // al massimo 3 classi.
 static int le_classi_del_docente_stanno_in_tre_al_giorno_nel_resto(const Punto *x) {
     const struct Potature *t = x->r->potature;
-    int servono[INSEGNANTE_SZ] = {0};
-    for (int k = 0; k < x->C; k++) {
-        for (int i = 0; i < t->n_docenti[k]; i++) {
-            const int p = t->docenti[k * INSEGNANTE_SZ + i], restano = ore_rimaste_in_classe(x, k, p);
+    for (int j = 0; j < x->n_docenti_classi; j++) {
+        const int p = x->docenti_classi[j];
+        int servono = 0;
+        for (int i = 0; i < t->n_classi[p]; i++) {
+            const int k = t->classi[p * CLASSE_SEZIONE_SZ + i], restano = ore_rimaste_in_classe(x, k, p);
             if (!restano) continue;
-            const int dopo_oggi = restano - puo_fare_oggi(x, k, p, x->O - 1);
-            if (dopo_oggi > 0) servono[p] += (dopo_oggi + MAX_ORE_PROF_IN_UNA_CLASSE - 1) / MAX_ORE_PROF_IN_UNA_CLASSE;
+            const int qui = t->posto[p * CLASSE_SEZIONE_SZ + i];  // il suo posto tra i docenti di k
+            const int dopo_oggi = restano - fino_a(puo_fare_oggi(x, k, qui), x->O - 1);
+            if (dopo_oggi > 0) servono += (dopo_oggi + MAX_ORE_PROF_IN_UNA_CLASSE - 1) / MAX_ORE_PROF_IN_UNA_CLASSE;
         }
+        if (servono > MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO * x->dopo) return 0;
     }
-    for (int p = 0; p < x->s->actual_insegnanti; p++)
-        if (servono[p] > MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO * x->dopo) return 0;
     return 1;
-}
-
-// le ore che restano a una voce della classe k
-static int ore_rimaste_alla_voce(const Punto *x, const int k, const Voce v) {
-    const Ricerca *r = x->r;
-    if (v.q < 0)
-        return get_ore_insegnante_da_solo_in_una_classe(x->s, k, v.p)
-               - r->ore_classi_docenti_alone_svolte[k * INSEGNANTE_SZ + v.p];
-    return get_ore_insegnanti_codocenza_in_una_classe(x->s, k, v.p, v.q)
-           - r->ore_classi_codocenza_svolte[k * INSEGNANTE_SZ * INSEGNANTE_SZ + v.p * INSEGNANTE_SZ + v.q];
 }
 
 // 4. Una classe in tutto: le ore che le restano stanno nelle lezioni che puo' ancora avere, oggi e nei giorni dopo.
@@ -189,17 +237,17 @@ static int ore_rimaste_alla_voce(const Punto *x, const int k, const Voce v) {
 // docenti con un'ora ha 6 ore da fare in 6 ore, ma la coppia oggi ne puo' fare 3: 5 lezioni, la sesta ora resta vuota.
 static int le_ore_della_classe_stanno_nel_resto(const Punto *x) {
     const struct Potature *t = x->r->potature;
-    for (int k = 0; k < x->C; k++) {
-        const int restano = x->s->ore_classi[k] - x->r->ore_classe_svolte[k];
+    for (int j = 0; j < x->n_classi; j++) {
+        const int k = x->classi[j], restano = x->s->ore_classi[k] - x->r->ore_classe_svolte[k];
         if (!restano) continue;
         int lezioni_oggi = 0, lezioni_dopo = 0, lezioni_un_giorno = 0;
         for (int i = t->inizio_voci[k]; i < t->inizio_voci[k + 1]; i++) {
             const Voce v = t->voci[i];
             const int ore = ore_rimaste_alla_voce(x, k, v);
             if (!ore) continue;
-            int oggi = puo_fare_oggi(x, k, v.p, x->O - 1), entra = ingresso(x, v.p);
+            int oggi = fino_a(puo_fare_oggi(x, k, v.ip), x->O - 1), entra = ingresso(x, v.p);
             if (v.q >= 0) {
-                oggi = MIN(oggi, puo_fare_oggi(x, k, v.q, x->O - 1));
+                oggi = MIN(oggi, fino_a(puo_fare_oggi(x, k, v.iq), x->O - 1));
                 entra = MAX(entra, ingresso(x, v.q));
             }
             const int al_giorno = MIN(MAX_ORE_PROF_IN_UNA_CLASSE, x->O - entra);
@@ -221,21 +269,31 @@ static int le_ore_della_classe_stanno_nel_resto(const Punto *x) {
 // ore che le restano.
 static int le_lezioni_bastano_per_le_ore_obbligatorie_nel_resto(const Punto *x) {
     const struct Potature *t = x->r->potature;
-    for (int k = 0; k < x->C; k++) {
-        const int da = prima_ora_libera(x, k);
+    for (int j = 0; j < x->n_classi; j++) {
+        const int k = x->classi[j], da = prima_ora_libera(x, k);
+        // di ogni voce che ha ancora ore, una volta sola: le ore, quello che i suoi docenti possono fare oggi e
+        // l'ingresso
+        const int n_voci = t->inizio_voci[k + 1] - t->inizio_voci[k];
+        int restano[n_voci + 1], entra[n_voci + 1], n = 0;
+        Oggi oggi_p[n_voci + 1], oggi_q[n_voci + 1];
+        for (int i = t->inizio_voci[k]; i < t->inizio_voci[k + 1]; i++) {
+            const Voce v = t->voci[i];
+            restano[n] = ore_rimaste_alla_voce(x, k, v);
+            if (!restano[n]) continue;
+            oggi_p[n] = oggi_q[n] = puo_fare_oggi(x, k, v.ip);
+            entra[n] = ingresso(x, v.p);
+            if (v.q >= 0) {
+                oggi_q[n] = puo_fare_oggi(x, k, v.iq);
+                entra[n] = MAX(entra[n], ingresso(x, v.q));
+            }
+            n++;
+        }
         for (int h = 0; h < x->M; h++) {
             int servono = x->dopo * (h + 1) + MAX(0, h - da + 1);
-            for (int i = t->inizio_voci[k]; i < t->inizio_voci[k + 1] && servono > 0; i++) {
-                const Voce v = t->voci[i];
-                const int restano = ore_rimaste_alla_voce(x, k, v);
-                if (!restano) continue;
-                int oggi = puo_fare_oggi(x, k, v.p, h), entra = ingresso(x, v.p);
-                if (v.q >= 0) {
-                    oggi = MIN(oggi, puo_fare_oggi(x, k, v.q, h));
-                    entra = MAX(entra, ingresso(x, v.q));
-                }
-                const int al_giorno = MIN(MAX_ORE_PROF_IN_UNA_CLASSE, MAX(0, h + 1 - entra));
-                servono -= MIN(restano, oggi + x->dopo * al_giorno);
+            for (int i = 0; i < n && servono > 0; i++) {
+                const int oggi = MIN(fino_a(oggi_p[i], h), fino_a(oggi_q[i], h));
+                const int al_giorno = MIN(MAX_ORE_PROF_IN_UNA_CLASSE, MAX(0, h + 1 - entra[i]));
+                servono -= MIN(restano[i], oggi + x->dopo * al_giorno);
             }
             if (servono > 0) return 0;
         }
@@ -246,7 +304,7 @@ static int le_lezioni_bastano_per_le_ore_obbligatorie_nel_resto(const Punto *x) 
 // 6. Ora per ora: a un'ora obbligatoria ogni classe ha lezione e ogni lezione ha almeno un docente tutto suo. I
 // docenti che hanno ancora ore e a quell'ora sono gia' entrati devono essere almeno quante le classi: a quest'ora di
 // oggi le classi ancora da decidere e i docenti non gia' impegnati; nelle ore dopo di oggi, e nei giorni dopo, tutte
-// le classi.
+// le classi. (Guarda sempre tutti i docenti: e' un conto solo.)
 static int i_docenti_liberi_bastano_per_le_classi_nel_resto(const Punto *x) {
     int entrati_entro[ORA_GIORNALIERA_SZ + 1] = {0}, liberi_adesso = 0;  // con ore da fare, per ora di ingresso
     for (int p = 0; p < x->s->actual_insegnanti; p++) {
@@ -262,11 +320,62 @@ static int i_docenti_liberi_bastano_per_le_classi_nel_resto(const Punto *x) {
     return 1;
 }
 
+// ---- che cosa guardare ----
+// Ogni nodo della strada fin qui ha passato le potature al suo ingresso. Quindi a questo nodo basta rifare i conti che
+// la scelta appena messa (nella cella pos - 1) ha cambiato; gli altri valgono ancora.
+// Che cosa cambia mettendo una scelta nella cella della classe k all'ora di adesso:
+// - la classe k: ha un'ora decisa in piu' (la sua prima ora libera avanza), e con un'ora buca ha finito la giornata;
+// - i docenti messi: un'ora in meno da fare, a quest'ora sono impegnati, oggi hanno insegnato in k. Cambia quello che
+//   possono fare oggi nelle altre loro classi, e quindi i conti di quelle classi;
+// - gli altri docenti di k: in k la prima ora libera e' avanzata (chi era li' l'ora prima ha chiuso il suo blocco).
+// Quando comincia un'ora nuova a tutti i docenti resta un'ora libera in meno (la potatura 2 li guarda tutti); quando
+// comincia un giorno nuovo cambia tutto, e si guarda tutto.
+
+static void aggiungi_classe(Punto *x, char *vista, const int k) {
+    if (vista[k]) return;
+    vista[k] = 1;
+    x->classi[x->n_classi++] = k;
+}
+
+static void guarda_tutto(Punto *x) {
+    for (int k = 0; k < x->C; k++) x->classi[k] = k;
+    x->n_classi = x->C;
+    for (int p = 0; p < x->s->actual_insegnanti; p++) x->docenti_classi[p] = x->docenti_ore[p] = p;
+    x->n_docenti_classi = x->n_docenti_ore = x->s->actual_insegnanti;
+}
+
+static void guarda_quello_che_e_cambiato(Punto *x, const int pos) {
+    const struct Potature *t = x->r->potature;
+    const int k = (pos - 1) % x->C;                         // la classe della cella appena decisa
+    const teaching_slot messi = x->r->orario[pos - 1];
+    const int docenti[2] = {messi.insegnante1, messi.insegnante2};
+    char vista[CLASSE_SEZIONE_SZ];
+    memset(vista, 0, x->C);
+    aggiungi_classe(x, vista, k);
+    for (int d = 0; d < 2; d++) {
+        const int p = docenti[d];
+        if (p < 0) continue;
+        for (int i = 0; i < t->n_classi[p]; i++) aggiungi_classe(x, vista, t->classi[p * CLASSE_SEZIONE_SZ + i]);
+        x->docenti_ore[x->n_docenti_ore++] = p;
+    }
+    // la potatura 3 (le classi al giorno): tutti i docenti di k, che comprendono quelli messi
+    for (int i = 0; i < t->n_docenti[k]; i++)
+        x->docenti_classi[x->n_docenti_classi++] = t->docenti[k * INSEGNANTE_SZ + i];
+    if (x->cla == 0) {  // comincia un'ora nuova: la potatura 2 per tutti
+        for (int p = 0; p < x->s->actual_insegnanti; p++) x->docenti_ore[p] = p;
+        x->n_docenti_ore = x->s->actual_insegnanti;
+    }
+}
+
 int potatura(const Ricerca *r, const int pos) {
     const Scuola *s = r->scuola;
     const int G = s->actual_giorni_settimana, O = s->actual_ore_giornaliere, C = s->actual_classi_sezione;
-    const Punto x = {.r = r, .s = s, .giorno = pos / C / O, .ora = pos / C % O, .cla = pos % C, .G = G, .O = O, .C = C,
-                     .M = MIN(PRIME_N_ORE_OBBLIGATORIE, O), .dopo = G - 1 - pos / C / O};
+    Punto x;  // (non azzerato: gli elenchi sono lunghi, e si leggono solo fin dove sono scritti)
+    x.r = r, x.s = s, x.giorno = pos / C / O, x.ora = pos / C % O, x.cla = pos % C, x.G = G, x.O = O, x.C = C;
+    x.M = MIN(PRIME_N_ORE_OBBLIGATORIE, O), x.dopo = G - 1 - x.giorno;
+    x.n_classi = x.n_docenti_classi = x.n_docenti_ore = 0;
+    if (pos % (C * O) == 0) guarda_tutto(&x);  // la prima cella di un giorno (e della ricerca)
+    else guarda_quello_che_e_cambiato(&x, pos);
     int (*const controlli[N_POTATURE])(const Punto *) = {
         le_ore_del_docente_in_una_classe_stanno_nel_resto, le_ore_del_docente_stanno_nel_resto,
         le_classi_del_docente_stanno_in_tre_al_giorno_nel_resto, le_ore_della_classe_stanno_nel_resto,

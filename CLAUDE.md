@@ -17,7 +17,9 @@ codice e messaggi di commit sono in italiano.
   orario, quindi l'orario trovato è lo stesso e cambiano solo i nodi. Per ora sono spente (la ricerca è quella di
   prima) e si accendono per le misure con la variabile d'ambiente `POTATURE` (un bit per potatura, 63 tutte); `caso`
   allora scrive su stderr quante volte è scattata ognuna. Misura del 12 novembre su 341 casi a 2 milioni di nodi:
-  175 orari trovati senza, 297 con tutte, nessuno perso. Da fare: renderle veloci, scegliere quali tenere, il sito.
+  175 orari trovati senza, 297 con tutte, nessuno perso (senza potature, con 14 milioni di nodi: 180). A ogni nodo
+  rifanno solo i conti che la scelta appena messa ha cambiato: un nodo costa circa 5,5 volte tanto. Da fare:
+  scegliere quali tenere accese, il sito.
 - **Il solver** (C): ricerca con backtracking dell'orario, un orario solo. `ricerca.c` è la ricerca (la cella, i
   vincoli, la coda, `cerca_orario`); `vincoli.h` dichiara i vincoli per chi li valuta uno per uno; `main.c` lancia:
   - `./untitled test N [ORDINI LIMITE]`: le prove con i dati casuali (`prove.c`), su stdout solo i test che arrivano
