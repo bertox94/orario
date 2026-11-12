@@ -1,7 +1,7 @@
 // Il programma: lancia la ricerca dell'orario (ricerca.c) su casi casuali, per le prove e per il sito.
 //
 // ./untitled test N    le prove con i dati casuali (prove.h)
-// ./untitled caso SEME CLASSI RITARDI LIMITE FILE [PASSI]   un caso casuale per il sito (caso.h)
+// ./untitled caso SEME CLASSI RITARDI LIMITE FILE PASSI     un caso casuale per il sito (caso.h)
 // ./untitled dati SEME CLASSI RITARDI                         i dati di quel caso in JSON (generatore.h)
 // ./untitled passo SEME CLASSI RITARDI PASSI K               il nodo K di quel caso: orario e controlli (passo.h)
 // Senza comando, o con un comando che non esiste, stampa questo elenco ed esce con 2.
@@ -25,12 +25,12 @@ int main(const int argc, char **argv) {
         return 0;
     }
     if (argc > 1 && !strcmp(argv[1], "caso")) {  // un caso casuale seguito dal sito
-        if (argc < 7) {
-            fprintf(stderr, "Uso: %s caso SEME CLASSI RITARDI LIMITE FILE [PASSI]\n", argv[0]);
+        if (argc < 8) {
+            fprintf(stderr, "Uso: %s caso SEME CLASSI RITARDI LIMITE FILE PASSI\n", argv[0]);
             return 2;
         }
         return esegui_caso(strtoull(argv[2], NULL, 10), atoi(argv[3]), atoi(argv[4]), atoll(argv[5]), argv[6],
-                           argc > 7 ? argv[7] : NULL);
+                           argv[7]);
     }
     if (argc > 1 && !strcmp(argv[1], "passo")) {  // un nodo della ricerca: orario e controlli, per il sito
         if (argc < 7) {
@@ -50,7 +50,7 @@ int main(const int argc, char **argv) {
     if (argc > 1) fprintf(stderr, "Comando sconosciuto: %s\n", argv[1]);
     fprintf(stderr, "Uso:\n"
             "  %s test N                                         le prove con i dati casuali\n"
-            "  %s caso SEME CLASSI RITARDI LIMITE FILE [PASSI]   un caso casuale, per il sito\n"
+            "  %s caso SEME CLASSI RITARDI LIMITE FILE PASSI     un caso casuale, per il sito\n"
             "  %s dati SEME CLASSI RITARDI                       i dati di quel caso\n"
             "  %s passo SEME CLASSI RITARDI PASSI K              il nodo K di quel caso\n",
             argv[0], argv[0], argv[0], argv[0]);

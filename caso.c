@@ -23,7 +23,7 @@ typedef struct {
     // la foto dell'orario all'ultimo nodo scritto: durante la ricerca l'orario cambia, la foto no
     teaching_slot foto[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ];
     int foto_pos;
-    Passi *passi;  // il file dei passi (NULL: non chiesto)
+    Passi *passi;  // il file dei passi
 } Caso;
 
 // Lo stato del caso su file (vedi caso.h). r e' la ricerca, o NULL se non e' partita.
@@ -99,7 +99,7 @@ int esegui_caso(const unsigned long long int seme, const int classi, const int r
     k->esito = "in corso";
     k->verificato = -1;
     k->inizio = k->ultima_scrittura = clock();
-    if (file_passi && !(k->passi = passi_apri(file_passi))) return 2;
+    if (!(k->passi = passi_apri(file_passi))) return 2;
     if (!genera_dati_casuali(s, seme, classi, ritardi)) {
         k->esito = "dati non generati";
         scrivi_stato(k, s, NULL, 0);

@@ -21,7 +21,6 @@ Passi *passi_apri(const char *percorso) {
 }
 
 void passi_nodo(Passi *x, const long long int nodo, const int pos, const teaching_slot *orario, const int celle) {
-    if (!x) return;
     const int16_t r[3] = {(int16_t) pos, (int16_t) (pos > 0 ? orario[pos - 1].insegnante1 : -1),
                           (int16_t) (pos > 0 ? orario[pos - 1].insegnante2 : -1)};
     fwrite(r, sizeof r, 1, x->passi);
