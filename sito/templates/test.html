@@ -84,9 +84,13 @@
 
 <h2>La ricerca, passo per passo</h2>
 <div class="passi">
+  <button type="button" class="secondario salto" data-salto="-100" title="100 passi prima">−100</button>
+  <button type="button" class="secondario salto" data-salto="-10" title="10 passi prima">−10</button>
   <button type="button" class="secondario" id="prec" title="Il passo prima (←)">◀ Prec.</button>
   <input type="range" id="slider" min="1" max="1" value="1" aria-label="Passo della ricerca">
   <button type="button" class="secondario" id="succ" title="Il passo dopo (→)">Succ. ▶</button>
+  <button type="button" class="secondario salto" data-salto="10" title="10 passi dopo">+10</button>
+  <button type="button" class="secondario salto" data-salto="100" title="100 passi dopo">+100</button>
 </div>
 <p id="testo-passo" class="testo-passo"></p>
 <h3>L'orario visto dai docenti</h3>
@@ -233,7 +237,13 @@ async function vai(k) {
   disegnaPasso(p);
   disegnaControlli(p);
 }
-// «Prec.» e «Succ.» anche accanto al titolo della cella (la pagina resta dov'e')
+// «Prec.», «Succ.» e i salti di 10 e 100 passi anche accanto al titolo della cella (la pagina resta dov'e')
+const salto = n => `<button type="button" class="secondario salto" data-passo="${n}" title="${Math.abs(n)} passi ${n < 0 ? 'prima' : 'dopo'}">` +
+  `${n < 0 ? '−' : '+'}${Math.abs(n)}</button>`;
+const TASTI_PRIMA = salto(-100) + salto(-10) +
+  '<button type="button" class="secondario" data-passo="-1" title="Il passo prima (←)">◀ Prec.</button>';
+const TASTI_DOPO = '<button type="button" class="secondario" data-passo="1" title="Il passo dopo (→)">Succ. ▶</button>' +
+  salto(10) + salto(100);
 document.getElementById('controlli').addEventListener('click', e => {
   const b = e.target.closest('button[data-passo]');
   if (b) vai(Number(slider.value) + Number(b.dataset.passo));
@@ -249,17 +259,14 @@ const segno = v => `<td class="${v ? 'si' : 'no'}">${v ? '✓' : '✗'}</td>`;
 function disegnaControlli(c) {
   const box = document.getElementById('controlli');
   if (!c || c.completo) {
-    box.innerHTML = c ? `<div class="testa-cella"><h2>Orario completo</h2>
-      <button type="button" class="secondario" data-passo="-1" title="Il passo prima (←)">◀ Prec.</button></div>
+    box.innerHTML = c ? `<div class="testa-cella"><h2>Orario completo</h2>${TASTI_PRIMA}</div>
       <p class="nota">Nessuna cella da decidere.</p>` : '';
     return;
   }
   const {giorni, ore, classi} = forma, O = ore.length, C = classi.length;
   const dove = `${giorni[Math.floor(c.pos / (O * C))]} ${ore[Math.floor(c.pos / C) % O]}, ${classi[c.pos % C]}`;
   const k = c.classe;
-  let h = `<div class="testa-cella"><h2>La cella ${numero(c.pos + 1)}: ${esc(dove)}</h2>
-    <button type="button" class="secondario" data-passo="-1" title="Il passo prima (←)">◀ Prec.</button>
-    <button type="button" class="secondario" data-passo="1" title="Il passo dopo (→)">Succ. ▶</button></div>`;
+  let h = `<div class="testa-cella"><h2>La cella ${numero(c.pos + 1)}: ${esc(dove)}</h2>${TASTI_PRIMA}${TASTI_DOPO}</div>`;
   // la classe
   const STATI = {
     'deve': 'deve fare attività: la ricerca prova i docenti',
@@ -308,6 +315,9 @@ function disegnaControlli(c) {
 slider.addEventListener('input', () => { clearTimeout(attesa); attesa = setTimeout(() => vai(Number(slider.value)), 60); });
 document.getElementById('prec').addEventListener('click', () => vai(Number(slider.value) - 1));
 document.getElementById('succ').addEventListener('click', () => vai(Number(slider.value) + 1));
+// i salti di 10 e di 100 passi, avanti e indietro
+for (const b of document.querySelectorAll('button.salto'))
+  b.addEventListener('click', () => vai(Number(slider.value) + Number(b.dataset.salto)));
 document.addEventListener('keydown', e => {
   if (e.target.closest('input:not([type=range]), select, textarea')) return;
   if (e.key === 'ArrowLeft') { e.preventDefault(); vai(Number(slider.value) - 1); }

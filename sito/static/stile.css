@@ -46,6 +46,7 @@ table.orario .cod { color: var(--tenue); }
 .passi { display: flex; align-items: center; gap: 10px; }
 .passi input[type=range] { flex: 1; min-width: 0; }
 .passi button { white-space: nowrap; }
+button.salto { padding-left: 8px; padding-right: 8px; }
 .testo-passo { margin: 6px 0 10px; min-height: 1.4em; }
 .indietro { color: var(--male); font-weight: 600; }
 table.orario td.attuale { background: #fff4d6; outline: 2px solid var(--avviso); outline-offset: -2px; }
