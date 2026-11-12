@@ -205,14 +205,20 @@ function disegnaPasso(p) {
       td.classList.toggle('appena', k === pos - 1);
     });
   });
-  // la cella gialla (o l'azzurra) in vista, scorrendo solo la tabella
-  const segno = tabella.querySelector('td.attuale') || tabella.querySelector('td.appena');
-  if (segno) {
-    const box = tabella.parentElement, a = segno.getBoundingClientRect(), b = box.getBoundingClientRect();
-    const sinistra = tabella.querySelector('col.col-classe') ? 64 : 0;
-    if (a.left < b.left + sinistra) box.scrollLeft -= b.left + sinistra - a.left + 40;
-    else if (a.right > b.right) box.scrollLeft += a.right - b.right + 40;
-  }
+  // la cella che la ricerca decide (o l'ultima decisa) in vista in tutte e due le tabelle, che hanno le stesse
+  // colonne: ognuna scorre da sola, di lato, fino a quell'ora
+  const k = Math.min(pos, celle - 1), colonna = 1 + Math.floor(k / C);
+  inVista(tabella, righe[k % C].cells[colonna], 64);
+  inVista(tabellaDocenti, righeDocenti.length ? righeDocenti[0].cells[colonna] : null, 120);
+}
+
+// scorre di lato il riquadro della tabella finche' la cella si vede; `ferma` e' la larghezza della prima colonna, che
+// resta ferma e la coprirebbe
+function inVista(tab, td, ferma) {
+  if (!td) return;
+  const box = tab.parentElement, a = td.getBoundingClientRect(), b = box.getBoundingClientRect();
+  if (a.left < b.left + ferma) box.scrollLeft -= b.left + ferma - a.left + 40;
+  else if (a.right > b.right) box.scrollLeft += a.right - b.right + 40;
 }
 
 let richiesto = 0, attesa = null;
