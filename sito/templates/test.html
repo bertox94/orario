@@ -256,6 +256,23 @@ const NOMI_CONTROLLI = {
   ore_da_solo: 'ha ancora ore da solo', sabato: 'regola del sabato', ore_insieme: 'hanno ancora ore insieme',
 };
 const segno = v => `<td class="${v ? 'si' : 'no'}">${v ? '✓' : '✗'}</td>`;
+// Le potature (potature.h): il conto che non torna, con i numeri del solver. Da quel nodo un orario non puo' piu'
+// uscire, e la ricerca torna indietro senza provare niente nella cella.
+const ore = n => n === 1 ? "un'ora" : `${n} ore`, lezioni = n => n === 1 ? 'una lezione' : `${n} lezioni`;
+const FRASI_POTATURE = {
+  ore_docente_in_classe: p => `${esc(p.docente)} in ${esc(p.classe)}: gli restano ${ore(p.servono)}, ma da adesso alla fine ` +
+    `della settimana lì ne può fare al massimo ${p.possibili} (3 al giorno, di seguito, dal suo ingresso).`,
+  ore_docente: p => `${esc(p.docente)}: gli restano ${ore(p.servono)} in tutto, ma da adesso alla fine della settimana ` +
+    `ha solo ${ore(p.possibili)} liber${p.possibili === 1 ? 'a' : 'e'}.`,
+  classi_al_giorno: p => `${esc(p.docente)}: le sue classi gli prendono ancora ${p.servono} giorni in una classe, ma nei ` +
+    `giorni dopo oggi ne ha ${p.possibili} (3 classi al giorno).`,
+  ore_classe: p => `${esc(p.classe)}: le restano ${ore(p.servono)}, ma da adesso alla fine della settimana i suoi docenti ` +
+    `possono darle al massimo ${lezioni(p.possibili)}.`,
+  lezioni_obbligatorie: p => `${esc(p.classe)}: dalla prima ora alle ${esc(p.ora)} ha ancora ${ore(p.servono)} da riempire, ` +
+    `da oggi alla fine della settimana, ma in quelle ore i suoi docenti possono darle al massimo ${lezioni(p.possibili)}.`,
+  docenti_per_ora: p => `Alle ${esc(p.ora)} servono ${p.servono} docenti, uno per classe, ma con ore da fare e già ` +
+    `entrati ce ne sono ${p.possibili}.`,
+};
 function disegnaControlli(c) {
   const box = document.getElementById('controlli');
   if (!c || c.completo) {
@@ -267,6 +284,10 @@ function disegnaControlli(c) {
   const dove = `${giorni[Math.floor(c.pos / (O * C))]} ${ore[Math.floor(c.pos / C) % O]}, ${classi[c.pos % C]}`;
   const k = c.classe;
   let h = `<div class="testa-cella"><h2>La cella ${numero(c.pos + 1)}: ${esc(dove)}</h2>${TASTI_PRIMA}${TASTI_DOPO}</div>`;
+  if (c.potatura)
+    h += `<div class="potatura"><strong>Da qui un orario non può più uscire</strong> (potatura ${c.potatura.numero}): ` +
+      `${FRASI_POTATURE[c.potatura.nome](c.potatura)} La ricerca torna indietro senza provare niente in questa cella: ` +
+      `i controlli qui sotto dicono solo com'è la cella.</div>`;
   // la classe
   const STATI = {
     'deve': 'deve fare attività: la ricerca prova i docenti',
