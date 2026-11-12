@@ -22,7 +22,8 @@ Due pagine, senza login e senza database:
   tutti insieme, in un giro. Un caso si aggiunge dalla pagina di un test in tempo reale («Aggiungi ai notturni»). Il
   limite di nodi è uno solo per tutti e si cambia dalla pagina. «Avvia il giro» esegue i test uno dopo l'altro e, per
   ognuno, confronta esito, nodi e cella più avanti con l'ultima volta fatta con lo stesso limite: «uguale», «diverso»,
-  «primo» o «limite cambiato». «Cerca nuovi casi» fa le prove di `./untitled test N` (per quanti ordini delle classi
+  «primo» o «limite cambiato». Con un clic sulla riga di un test si vedono le sue 5 esecuzioni precedenti (di qualunque
+  limite) e i loro tempi; nella riga, se i numeri sono rimasti uguali o quante volte sono cambiati. «Cerca nuovi casi» fa le prove di `./untitled test N` (per quanti ordini delle classi
   si chiedono, con il limite dei notturni) e aggiunge all'elenco i casi che arrivano al limite e non ci sono già. Dei test notturni si tengono solo i numeri (in `lavoro/notturni/`), non i passi. Il giro può partire da solo ogni notte, a un'ora
   scelta nella pagina: se a quell'ora gira altro salta (e la pagina lo dice), se il sito era spento si aspetta la notte
   dopo. Un giro,

@@ -56,28 +56,51 @@ const numero = n => Number(n).toLocaleString('it-IT');
 const esc = x => String(x).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 const quando = t => new Date(t * 1000).toLocaleString('it-IT', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'});
 
-// la riga di un test: i suoi valori e l'ultimo risultato (in corsivo se e' di un giro con un altro limite)
-function riga(t, adesso, inCorso) {
+// i test di cui si vedono le esecuzioni precedenti: restano aperti anche quando la pagina si ricarica
+let aperti = new Set();
+try { aperti = new Set(JSON.parse(sessionStorage.getItem('notturni-aperti') || '[]')); } catch (e) { /* si parte da chiusi */ }
+const cella = r => r.celle ? numero(Math.min(r.pos_max + 1, r.celle)) + ' / ' + numero(r.celle) : '';
+const etichetta = r => `<span class="esito esito-${esc(r.esito.replace(/ /g, '-'))}" title="${esc(r.errore || '')}">` +
+  esc(r.esito + (r.verificato === false ? ' (non valido)' : '')) + '</span>';
+
+// sotto la riga di un test: le sue esecuzioni precedenti, dalla piu' recente, e i tempi
+function precedenti(t) {
+  if (!t.prima.length) return '<tr class="precedenti"><td></td><td colspan="10" class="nota">Nessuna esecuzione precedente.</td></tr>';
+  const s = t.prima.map(r => r.secondi).filter(x => x != null);
+  const tempi = s.length ? `Tempo nelle ${s.length} precedenti: da ${Math.min(...s).toFixed(1)} a ${Math.max(...s).toFixed(1)} s, ` +
+    `in media ${(s.reduce((a, b) => a + b, 0) / s.length).toFixed(1)} s.` : '';
+  return '<tr class="precedenti"><td></td><td colspan="10"><table class="dati"><thead><tr><th class="num">Giro</th><th>Del</th>' +
+    '<th class="num">Limite</th><th>Esito</th><th class="num">Nodi</th><th class="num">Cella più avanti</th>' +
+    '<th class="num">Tempo</th><th>Rispetto a prima</th></tr></thead><tbody>' +
+    t.prima.map(r => `<tr><td class="num">${r.giro}</td><td>${quando(r.inizio)}</td><td class="num">${numero(r.limite)}</td>` +
+      `<td>${etichetta(r)}</td><td class="num">${r.nodi == null ? '' : numero(r.nodi)}</td><td class="num">${cella(r)}</td>` +
+      `<td class="num">${r.secondi == null ? '' : r.secondi.toFixed(1) + ' s'}</td><td>${esc(r.confronto || '')}</td></tr>`).join('') +
+    `</tbody></table><p class="nota">${tempi}</p></td></tr>`;
+}
+
+// la riga di un test: i suoi valori e l'ultimo risultato; con un clic si aprono le esecuzioni precedenti
+function riga(t, adesso, inCorso, limite) {
   const r = t.risultato;
   let risultato = '<td colspan="5" class="nota">' + (adesso === t.id ? 'sta girando…' : 'mai eseguito') + '</td>';
   if (r && adesso !== t.id) {
-    const esito = r.esito + (r.verificato === false ? ' (non valido)' : '');
-    risultato = `<td><span class="esito esito-${esc(r.esito.replace(/ /g, '-'))}" title="${esc(r.errore || '')}">${esc(esito)}</span></td>` +
+    risultato = `<td>${etichetta(r)}</td>` +
       `<td class="num">${r.nodi == null ? '' : numero(r.nodi)}</td>` +
-      `<td class="num">${r.celle ? numero(Math.min(r.pos_max + 1, r.celle)) + ' / ' + numero(r.celle) : ''}</td>` +
+      `<td class="num">${cella(r)}</td>` +
       `<td class="num">${r.secondi == null ? '' : r.secondi.toFixed(1) + ' s'}</td>` +
       `<td><span class="confronto confronto-${esc((r.confronto || '').replace(/ /g, '-'))}">${esc(r.confronto || '')}</span>` +
-      (r.limite ? ` <span class="nota">a ${numero(r.limite)} nodi</span>` : '') + '</td>';
+      (r.limite !== limite ? ` <span class="nota">a ${numero(r.limite)} nodi</span>` : '') +
+      (t.andamento ? ` <span class="nota">${esc(t.andamento)}</span>` : '') + '</td>';
   }
-  return `<tr><td class="num">${t.id}</td><td class="num">${t.seme}</td><td class="num">${t.classi}</td>` +
+  return `<tr class="test" data-test="${t.id}" title="Clic: le esecuzioni precedenti"><td class="num">${t.id}</td><td class="num">${t.seme}</td><td class="num">${t.classi}</td>` +
     `<td>${t.ritardi ? 'con' : 'senza'}</td><td class="num">${t.ordine}</td>${risultato}` +
     `<td><form method="post" action="${URL_TOGLI}${t.id}" onsubmit="return confirm('Togliere il test ${t.id} dai notturni?')">` +
-    `<button class="piccolo secondario" title="Togli" ${inCorso ? 'disabled' : ''}>×</button></form></td></tr>`;
+    `<button class="piccolo secondario" title="Togli" ${inCorso ? 'disabled' : ''}>×</button></form></td></tr>` +
+    (aperti.has(t.id) ? precedenti(t) : '');
 }
 
 function mostra(n) {
   const g = n.giro, inCorso = n.in_corso !== null, c = n.ricerca, occupato = inCorso || n.cerca_in_corso;
-  document.querySelector('#notturni tbody').innerHTML = n.tests.map(t => riga(t, inCorso && g ? g.adesso : null, occupato)).join('');
+  document.querySelector('#notturni tbody').innerHTML = n.tests.map(t => riga(t, inCorso && g ? g.adesso : null, occupato, n.limite)).join('');
   document.getElementById('notturni').hidden = !n.tests.length;
   document.getElementById('nessun-test').hidden = !!n.tests.length;
   document.getElementById('avvia-giro').disabled = occupato || !n.tests.length || n.realtime !== null;
@@ -115,12 +138,23 @@ function mostra(n) {
 async function segui() {
   try {
     const n = await (await fetch(URL_STATO, {cache: 'no-store'})).json();
+    ultima = n;
     mostra(n);
     if (n.in_corso === null && !n.cerca_in_corso) return;
   } catch (e) { /* si riprova */ }
   setTimeout(segui, 1500);
 }
-const iniziale = {{ n|tojson }};
+let ultima = {{ n|tojson }};  // l'ultima situazione mostrata
+const iniziale = ultima;
+// un clic sulla riga di un test (non sul tasto che lo toglie) apre o chiude le sue esecuzioni precedenti
+document.querySelector('#notturni tbody').addEventListener('click', e => {
+  const tr = e.target.closest('tr.test');
+  if (!tr || e.target.closest('form')) return;
+  const id = Number(tr.dataset.test);
+  if (!aperti.delete(id)) aperti.add(id);
+  try { sessionStorage.setItem('notturni-aperti', JSON.stringify([...aperti])); } catch (e) { /* pazienza */ }
+  mostra(ultima);
+});
 mostra(iniziale);
 if (iniziale.in_corso !== null || iniziale.cerca_in_corso) setTimeout(segui, 1500);
 </script>

@@ -36,6 +36,7 @@ from . import solver, test_realtime
 LIMITE = 10000000   # il limite di nodi finche' non lo si cambia dalla pagina
 ORA_DELLA_NOTTE = '02:00'  # l'ora del giro della notte finche' non la si cambia dalla pagina
 CONFRONTATI = ('esito', 'nodi', 'pos_max')
+PRECEDENTI = 5      # quante esecuzioni precedenti di un test mostra la pagina
 
 _lock = threading.Lock()
 _giro = {'id': None, 'processo': None, 'fermare': False}  # il giro in corso
@@ -388,19 +389,36 @@ def chiudi_giri_interrotti(lavoro):
         _scrivi(_cartella(lavoro, 'ricerca.json'), r)
 
 
+def _andamento(esecuzioni):
+    """Una frase sulle esecuzioni di un test (dalla piu' recente): se i numeri sono rimasti uguali o quante volte sono
+    cambiati. Si guardano solo quelle fatte con il limite della piu' recente; '' se ce n'e' una sola."""
+    stesse = [e for e in esecuzioni if e['limite'] == esecuzioni[0]['limite']]
+    if len(stesse) < 2:
+        return ''
+    cambi = sum(any(a.get(k) != b.get(k) for k in CONFRONTATI) for a, b in zip(stesse, stesse[1:]))
+    if cambi == 0:
+        return 'nelle ultime %d esecuzioni sempre uguale' % len(stesse)
+    return 'nelle ultime %d esecuzioni cambiato %s' % (len(stesse), '1 volta' if cambi == 1 else '%d volte' % cambi)
+
+
 def situazione(lavoro):
-    """Per la pagina: il limite, il giro in corso (o l'ultimo) e i test, ognuno con il suo ultimo risultato."""
-    g = ultimo_giro(lavoro)
+    """Per la pagina: il limite, il giro in corso (o l'ultimo) e i test. Ogni test ha il suo ultimo risultato, le
+    PRECEDENTI esecuzioni prima di quello (di qualunque limite, dalla piu' recente) e come sono andate."""
     nodi = limite(lavoro)
-    quale = max(_giri(lavoro), default=0) + 1
+    giri = [x for x in (giro(lavoro, gid) for gid in reversed(_giri(lavoro))) if x]  # dal piu' recente
+    g = giri[0] if giri else None
     tests = []
     for t in elenco(lavoro):
-        r = (g or {}).get('risultati', {}).get(str(t['id']))
-        if r is None:  # non e' nell'ultimo giro (aggiunto dopo, o giro fermato prima): l'ultimo risultato che ha
-            r, limite_prima = _prima(lavoro, t['id'], nodi, quale)
-            if r is not None and limite_prima != nodi:
-                r = dict(r, limite=limite_prima)
-        tests.append(dict(t, risultato=r))
+        # le esecuzioni del test, dalla piu' recente: il risultato, piu' il giro, la data e il limite di quel giro
+        tutte = [dict(x['risultati'][str(t['id'])], giro=x['id'], inizio=x['inizio'], limite=x['limite'])
+                 for x in giri if str(t['id']) in x.get('risultati', {})]
+        # il risultato da mostrare: quello dell'ultimo giro; se li' il test non c'e' (aggiunto dopo, o giro fermato
+        # prima), l'ultimo fatto con il limite di adesso; se non c'e' nemmeno quello, l'ultimo che ha
+        i = 0 if tutte and tutte[0]['giro'] == g['id'] else \
+            next((k for k, e in enumerate(tutte) if e['limite'] == nodi), 0)
+        r = tutte[i] if tutte else None
+        tests.append(dict(t, risultato=r, prima=tutte[i + 1:i + 1 + PRECEDENTI],
+                          andamento=_andamento(tutte[i:i + 1 + PRECEDENTI]) if r else ''))
     return {'limite': nodi, 'giro': g, 'in_corso': in_corso(), 'tests': tests,
             'realtime': test_realtime.in_corso(), 'ricerca': ricerca(lavoro), 'cerca_in_corso': cerca_in_corso(),
             'notte': notte(lavoro)}
