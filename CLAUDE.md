@@ -7,9 +7,12 @@ codice e messaggi di commit sono in italiano.
 
 - **Il solver** (C): ricerca con backtracking dell'orario, un orario solo. `ricerca.c` è la ricerca (la cella, i
   vincoli, la coda, `cerca_orario`); `vincoli.h` dichiara i vincoli per chi li valuta uno per uno; `main.c` lancia:
-  - `./untitled test N`: le prove con i dati casuali (`prove.c`), su stdout solo i test che arrivano al limite;
+  - `./untitled test N [ORDINI LIMITE]`: le prove con i dati casuali (`prove.c`), su stdout solo i test che arrivano
+    al limite;
   - `./untitled caso|dati|passo ...`: per il sito (`caso.c`, `data_initialization/generatore.c`, `passo.c`,
     `passi.c`).
+  I casi casuali hanno anche un ordine delle classi (`ORDINE`, 0 quello generato: stessi dati, classi in un altro
+  ordine, quindi un'altra strada della ricerca), uguale a quello del sito vecchio.
   Niente variabili globali né `static` (richiesta di Alb dell'11 novembre 2026): i dati stanno in una `Scuola`
   (`data_initialization/database_initializers.h`), lo stato della ricerca in una `Ricerca` (`ricerca.h`), e ogni
   funzione le riceve come argomento. Restano `static` solo le tabelle di nomi costanti negli header.
@@ -28,7 +31,7 @@ codice e messaggi di commit sono in italiano.
 - **Non cambiare come il solver calcola gli orari** (ricerca, ordine della coda, controlli) se Alb non lo chiede
   esplicitamente. Uscite e comandi per il sito si possono toccare: non devono cambiare il percorso della ricerca.
 - Prima di ogni commit che tocca il solver: `python3 tests/non_regressione.py` deve finire con «tutto come atteso»
-  (confronta esito, nodi e l'impronta di ogni passo su 14 casi, alcuni fermati dalla verifica dei dati). Dopo una
+  (confronta esito, nodi e l'impronta di ogni passo su 17 casi, alcuni fermati dalla verifica dei dati). Dopo una
   modifica voluta alla ricerca:
   `python3 tests/non_regressione.py --aggiorna`, e dirlo nel commit.
 - Come si lavora (richieste di Alb del 10 e dell'11 novembre 2026):

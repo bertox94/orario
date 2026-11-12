@@ -1,9 +1,10 @@
 #ifndef UNTITLED_CASO_H
 #define UNTITLED_CASO_H
 
-// Un caso casuale seguito dal sito: ./untitled caso SEME CLASSI RITARDI LIMITE FILE PASSI
+// Un caso casuale seguito dal sito: ./untitled caso SEME CLASSI RITARDI ORDINE LIMITE FILE PASSI
 //
-// Genera i dati come le prove (data_initialization/generatore.c: stesso seme, stessi dati), cerca un orario fermandosi
+// Genera i dati come le prove (data_initialization/generatore.c: stesso seme, stesse classi, stessi ritardi e stesso
+// ordine delle classi: stessi dati), cerca un orario fermandosi
 // a LIMITE nodi (0: senza limite) e scrive lo stato della ricerca in FILE, un oggetto JSON, ogni mezzo secondo e alla
 // fine (scritto in FILE.tmp e poi rinominato: chi legge trova sempre un JSON intero):
 // {
@@ -21,7 +22,7 @@
 // e' quello trovato (tutte le celle), o quello del nodo dove si e' fermata al limite.
 // In PASSI scrive ogni nodo della ricerca, per lo slider del sito (vedi passi.h).
 
-int esegui_caso(unsigned long long int seme, int classi, int ritardi, long long int limite, const char *file,
-                const char *file_passi);
+int esegui_caso(unsigned long long int seme, int classi, int ritardi, int ordine, long long int limite,
+                const char *file, const char *file_passi);
 
 #endif //UNTITLED_CASO_H

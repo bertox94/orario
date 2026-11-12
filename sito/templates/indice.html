@@ -10,10 +10,12 @@
       <option value="senza">senza</option>
       <option value="con" {{ 'selected' if ultimo.ritardi }}>con</option>
     </select></label>
+  <label>Ordine delle classi <input type="number" name="ordine" min="0" value="{{ ultimo.ordine or 0 }}"></label>
   <label>Fermati dopo <input type="number" name="milioni" min="0.1" max="{{ max_milioni }}" step="0.1" value="{{ '%g'|format((ultimo.limite or 1000000) / 1000000) }}"> milioni di nodi</label>
   <button {{ 'disabled' if in_corso }}>Avvia</button>
 </form>
-<p class="nota">Il seme decide i dati del caso (stesso seme, stesse classi e ritardi: stessi dati). La ricerca si
+<p class="nota">Il seme decide i dati del caso (stesso seme, stesse classi e ritardi: stessi dati). L'ordine delle classi
+  li lascia uguali ma mette le classi in un altro ordine (0: quello generato), e la ricerca fa un'altra strada. La ricerca si
   ferma all'orario completo o dopo il numero di nodi scelto (al massimo {{ max_milioni }} milioni: ogni passo si registra,
   per poterlo rivedere). Un test alla volta.{% if in_corso %} Adesso gira il
   <a href="{{ url_for('pagina_test', tid=in_corso) }}">test {{ in_corso }}</a>.{% endif %}</p>
@@ -21,13 +23,14 @@
 <h2>Storico</h2>
 {% if tests %}
 <div class="scorre"><table class="dati">
-  <thead><tr><th class="num">Test</th><th>Avviato</th><th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th>
+  <thead><tr><th class="num">Test</th><th>Avviato</th><th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th><th class="num">Ordine</th>
     <th class="num">Limite</th><th>Esito</th><th class="num">Nodi</th><th class="num">Cella più avanti</th><th class="num">Tempo</th><th></th></tr></thead>
   <tbody>{% for t in tests %}{% set i, s = t.info, t.stato %}
     <tr>
       <td class="num"><a href="{{ url_for('pagina_test', tid=i.id) }}">{{ i.id }}</a></td>
       <td class="nota">{{ i.inizio|data }}</td>
       <td class="num">{{ i.seme }}</td><td class="num">{{ i.classi }}</td><td>{{ 'con' if i.ritardi else 'senza' }}</td>
+      <td class="num">{{ i.ordine or 0 }}</td>
       <td class="num">{{ i.limite|numero if i.limite else '—' }}</td>
       <td><span class="esito esito-{{ (s.esito or 'in corso')|replace(' ', '-') }}">{{ s.esito or 'in corso' }}</span>
         {% if s.verifica %}{% if s.verifica.ok %}<span class="nota">verificato</span>{% else %}<span class="tardi">non valido</span>{% endif %}{% endif %}</td>

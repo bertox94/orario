@@ -26,6 +26,7 @@ typedef struct {
     uint64_t stato;
     Lezione lezioni[MAX_LEZIONI];
     int n_lezioni, n_docenti, carico[INSEGNANTE_SZ];
+    int n_classi, classe_al_posto[CLASSE_SEZIONE_SZ];  // l'ordine delle classi: quale classe e' la k-esima
 } Generatore;
 
 // ---- i numeri casuali: xorshift64*, come _Casuale in sito/generatore.py ----
@@ -126,21 +127,40 @@ static void nome_docente(const int d, char out[MAX_LEN_WORDS]) {
 }
 
 // Genera il caso in gen e lo registra nella scuola s. Ritorna 0 se non riesce.
+// L'ordine delle classi numero `ordine`: 0 quello generato (C01, C02...); gli altri un rimescolamento (Fisher-Yates)
+// riproducibile dal numero, con numeri casuali suoi (gli stessi di riordina_classi in sito/generatore.py). Lo stato
+// dei numeri casuali del caso non cambia: serve ancora per i ritardi.
+static void ordina_classi(Generatore *gen, const int n_classi, const int ordine) {
+    gen->n_classi = n_classi;
+    for (int k = 0; k < n_classi; k++) gen->classe_al_posto[k] = k;
+    if (!ordine) return;
+    const uint64_t del_caso = gen->stato;
+    semina(gen, 1000003ULL * ordine + 17);
+    for (int i = n_classi - 1; i > 0; i--) {
+        const int j = tra(gen, 0, i), t = gen->classe_al_posto[i];
+        gen->classe_al_posto[i] = gen->classe_al_posto[j];
+        gen->classe_al_posto[j] = t;
+    }
+    gen->stato = del_caso;
+}
+
 static int genera(Generatore *gen, Scuola *s, const unsigned long long int seme, const int n_classi,
-                  const int con_ritardi) {
-    if (n_classi < 1 || n_classi > CLASSE_SEZIONE_SZ) return 0;
+                  const int con_ritardi, const int ordine) {
+    if (n_classi < 1 || n_classi > CLASSE_SEZIONE_SZ || ordine < 0) return 0;
     semina(gen, seme);
     int ok = 0;
     for (int t = 0; t < MAX_TENTATIVI && !ok; t++) ok = tenta(gen, n_classi);
     if (!ok) return 0;
+    ordina_classi(gen, n_classi, ordine);
 
-    // nella scuola: giorni e ore, le lezioni (classe per classe), le ore di ingresso
+    // nella scuola: giorni e ore, le lezioni (classe per classe, nell'ordine delle classi), le ore di ingresso
     char giorni[][4] = {"Lun", "Mar", "Mer", "Gio", "Ven", "Sab"}, ore[][3] = {"08", "09", "10", "11", "12", "13"};
     for (int g = 0; g < 6; g++) set_giorno_settimana(s, giorni[g]);
     for (int h = 0; h < 6; h++) set_ora_giornaliera(s, ore[h]);
-    for (int c = 0; c < n_classi; c++)
+    for (int k = 0; k < n_classi; k++)
         for (int i = 0; i < gen->n_lezioni; i++) {
             const Lezione *l = &gen->lezioni[i];
+            const int c = gen->classe_al_posto[k];
             if (l->classe != c) continue;
             char classe[MAX_LEN_WORDS], docente[MAX_LEN_WORDS], codocente[MAX_LEN_WORDS];
             snprintf(classe, sizeof classe, "C%02d", c + 1);
@@ -175,10 +195,11 @@ static int genera(Generatore *gen, Scuola *s, const unsigned long long int seme,
     return 1;
 }
 
-int genera_dati_casuali(Scuola *s, const unsigned long long int seme, const int n_classi, const int con_ritardi) {
+int genera_dati_casuali(Scuola *s, const unsigned long long int seme, const int n_classi, const int con_ritardi,
+                        const int ordine) {
     Generatore *gen = malloc(sizeof(Generatore));
     assert(gen);
-    const int ok = genera(gen, s, seme, n_classi, con_ritardi);
+    const int ok = genera(gen, s, seme, n_classi, con_ritardi, ordine);
     free(gen);
     return ok;
 }
@@ -193,12 +214,12 @@ static void stampa(const Generatore *gen, const Scuola *s) {
     printf(",\"lezioni\":[");
     char nome[MAX_LEN_WORDS];
     int scritte = 0;
-    for (int c = 0; c < s->actual_classi_sezione; c++)
+    for (int k = 0; k < gen->n_classi; k++)  // la classe al posto k e' la classe k della scuola
         for (int i = 0; i < gen->n_lezioni; i++) {
             const Lezione *l = &gen->lezioni[i];
-            if (l->classe != c) continue;
+            if (l->classe != gen->classe_al_posto[k]) continue;
             printf("%s{\"classe\":", scritte++ ? "," : "");
-            json_stringa(stdout, s->classe_sezione[c]);
+            json_stringa(stdout, s->classe_sezione[k]);
             printf(",\"docente\":");
             nome_docente(l->docente, nome);
             json_stringa(stdout, nome);
@@ -224,11 +245,12 @@ static void stampa(const Generatore *gen, const Scuola *s) {
     printf("]}\n");
 }
 
-int stampa_dati_casuali(const unsigned long long int seme, const int n_classi, const int con_ritardi) {
+int stampa_dati_casuali(const unsigned long long int seme, const int n_classi, const int con_ritardi,
+                        const int ordine) {
     Generatore *gen = malloc(sizeof(Generatore));
     Scuola *s = nuova_scuola();
     assert(gen);
-    const int ok = genera(gen, s, seme, n_classi, con_ritardi);
+    const int ok = genera(gen, s, seme, n_classi, con_ritardi, ordine);
     if (ok) stampa(gen, s);
     libera_scuola(s);
     free(gen);

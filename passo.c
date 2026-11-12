@@ -30,10 +30,10 @@ static int controllo(const int primo, const char *nome, const int esito) {
     return 0;
 }
 
-int stampa_passo(const unsigned long long int seme, const int classi, const int ritardi, const char *file_passi,
-                 const long long int k) {
+int stampa_passo(const unsigned long long int seme, const int classi, const int ritardi, const int ordine,
+                 const char *file_passi, const long long int k) {
     Scuola *s = nuova_scuola();
-    if (!genera_dati_casuali(s, seme, classi, ritardi)) return 1;
+    if (!genera_dati_casuali(s, seme, classi, ritardi, ordine)) return 1;
     Ricerca *r = nuova_ricerca(s);
     int prima;
     const int pos = passi_leggi(file_passi, k, r->orario_len, r->orario, &prima);

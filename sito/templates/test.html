@@ -3,7 +3,7 @@
 {% block contenuto %}
 {% set i, s = t.info, t.stato %}
 <p class="nota"><a href="{{ url_for('indice') }}">← Test e storico</a></p>
-<h1>Test {{ i.id }}: seme {{ i.seme }}, {{ i.classi }} classi, {{ 'con' if i.ritardi else 'senza' }} ritardi</h1>
+<h1>Test {{ i.id }}: seme {{ i.seme }}, {{ i.classi }} classi, {{ 'con' if i.ritardi else 'senza' }} ritardi{% if i.ordine %}, ordine {{ i.ordine }}{% endif %}</h1>
 <p><span id="esito" class="esito"></span> <span id="numeri"></span>
   <span class="nota">limite {{ i.limite|numero }} nodi</span></p>
 <p id="errore" class="errore-dati" hidden></p>

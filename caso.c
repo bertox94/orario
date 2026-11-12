@@ -90,8 +90,8 @@ static void segui(Ricerca *r, const int pos) {
     scrivi_stato(k, r->scuola, r, 1);
 }
 
-int esegui_caso(const unsigned long long int seme, const int classi, const int ritardi, const long long int limite,
-                const char *file, const char *file_passi) {
+int esegui_caso(const unsigned long long int seme, const int classi, const int ritardi, const int ordine,
+                const long long int limite, const char *file, const char *file_passi) {
     Caso *k = calloc(1, sizeof(Caso));
     Scuola *s = nuova_scuola();
     if (!k) return 2;
@@ -100,7 +100,7 @@ int esegui_caso(const unsigned long long int seme, const int classi, const int r
     k->verificato = -1;
     k->inizio = k->ultima_scrittura = clock();
     if (!(k->passi = passi_apri(file_passi))) return 2;
-    if (!genera_dati_casuali(s, seme, classi, ritardi)) {
+    if (!genera_dati_casuali(s, seme, classi, ritardi, ordine)) {
         k->esito = "dati non generati";
         scrivi_stato(k, s, NULL, 0);
         return 1;

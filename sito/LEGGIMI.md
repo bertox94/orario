@@ -1,7 +1,7 @@
 # Il sito: test in tempo reale
 
 Due pagine, senza login e senza database:
-- **Test e storico** (`/`): il modulo per avviare un test (seme, classi, ritardi, limite in milioni di nodi, da 0,1
+- **Test e storico** (`/`): il modulo per avviare un test (seme, classi, ritardi, ordine delle classi, limite in milioni di nodi, da 0,1
   a 20) e lo storico di tutti i test fatti (esito, nodi, cella più avanti, tempo), con la × per eliminarne uno.
 - **Un test** (`/test/<n>`): prima i dati del caso (un riepilogo; le classi a schede, con un quadretto per ogni ora
   di lezione, da solo o in coppia; i docenti con ore, ingresso, classi e codocenti; le codocenze con il grafo), poi la ricerca passo per passo: uno slider su tutti i nodi, dal primo all'orario
@@ -21,10 +21,10 @@ Due pagine, senza login e senza database:
 Un test alla volta, con un limite di nodi da 0,1 a 20 milioni (ogni passo si registra: 6 byte per nodo).
 
 Il sito mostra soltanto: tutto il calcolo lo fa il solver, che il sito lancia in tre modi (vedi `main.c`):
-- `./untitled caso SEME CLASSI RITARDI LIMITE FILE PASSI` (`caso.h`): la ricerca; scrive lo stato in `FILE` ogni mezzo
+- `./untitled caso SEME CLASSI RITARDI ORDINE LIMITE FILE PASSI` (`caso.h`): la ricerca; scrive lo stato in `FILE` ogni mezzo
   secondo e ogni nodo in `PASSI` (`passi.h`);
-- `./untitled dati SEME CLASSI RITARDI`: i dati del caso (lezioni e ore di ingresso);
-- `./untitled passo SEME CLASSI RITARDI PASSI K` (`passo.h`): il nodo K, con l'orario fin lì, il controllo della
+- `./untitled dati SEME CLASSI RITARDI ORDINE`: i dati del caso (lezioni e ore di ingresso);
+- `./untitled passo SEME CLASSI RITARDI ORDINE PASSI K` (`passo.h`): il nodo K, con l'orario fin lì, il controllo della
   classe, la coda e i controlli dei docenti.
 
 Ogni test è una cartella in `sito/lavoro/test/<n>` (o in `SITO_LAVORO`) con `info.json`, `stato.json` e i passi.

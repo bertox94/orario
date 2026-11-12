@@ -4,7 +4,8 @@
     python3 tests/non_regressione.py              confronta con tests/attesi.json
     python3 tests/non_regressione.py --aggiorna   riscrive tests/attesi.json (dopo una modifica voluta alla ricerca)
 
-Compila il solver in una cartella temporanea e per ogni caso di CASI (seme, classi, ritardi, limite di nodi) lancia
+Compila il solver in una cartella temporanea e per ogni caso di CASI (seme, classi, ritardi, limite di nodi) e di
+CASI_ORDINE (gli stessi dati con le classi in un altro ordine) lancia
 ./untitled caso: confronta l'esito, i nodi, la cella piu' avanti e l'impronta del file dei passi, cioe' di ogni nodo
 visitato e di ogni scelta fatta, nell'ordine.
 """
@@ -21,6 +22,8 @@ ATTESI = os.path.join(RADICE, 'tests', 'attesi.json')
 CASI = [(0, 8, 0, 100000), (0, 9, 1, 100000), (1, 8, 0, 100000), (1, 9, 0, 100000), (2, 8, 1, 100000),
         (3, 10, 1, 100000), (5, 9, 0, 100000), (0, 8, 1, 100000), (7, 12, 0, 100000), (4, 3, 1, 100000),
         (5, 6, 1, 100000), (8, 4, 1, 100000), (5, 9, 1, 100000), (7, 10, 1, 100000)]
+# gli stessi dati con le classi in un altro ordine: (seme, classi, ritardi, ordine, limite di nodi)
+CASI_ORDINE = [(0, 8, 0, 1, 100000), (5, 6, 1, 2, 100000), (1, 9, 0, 3, 100000)]
 
 
 def esegui():
@@ -30,15 +33,16 @@ def esegui():
                     for f in sorted(glob.glob(os.path.join(RADICE, c, '*.c')))]
         subprocess.run(['gcc', '-O2', '-std=gnu11', '-w'] + sorgenti + ['-o', exe, '-lm'], check=True)
         trovati = {}
-        for seme, classi, ritardi, limite in CASI:
-            subprocess.run([exe, 'caso', str(seme), str(classi), str(ritardi), str(limite), 'stato.json', 'passi.bin'],
-                           cwd=d, check=False)
+        for seme, classi, ritardi, ordine, limite in [(s, c, r, 0, l) for s, c, r, l in CASI] + CASI_ORDINE:
+            subprocess.run([exe, 'caso', str(seme), str(classi), str(ritardi), str(ordine), str(limite), 'stato.json',
+                            'passi.bin'], cwd=d, check=False)
             with open(os.path.join(d, 'stato.json')) as f:
                 s = json.load(f)
             with open(os.path.join(d, 'passi.bin'), 'rb') as f:
                 passi = hashlib.md5(f.read()).hexdigest()
-            trovati['seme %d, %d classi, %s ritardi, %d nodi' % (seme, classi, 'con' if ritardi else 'senza', limite)] = {
-                'esito': s['esito'], 'nodi': s['nodi'], 'cella_max': s['pos_max'], 'passi': passi}
+            nome = 'seme %d, %d classi, %s ritardi' % (seme, classi, 'con' if ritardi else 'senza')
+            nome += (', ordine %d' % ordine if ordine else '') + ', %d nodi' % limite
+            trovati[nome] = {'esito': s['esito'], 'nodi': s['nodi'], 'cella_max': s['pos_max'], 'passi': passi}
     return trovati
 
 

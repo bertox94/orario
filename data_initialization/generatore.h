@@ -15,12 +15,17 @@
 // terza o quarta ora, abbassata finche' le sue ore stanno ancora nelle ore che gli restano nella settimana. Con e senza
 // ritardi i dati di un seme sono gli stessi, tranne le ore di ingresso. Un caso con i ritardi puo' essere impossibile.
 //
+// L'ordine delle classi (ordine): le stesse classi e le stesse lezioni, con le classi in un altro ordine nei dati. La
+// ricerca numera le classi in quell'ordine e dentro ogni ora le decide in quell'ordine (anche i docenti si numerano
+// in ordine di comparsa, quindi cambia anche il loro ordine a parita' di ore): la strada della ricerca cambia. Ordine
+// 0: come generato; gli altri sono rimescolamenti riproducibili dal loro numero, gli stessi di sito/generatore.py.
+//
 // Le classi si chiamano C01, C02...; i docenti con i nomi di nomi_docenti.h (oltre l'elenco D346, D347...).
 // Registra nella scuola s giorni, ore, lezioni e ore di ingresso. Ritorna 0 se non riesce a generare i dati.
-int genera_dati_casuali(Scuola *s, unsigned long long int seme, int n_classi, int con_ritardi);
+int genera_dati_casuali(Scuola *s, unsigned long long int seme, int n_classi, int con_ritardi, int ordine);
 
 // I dati del caso in JSON su stdout (./untitled dati, per il sito): giorni, ore, lezioni e ore di ingresso. Ritorna 0
 // se non riesce a generare i dati.
-int stampa_dati_casuali(unsigned long long int seme, int n_classi, int con_ritardi);
+int stampa_dati_casuali(unsigned long long int seme, int n_classi, int con_ritardi, int ordine);
 
 #endif //UNTITLED_GENERATORE_H

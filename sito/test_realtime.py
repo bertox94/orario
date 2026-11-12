@@ -40,7 +40,7 @@ def in_corso():
         return _in_corso['id'] if p is not None and p.poll() is None else None
 
 
-def avvia(lavoro, seme, classi, ritardi, milioni):
+def avvia(lavoro, seme, classi, ritardi, ordine, milioni):
     """Lancia un test e ritorna il suo id. ValueError se un altro test sta girando."""
     with _lock:
         p = _in_corso['processo']
@@ -54,9 +54,10 @@ def avvia(lavoro, seme, classi, ritardi, milioni):
         os.makedirs(d)
         limite = int(round(milioni * 1000000))
         _scrivi(os.path.join(d, 'info.json'), {'id': tid, 'seme': seme, 'classi': classi, 'ritardi': ritardi,
-                                               'limite': limite, 'inizio': time.time()})
+                                               'ordine': ordine, 'limite': limite, 'inizio': time.time()})
         _in_corso['processo'] = subprocess.Popen(
-            [exe, 'caso', str(seme), str(classi), '1' if ritardi else '0', str(limite), 'stato.json', 'passi.bin'],
+            [exe, 'caso', str(seme), str(classi), '1' if ritardi else '0', str(ordine), str(limite), 'stato.json',
+             'passi.bin'],
             cwd=d,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         _in_corso['id'] = tid
@@ -104,7 +105,9 @@ def _solver(lavoro, argomenti, cartella=None):
 
 
 def _caso(info):
-    return [info['seme'], info['classi'], 1 if info['ritardi'] else 0]
+    """Gli argomenti che dicono al solver di che caso si tratta: seme, classi, ritardi e ordine delle classi (0 nei
+    test fatti prima che ci fosse)."""
+    return [info['seme'], info['classi'], 1 if info['ritardi'] else 0, info.get('ordine', 0)]
 
 
 def dati(lavoro, info):

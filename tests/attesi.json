@@ -82,5 +82,23 @@
   "nodi": 100000,
   "cella_max": 319,
   "passi": "ca86423e98a671c210c4b218a521d250"
+ },
+ "seme 0, 8 classi, senza ritardi, ordine 1, 100000 nodi": {
+  "esito": "limite di nodi",
+  "nodi": 100000,
+  "cella_max": 264,
+  "passi": "6b0a65e459736640b1416fcd6dc2db77"
+ },
+ "seme 5, 6 classi, con ritardi, ordine 2, 100000 nodi": {
+  "esito": "trovato",
+  "nodi": 86378,
+  "cella_max": 216,
+  "passi": "d799a9c7c159424a84380b7b6aca4a49"
+ },
+ "seme 1, 9 classi, senza ritardi, ordine 3, 100000 nodi": {
+  "esito": "trovato",
+  "nodi": 325,
+  "cella_max": 324,
+  "passi": "0f607bea000eb1539a6d4ca84653b756"
  }
 }

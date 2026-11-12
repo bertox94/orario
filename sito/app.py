@@ -25,7 +25,8 @@ def crea_app():
     @app.route('/')
     def indice():
         tests = test_realtime.storico(LAVORO)
-        ultimo = tests[0]['info'] if tests else {'seme': 0, 'classi': 8, 'ritardi': False, 'limite': 1000000}
+        ultimo = tests[0]['info'] if tests else {'seme': 0, 'classi': 8, 'ritardi': False, 'ordine': 0,
+                                                 'limite': 1000000}
         return render_template('indice.html', tests=tests, ultimo=ultimo, in_corso=test_realtime.in_corso(),
                                max_milioni=MAX_MILIONI)
 
@@ -35,14 +36,16 @@ def crea_app():
         try:
             seme = int(f.get('seme') or 0)
             classi = int(f.get('classi') or 8)
+            ordine = int(f.get('ordine') or 0)
             milioni = float((f.get('milioni') or '1').replace(',', '.'))
-            if seme < 0 or not 1 <= classi <= 120 or not 0 < milioni <= MAX_MILIONI:
+            if seme < 0 or not 1 <= classi <= 120 or ordine < 0 or not 0 < milioni <= MAX_MILIONI:
                 raise ValueError
         except ValueError:
-            flash('Seme da 0 in su, classi da 1 a 120, limite di nodi da 0,1 a %d milioni.' % MAX_MILIONI)
+            flash('Seme e ordine delle classi da 0 in su, classi da 1 a 120, limite di nodi da 0,1 a %d milioni.'
+                  % MAX_MILIONI)
             return redirect(url_for('indice'))
         try:
-            tid = test_realtime.avvia(LAVORO, seme, classi, f.get('ritardi') == 'con', milioni)
+            tid = test_realtime.avvia(LAVORO, seme, classi, f.get('ritardi') == 'con', ordine, milioni)
         except (ValueError, RuntimeError) as e:
             flash(str(e))
             return redirect(url_for('indice'))
