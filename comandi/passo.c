@@ -2,6 +2,7 @@
 #include "passi.h"
 #include "../ricerca/ricerca.h"
 #include "../ricerca/vincoli.h"
+#include "../ricerca/potature.h"
 #include "../dati/generatore.h"
 #include "json.h"
 
@@ -61,6 +62,22 @@ int stampa_passo(const unsigned long long int seme, const int classi, const int 
     const int n_coda = s->actual_insegnanti;
     for (int p = 0; p < n_coda; p++) coda[p] = &r->queue_items[p];
     sort_queue(coda, n_coda);
+
+    // la potatura: se da qui un orario non puo' piu' uscire, la ricerca torna indietro senza provare niente
+    Scatto perche;
+    printf(",\"potatura\":");
+    if (potatura_spiegata(r, pos, &perche) < 0) printf("null");
+    else {
+        const char *nomi[N_POTATURE] = {"ore_docente_in_classe", "ore_docente", "classi_al_giorno", "ore_classe",
+                                        "lezioni_obbligatorie", "docenti_per_ora"};
+        printf("{\"numero\":%d,\"nome\":\"%s\",\"docente\":", perche.quale + 1, nomi[perche.quale]);
+        json_nome(stdout, perche.docente < 0 ? NULL : s->insegnanti[perche.docente]);
+        printf(",\"classe\":");
+        json_nome(stdout, perche.classe < 0 ? NULL : s->classe_sezione[perche.classe]);
+        printf(",\"ora\":");
+        json_nome(stdout, perche.ora < 0 ? NULL : s->ore_giornaliere[perche.ora]);
+        printf(",\"servono\":%d,\"possibili\":%d}", perche.servono, perche.possibili);
+    }
 
     // la classe
     const char *stati[] = {"deve", "può", "non può"};  // nell'ordine di StatoClasse

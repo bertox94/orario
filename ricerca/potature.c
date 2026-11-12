@@ -104,7 +104,15 @@ typedef struct {
     int classi[CLASSE_SEZIONE_SZ], n_classi;
     int docenti_classi[INSEGNANTE_SZ], n_docenti_classi;
     int docenti_ore[INSEGNANTE_SZ], n_docenti_ore;
+    Scatto *perche;  // se c'e', la potatura che non passa ci scrive i suoi numeri
 } Punto;
+
+// Il conto non torna: scrive i numeri (se qualcuno li vuole) e ritorna 0, il valore della potatura che non passa.
+static int non_passa(const Punto *x, const int docente, const int classe, const int ora, const int servono,
+                     const int possibili) {
+    if (x->perche) *x->perche = (Scatto){-1, docente, classe, ora, servono, possibili};
+    return 0;
+}
 
 // la prima ora di oggi non ancora decisa nella classe k
 static int prima_ora_libera(const Punto *x, const int k) {
@@ -189,7 +197,8 @@ static int le_ore_del_docente_in_una_classe_stanno_nel_resto(const Punto *x) {
             const int p = t->docenti[k * INSEGNANTE_SZ + i], restano = ore_rimaste_in_classe(x, k, p);
             if (!restano) continue;
             const int al_giorno = MIN(MAX_ORE_PROF_IN_UNA_CLASSE, x->O - ingresso(x, p));
-            if (restano > x->dopo * al_giorno + fino_a(puo_fare_oggi(x, k, i), x->O - 1)) return 0;
+            const int possibili = x->dopo * al_giorno + fino_a(puo_fare_oggi(x, k, i), x->O - 1);
+            if (restano > possibili) return non_passa(x, p, k, -1, restano, possibili);
         }
     }
     return 1;
@@ -204,7 +213,7 @@ static int le_ore_del_docente_stanno_nel_resto(const Punto *x) {
         const int da = MAX(x->ora, ingresso(x, p));
         int libere = x->dopo * (x->O - ingresso(x, p)) + MAX(0, x->O - da);
         if (da == x->ora && impegnato(x, x->ora, p)) libere--;
-        if (restano > libere) return 0;
+        if (restano > libere) return non_passa(x, p, -1, -1, restano, libere);
     }
     return 1;
 }
@@ -224,7 +233,8 @@ static int le_classi_del_docente_stanno_in_tre_al_giorno_nel_resto(const Punto *
             const int dopo_oggi = restano - fino_a(puo_fare_oggi(x, k, qui), x->O - 1);
             if (dopo_oggi > 0) servono += (dopo_oggi + MAX_ORE_PROF_IN_UNA_CLASSE - 1) / MAX_ORE_PROF_IN_UNA_CLASSE;
         }
-        if (servono > MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO * x->dopo) return 0;
+        const int possibili = MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO * x->dopo;
+        if (servono > possibili) return non_passa(x, p, -1, -1, servono, possibili);
     }
     return 1;
 }
@@ -256,8 +266,8 @@ static int le_ore_della_classe_stanno_nel_resto(const Punto *x) {
             lezioni_un_giorno += MIN(ore, al_giorno);
         }
         const int posti_oggi = ha_ora_buca_oggi(x, k) ? 0 : x->O - prima_ora_libera(x, k);
-        const int dopo = MIN(lezioni_dopo, x->dopo * MIN(x->O, lezioni_un_giorno));
-        if (restano > MIN(posti_oggi, lezioni_oggi) + dopo) return 0;
+        const int possibili = MIN(posti_oggi, lezioni_oggi) + MIN(lezioni_dopo, x->dopo * MIN(x->O, lezioni_un_giorno));
+        if (restano > possibili) return non_passa(x, -1, k, -1, restano, possibili);
     }
     return 1;
 }
@@ -289,13 +299,14 @@ static int le_lezioni_bastano_per_le_ore_obbligatorie_nel_resto(const Punto *x) 
             n++;
         }
         for (int h = 0; h < x->M; h++) {
-            int servono = x->dopo * (h + 1) + MAX(0, h - da + 1);
+            const int celle = x->dopo * (h + 1) + MAX(0, h - da + 1);
+            int servono = celle;
             for (int i = 0; i < n && servono > 0; i++) {
                 const int oggi = MIN(fino_a(oggi_p[i], h), fino_a(oggi_q[i], h));
                 const int al_giorno = MIN(MAX_ORE_PROF_IN_UNA_CLASSE, MAX(0, h + 1 - entra[i]));
                 servono -= MIN(restano[i], oggi + x->dopo * al_giorno);
             }
-            if (servono > 0) return 0;
+            if (servono > 0) return non_passa(x, -1, k, h, celle, celle - servono);
         }
     }
     return 1;
@@ -312,10 +323,11 @@ static int i_docenti_liberi_bastano_per_le_classi_nel_resto(const Punto *x) {
         entrati_entro[ingresso(x, p)]++;
         liberi_adesso += ingresso(x, p) <= x->ora && !impegnato(x, x->ora, p);
     }
-    if (x->ora < x->M && liberi_adesso < x->C - x->cla) return 0;
+    if (x->ora < x->M && liberi_adesso < x->C - x->cla)
+        return non_passa(x, -1, -1, x->ora, x->C - x->cla, liberi_adesso);
     for (int h = 0, entrati = 0; h < x->M; h++) {
         entrati += entrati_entro[h];
-        if (entrati < x->C && (x->dopo > 0 || h > x->ora)) return 0;
+        if (entrati < x->C && (x->dopo > 0 || h > x->ora)) return non_passa(x, -1, -1, h, x->C, entrati);
     }
     return 1;
 }
@@ -367,22 +379,35 @@ static void guarda_quello_che_e_cambiato(Punto *x, const int pos) {
     }
 }
 
-int potatura(const Ricerca *r, const int pos) {
+// Le potature accese con le celle fino a pos - 1 decise. tutto: si rifanno tutti i conti, non solo quelli cambiati.
+static int guarda_le_potature(const Ricerca *r, const int pos, const int tutto, Scatto *perche) {
     const Scuola *s = r->scuola;
     const int G = s->actual_giorni_settimana, O = s->actual_ore_giornaliere, C = s->actual_classi_sezione;
     Punto x;  // (non azzerato: gli elenchi sono lunghi, e si leggono solo fin dove sono scritti)
     x.r = r, x.s = s, x.giorno = pos / C / O, x.ora = pos / C % O, x.cla = pos % C, x.G = G, x.O = O, x.C = C;
     x.M = MIN(PRIME_N_ORE_OBBLIGATORIE, O), x.dopo = G - 1 - x.giorno;
     x.n_classi = x.n_docenti_classi = x.n_docenti_ore = 0;
+    x.perche = perche;
     r->potature->adesso++;  // un nodo nuovo: l'appunto di prima non vale piu'
-    if (pos % (C * O) == 0) guarda_tutto(&x);  // la prima cella di un giorno (e della ricerca)
+    if (tutto || pos % (C * O) == 0) guarda_tutto(&x);  // la prima cella di un giorno (e della ricerca)
     else guarda_quello_che_e_cambiato(&x, pos);
     int (*const controlli[N_POTATURE])(const Punto *) = {
         le_ore_del_docente_in_una_classe_stanno_nel_resto, le_ore_del_docente_stanno_nel_resto,
         le_classi_del_docente_stanno_in_tre_al_giorno_nel_resto, le_ore_della_classe_stanno_nel_resto,
         le_lezioni_bastano_per_le_ore_obbligatorie_nel_resto, i_docenti_liberi_bastano_per_le_classi_nel_resto,
     };
-    for (int i = 0; i < N_POTATURE; i++)
-        if (r->potature_attive >> i & 1 && !controlli[i](&x)) return i;
+    for (int i = 0; i < N_POTATURE; i++) {
+        if (!(r->potature_attive >> i & 1) || controlli[i](&x)) continue;
+        if (perche) perche->quale = i;
+        return i;
+    }
     return -1;
+}
+
+int potatura(const Ricerca *r, const int pos) {
+    return guarda_le_potature(r, pos, 0, NULL);
+}
+
+int potatura_spiegata(const Ricerca *r, const int pos, Scatto *perche) {
+    return guarda_le_potature(r, pos, 1, perche);
 }

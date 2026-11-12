@@ -44,4 +44,23 @@ void libera_potature(Ricerca *r);
 // Con le celle fino a pos - 1 decise: -1 se tutte le potature accese passano, se no quale non passa (la prima).
 int potatura(const Ricerca *r, int pos);
 
+// Perche' una potatura non passa: i numeri del primo conto che non torna. Quello che non c'entra vale -1.
+//   1: al docente restano `servono` ore nella classe, ne puo' fare ancora `possibili`;
+//   2: al docente restano `servono` ore in tutto, ha ancora `possibili` ore libere;
+//   3: le classi del docente gli prendono ancora `servono` giorni in una classe, dopo oggi ne ha `possibili`;
+//   4: alla classe restano `servono` ore, puo' avere ancora `possibili` lezioni;
+//   5: la classe ha ancora `servono` celle da riempire fino all'ora `ora` di ogni giorno, le lezioni possibili in
+//      quelle ore sono `possibili`;
+//   6: all'ora `ora` servono `servono` docenti (uno per classe), ce ne sono `possibili`.
+typedef struct {
+    int quale;            // la potatura (POTATURA_...)
+    int docente, classe;  // di chi si parla
+    int ora;
+    int servono, possibili;
+} Scatto;
+
+// Come potatura, per chi vuole mostrare il perche' (passo.c): rifa' tutti i conti, non solo quelli cambiati (il
+// risultato e' lo stesso), e se una potatura non passa mette i suoi numeri in perche.
+int potatura_spiegata(const Ricerca *r, int pos, Scatto *perche);
+
 #endif //UNTITLED_POTATURE_H
