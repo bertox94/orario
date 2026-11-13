@@ -75,19 +75,65 @@ const cella = r => r.celle ? numero(Math.min(r.pos_max + 1, r.celle)) + ' / ' + 
 const etichetta = r => `<span class="esito esito-${esc(r.esito.replace(/ /g, '-'))}" title="${esc(r.errore || '')}">` +
   esc(r.esito + (r.verificato === false ? ' (non valido)' : '')) + '</span>';
 
-// sotto la riga di un test: le sue esecuzioni precedenti, dalla piu' recente, e i tempi
+// ---- rispetto alla volta prima: uguale, migliorato, peggiorato... ----
+// un esito e' una risposta quando la ricerca e' arrivata in fondo: ha trovato l'orario o ha visto che non c'e'
+const RISPOSTA = new Set(['trovato', 'nessuna soluzione']);
+// Il giudizio di un'esecuzione r rispetto a quella prima fatta con lo stesso limite (prec): [parola, dettaglio].
+// Il sito scrive gia' primo, uguale, limite cambiato o diverso (r.confronto); qui «diverso» diventa:
+// - migliorato / peggiorato: ora c'e' una risposta e prima no (o il contrario), oppure la stessa risposta con meno
+//   (o piu') nodi;
+// - piu' avanti / piu' indietro: ferma al limite tutte e due le volte, ma la cella piu' avanti e' cambiata;
+// - diverso: tutto il resto (e quando l'esecuzione prima non e' tra quelle che la pagina ha).
+function giudizio(r, prec) {
+  if (r.confronto !== 'diverso' || !prec) return [r.confronto || '', ''];
+  const a = RISPOSTA.has(prec.esito), b = RISPOSTA.has(r.esito);
+  if (prec.esito !== r.esito) return [a === b ? 'diverso' : b ? 'migliorato' : 'peggiorato', `prima: ${prec.esito}`];
+  if (prec.nodi !== r.nodi && prec.nodi != null && r.nodi != null) {
+    const p = Math.round((r.nodi - prec.nodi) / prec.nodi * 100);
+    return [r.nodi < prec.nodi ? 'migliorato' : 'peggiorato',
+            `nodi: da ${numero(prec.nodi)} a ${numero(r.nodi)} (${p > 0 ? '+' : p < 0 ? '−' : ''}${Math.abs(p)}%)`];
+  }
+  if (prec.pos_max !== r.pos_max && prec.pos_max != null && r.pos_max != null)
+    return [r.pos_max > prec.pos_max ? 'più avanti' : 'più indietro',
+            `cella più avanti: da ${numero(Math.min(prec.pos_max + 1, prec.celle))} a ${numero(Math.min(r.pos_max + 1, r.celle))}`];
+  return ['diverso', ''];
+}
+// l'esecuzione con cui r si confronta: la prima, tra quelle piu' vecchie (dalla piu' recente), con il suo limite
+const quellaPrima = (r, vecchie) => vecchie.find(x => x.limite === r.limite);
+const etichettaGiudizio = ([parola, dettaglio]) =>
+  `<span class="confronto confronto-${esc(parola.replace(/ /g, '-').replace('ù', 'u'))}">${esc(parola)}</span>` +
+  (dettaglio ? `<span class="nota andamento">${esc(dettaglio)}</span>` : '');
+// Come e' andato il test su tutte le esecuzioni che la pagina ha (l'ultima e fino a 5 prima), tra quelle fatte con il
+// limite dell'ultima: il giudizio dell'ultima rispetto alla piu' vecchia, con lo stesso metro di giudizio(). '' se
+// ce n'e' una sola.
+const CONFRONTATI = ['esito', 'nodi', 'pos_max'];
+function andamento(t) {
+  const u = t.risultato, stesse = [u, ...t.prima].filter(x => x.limite === u.limite);
+  if (stesse.length < 2) return '';
+  const cambi = stesse.slice(1).filter((x, i) => CONFRONTATI.some(k => x[k] !== stesse[i][k])).length;
+  if (!cambi) return `nelle ultime ${stesse.length} esecuzioni sempre uguale`;
+  const vecchia = stesse[stesse.length - 1], uguali = CONFRONTATI.every(k => vecchia[k] === u[k]);
+  const [parola, dettaglio] = uguali ? ['tornato uguale', ''] : giudizio({...u, confronto: 'diverso'}, vecchia);
+  return `nelle ultime ${stesse.length} esecuzioni: ${parola}` + (dettaglio ? `, ${dettaglio}` : '') +
+    `; cambiato ${cambi === 1 ? '1 volta' : cambi + ' volte'}`;
+}
+// le celle del risultato di un'esecuzione, nelle stesse colonne per l'ultima e per quelle prima
+const celleRisultato = (r, vecchie, dopo) => `<td>${etichetta(r)}</td>` +
+  `<td class="num">${r.nodi == null ? '' : numero(r.nodi)}</td><td class="num">${cella(r)}</td>` +
+  `<td class="num">${r.secondi == null ? '' : r.secondi.toFixed(1) + ' s'}</td>` +
+  `<td>${etichettaGiudizio(giudizio(r, quellaPrima(r, vecchie)))}${dopo || ''}</td>`;
+
+// sotto la riga di un test: le sue esecuzioni precedenti, dalla piu' recente, una riga l'una nelle stesse colonne
+// della tabella (esito sotto esito, nodi sotto nodi...), e in fondo i tempi
 function precedenti(t) {
   if (!t.prima.length) return '<tr class="precedenti"><td></td><td colspan="12" class="nota">Nessuna esecuzione precedente.</td></tr>';
   const s = t.prima.map(r => r.secondi).filter(x => x != null);
   const tempi = s.length ? `Tempo nelle ${s.length} precedenti: da ${Math.min(...s).toFixed(1)} a ${Math.max(...s).toFixed(1)} s, ` +
     `in media ${(s.reduce((a, b) => a + b, 0) / s.length).toFixed(1)} s.` : '';
-  return '<tr class="precedenti"><td></td><td colspan="12"><table class="dati"><thead><tr><th class="num">Giro</th><th>Del</th>' +
-    '<th class="num">Limite</th><th>Esito</th><th class="num">Nodi</th><th class="num">Cella più avanti</th>' +
-    '<th class="num">Tempo</th><th>Rispetto a prima</th></tr></thead><tbody>' +
-    t.prima.map(r => `<tr><td class="num">${r.giro}</td><td>${quando(r.inizio)}</td><td class="num">${numero(r.limite)}</td>` +
-      `<td>${etichetta(r)}</td><td class="num">${r.nodi == null ? '' : numero(r.nodi)}</td><td class="num">${cella(r)}</td>` +
-      `<td class="num">${r.secondi == null ? '' : r.secondi.toFixed(1) + ' s'}</td><td>${esc(r.confronto || '')}</td></tr>`).join('') +
-    `</tbody></table><p class="nota">${tempi}</p></td></tr>`;
+  return t.prima.map((r, i) => `<tr class="precedenti"><td></td>` +
+    `<td colspan="5" class="nota">giro ${r.giro}, del ${quando(r.inizio)}, limite ${numero(r.limite)}</td>` +
+    celleRisultato(r, t.prima.slice(i + 1)) + '<td colspan="2"></td></tr>').join('') +
+    (tempi ? `<tr class="precedenti"><td></td><td colspan="12" class="nota">${tempi}</td></tr>` : '');
 }
 
 // i test scelti con le caselle, da eliminare insieme
@@ -123,14 +169,19 @@ function rigaGruppo(valore, tests, inCorso) {
     const e = t.risultato ? t.risultato.esito : 'mai eseguito';
     esiti[e] = (esiti[e] || 0) + 1;
   }
-  const diversi = tests.filter(t => t.risultato && t.risultato.confronto === 'diverso').length;
+  const giudizi = {};  // quanti test del gruppo per giudizio, tra quelli cambiati dalla volta prima
+  for (const t of tests) {
+    const g = t.risultato && t.risultato.confronto === 'diverso' ? giudizio(t.risultato, quellaPrima(t.risultato, t.prima))[0] : '';
+    if (g) giudizi[g] = (giudizi[g] || 0) + 1;
+  }
   const quanti = tests.filter(t => scelti.has(t.id)).length, aperto = gruppiAperti.has(String(valore));
   return `<tr class="gruppo" data-gruppo="${esc(valore)}"><td><input type="checkbox" class="scegli-gruppo" ` +
     `aria-label="Scegli tutti i test del gruppo" ${quanti === tests.length ? 'checked' : ''} ${inCorso ? 'disabled' : ''}></td>` +
     `<td colspan="12"><span class="freccia">${aperto ? '▾' : '▸'}</span> <strong>${esc(GRUPPI[selettore.value].nome(valore))}</strong> ` +
     `<span class="nota">${numero(tests.length)} test</span> ` +
     Object.entries(esiti).map(([e, n]) => `<span class="esito esito-${esc(e.replace(/ /g, '-'))}">${numero(n)} ${esc(e)}</span>`).join('') +
-    (diversi ? `<span class="confronto confronto-diverso">${numero(diversi)} divers${diversi === 1 ? 'o' : 'i'} da prima</span>` : '') +
+    Object.entries(giudizi).map(([g, n]) =>
+      `<span class="confronto confronto-${esc(g.replace(/ /g, '-').replace('ù', 'u'))}">${numero(n)} ${esc(g)}</span>`).join('') +
     '</td></tr>';
 }
 
@@ -139,13 +190,9 @@ function riga(t, adesso, inCorso, limite, realtime) {
   const r = t.risultato;
   let risultato = '<td colspan="5" class="nota">' + (adesso === t.id ? 'sta girando…' : 'mai eseguito') + '</td>';
   if (r && adesso !== t.id) {
-    risultato = `<td>${etichetta(r)}</td>` +
-      `<td class="num">${r.nodi == null ? '' : numero(r.nodi)}</td>` +
-      `<td class="num">${cella(r)}</td>` +
-      `<td class="num">${r.secondi == null ? '' : r.secondi.toFixed(1) + ' s'}</td>` +
-      `<td><span class="confronto confronto-${esc((r.confronto || '').replace(/ /g, '-'))}">${esc(r.confronto || '')}</span>` +
-      (r.limite !== limite ? ` <span class="nota">a ${numero(r.limite)} nodi</span>` : '') +
-      (t.andamento ? `<span class="nota andamento">${esc(t.andamento)}</span>` : '') + '</td>';
+    risultato = celleRisultato(r, t.prima,
+      (r.limite !== limite ? `<span class="nota andamento">a ${numero(r.limite)} nodi</span>` : '') +
+      (andamento(t) ? `<span class="nota andamento">${esc(andamento(t))}</span>` : ''));
   }
   return `<tr class="test" data-test="${t.id}" title="Clic: le esecuzioni precedenti">` +
     `<td><input type="checkbox" class="scegli" aria-label="Scegli il test ${t.id}" ${scelti.has(t.id) ? 'checked' : ''} ${inCorso ? 'disabled' : ''}></td>` +
@@ -188,7 +235,11 @@ function mostra(n) {
   let t = 'Nessun giro ancora.';
   if (g) {
     const fatti = Object.keys(g.risultati).length, conta = {};
-    for (const r of Object.values(g.risultati)) conta[r.confronto] = (conta[r.confronto] || 0) + 1;
+    for (const t of n.tests) {  // con le stesse parole delle righe: i test eliminati dopo il giro non si contano
+      if (!t.risultato || t.risultato.giro !== g.id) continue;
+      const parola = giudizio(t.risultato, quellaPrima(t.risultato, t.prima))[0];
+      conta[parola] = (conta[parola] || 0) + 1;
+    }
     const riassunto = Object.entries(conta).map(([k, v]) => `${v} ${k}`).join(', ');
     t = inCorso ? `Giro ${g.id} in corso: ${fatti} test fatti su ${g.test.length}`
                 : `Ultimo giro: il ${g.id}, del ${quando(g.inizio)}, ${g.stato}; ${fatti} test su ${g.test.length}`;

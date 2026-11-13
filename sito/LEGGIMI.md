@@ -30,7 +30,11 @@ Due pagine, senza login e senza database:
   esito: ogni gruppo mostra quanti test ha per esito e quanti sono diversi da prima, e si apre con un clic. I test si tolgono con la × della riga, o tanti
   insieme scegliendoli con le caselle («Elimina i test scelti»). Il numero di un test eliminato non si riusa: i giri ricordano i
   risultati per numero, e la storia di un test comincia dal giro dopo la sua aggiunta. Con un clic sulla riga di un test si vedono le sue 5 esecuzioni precedenti (di qualunque
-  limite) e i loro tempi; nella riga, se i numeri sono rimasti uguali o quante volte sono cambiati. Dei test notturni si tengono solo i
+  limite), una riga l'una nelle stesse colonne della tabella, e i loro tempi. «Rispetto a prima» dice com'è andata
+  ogni esecuzione rispetto a quella prima con lo stesso limite: uguale, migliorato o peggiorato (ora c'è una risposta
+  e prima no, o il contrario; oppure la stessa risposta con meno o più nodi), più avanti o più indietro (ferma al
+  limite tutte e due le volte, con la cella più avanti cambiata), con i numeri accanto; nella riga del test c'è anche
+  lo stesso giudizio su tutte le esecuzioni che si vedono, dalla più vecchia all'ultima. Dei test notturni si tengono solo i
   numeri (in `lavoro/notturni/`), non i passi. Con il giro della notte acceso, ogni notte all'ora scelta nella pagina
   si aggiungono all'elenco i casi di base con un ordine delle classi nuovo, e parte il giro. I casi di base si
   scelgono nella pagina (semi da 0 a…, classi da… a…, senza e con ritardi; senza filtri: che il caso abbia un errore nei

@@ -106,12 +106,13 @@ form.accanto { display: inline-block; margin: 0 0 8px; }
 .esito, .confronto, .tardi { border-radius: var(--pillola); white-space: nowrap; background: var(--riga); }
 .esito { display: inline-block; padding: 2px 12px; font-weight: 600; margin-right: 8px; }
 .confronto, .tardi { padding: 1px 8px; font-size: 13px; }
-.esito-trovato, .confronto-uguale { color: var(--ok); background: var(--ok-chiaro); }
-.esito-limite-di-nodi, .esito-in-corso, .confronto-limite-cambiato, .tardi { color: var(--avviso);
+.esito-trovato, .confronto-uguale, .confronto-migliorato { color: var(--ok); background: var(--ok-chiaro); }
+.esito-limite-di-nodi, .esito-in-corso, .confronto-limite-cambiato, .confronto-piu-avanti, .confronto-piu-indietro,
+.tardi { color: var(--avviso);
   background: var(--avviso-chiaro); }
 .esito-nessuna-soluzione, .esito-errore-nei-dati, .esito-dati-non-generati, .esito-fermato, .esito-interrotto,
-.confronto-diverso { color: var(--male); background: var(--male-chiaro); }
-.confronto-diverso { font-weight: 600; }
+.confronto-diverso, .confronto-peggiorato { color: var(--male); background: var(--male-chiaro); }
+.confronto-diverso, .confronto-peggiorato, .confronto-migliorato { font-weight: 600; }
 
 /* ---- i riquadri con il bordo a sinistra: l'errore nei dati, l'orario verificato, la potatura ---- */
 .errore-dati, .verifica, .potatura { max-width: 900px; border-radius: var(--angolo); }
@@ -223,11 +224,12 @@ table.controlli tr.coppia td.con { padding-left: 22px; color: var(--coppia); whi
 /* ---- i test notturni: il giro, la notte, e le esecuzioni precedenti che si aprono sotto la riga di un test ---- */
 .notte { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--riga); }
 .notte input[type=number] { width: 70px; }
-.andamento { display: block; margin-top: 2px; white-space: nowrap; }  /* sotto l'etichetta del confronto, non di fianco */
+.andamento { display: block; margin-top: 2px; min-width: 30ch; max-width: 46ch; }  /* sotto l'etichetta del confronto, non di fianco; va a capo */
 tr.test, tr.gruppo { cursor: pointer; }
 /* la riga di un gruppo: il nome e il conto dei suoi esiti */
 tr.gruppo > td { background: var(--riga); }
 tr.gruppo .freccia { display: inline-block; width: 1em; color: var(--accento); }
 tr.gruppo .esito, tr.gruppo .confronto { font-size: 13px; padding: 1px 10px; margin: 0 0 0 8px; }
-tr.precedenti > td { background: var(--riga); padding: 8px 10px 4px; }
-tr.precedenti table.dati { font-size: 13px; }
+/* le esecuzioni precedenti: righe della stessa tabella, piu' piccole e su fondo rosa, colonna sotto colonna */
+tr.precedenti > td { background: var(--riga); font-size: 13px; padding-top: 4px; padding-bottom: 4px; }
+tr.precedenti .esito { padding: 1px 10px; }

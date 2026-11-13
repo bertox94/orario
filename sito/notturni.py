@@ -380,21 +380,10 @@ def chiudi_giri_interrotti(lavoro):
             _scrivi(_cartella(lavoro, 'giri', '%d.json' % gid), g)
 
 
-def _andamento(esecuzioni):
-    """Una frase sulle esecuzioni di un test (dalla piu' recente): se i numeri sono rimasti uguali o quante volte sono
-    cambiati. Si guardano solo quelle fatte con il limite della piu' recente; '' se ce n'e' una sola."""
-    stesse = [e for e in esecuzioni if e['limite'] == esecuzioni[0]['limite']]
-    if len(stesse) < 2:
-        return ''
-    cambi = sum(any(a.get(k) != b.get(k) for k in CONFRONTATI) for a, b in zip(stesse, stesse[1:]))
-    if cambi == 0:
-        return 'nelle ultime %d esecuzioni sempre uguale' % len(stesse)
-    return 'nelle ultime %d esecuzioni cambiato %s' % (len(stesse), '1 volta' if cambi == 1 else '%d volte' % cambi)
-
-
 def situazione(lavoro):
     """Per la pagina: il limite, il giro in corso (o l'ultimo) e i test. Ogni test ha il suo ultimo risultato, le
-    PRECEDENTI esecuzioni prima di quello (di qualunque limite, dalla piu' recente) e come sono andate."""
+    PRECEDENTI esecuzioni prima di quello (di qualunque limite, dalla piu' recente): come sono andate lo dice la
+    pagina, che le confronta (notturni.html, giudizio e andamento)."""
     nodi = limite(lavoro)
     giri = [x for x in (giro(lavoro, gid) for gid in reversed(_giri(lavoro))) if x]  # dal piu' recente
     g = giri[0] if giri else None
@@ -414,7 +403,6 @@ def situazione(lavoro):
             r['confronto'] = 'primo'
             if g and r['giro'] == g['id']:
                 g['risultati'][str(t['id'])]['confronto'] = 'primo'
-        tests.append(dict(t, risultato=r, prima=tutte[i + 1:i + 1 + PRECEDENTI],
-                          andamento=_andamento(tutte[i:i + 1 + PRECEDENTI]) if r else ''))
+        tests.append(dict(t, risultato=r, prima=tutte[i + 1:i + 1 + PRECEDENTI]))
     return {'limite': nodi, 'giro': g, 'in_corso': in_corso(), 'tests': tests,
             'realtime': test_realtime.in_corso(), 'notte': notte(lavoro)}
