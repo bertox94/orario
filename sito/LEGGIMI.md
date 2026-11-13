@@ -30,7 +30,8 @@ Due pagine, senza login e senza database:
   prima, partendo da 3: per i semi e gli ordini scelti nella pagina, senza e con ritardi, senza filtri (che il caso
   abbia un errore nei dati, un orario o nessuna risposta non conta). Il giro della notte dovrebbe finire entro l'ora di
   fine (dalle 22 alle 8, se non si cambiano): se va oltre finisce lo stesso, ma dalla sera dopo non si aggiungono altri
-  livelli finché un giro della notte non torna a finire in tempo; i test si tolgono a mano, con ×. Se all'ora di
+  livelli finché un giro della notte non torna a finire in tempo; i test si tolgono a mano, con ×. Il numero di un test tolto non si riusa: i giri
+  ricordano i risultati per numero, e la storia di un test comincia dal giro dopo la sua aggiunta. Se all'ora di
   partenza gira altro la notte salta, senza test nuovi (e la pagina lo dice); se il sito era spento si aspetta la notte
   dopo. Un giro e un test in tempo reale non girano
   insieme.

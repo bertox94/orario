@@ -87,6 +87,20 @@ def cambia_limite(lavoro, nodi):
     _imposta(lavoro, limite=nodi)
 
 
+def _numero_nuovo(lavoro, tutti):
+    """Il numero per un test nuovo: mai uno gia' usato, nemmeno da un test poi eliminato, perche' i giri fatti
+    ricordano i risultati per numero e un test nuovo si troverebbe la storia di un altro. L'ultimo numero dato sta
+    nelle impostazioni; la prima volta si ricava dai test che ci sono e da quelli dei giri fatti. Va chiamata con
+    _lock preso."""
+    imp = _impostazioni(lavoro)
+    ultimo = imp.get('ultimo_numero')
+    if ultimo is None:
+        ultimo = max([n for gid in _giri(lavoro) for n in (giro(lavoro, gid) or {}).get('test', [])], default=0)
+    ultimo = max([ultimo] + [t['id'] for t in tutti]) + 1
+    _scrivi(_cartella(lavoro, 'impostazioni.json'), dict(imp, ultimo_numero=ultimo))
+    return ultimo
+
+
 def aggiungi(lavoro, seme, classi, ritardi, ordine, da_solo=False):
     """Aggiunge il caso ai test notturni, se non c'e' gia' (seme, classi, ritardi e ordine uguali). Ritorna il test, e
     se e' nuovo. da_solo: lo ha aggiunto il giro della notte."""
@@ -95,7 +109,7 @@ def aggiungi(lavoro, seme, classi, ritardi, ordine, da_solo=False):
         for t in tutti:
             if (t['seme'], t['classi'], t['ritardi'], t['ordine']) == (seme, classi, ritardi, ordine):
                 return t, False
-        t = {'id': max((x['id'] for x in tutti), default=0) + 1, 'seme': seme, 'classi': classi, 'ritardi': ritardi,
+        t = {'id': _numero_nuovo(lavoro, tutti), 'seme': seme, 'classi': classi, 'ritardi': ritardi,
              'ordine': ordine, 'aggiunto': time.time(), 'da_solo': da_solo}
         _scrivi(_cartella(lavoro, 'test.json'), tutti + [t])
         return t, True
@@ -130,13 +144,19 @@ def in_corso():
         return _giro['id']
 
 
-def _prima(lavoro, tid, nodi, fino_a):
-    """L'ultimo risultato del test tid, nei giri prima di fino_a: (risultato, limite di quel giro), con preferenza per
+def _e_suo(t, g):
+    """Il giro g e' della storia del test t solo se e' partito dopo che t e' stato aggiunto: un giro piu' vecchio con
+    lo stesso numero parla di un altro test, eliminato (prima del 13 novembre 2026 i numeri si riusavano)."""
+    return (g.get('inizio') or 0) >= t.get('aggiunto', 0)
+
+
+def _prima(lavoro, t, nodi, fino_a):
+    """L'ultimo risultato del test t, nei giri prima di fino_a: (risultato, limite di quel giro), con preferenza per
     un giro fatto con il limite `nodi` (quello con cui si confronta). (None, None) se il test non ha mai girato."""
     altro = (None, None)
     for gid in reversed([g for g in _giri(lavoro) if g < fino_a]):
         g = giro(lavoro, gid) or {}
-        r = g.get('risultati', {}).get(str(tid))
+        r = g.get('risultati', {}).get(str(t['id'])) if _e_suo(t, g) else None
         if not r:
             continue
         if g.get('limite') == nodi:
@@ -146,8 +166,8 @@ def _prima(lavoro, tid, nodi, fino_a):
     return altro
 
 
-def _confronto(lavoro, tid, nodi, gid, r):
-    prima, limite_prima = _prima(lavoro, tid, nodi, gid)
+def _confronto(lavoro, t, nodi, gid, r):
+    prima, limite_prima = _prima(lavoro, t, nodi, gid)
     if prima is None:
         return 'primo'
     if limite_prima != nodi:
@@ -196,7 +216,7 @@ def _esegui_giro(lavoro, gid, nodi, tests):
             if r is None:
                 g['stato'] = 'fermato'
                 break
-            r['confronto'] = _confronto(lavoro, t['id'], nodi, gid, r)
+            r['confronto'] = _confronto(lavoro, t, nodi, gid, r)
             g['risultati'][str(t['id'])] = r
         else:
             g['stato'] = 'finito'
@@ -360,12 +380,18 @@ def situazione(lavoro):
     for t in elenco(lavoro):
         # le esecuzioni del test, dalla piu' recente: il risultato, piu' il giro, la data e il limite di quel giro
         tutte = [dict(x['risultati'][str(t['id'])], giro=x['id'], inizio=x['inizio'], limite=x['limite'])
-                 for x in giri if str(t['id']) in x.get('risultati', {})]
+                 for x in giri if str(t['id']) in x.get('risultati', {}) and _e_suo(t, x)]
         # il risultato da mostrare: quello dell'ultimo giro; se li' il test non c'e' (aggiunto dopo, o giro fermato
         # prima), l'ultimo fatto con il limite di adesso; se non c'e' nemmeno quello, l'ultimo che ha
         i = 0 if tutte and tutte[0]['giro'] == g['id'] else \
             next((k for k, e in enumerate(tutte) if e['limite'] == nodi), 0)
         r = tutte[i] if tutte else None
+        # un confronto scritto quando i numeri si riusavano puo' essere con il test di un altro: senza esecuzioni sue
+        # prima di questa, e' la prima (anche nel riassunto del giro)
+        if r and not tutte[i + 1:] and r.get('confronto') != 'primo':
+            r['confronto'] = 'primo'
+            if g and r['giro'] == g['id']:
+                g['risultati'][str(t['id'])]['confronto'] = 'primo'
         tests.append(dict(t, risultato=r, prima=tutte[i + 1:i + 1 + PRECEDENTI],
                           andamento=_andamento(tutte[i:i + 1 + PRECEDENTI]) if r else ''))
     return {'limite': nodi, 'giro': g, 'in_corso': in_corso(), 'tests': tests,
