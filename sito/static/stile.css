@@ -4,21 +4,23 @@
 
 /* ---- i colori e le misure ---- */
 :root {
-  /* fondo bianco appena rosato, inchiostro color melanzana, bordi e righe lilla chiarissimo */
-  --sfondo: #fbf7fa; --carta: #fff; --testo: #2c2233; --tenue: #7b6e82; --bordo: #e4d9e6; --riga: #f4edf4;
-  /* un solo accento, color mora; il lilla e' il suo chiaro, per cio' che e' in evidenza */
-  --accento: #8a3a70; --accento-scuro: #6f2d5a; --lilla: #f1e4f0;
-  /* gli esiti: va bene, non va, attenzione; ognuno con il suo chiaro per lo sfondo */
-  --ok: #2b7a57; --ok-chiaro: #e3f3ea; --male: #b3263e; --male-chiaro: #fbe7ea;
+  /* fondo rosa cipria chiarissimo, inchiostro color prugna scura, bordi e righe rosa pallido */
+  --sfondo: #fdf4f7; --carta: #fff; --testo: #33202b; --tenue: #8a6b79; --bordo: #efd3de; --riga: #f9e9ef;
+  /* un solo accento, rosa lampone; il rosa chiaro e' il suo chiaro, per cio' che e' in evidenza; l'ombra dei
+     riquadri e dei tasti ha lo stesso colore */
+  --accento: #c0407c; --accento-scuro: #96285c; --rosa: #fbe1eb; --ombra: rgba(192, 64, 124, .16);
+  /* gli esiti: va bene, non va, attenzione; ognuno con il suo chiaro per lo sfondo. Il rosso di «non va» tira
+     all'arancio, per non confondersi con il rosa dell'accento */
+  --ok: #2b7a57; --ok-chiaro: #e3f3ea; --male: #b5301c; --male-chiaro: #fde9e3;
   --avviso: #94610a; --avviso-chiaro: #fdf1d8;
-  /* le ore in codocenza, nei dati e nei controlli: un blu polvere, ben distinto dal color mora delle ore da solo
+  /* le ore in codocenza, nei dati e nei controlli: un blu polvere, ben distinto dal rosa lampone delle ore da solo
      (anche per chi distingue male i colori: uno e' scuro e caldo, l'altro chiaro e freddo) */
   --coppia: #3b7cab;
   /* i caratteri: i titoli con le grazie, il testo senza (quelli del Mac per primi, poi quelli che ci sono) */
   --titoli: "Hoefler Text", "Baskerville", "Palatino Linotype", Palatino, Georgia, serif;
   --scritto: "Avenir Next", Avenir, "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
   /* gli angoli: i riquadri, e la pillola di tasti ed etichette */
-  --angolo: 12px; --pillola: 999px;
+  --angolo: 16px; --pillola: 999px;
 }
 
 /* ---- la pagina e i titoli ---- */
@@ -26,11 +28,14 @@
 body { margin: 0; background: var(--sfondo); color: var(--testo); font: 15px/1.5 var(--scritto); }
 main { max-width: 1200px; margin: 0 auto; padding: 24px 16px 48px; }
 h1, h2, h3, summary { font-family: var(--titoli); font-weight: 600; letter-spacing: .01em; }
-h1 { font-size: 30px; line-height: 1.2; margin: 4px 0 18px; }
+h1 { font-size: 32px; font-style: italic; line-height: 1.2; margin: 4px 0 22px; color: var(--accento-scuro); }
+/* un piccolo tratto rosa sotto il titolo della pagina */
+h1::after { content: ""; display: block; width: 44px; height: 3px; margin-top: 10px; border-radius: var(--pillola);
+  background: var(--accento); opacity: .55; }
 h2 { font-size: 22px; margin: 36px 0 10px; color: var(--accento-scuro); }
 h3 { font-size: 18px; margin: 26px 0 8px; }
 a { color: var(--accento); }
-::selection { background: var(--lilla); }
+::selection { background: var(--rosa); }
 :focus-visible { outline: 2px solid var(--accento); outline-offset: 2px; }  /* chi usa la tastiera vede dov'e' */
 .nota { color: var(--tenue); font-size: 13px; }
 p.nota { max-width: 86ch; }  /* le spiegazioni non corrono per tutta la pagina: si leggono meglio */
@@ -43,18 +48,20 @@ summary { font-size: 16px; cursor: pointer; margin-bottom: 8px; }
 /* la testata: il nome del sito e le due schede (test in tempo reale, test notturni), con un filo sotto */
 .testata { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px;
   margin-bottom: 30px; padding-bottom: 16px; border-bottom: 1px solid var(--bordo); }
-.testata .nome { font-family: var(--titoli); font-style: italic; font-size: 24px; color: var(--accento);
+.testata .nome { font-family: var(--titoli); font-style: italic; font-size: 26px; color: var(--accento);
   text-decoration: none; letter-spacing: .01em; }
+.testata .nome::after { content: " \2766"; font-style: normal; opacity: .6; }  /* un fregio da tipografo */
 nav.schede { display: flex; gap: 6px; width: max-content; max-width: 100%; padding: 5px;
   background: var(--riga); border-radius: var(--pillola); }
 nav.schede a { padding: 7px 20px; text-decoration: none; color: var(--tenue); border-radius: var(--pillola); }
 nav.schede a:hover { color: var(--accento-scuro); }
 nav.schede a.attiva { color: var(--accento-scuro); font-weight: 600; background: var(--carta);
-  box-shadow: 0 1px 3px rgba(111, 45, 90, .18); }
+  box-shadow: 0 1px 4px var(--ombra); }
 
 /* ---- campi e tasti ---- */
 /* .riquadro: un foglio bianco che tiene insieme un modulo, o i comandi di una sezione; .rigo: una sua riga */
 .riquadro { background: var(--carta); border: 1px solid var(--bordo); border-radius: var(--angolo); padding: 16px 20px;
+  box-shadow: 0 2px 10px var(--ombra);
   width: max-content; max-width: 100%; margin: 0 0 10px; }
 .riquadro > :last-child { margin-bottom: 0; }
 .rigo { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-bottom: 12px; }
@@ -64,7 +71,7 @@ nav.schede a.attiva { color: var(--accento-scuro); font-weight: 600; background:
 .modulo label span { display: flex; align-items: center; gap: 6px; color: var(--testo); font-size: 15px; }
 input, select { font: inherit; padding: 7px 10px; border: 1px solid var(--bordo); border-radius: var(--angolo);
   background: var(--carta); color: var(--testo); }
-input:focus, select:focus { border-color: var(--accento); outline: 0; box-shadow: 0 0 0 3px var(--lilla); }
+input:focus, select:focus { border-color: var(--accento); outline: 0; box-shadow: 0 0 0 3px var(--rosa); }
 input[type=number] { width: 7em; }
 /* campi, menu e tasti di un modulo alti uguali: stanno sulla stessa riga */
 .modulo input, .modulo select, .modulo button, .rigo input:not([type=checkbox]), .rigo button { height: 38px; }
@@ -73,10 +80,11 @@ input[type=number] { width: 7em; }
 input[type=checkbox], input[type=range] { accent-color: var(--accento); }
 /* il tasto pieno e' l'azione principale; .secondario le altre; .piccolo dentro le righe; .salto i -10, +100... */
 button { font: inherit; font-weight: 500; padding: 8px 20px; border: 1px solid var(--accento);
-  border-radius: var(--pillola); background: var(--accento); color: #fff; cursor: pointer; white-space: nowrap; }
+  border-radius: var(--pillola); background: var(--accento); color: #fff; cursor: pointer; white-space: nowrap;
+  box-shadow: 0 2px 6px var(--ombra); }
 button:hover:not(:disabled) { background: var(--accento-scuro); border-color: var(--accento-scuro); }
-button.secondario { background: var(--carta); color: var(--accento-scuro); border-color: var(--bordo); }
-button.secondario:hover:not(:disabled) { background: var(--lilla); border-color: var(--accento); }
+button.secondario { background: var(--carta); color: var(--accento-scuro); border-color: var(--bordo); box-shadow: none; }
+button.secondario:hover:not(:disabled) { background: var(--rosa); border-color: var(--accento); }
 button:disabled { opacity: .5; cursor: default; }
 button.piccolo { padding: 3px 12px; font-size: 13px; }
 button.salto { padding-left: 12px; padding-right: 12px; }
@@ -131,7 +139,7 @@ table.orario .inizio-giorno, table.orario .giorno { border-left: 2px solid var(-
 table.orario td.buca, table.orario .cod { color: var(--tenue); }
 /* la cella che la ricerca sta per decidere, la scelta appena messa, le ore prima dell'ingresso del docente */
 table.orario td.attuale { background: var(--avviso-chiaro); outline: 2px solid var(--avviso); outline-offset: -2px; }
-table.orario td.appena { background: var(--lilla); }
+table.orario td.appena { background: var(--rosa); }
 table.orario td.non-entrato {
   background: repeating-linear-gradient(45deg, var(--carta), var(--carta) 4px, var(--riga) 4px, var(--riga) 5px); }
 
@@ -185,7 +193,7 @@ ol.coda { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; padding: 0
 ol.coda li { counter-increment: coda; background: var(--carta); border: 1px solid var(--bordo);
   border-radius: var(--pillola); padding: 2px 8px; font-size: 13px; white-space: nowrap; }
 ol.coda li::before { content: counter(coda) ". "; color: var(--tenue); }
-ol.coda li.della-classe { border-color: var(--accento); background: var(--lilla); }
+ol.coda li.della-classe { border-color: var(--accento); background: var(--rosa); }
 /* i controlli: una riga per docente, sotto le sue coppie; verde il si', rosso il no */
 table.controlli th { white-space: normal; max-width: 9em; vertical-align: bottom; }
 table.controlli tbody th { max-width: none; white-space: nowrap; color: var(--testo); font-size: 15px; }
