@@ -212,6 +212,10 @@ table.controlli tr.coppia td.con { padding-left: 22px; color: var(--coppia); whi
 .notte { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--riga); }
 .notte input[type=number] { width: 70px; }
 .andamento { display: block; margin-top: 2px; white-space: nowrap; }  /* sotto l'etichetta del confronto, non di fianco */
-tr.test { cursor: pointer; }
+tr.test, tr.gruppo { cursor: pointer; }
+/* la riga di un gruppo: il nome e il conto dei suoi esiti */
+tr.gruppo > td { background: var(--riga); }
+tr.gruppo .freccia { display: inline-block; width: 1em; color: var(--accento); }
+tr.gruppo .esito, tr.gruppo .confronto { font-size: 13px; padding: 1px 10px; margin: 0 0 0 8px; }
 tr.precedenti > td { background: var(--riga); padding: 8px 10px 4px; }
 tr.precedenti table.dati { font-size: 13px; }
