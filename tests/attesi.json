@@ -13,9 +13,9 @@
  },
  "seme 1, 8 classi, senza ritardi, 100000 nodi": {
   "esito": "trovato",
-  "nodi": 587,
+  "nodi": 290,
   "cella_max": 288,
-  "passi": "75d45b1d1fa9a0b5da204ab91fcf7bb5"
+  "passi": "c86a1dcebde68ffa076cb05fea23eef4"
  },
  "seme 1, 9 classi, senza ritardi, 100000 nodi": {
   "esito": "trovato",
@@ -61,21 +61,21 @@
  },
  "seme 5, 6 classi, con ritardi, 100000 nodi": {
   "esito": "trovato",
-  "nodi": 1222,
+  "nodi": 219,
   "cella_max": 216,
-  "passi": "e979df2f44860bc4874785f222b566a4"
+  "passi": "4e57d28a8db27de93fda78a620310800"
  },
  "seme 8, 4 classi, con ritardi, 100000 nodi": {
   "esito": "trovato",
-  "nodi": 247,
+  "nodi": 149,
   "cella_max": 144,
-  "passi": "cf65679e2c37670994379add786cb908"
+  "passi": "5b2a0508ce50b74775bffd17313dba89"
  },
  "seme 5, 9 classi, con ritardi, 100000 nodi": {
   "esito": "trovato",
-  "nodi": 2579,
+  "nodi": 327,
   "cella_max": 324,
-  "passi": "2b65adcfde16cae88dfeab3fa2c74cd3"
+  "passi": "ccf5bf070b4f98327134dedfc05b6c7a"
  },
  "seme 7, 10 classi, con ritardi, 100000 nodi": {
   "esito": "limite di nodi",
@@ -91,9 +91,9 @@
  },
  "seme 5, 6 classi, con ritardi, ordine 2, 100000 nodi": {
   "esito": "trovato",
-  "nodi": 86378,
+  "nodi": 218,
   "cella_max": 216,
-  "passi": "d799a9c7c159424a84380b7b6aca4a49"
+  "passi": "30eaa83229e2c4a314204a905b753968"
  },
  "seme 1, 9 classi, senza ritardi, ordine 3, 100000 nodi": {
   "esito": "trovato",

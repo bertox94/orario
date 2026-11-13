@@ -2,10 +2,11 @@
 #define UNTITLED_POTATURE_H
 
 // Le potature: i sei controlli della verifica dei dati (verifiche/verifica_dati.h) rifatti durante la ricerca su
-// quello che resta. La verifica dei dati li fa una volta, sulle ore di tutta la settimana; qui si rifanno a ogni nodo
-// sulle ore ancora da mettere e sul tempo ancora libero, da oggi alla fine. Sono condizioni necessarie: se una non
-// vale, da questo nodo un orario non puo' piu' uscire e la ricerca torna indietro subito, invece di scoprirlo molte
-// celle dopo. Scartano solo rami senza orario: l'orario trovato e' lo stesso, cambia quanti nodi servono.
+// quello che resta, piu' una settima che la verifica dei dati non ha (l'orario di una classe da sola: idea di Alb).
+// La verifica dei dati li fa una volta, sulle ore di tutta la settimana; qui si rifanno a ogni nodo sulle ore ancora
+// da mettere e sul tempo ancora libero, da oggi alla fine. Sono condizioni necessarie: se una non vale, da questo
+// nodo un orario non puo' piu' uscire e la ricerca torna indietro subito, invece di scoprirlo molte celle dopo.
+// Scartano solo rami senza orario: l'orario trovato e' lo stesso, cambia quanti nodi servono.
 //
 // Quando: all'ingresso di cerca_orario(pos), con le celle fino a pos - 1 decise e prima di provare qualcosa in pos.
 // «Oggi» e' il giorno di pos; in ogni classe la prima ora non ancora decisa e' quella di pos per le classi da quella
@@ -18,8 +19,8 @@
 
 #include "ricerca.h"
 
-// Le potature, nell'ordine della verifica dei dati. r->potature_attive dice quali si fanno: il bit i (1 << i) accende
-// la potatura i.
+// Le potature: le prime sei nell'ordine della verifica dei dati. r->potature_attive dice quali si fanno: il bit i
+// (1 << i) accende la potatura i.
 enum {
     POTATURA_ORE_DOCENTE_IN_CLASSE,  // 1. le ore che restano al docente in una classe stanno nel tempo che ha li'
     POTATURA_ORE_DOCENTE,            // 2. le ore che restano al docente in tutto stanno nelle sue ore libere
@@ -27,14 +28,16 @@ enum {
     POTATURA_ORE_CLASSE,             // 4. le ore che restano alla classe stanno nelle lezioni che puo' ancora avere
     POTATURA_LEZIONI_OBBLIGATORIE,   // 5. le lezioni ancora possibili bastano per le ore obbligatorie che restano
     POTATURA_DOCENTI_PER_ORA,        // 6. ora per ora, i docenti liberi bastano per le classi
+    POTATURA_ORARIO_DELLA_CLASSE,    // 7. la classe, da sola, ha ancora un orario suo per il resto della settimana
     N_POTATURE
 };
 #define TUTTE_LE_POTATURE ((1 << N_POTATURE) - 1)
-// Quelle accese in una ricerca nuova: la 1, la 2, la 4 e la 5. La 3 e la 6 sono giuste ma non ripagano il loro costo:
-// misurate il 12 novembre 2026 su 341 casi casuali a 2 milioni di nodi, queste quattro trovano gli stessi 297 orari di
-// tutte e sei (senza potature: 175) in tre quarti del tempo.
-#define POTATURE_ACCESE (1 << POTATURA_ORE_DOCENTE_IN_CLASSE | 1 << POTATURA_ORE_DOCENTE | 1 << POTATURA_ORE_CLASSE \
-                         | 1 << POTATURA_LEZIONI_OBBLIGATORIE)
+// Quelle accese in una ricerca nuova: la 1, la 2, la 5 e la 7. La 3, la 4 e la 6 sono giuste ma non ripagano il loro
+// costo (la 4 la copre la 7, che guarda la stessa classe in modo piu' completo). Misurate il 13 novembre 2026 su 341
+// casi casuali a 2 milioni di nodi: queste quattro trovano 306 orari, come tutte e sette (senza potature: 175), e
+// sono la combinazione piu' veloce.
+#define POTATURE_ACCESE (1 << POTATURA_ORE_DOCENTE_IN_CLASSE | 1 << POTATURA_ORE_DOCENTE \
+                         | 1 << POTATURA_LEZIONI_OBBLIGATORIE | 1 << POTATURA_ORARIO_DELLA_CLASSE)
 
 // Prepara quello che serve alle potature (per ogni classe, i suoi docenti e le sue lezioni): una volta, dopo
 // nuova_ricerca. libera_potature quando non serve piu'.
@@ -51,7 +54,8 @@ int potatura(const Ricerca *r, int pos);
 //   4: alla classe restano `servono` ore, puo' avere ancora `possibili` lezioni;
 //   5: la classe ha ancora `servono` celle da riempire fino all'ora `ora` di ogni giorno, le lezioni possibili in
 //      quelle ore sono `possibili`;
-//   6: all'ora `ora` servono `servono` docenti (uno per classe), ce ne sono `possibili`.
+//   6: all'ora `ora` servono `servono` docenti (uno per classe), ce ne sono `possibili`;
+//   7: alla classe restano `servono` ore e, anche da sola, non ha piu' un orario (`possibili` e' 0).
 typedef struct {
     int quale;            // la potatura (POTATURA_...)
     int docente, classe;  // di chi si parla

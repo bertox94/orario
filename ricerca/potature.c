@@ -1,6 +1,7 @@
 #include "potature.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -19,6 +20,14 @@ typedef struct {
     int comincia, massimo;
 } Oggi;
 
+// Una risposta della potatura 7 gia' data: le due impronte dello stato della classe, e se un orario suo c'era.
+// (0, 0): posto vuoto.
+struct Ricordo {
+    uint64_t impronta1, impronta2;
+    int ce;
+};
+#define RICORDI (1 << 18)  // quante risposte si tengono: una nuova con lo stesso posto prende il posto della vecchia
+
 // Per ogni classe, i suoi docenti e le sue voci; per ogni docente, le sue classi: non cambiano durante la ricerca.
 // In piu' un appunto che si riscrive a ogni nodo: quello che ogni docente puo' fare oggi in ogni sua classe, calcolato
 // la prima volta che una potatura lo chiede in quel nodo (lo chiedono in quattro).
@@ -32,6 +41,8 @@ struct Potature {
     // adesso, il numero di questa chiamata di potatura
     Oggi *oggi;
     long long int *nodo, adesso;
+    // il ricordo della potatura 7 (vedi la_classe_ha_un_orario_suo_nel_resto): le risposte gia' date
+    struct Ricordo *ricordo;
     int inizio_docenti[CLASSE_SEZIONE_SZ + 1];
 };
 
@@ -62,7 +73,8 @@ void prepara_potature(Ricerca *r) {
     t->voci = malloc(sizeof(Voce) * (n_voci + 1));
     t->oggi = malloc(sizeof(Oggi) * (t->inizio_docenti[C] + 1));
     t->nodo = calloc(t->inizio_docenti[C] + 1, sizeof(long long int));
-    assert(t->voci && t->oggi && t->nodo);
+    t->ricordo = calloc(RICORDI, sizeof(struct Ricordo));
+    assert(t->voci && t->oggi && t->nodo && t->ricordo);
     n_voci = 0;
     for (int k = 0; k < C; k++) {
         t->inizio_voci[k] = n_voci;
@@ -88,6 +100,7 @@ void libera_potature(Ricerca *r) {
     free(r->potature->voci);
     free(r->potature->oggi);
     free(r->potature->nodo);
+    free(r->potature->ricordo);
     free(r->potature);
     r->potature = NULL;
 }
@@ -104,6 +117,7 @@ typedef struct {
     int classi[CLASSE_SEZIONE_SZ], n_classi;
     int docenti_classi[INSEGNANTE_SZ], n_docenti_classi;
     int docenti_ore[INSEGNANTE_SZ], n_docenti_ore;
+    int classi_decise[CLASSE_SEZIONE_SZ], n_classi_decise;  // per la 7: le classi che hanno una cella decisa in piu'
     Scatto *perche;  // se c'e', la potatura che non passa ci scrive i suoi numeri
 } Punto;
 
@@ -332,6 +346,125 @@ static int i_docenti_liberi_bastano_per_le_classi_nel_resto(const Punto *x) {
     return 1;
 }
 
+// 7. L'orario della classe, da sola. Si guarda una classe come se le altre non ci fossero (i suoi docenti sempre
+// liberi) e si cerca di riempire le sue celle che restano, da adesso alla fine della settimana, con le ore che restano
+// alle sue voci, con le regole che riguardano solo lei: ogni docente dal suo ingresso, al massimo 3 ore al giorno nella
+// classe e di seguito; lezione nelle ore obbligatorie; l'ora buca solo dopo, quando le ore che restano stanno nei
+// giorni dopo, e poi per quel giorno basta; alla fine nessuna ora avanzata. Se un orario cosi' non esiste, non esiste
+// nemmeno quello di tutta la scuola (che per questa classe sarebbe uno di quelli). E' una ricerca piccola dentro la
+// ricerca: se non finisce in ORARIO_CLASSE_TENTATIVI passi non si sa, e la potatura passa.
+// La risposta dipende solo dallo stato della classe: il giorno e l'ora da cui riparte, le ore che restano a ogni voce
+// e, per oggi, le ore gia' fatte da ogni docente e se era li' l'ora prima. Lo stesso stato torna moltissime volte
+// (mentre la ricerca cambia le altre classi, o mette le stesse lezioni in un altro ordine nei giorni passati), quindi
+// le risposte si ricordano: dello stato si tengono due impronte di 64 bit calcolate in due modi diversi, e la risposta
+// vale se coincidono tutte e due (che due stati diversi le abbiano uguali tutte e due non succede in pratica).
+#define ORARIO_CLASSE_TENTATIVI 2000
+
+typedef struct {
+    const Punto *x;
+    int k, n_docenti, n_voci;
+    const Voce *voci;
+    int *restano;          // le ore che restano a ogni voce
+    int *fatte, *ultima;   // nel giorno che si sta riempiendo, per ogni docente della classe: le ore fatte e l'ultima
+                           // ora in cui ha insegnato (-9: mai)
+    int ore_classe;        // le ore che restano alla classe
+    int tentativi;         // quanti passi restano
+} OrarioClasse;
+
+// il docente al posto i tra quelli della classe puo' insegnare all'ora h del giorno che si sta riempiendo
+static int puo_qui(const OrarioClasse *u, const int i, const int h) {
+    const int p = u->x->r->potature->docenti[u->k * INSEGNANTE_SZ + i];
+    return ingresso(u->x, p) <= h && u->fatte[i] < MAX_ORE_PROF_IN_UNA_CLASSE
+           && (u->fatte[i] == 0 || u->ultima[i] == h - 1);
+}
+
+static int riempi(OrarioClasse *u, int g, int h);
+
+// si passa al giorno dopo (i docenti ripartono da zero); se di li' non si riesce, il giorno torna com'era
+static int giorno_dopo(OrarioClasse *u, const int g) {
+    int fatte[u->n_docenti + 1], ultima[u->n_docenti + 1];
+    memcpy(fatte, u->fatte, sizeof(int) * u->n_docenti);
+    memcpy(ultima, u->ultima, sizeof(int) * u->n_docenti);
+    for (int i = 0; i < u->n_docenti; i++) u->fatte[i] = 0, u->ultima[i] = -9;
+    if (riempi(u, g + 1, 0)) return 1;
+    memcpy(u->fatte, fatte, sizeof(int) * u->n_docenti);
+    memcpy(u->ultima, ultima, sizeof(int) * u->n_docenti);
+    return 0;
+}
+
+// Riempie le celle della classe dal giorno g, ora h in poi: 1 se ci riesce (o se i tentativi sono finiti).
+static int riempi(OrarioClasse *u, const int g, const int h) {
+    const Punto *x = u->x;
+    if (g == x->G) return u->ore_classe == 0;
+    if (h == x->O) return giorno_dopo(u, g);
+    if (--u->tentativi < 0) return 1;
+    // le stesse due domande della ricerca (ricerca.c): la classe puo' avere lezione? puo' avere un'ora buca?
+    const int obbligatorie = x->M * x->G - (g * x->M + MIN(h, x->M - 1));
+    if (u->ore_classe >= obbligatorie) {
+        for (int i = 0; i < u->n_voci; i++) {
+            const Voce v = u->voci[i];
+            if (!u->restano[i] || !puo_qui(u, v.ip, h) || (v.iq >= 0 && !puo_qui(u, v.iq, h))) continue;
+            const int prima_p = u->ultima[v.ip], prima_q = v.iq >= 0 ? u->ultima[v.iq] : 0;
+            u->restano[i]--, u->ore_classe--, u->fatte[v.ip]++, u->ultima[v.ip] = h;
+            if (v.iq >= 0) u->fatte[v.iq]++, u->ultima[v.iq] = h;
+            if (riempi(u, g, h + 1)) return 1;
+            u->restano[i]++, u->ore_classe++, u->fatte[v.ip]--, u->ultima[v.ip] = prima_p;
+            if (v.iq >= 0) u->fatte[v.iq]--, u->ultima[v.iq] = prima_q;
+        }
+    }
+    if (h >= x->M && u->ore_classe <= (x->G - 1 - g) * x->O) return giorno_dopo(u, g);
+    return 0;
+}
+
+static int la_classe_ha_un_orario_suo_nel_resto(const Punto *x) {
+    const struct Potature *t = x->r->potature;
+    for (int j = 0; j < x->n_classi_decise; j++) {
+        const int k = x->classi_decise[j], da = prima_ora_libera(x, k);
+        const int n_docenti = t->n_docenti[k], n_voci = t->inizio_voci[k + 1] - t->inizio_voci[k];
+        int restano[n_voci + 1], fatte[n_docenti + 1], ultima[n_docenti + 1];
+        OrarioClasse u = {x, k, n_docenti, n_voci, &t->voci[t->inizio_voci[k]], restano, fatte, ultima,
+                          x->s->ore_classi[k] - x->r->ore_classe_svolte[k], ORARIO_CLASSE_TENTATIVI};
+        for (int i = 0; i < n_voci; i++) restano[i] = ore_rimaste_alla_voce(x, k, u.voci[i]);
+        // oggi com'e' davvero: le ore gia' fatte da ogni docente nella classe, e se era li' nell'ultima ora decisa
+        const teaching_slot prima = da > 0 ? x->r->orario[(x->giorno * x->O + da - 1) * x->C + k]
+                                           : (teaching_slot){-1, -1};
+        for (int i = 0; i < n_docenti; i++) {
+            const int p = t->docenti[k * INSEGNANTE_SZ + i];
+            fatte[i] = x->r->ore_fatte_da_un_prof_in_una_classe_in_giorno[
+                (x->giorno * CLASSE_SEZIONE_SZ + k) * INSEGNANTE_SZ + p];
+            ultima[i] = prima.insegnante1 == p || prima.insegnante2 == p ? da - 1 : -9;
+        }
+        // da dove riparte: oggi dalla sua prima ora libera, o (giornata finita: ora buca, o ultima ora decisa) dal
+        // giorno dopo, con i docenti che ripartono da zero
+        int g = x->giorno, h = da;
+        if (ha_ora_buca_oggi(x, k) || da >= x->O) {
+            g++, h = 0;
+            for (int i = 0; i < n_docenti; i++) fatte[i] = 0, ultima[i] = -9;
+        }
+        // lo stato, un byte per numero, e le sue due impronte
+        unsigned char stato[4 + n_voci + n_docenti];
+        int n = 0;
+        stato[n++] = k & 255, stato[n++] = k >> 8, stato[n++] = g, stato[n++] = h;
+        for (int i = 0; i < n_voci; i++) stato[n++] = restano[i];
+        for (int i = 0; i < n_docenti; i++) stato[n++] = fatte[i] << 1 | (ultima[i] == h - 1);
+        uint64_t impronta1 = 1469598103934665603ULL, impronta2 = 0x9E3779B97F4A7C15ULL;
+        for (int i = 0; i < n; i++) {
+            impronta1 = (impronta1 ^ stato[i]) * 1099511628211ULL;
+            impronta2 = (impronta2 + stato[i] + 1) * 0xD6E8FEB86659FD93ULL;
+            impronta2 ^= impronta2 >> 32;
+        }
+        struct Ricordo *ricordo = &t->ricordo[impronta1 & (RICORDI - 1)];
+        int ce;
+        if (ricordo->impronta1 == impronta1 && ricordo->impronta2 == impronta2) ce = ricordo->ce;
+        else {
+            ce = riempi(&u, g, h);
+            *ricordo = (struct Ricordo){impronta1, impronta2, ce};
+        }
+        if (!ce) return non_passa(x, -1, k, -1, x->s->ore_classi[k] - x->r->ore_classe_svolte[k], 0);
+    }
+    return 1;
+}
+
 // ---- che cosa guardare ----
 // Ogni nodo della strada fin qui ha passato le potature al suo ingresso. Quindi a questo nodo basta rifare i conti che
 // la scelta appena messa (nella cella pos - 1) ha cambiato; gli altri valgono ancora.
@@ -350,8 +483,8 @@ static void aggiungi_classe(Punto *x, char *vista, const int k) {
 }
 
 static void guarda_tutto(Punto *x) {
-    for (int k = 0; k < x->C; k++) x->classi[k] = k;
-    x->n_classi = x->C;
+    for (int k = 0; k < x->C; k++) x->classi[k] = x->classi_decise[k] = k;
+    x->n_classi = x->n_classi_decise = x->C;
     for (int p = 0; p < x->s->actual_insegnanti; p++) x->docenti_classi[p] = x->docenti_ore[p] = p;
     x->n_docenti_classi = x->n_docenti_ore = x->s->actual_insegnanti;
 }
@@ -364,6 +497,7 @@ static void guarda_quello_che_e_cambiato(Punto *x, const int pos) {
     char vista[CLASSE_SEZIONE_SZ];
     memset(vista, 0, x->C);
     aggiungi_classe(x, vista, k);
+    x->classi_decise[x->n_classi_decise++] = k;
     for (int d = 0; d < 2; d++) {
         const int p = docenti[d];
         if (p < 0) continue;
@@ -386,15 +520,19 @@ static int guarda_le_potature(const Ricerca *r, const int pos, const int tutto, 
     Punto x;  // (non azzerato: gli elenchi sono lunghi, e si leggono solo fin dove sono scritti)
     x.r = r, x.s = s, x.giorno = pos / C / O, x.ora = pos / C % O, x.cla = pos % C, x.G = G, x.O = O, x.C = C;
     x.M = MIN(PRIME_N_ORE_OBBLIGATORIE, O), x.dopo = G - 1 - x.giorno;
-    x.n_classi = x.n_docenti_classi = x.n_docenti_ore = 0;
+    x.n_classi = x.n_docenti_classi = x.n_docenti_ore = x.n_classi_decise = 0;
     x.perche = perche;
     r->potature->adesso++;  // un nodo nuovo: l'appunto di prima non vale piu'
-    if (tutto || pos % (C * O) == 0) guarda_tutto(&x);  // la prima cella di un giorno (e della ricerca)
+    // la prima cella di un giorno (e della ricerca): tutto. (La 7 per una classe cambia solo quando si decide una
+    // sua cella: all'inizio di un giorno basterebbe la classe appena decisa, ma all'inizio della ricerca servono
+    // tutte.)
+    if (tutto || pos % (C * O) == 0) guarda_tutto(&x);
     else guarda_quello_che_e_cambiato(&x, pos);
     int (*const controlli[N_POTATURE])(const Punto *) = {
         le_ore_del_docente_in_una_classe_stanno_nel_resto, le_ore_del_docente_stanno_nel_resto,
         le_classi_del_docente_stanno_in_tre_al_giorno_nel_resto, le_ore_della_classe_stanno_nel_resto,
         le_lezioni_bastano_per_le_ore_obbligatorie_nel_resto, i_docenti_liberi_bastano_per_le_classi_nel_resto,
+        la_classe_ha_un_orario_suo_nel_resto,
     };
     for (int i = 0; i < N_POTATURE; i++) {
         if (!(r->potature_attive >> i & 1) || controlli[i](&x)) continue;

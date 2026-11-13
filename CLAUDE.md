@@ -13,14 +13,16 @@ codice e messaggi di commit sono in italiano.
     l'uscita in JSON (`json.h`).
   Chi compila elenca queste cartelle: `CMakeLists.txt`, `sito/solver.py`, `tests/non_regressione.py`.
 - **Le potature** (ramo `potature`, richiesta di Alb del 12 novembre 2026; `ricerca/potature.c`): i sei controlli
-  della verifica dei dati rifatti a ogni nodo su quello che resta (la quarta conta le lezioni che i docenti della
-  classe possono ancora darle: idea di Alb). Sono condizioni necessarie: scartano solo rami senza orario, quindi
-  l'orario trovato è lo stesso e cambiano solo i nodi. A ogni nodo rifanno solo i conti che la scelta appena messa ha
-  cambiato. Accese la 1, la 2, la 4 e la 5 (`POTATURE_ACCESE` in `potature.h`); la 3 e la 6 sono nel codice ma spente,
-  perché non ripagano il loro costo. Misura del 12 novembre su 341 casi a 2 milioni di nodi: 175 orari trovati senza
-  potature (180 con 14 milioni di nodi), 297 con queste quattro come con tutte e sei, nessuno perso; un nodo costa
-  circa 4 volte tanto. La parità nella coda («a parità, chi ha più ore nella classe») è stata provata e lasciata
-  fuori: cambia la strada e perde dei casi.
+  della verifica dei dati rifatti a ogni nodo su quello che resta, più una settima (idea di Alb del 13 novembre):
+  una classe guardata da sola, come se i suoi docenti fossero sempre liberi, deve avere ancora un orario suo per il
+  resto della settimana (una ricerca piccola dentro la ricerca, con le risposte ricordate per stato della classe).
+  Sono condizioni necessarie: scartano solo rami senza orario, quindi l'orario trovato è lo stesso e cambiano solo i
+  nodi. A ogni nodo rifanno solo i conti che la scelta appena messa ha cambiato. Accese la 1, la 2, la 5 e la 7
+  (`POTATURE_ACCESE` in `potature.h`); la 3, la 4 e la 6 sono nel codice ma spente, perché non ripagano il loro
+  costo (la 4 la copre la 7). Misura del 13 novembre su 341 casi a 2 milioni di nodi: 175 orari trovati senza
+  potature (180 con 14 milioni di nodi), 297 con 1, 2, 4 e 5, 306 con 1, 2, 5 e 7 come con tutte e sette, nessuno
+  perso. La parità nella coda («a parità, chi ha più ore nella classe») è stata provata e lasciata fuori: cambia la
+  strada e perde dei casi.
 - **Il solver** (C): ricerca con backtracking dell'orario, un orario solo. `ricerca.c` è la ricerca (la cella, i
   vincoli, la coda, `cerca_orario`); `vincoli.h` dichiara i vincoli per chi li valuta uno per uno; `main.c` lancia:
   - `./untitled test N [ORDINI LIMITE]`: le prove con i dati casuali (`prove.c`), su stdout solo i test che arrivano

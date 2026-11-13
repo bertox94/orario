@@ -272,6 +272,9 @@ const FRASI_POTATURE = {
     `da oggi alla fine della settimana, ma in quelle ore i suoi docenti possono darle al massimo ${lezioni(p.possibili)}.`,
   docenti_per_ora: p => `Alle ${esc(p.ora)} servono ${p.servono} docenti, uno per classe, ma con ore da fare e già ` +
     `entrati ce ne sono ${p.possibili}.`,
+  orario_della_classe: p => `${esc(p.classe)}: le restano ${ore(p.servono)} e, anche guardandola da sola (come se i suoi ` +
+    `docenti fossero sempre liberi), non c'è più modo di metterle nelle sue ore da adesso alla fine della settimana: ` +
+    `tra ingressi, 3 ore al giorno di seguito per docente e ore obbligatorie non si incastrano.`,
 };
 function disegnaControlli(c) {
   const box = document.getElementById('controlli');

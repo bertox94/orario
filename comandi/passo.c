@@ -69,7 +69,7 @@ int stampa_passo(const unsigned long long int seme, const int classi, const int 
     if (potatura_spiegata(r, pos, &perche) < 0) printf("null");
     else {
         const char *nomi[N_POTATURE] = {"ore_docente_in_classe", "ore_docente", "classi_al_giorno", "ore_classe",
-                                        "lezioni_obbligatorie", "docenti_per_ora"};
+                                        "lezioni_obbligatorie", "docenti_per_ora", "orario_della_classe"};
         printf("{\"numero\":%d,\"nome\":\"%s\",\"docente\":", perche.quale + 1, nomi[perche.quale]);
         json_nome(stdout, perche.docente < 0 ? NULL : s->insegnanti[perche.docente]);
         printf(",\"classe\":");
