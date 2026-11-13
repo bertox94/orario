@@ -28,7 +28,8 @@ Due pagine, senza login e senza database:
   «primo» o «limite cambiato». Ogni test si può rifare in tempo reale con il suo tasto (stesso caso, con il
   limite dei notturni fino al massimo dei test in tempo reale), per vederlo passo per passo. L'elenco si può raggruppare per seme, classi, ritardi, ordine delle classi o
   esito: ogni gruppo mostra quanti test ha per esito e quanti sono diversi da prima, e si apre con un clic. I test si tolgono con la × della riga, o tanti
-  insieme scegliendoli con le caselle («Elimina i test scelti»). Con un clic sulla riga di un test si vedono le sue 5 esecuzioni precedenti (di qualunque
+  insieme scegliendoli con le caselle («Elimina i test scelti»). Il numero di un test eliminato non si riusa: i giri ricordano i
+  risultati per numero, e la storia di un test comincia dal giro dopo la sua aggiunta. Con un clic sulla riga di un test si vedono le sue 5 esecuzioni precedenti (di qualunque
   limite) e i loro tempi; nella riga, se i numeri sono rimasti uguali o quante volte sono cambiati. Dei test notturni si tengono solo i
   numeri (in `lavoro/notturni/`), non i passi. Con il giro della notte acceso, ogni notte all'ora scelta nella pagina
   si aggiungono all'elenco i casi di base con un ordine delle classi nuovo, e parte il giro. I casi di base si
