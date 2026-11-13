@@ -26,8 +26,10 @@ Due pagine, senza login e senza database:
   limite di nodi è uno solo per tutti e si cambia dalla pagina. «Avvia il giro» esegue i test uno dopo l'altro e, per
   ognuno, confronta esito, nodi e cella più avanti con l'ultima volta fatta con lo stesso limite: «uguale», «diverso»,
   «primo» o «limite cambiato». Ogni test si può rifare in tempo reale con il suo tasto (stesso caso, con il
-  limite dei notturni fino al massimo dei test in tempo reale), per vederlo passo per passo. L'elenco si può raggruppare per seme, classi, ritardi, ordine delle classi o
-  esito: ogni gruppo mostra quanti test ha per esito e quanti sono diversi da prima, e si apre con un clic. I test si tolgono con la × della riga, o tanti
+  limite dei notturni fino al massimo dei test in tempo reale), per vederlo passo per passo. Sopra l'elenco due filtri scelgono quali test si vedono: per giudizio rispetto alla volta prima
+  («solo i cambiati», migliorato, peggiorato…) e per esito. L'elenco parte raggruppato per ordine delle classi, con i
+  gruppi chiusi, e si può raggruppare per seme, classi, ritardi, ordine delle classi o
+  esito: ogni gruppo mostra quanti test ha per esito e per giudizio rispetto alla volta prima, e si apre con un clic. I test si tolgono con la × della riga, o tanti
   insieme scegliendoli con le caselle («Elimina i test scelti»). Il numero di un test eliminato non si riusa: i giri ricordano i
   risultati per numero, e la storia di un test comincia dal giro dopo la sua aggiunta. Con un clic sulla riga di un test si vedono le sue 5 esecuzioni precedenti (di qualunque
   limite), una riga l'una nelle stesse colonne della tabella, e i loro tempi. «Rispetto a prima» dice com'è andata

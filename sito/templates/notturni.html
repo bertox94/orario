@@ -41,7 +41,7 @@
 <form method="post" action="{{ url_for('togli_notturni_scelti') }}" id="togli-scelti" class="rigo">
   <input type="hidden" name="ids">
   <button class="secondario" disabled>Elimina i test scelti</button>
-  <span class="nota">Scegli i test con le caselle; quella in cima alla tabella li sceglie tutti.</span>
+  <span class="nota">Scegli i test con le caselle; quella in cima alla tabella sceglie tutti quelli che si vedono.</span>
 </form>
 <div class="rigo" id="raggruppa">
   <label>Raggruppa per
@@ -49,6 +49,19 @@
       <option value="">niente</option><option value="seme">seme</option><option value="classi">classi</option>
       <option value="ritardi">ritardi</option><option value="ordine">ordine delle classi</option><option value="esito">esito</option>
     </select></label>
+  <label>Mostra
+    <select id="filtro">
+      <option value="">tutti</option><option value="cambiati">solo i cambiati dalla volta prima</option>
+      <option value="migliorato">migliorato</option><option value="peggiorato">peggiorato</option>
+      <option value="più avanti">più avanti</option><option value="più indietro">più indietro</option>
+      <option value="diverso">diverso</option>
+    </select></label>
+  <label>con esito
+    <select id="filtro-esito">
+      <option value="">qualunque</option><option>trovato</option><option>limite di nodi</option>
+      <option>nessuna soluzione</option><option>errore nei dati</option><option>mai eseguito</option>
+    </select></label>
+  <span class="nota" id="quanti"></span>
   <span class="nota" id="nota-gruppi" hidden>Un clic sulla riga di un gruppo lo apre o lo chiude; la sua casella sceglie tutti i suoi test.</span>
 </div>
 <div class="scorre"><table class="dati" id="notturni">
@@ -149,7 +162,27 @@ const GRUPPI = {
   esito: {valore: t => t.risultato ? t.risultato.esito : 'mai eseguito', nome: v => v[0].toUpperCase() + v.slice(1)},
 };
 const selettore = document.getElementById('gruppo'), gruppiAperti = new Set();
-try { selettore.value = localStorage.getItem('notturni-gruppo') || ''; } catch (e) { /* si parte senza gruppi */ }
+// se non si e' mai scelto, i test partono raggruppati per ordine delle classi (un gruppo per sera), con i gruppi
+// chiusi: cosi' anche con migliaia di test la pagina disegna poche righe
+try {
+  const scelta = localStorage.getItem('notturni-gruppo');
+  selettore.value = scelta === null ? 'ordine' : scelta;
+} catch (e) { selettore.value = 'ordine'; }
+
+// ---- i filtri: quali test si vedono, per giudizio rispetto alla volta prima e per esito ----
+const filtro = document.getElementById('filtro'), filtroEsito = document.getElementById('filtro-esito');
+try {
+  filtro.value = localStorage.getItem('notturni-filtro') || '';
+  filtroEsito.value = localStorage.getItem('notturni-filtro-esito') || '';
+} catch (e) { /* si parte senza filtri */ }
+const CAMBIATI = new Set(['migliorato', 'peggiorato', 'più avanti', 'più indietro', 'diverso']);
+const giudizioDi = t => t.risultato ? giudizio(t.risultato, quellaPrima(t.risultato, t.prima))[0] : '';
+// i test che passano i due filtri (tutti, se i filtri sono vuoti)
+function visibili(tests) {
+  const f = filtro.value, e = filtroEsito.value;
+  return tests.filter(t => (!f || (f === 'cambiati' ? CAMBIATI.has(giudizioDi(t)) : giudizioDi(t) === f)) &&
+                           (!e || (t.risultato ? t.risultato.esito : 'mai eseguito') === e));
+}
 
 // i test divisi in gruppi, in ordine: [[valore, [test, ...]], ...]
 function inGruppi(tests) {
@@ -212,9 +245,14 @@ function riga(t, adesso, inCorso, limite, realtime) {
 function mostra(n) {
   const g = n.giro, inCorso = n.in_corso !== null;
   const unaRiga = t => riga(t, inCorso && g ? g.adesso : null, inCorso, n.limite, n.realtime !== null);
-  document.querySelector('#notturni tbody').innerHTML = !selettore.value ? n.tests.map(unaRiga).join('')
-    : inGruppi(n.tests).map(([v, tests]) => rigaGruppo(v, tests, inCorso) +
-                                           (gruppiAperti.has(String(v)) ? tests.map(unaRiga).join('') : '')).join('');
+  const vis = visibili(n.tests);
+  document.querySelector('#notturni tbody').innerHTML =
+    !vis.length ? '<tr><td></td><td colspan="12" class="nota">Nessun test con questi filtri.</td></tr>'
+    : !selettore.value ? vis.map(unaRiga).join('')
+    : inGruppi(vis).map(([v, tests]) => rigaGruppo(v, tests, inCorso) +
+                                        (gruppiAperti.has(String(v)) ? tests.map(unaRiga).join('') : '')).join('');
+  document.getElementById('quanti').textContent =
+    vis.length === n.tests.length ? `${numero(n.tests.length)} test` : `${numero(vis.length)} test su ${numero(n.tests.length)}`;
   document.getElementById('nota-gruppi').hidden = !selettore.value;
   document.getElementById('raggruppa').hidden = !n.tests.length;
   document.getElementById('notturni').hidden = !n.tests.length;
@@ -222,8 +260,10 @@ function mostra(n) {
   const ci_sono = new Set(n.tests.map(t => t.id));
   for (const id of [...scelti]) if (!ci_sono.has(id)) scelti.delete(id);
   const tutti = document.getElementById('scegli-tutti'), elimina = document.querySelector('#togli-scelti button');
-  tutti.checked = n.tests.length > 0 && scelti.size === n.tests.length;
-  tutti.indeterminate = scelti.size > 0 && scelti.size < n.tests.length;
+  // la casella in cima vale per i test che si vedono con i filtri
+  const sceltiVisibili = vis.filter(t => scelti.has(t.id)).length;
+  tutti.checked = vis.length > 0 && sceltiVisibili === vis.length;
+  tutti.indeterminate = sceltiVisibili > 0 && sceltiVisibili < vis.length;
   tutti.disabled = inCorso;
   elimina.disabled = inCorso || scelti.size === 0;
   elimina.textContent = scelti.size === 1 ? 'Elimina il test scelto'
@@ -289,7 +329,7 @@ document.querySelector('#notturni tbody').addEventListener('click', e => {
 document.querySelector('#notturni tbody').addEventListener('change', e => {
   if (e.target.classList.contains('scegli-gruppo')) {  // la casella di un gruppo: tutti i suoi test, o nessuno
     const valore = e.target.closest('tr.gruppo').dataset.gruppo;
-    for (const [v, tests] of inGruppi(ultima.tests))
+    for (const [v, tests] of inGruppi(visibili(ultima.tests)))
       if (String(v) === valore) for (const t of tests) e.target.checked ? scelti.add(t.id) : scelti.delete(t.id);
     return mostra(ultima);
   }
@@ -304,9 +344,13 @@ selettore.addEventListener('change', () => {  // un altro modo di raggruppare: i
   try { localStorage.setItem('notturni-gruppo', selettore.value); } catch (e) { /* pazienza */ }
   mostra(ultima);
 });
-document.getElementById('scegli-tutti').addEventListener('change', e => {
-  scelti.clear();
-  if (e.target.checked) for (const t of ultima.tests) scelti.add(t.id);
+for (const [f, chiave] of [[filtro, 'notturni-filtro'], [filtroEsito, 'notturni-filtro-esito']])
+  f.addEventListener('change', () => {
+    try { localStorage.setItem(chiave, f.value); } catch (e) { /* pazienza */ }
+    mostra(ultima);
+  });
+document.getElementById('scegli-tutti').addEventListener('change', e => {  // tutti quelli che si vedono, o nessuno
+  for (const t of visibili(ultima.tests)) e.target.checked ? scelti.add(t.id) : scelti.delete(t.id);
   mostra(ultima);
 });
 document.getElementById('togli-scelti').addEventListener('submit', e => {
