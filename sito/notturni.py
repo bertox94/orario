@@ -120,8 +120,14 @@ def aggiungi_tanti(lavoro, casi, da_solo=False):
 
 
 def togli(lavoro, tid):
+    togli_tanti(lavoro, [tid])
+
+
+def togli_tanti(lavoro, ids):
+    """Toglie dall'elenco i test con questi numeri. I loro risultati restano nei giri gia' fatti."""
+    ids = set(ids)
     with _lock:
-        _scrivi(_cartella(lavoro, 'test.json'), [t for t in elenco(lavoro) if t['id'] != tid])
+        _scrivi(_cartella(lavoro, 'test.json'), [t for t in elenco(lavoro) if t['id'] not in ids])
 
 
 # ---- i giri ----

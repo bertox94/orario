@@ -38,8 +38,13 @@
 </div>
 
 <h2>I test</h2>
+<form method="post" action="{{ url_for('togli_notturni_scelti') }}" id="togli-scelti" class="rigo">
+  <input type="hidden" name="ids">
+  <button class="secondario" disabled>Elimina i test scelti</button>
+  <span class="nota">Scegli i test con le caselle; quella in cima alla tabella li sceglie tutti.</span>
+</form>
 <div class="scorre"><table class="dati" id="notturni">
-  <thead><tr><th class="num">Test</th><th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th><th class="num">Ordine</th>
+  <thead><tr><th><input type="checkbox" id="scegli-tutti" title="Scegli tutti i test, o nessuno" aria-label="Scegli tutti i test"></th><th class="num">Test</th><th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th><th class="num">Ordine</th>
     <th>Esito</th><th class="num">Nodi</th><th class="num">Cella più avanti</th><th class="num">Tempo</th><th>Rispetto a prima</th><th></th><th></th></tr></thead>
   <tbody></tbody>
 </table></div>
@@ -64,11 +69,11 @@ const etichetta = r => `<span class="esito esito-${esc(r.esito.replace(/ /g, '-'
 
 // sotto la riga di un test: le sue esecuzioni precedenti, dalla piu' recente, e i tempi
 function precedenti(t) {
-  if (!t.prima.length) return '<tr class="precedenti"><td></td><td colspan="11" class="nota">Nessuna esecuzione precedente.</td></tr>';
+  if (!t.prima.length) return '<tr class="precedenti"><td></td><td colspan="12" class="nota">Nessuna esecuzione precedente.</td></tr>';
   const s = t.prima.map(r => r.secondi).filter(x => x != null);
   const tempi = s.length ? `Tempo nelle ${s.length} precedenti: da ${Math.min(...s).toFixed(1)} a ${Math.max(...s).toFixed(1)} s, ` +
     `in media ${(s.reduce((a, b) => a + b, 0) / s.length).toFixed(1)} s.` : '';
-  return '<tr class="precedenti"><td></td><td colspan="11"><table class="dati"><thead><tr><th class="num">Giro</th><th>Del</th>' +
+  return '<tr class="precedenti"><td></td><td colspan="12"><table class="dati"><thead><tr><th class="num">Giro</th><th>Del</th>' +
     '<th class="num">Limite</th><th>Esito</th><th class="num">Nodi</th><th class="num">Cella più avanti</th>' +
     '<th class="num">Tempo</th><th>Rispetto a prima</th></tr></thead><tbody>' +
     t.prima.map(r => `<tr><td class="num">${r.giro}</td><td>${quando(r.inizio)}</td><td class="num">${numero(r.limite)}</td>` +
@@ -76,6 +81,9 @@ function precedenti(t) {
       `<td class="num">${r.secondi == null ? '' : r.secondi.toFixed(1) + ' s'}</td><td>${esc(r.confronto || '')}</td></tr>`).join('') +
     `</tbody></table><p class="nota">${tempi}</p></td></tr>`;
 }
+
+// i test scelti con le caselle, da eliminare insieme
+const scelti = new Set();
 
 // la riga di un test: i suoi valori e l'ultimo risultato; con un clic si aprono le esecuzioni precedenti
 function riga(t, adesso, inCorso, limite, realtime) {
@@ -90,7 +98,9 @@ function riga(t, adesso, inCorso, limite, realtime) {
       (r.limite !== limite ? ` <span class="nota">a ${numero(r.limite)} nodi</span>` : '') +
       (t.andamento ? `<span class="nota andamento">${esc(t.andamento)}</span>` : '') + '</td>';
   }
-  return `<tr class="test" data-test="${t.id}" title="Clic: le esecuzioni precedenti"><td class="num">${t.id}</td><td class="num">${t.seme}</td><td class="num">${t.classi}</td>` +
+  return `<tr class="test" data-test="${t.id}" title="Clic: le esecuzioni precedenti">` +
+    `<td><input type="checkbox" class="scegli" aria-label="Scegli il test ${t.id}" ${scelti.has(t.id) ? 'checked' : ''} ${inCorso ? 'disabled' : ''}></td>` +
+    `<td class="num">${t.id}</td><td class="num">${t.seme}</td><td class="num">${t.classi}</td>` +
     `<td>${t.ritardi ? 'con' : 'senza'}</td><td class="num">${t.ordine}</td>${risultato}` +
     `<td><form method="post" action="${URL_AVVIA}">` +
     `<input type="hidden" name="seme" value="${t.seme}"><input type="hidden" name="classi" value="${t.classi}">` +
@@ -107,6 +117,17 @@ function mostra(n) {
   const g = n.giro, inCorso = n.in_corso !== null;
   document.querySelector('#notturni tbody').innerHTML = n.tests.map(t => riga(t, inCorso && g ? g.adesso : null, inCorso, n.limite, n.realtime !== null)).join('');
   document.getElementById('notturni').hidden = !n.tests.length;
+  // le caselle: restano scelti solo i test che ci sono ancora; durante un giro non si elimina
+  const ci_sono = new Set(n.tests.map(t => t.id));
+  for (const id of [...scelti]) if (!ci_sono.has(id)) scelti.delete(id);
+  const tutti = document.getElementById('scegli-tutti'), elimina = document.querySelector('#togli-scelti button');
+  tutti.checked = n.tests.length > 0 && scelti.size === n.tests.length;
+  tutti.indeterminate = scelti.size > 0 && scelti.size < n.tests.length;
+  tutti.disabled = inCorso;
+  elimina.disabled = inCorso || scelti.size === 0;
+  elimina.textContent = scelti.size === 1 ? 'Elimina il test scelto'
+    : scelti.size ? `Elimina i ${scelti.size} test scelti` : 'Elimina i test scelti';
+  document.getElementById('togli-scelti').hidden = !n.tests.length;
   document.getElementById('nessun-test').hidden = !!n.tests.length;
   document.getElementById('avvia-giro').disabled = inCorso || !n.tests.length || n.realtime !== null;
   document.getElementById('ferma-giro').hidden = !inCorso;
@@ -148,11 +169,28 @@ const iniziale = ultima;
 // un clic sulla riga di un test (non sul tasto che lo toglie) apre o chiude le sue esecuzioni precedenti
 document.querySelector('#notturni tbody').addEventListener('click', e => {
   const tr = e.target.closest('tr.test');
-  if (!tr || e.target.closest('form')) return;
+  if (!tr || e.target.closest('form, input')) return;
   const id = Number(tr.dataset.test);
   if (!aperti.delete(id)) aperti.add(id);
   try { sessionStorage.setItem('notturni-aperti', JSON.stringify([...aperti])); } catch (e) { /* pazienza */ }
   mostra(ultima);
+});
+// le caselle: una per test, e quella in cima che li sceglie tutti o nessuno
+document.querySelector('#notturni tbody').addEventListener('change', e => {
+  if (!e.target.classList.contains('scegli')) return;
+  const id = Number(e.target.closest('tr.test').dataset.test);
+  if (e.target.checked) scelti.add(id);
+  else scelti.delete(id);
+  mostra(ultima);
+});
+document.getElementById('scegli-tutti').addEventListener('change', e => {
+  scelti.clear();
+  if (e.target.checked) for (const t of ultima.tests) scelti.add(t.id);
+  mostra(ultima);
+});
+document.getElementById('togli-scelti').addEventListener('submit', e => {
+  if (!confirm(`Togliere ${scelti.size === 1 ? 'il test scelto' : 'i ' + scelti.size + ' test scelti'} dai notturni?`)) return e.preventDefault();
+  e.target.elements.ids.value = [...scelti].join(',');
 });
 mostra(iniziale);
 if (iniziale.in_corso !== null) setTimeout(segui, 1500);

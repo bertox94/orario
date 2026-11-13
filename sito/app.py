@@ -142,6 +142,17 @@ def crea_app():
             notturni.togli(LAVORO, tid)
         return redirect(url_for('pagina_notturni'))
 
+    @app.route('/notturni/togli-scelti', methods=['POST'])
+    def togli_notturni_scelti():
+        """Toglie i test scelti con le caselle: i loro numeri arrivano in `ids`, separati da virgole."""
+        ids = [int(x) for x in (request.form.get('ids') or '').split(',') if x.strip().isdigit()]
+        if notturni.in_corso() is not None:
+            flash('C\'è un giro in corso: i test si tolgono quando è finito.')
+        elif ids:
+            notturni.togli_tanti(LAVORO, ids)
+            flash('Tolti %d test dai notturni.' % len(ids) if len(ids) > 1 else 'Tolto 1 test dai notturni.')
+        return redirect(url_for('pagina_notturni'))
+
     @app.route('/notturni/avvia', methods=['POST'])
     def avvia_giro():
         try:

@@ -25,6 +25,7 @@
 
 /* ---- la pagina e i titoli ---- */
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }  /* nascosto vuol dire nascosto, anche dove una regola mette display */
 body { margin: 0; background: var(--sfondo); color: var(--testo); font: 15px/1.5 var(--scritto); }
 main { max-width: 1200px; margin: 0 auto; padding: 24px 16px 48px; }
 h1, h2, h3, summary { font-family: var(--titoli); font-weight: 600; letter-spacing: .01em; }
