@@ -12,6 +12,12 @@
   <input type="hidden" name="test" value="{{ i.id }}"><input type="hidden" name="poi" value="{{ request.path }}">
   <button class="secondario piccolo" title="Il caso di questo test entra nell'elenco dei test notturni">Aggiungi ai notturni</button>
 </form>
+<form method="post" action="{{ url_for('avvia') }}" class="accanto">
+  <input type="hidden" name="seme" value="{{ i.seme }}"><input type="hidden" name="classi" value="{{ i.classi }}">
+  <input type="hidden" name="ritardi" value="{{ 'con' if i.ritardi else 'senza' }}"><input type="hidden" name="ordine" value="{{ i.ordine or 0 }}">
+  <input type="hidden" name="milioni" value="{{ '%g'|format((i.limite or 1000000) / 1000000) }}">
+  <button class="secondario piccolo" id="rifai" title="Lancia un test nuovo sullo stesso caso, con lo stesso limite di nodi" {{ 'disabled' if s.gira }}>Rifai</button>
+</form>
 <form method="post" action="{{ url_for('ferma') }}" id="ferma" {{ 'hidden' if not s.gira }}>
   <input type="hidden" name="poi" value="{{ request.path }}"><button class="secondario">Ferma</button>
 </form>
@@ -127,6 +133,7 @@ function mostraStato(s) {
   e.className = 'esito esito-' + esito.replace(/ /g, '-');
   document.getElementById('numeri').textContent = `${numero(s.nodi || 0)} nodi in ${(s.secondi || 0).toFixed(1)} s`;
   document.getElementById('ferma').hidden = !s.gira;
+  document.getElementById('rifai').disabled = !!s.gira;  // mentre gira non se ne lancia un altro
   // errore nei dati: l'orario non puo' esistere, la ricerca non e' partita; il motivo lo da' il solver
   document.getElementById('errore').hidden = !s.errore;
   document.getElementById('errore').textContent = s.errore ? 'La ricerca non è partita: ' + s.errore : '';

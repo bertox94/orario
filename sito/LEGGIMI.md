@@ -36,7 +36,8 @@ Due pagine, senza login e senza database:
   dopo. Un giro e un test in tempo reale non girano
   insieme.
 
-Un test alla volta, con un limite di nodi da 0,1 a 20 milioni (ogni passo si registra: 6 byte per nodo).
+Un test si può rifare con «Rifai», dallo storico o dalla sua pagina: parte un test nuovo sullo stesso caso, con lo
+stesso limite. Un test alla volta, con un limite di nodi da 0,1 a 20 milioni (ogni passo si registra: 6 byte per nodo).
 
 Il sito mostra soltanto: tutto il calcolo lo fa il solver, che il sito lancia in tre modi (vedi `main.c`):
 - `./untitled caso SEME CLASSI RITARDI ORDINE LIMITE FILE PASSI` (`caso.h`): la ricerca; scrive lo stato in `FILE` ogni mezzo

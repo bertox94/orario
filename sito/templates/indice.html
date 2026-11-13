@@ -25,7 +25,7 @@
 {% if tests %}
 <div class="scorre"><table class="dati">
   <thead><tr><th class="num">Test</th><th>Avviato</th><th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th><th class="num">Ordine</th>
-    <th class="num">Limite</th><th>Esito</th><th class="num">Nodi</th><th class="num">Cella più avanti</th><th class="num">Tempo</th><th></th></tr></thead>
+    <th class="num">Limite</th><th>Esito</th><th class="num">Nodi</th><th class="num">Cella più avanti</th><th class="num">Tempo</th><th></th><th></th></tr></thead>
   <tbody>{% for t in tests %}{% set i, s = t.info, t.stato %}
     <tr>
       <td class="num"><a href="{{ url_for('pagina_test', tid=i.id) }}">{{ i.id }}</a></td>
@@ -38,6 +38,7 @@
       <td class="num">{{ (s.nodi or 0)|numero }}</td>
       <td class="num">{% if s.celle %}{{ s.pos_max + 1 if s.pos_max < s.celle else s.celle }} / {{ s.celle }}{% endif %}</td>
       <td class="num">{{ '%.1f s'|format(s.secondi) if s.get('secondi') is not none else '' }}</td>
+      <td><form method="post" action="{{ url_for('avvia') }}"><input type="hidden" name="seme" value="{{ i.seme }}"><input type="hidden" name="classi" value="{{ i.classi }}"><input type="hidden" name="ritardi" value="{{ 'con' if i.ritardi else 'senza' }}"><input type="hidden" name="ordine" value="{{ i.ordine or 0 }}"><input type="hidden" name="milioni" value="{{ '%g'|format((i.limite or 1000000) / 1000000) }}"><button class="secondario piccolo" title="Lancia un test nuovo sullo stesso caso, con lo stesso limite di nodi" {{ 'disabled' if in_corso }}>Rifai</button></form></td>
       <td>{% if not s.gira %}<form method="post" action="{{ url_for('elimina', tid=i.id) }}" onsubmit="return confirm('Eliminare il test {{ i.id }}?')"><button class="piccolo secondario" title="Elimina">×</button></form>{% endif %}</td>
     </tr>{% endfor %}
   </tbody>
