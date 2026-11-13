@@ -13,13 +13,14 @@ stesso limite: «uguale» o «diverso» (esito, nodi, cella piu' avanti; il temp
 limite diverso i numeri non si confrontano: «limite cambiato». Un giro alla volta, e mai insieme a un test in tempo
 reale.
 
-Il giro della notte: se e' acceso, all'ora scelta il sito aggiunge all'elenco un livello (tutti i casi con una classe
-in piu' della notte prima, partendo da tre: per i semi e gli ordini scelti nella pagina, senza e con ritardi; senza
-filtri) e avvia il giro da solo, una volta al giorno. Il giro dovrebbe finire entro l'ora di fine: se va oltre
-finisce lo stesso, ma risulta fuori tempo e dalla notte dopo non si aggiungono altri livelli, finche' un giro della
-notte non torna a finire in tempo (i test si tolgono a mano). Se all'ora di partenza gira altro (un giro o un test in
-tempo reale) quella notte salta, senza test nuovi, e la pagina lo dice. Se il sito a quell'ora era spento, si aspetta
-la notte dopo.
+Il giro della notte: se e' acceso, all'ora scelta il sito aggiunge all'elenco i casi di base con un ordine delle
+classi nuovo, e avvia il giro da solo, una volta al giorno. I casi di base si scelgono nella pagina: i semi da 0 a
+quello scelto e le classi da... a..., senza e con ritardi, senza filtri. La prima sera entrano con l'ordine 0 (quello
+generato), la seconda con l'ordine 1, e cosi' via: gli stessi dati, con le classi in un altro ordine, cioe' un'altra
+strada della ricerca. Il giro dovrebbe finire entro l'ora di fine: se va oltre finisce lo stesso, ma risulta fuori
+tempo e dalla sera dopo non si aggiungono altri ordini, finche' un giro della notte non torna a finire in tempo (i test
+si tolgono a mano). Se all'ora di partenza gira altro (un giro o un test in tempo reale) quella notte salta, senza
+test nuovi, e la pagina lo dice. Se il sito a quell'ora era spento, si aspetta la notte dopo.
 """
 import datetime
 import json
@@ -32,8 +33,9 @@ import time
 from . import solver, test_realtime
 
 LIMITE = 10000000   # il limite di nodi finche' non lo si cambia dalla pagina
-CLASSI_MIN, CLASSI_MAX = 3, 120  # i livelli della notte: da tre classi a quante ne regge il solver
-SEMI, ORDINI = 4, 2  # un livello: semi da 0 a SEMI e ordini da 0 a ORDINI, finche' non si cambiano dalla pagina
+# i casi di base del giro della notte, finche' non si cambiano dalla pagina: i semi da 0 a SEMI, le classi da
+# CLASSI_DA a CLASSI_A
+SEMI, CLASSI_DA, CLASSI_A = 0, 3, 50
 # il giro della notte parte e deve finire a queste ore, finche' non si cambiano dalla pagina
 ORA_DELLA_NOTTE, FINE_DELLA_NOTTE = '22:00', '08:00'
 CONFRONTATI = ('esito', 'nodi', 'pos_max')
@@ -99,6 +101,22 @@ def aggiungi(lavoro, seme, classi, ritardi, ordine, da_solo=False):
              'ordine': ordine, 'aggiunto': time.time(), 'da_solo': da_solo}
         _scrivi(_cartella(lavoro, 'test.json'), tutti + [t])
         return t, True
+
+
+def aggiungi_tanti(lavoro, casi, da_solo=False):
+    """Aggiunge tanti casi (seme, classi, ritardi, ordine) in una volta sola, saltando quelli che ci sono gia'."""
+    with _lock:
+        tutti = elenco(lavoro)
+        presenti = {(t['seme'], t['classi'], t['ritardi'], t['ordine']) for t in tutti}
+        prossimo = max((t['id'] for t in tutti), default=0) + 1
+        for seme, classi, ritardi, ordine in casi:
+            if (seme, classi, ritardi, ordine) in presenti:
+                continue
+            presenti.add((seme, classi, ritardi, ordine))
+            tutti.append({'id': prossimo, 'seme': seme, 'classi': classi, 'ritardi': ritardi, 'ordine': ordine,
+                          'aggiunto': time.time(), 'da_solo': da_solo})
+            prossimo += 1
+        _scrivi(_cartella(lavoro, 'test.json'), tutti)
 
 
 def togli(lavoro, tid):
@@ -246,33 +264,33 @@ def ferma_giro():
 # ---- il giro della notte ----
 
 def notte(lavoro):
-    """Il giro della notte: se e' acceso, da che ora a che ora ('HH:MM'), i semi e gli ordini di ogni livello, il
-    prossimo livello (le sue classi e quanti test nuovi porta; None se le classi sono finite), se l'ultimo giro della
+    """Il giro della notte: se e' acceso, da che ora a che ora ('HH:MM'), i casi di base (semi da 0 a `semi`, classi
+    da `classi_da` a `classi_a`), il prossimo ordine delle classi e quanti test nuovi porta, se l'ultimo giro della
     notte e' finito fuori tempo (allora non si aggiunge niente) e l'ultima volta che e' saltato (o None)."""
     i = _impostazioni(lavoro)
-    classi, nuovi = _prossimo_livello(lavoro)
+    ordine, nuovi = _prossimo_ordine(lavoro)
     return {'acceso': i.get('notte_acceso', False), 'ora': i.get('notte_ora', ORA_DELLA_NOTTE),
             'fine': i.get('notte_fine', FINE_DELLA_NOTTE), 'semi': i.get('notte_semi', SEMI),
-            'ordini': i.get('notte_ordini', ORDINI), 'classi': classi, 'nuovi': len(nuovi),
-            'fuori_tempo': _fuori_tempo(lavoro), 'saltato': i.get('notte_saltato')}
+            'classi_da': i.get('notte_classi_da', CLASSI_DA), 'classi_a': i.get('notte_classi_a', CLASSI_A),
+            'ordine': ordine, 'nuovi': len(nuovi), 'fuori_tempo': _fuori_tempo(lavoro),
+            'saltato': i.get('notte_saltato')}
 
 
-def cambia_notte(lavoro, acceso, ora, fine, semi, ordini):
-    _imposta(lavoro, notte_acceso=acceso, notte_ora=ora, notte_fine=fine, notte_semi=semi, notte_ordini=ordini)
+def cambia_notte(lavoro, acceso, ora, fine, semi, classi_da, classi_a):
+    _imposta(lavoro, notte_acceso=acceso, notte_ora=ora, notte_fine=fine, notte_semi=semi,
+             notte_classi_da=classi_da, notte_classi_a=classi_a)
 
 
-def _prossimo_livello(lavoro):
-    """Il prossimo livello: un numero di classi (si parte da CLASSI_MIN, una in piu' ogni notte) e i suoi casi che non
-    sono gia' nell'elenco: per ogni seme da 0 a `semi` e ogni ordine da 0 a `ordini`, senza e con ritardi.
-    (None, []) quando le classi sono finite."""
+def _prossimo_ordine(lavoro):
+    """Il prossimo ordine delle classi (0 la prima sera, poi uno in piu' ogni sera) e i casi di base con quell'ordine
+    che non sono gia' nell'elenco: per ogni numero di classi e ogni seme scelti, senza e con ritardi."""
     i = _impostazioni(lavoro)
-    classi = i.get('notte_classi', CLASSI_MIN)
-    if classi > CLASSI_MAX:
-        return None, []
+    ordine = i.get('notte_ordine', 0)
     presenti = {(t['seme'], t['classi'], t['ritardi'], t['ordine']) for t in elenco(lavoro)}
-    casi = [(seme, classi, ritardi, ordine) for seme in range(i.get('notte_semi', SEMI) + 1)
-            for ordine in range(i.get('notte_ordini', ORDINI) + 1) for ritardi in (False, True)]
-    return classi, [c for c in casi if c not in presenti]
+    casi = [(seme, classi, ritardi, ordine)
+            for classi in range(i.get('notte_classi_da', CLASSI_DA), i.get('notte_classi_a', CLASSI_A) + 1)
+            for seme in range(i.get('notte_semi', SEMI) + 1) for ritardi in (False, True)]
+    return ordine, [c for c in casi if c not in presenti]
 
 
 def _fuori_tempo(lavoro):
@@ -286,9 +304,10 @@ def _fuori_tempo(lavoro):
 
 def controlla_la_notte(lavoro, adesso):
     """Il lavoro dell'orologio, con `adesso` (un datetime). Se il giro della notte e' acceso, e' il minuto in cui
-    parte e oggi non e' ancora scattato: aggiunge all'elenco il prossimo livello (a meno che l'ultimo giro della notte
-    sia finito fuori tempo) e avvia il giro, che dovrebbe finire entro l'ora di fine. Se gira altro (anche il giro
-    della notte prima, non ancora finito) questa notte salta, senza test nuovi, e se ne tiene il motivo."""
+    parte e oggi non e' ancora scattato: aggiunge all'elenco i casi di base con il prossimo ordine delle classi (a meno
+    che l'ultimo giro della notte sia finito fuori tempo) e avvia il giro, che dovrebbe finire entro l'ora di fine. Se
+    gira altro (anche il giro della notte prima, non ancora finito) questa notte salta, senza test nuovi, e se ne
+    tiene il motivo."""
     n, oggi = notte(lavoro), adesso.strftime('%Y-%m-%d')
     if not n['acceso'] or adesso.strftime('%H:%M') != n['ora'] or _impostazioni(lavoro).get('notte_giorno') == oggi:
         return
@@ -297,11 +316,10 @@ def controlla_la_notte(lavoro, adesso):
         'stava girando un test in tempo reale.' if test_realtime.in_corso() is not None else None
     try:
         if motivo is None:
-            classi, nuovi = _prossimo_livello(lavoro)
-            if classi is not None and not n['fuori_tempo']:
-                for caso in nuovi:
-                    aggiungi(lavoro, *caso, da_solo=True)
-                _imposta(lavoro, notte_classi=classi + 1)
+            if not n['fuori_tempo']:
+                ordine, nuovi = _prossimo_ordine(lavoro)
+                aggiungi_tanti(lavoro, nuovi, da_solo=True)
+                _imposta(lavoro, notte_ordine=ordine + 1)
             ora, minuti = map(int, n['fine'].split(':'))  # la prossima volta che l'orologio segna l'ora di fine
             entro = adesso.replace(hour=ora, minute=minuti, second=0, microsecond=0)
             avvia_giro(lavoro, da_solo=True,

@@ -3,7 +3,7 @@
 {% block contenuto %}
 <h1>Test notturni</h1>
 <p class="nota">Un elenco di casi che si rieseguono tutti insieme, in un giro, per vedere se i loro numeri cambiano. Un caso
-  si aggiunge dalla pagina di un test in tempo reale, con «Aggiungi ai notturni»; con il giro della notte acceso, ogni notte si aggiungono da soli i casi con una classe in più.</p>
+  si aggiunge dalla pagina di un test in tempo reale, con «Aggiungi ai notturni»; con il giro della notte acceso, ogni sera si aggiungono da soli i casi scelti qui sotto, con un ordine delle classi nuovo.</p>
 
 <form method="post" action="{{ url_for('limite_notturni') }}" class="modulo riquadro">
   <label>Ogni test si ferma dopo
@@ -27,9 +27,10 @@
       <label>alle <input type="time" name="fine" value="{{ n.notte.fine }}" required></label>
     </div>
     <div class="rigo">
-      <span>Prima aggiungi i casi con una classe in più:</span>
+      <span>Prima aggiungi, con un ordine delle classi nuovo, i casi con</span>
       <label>semi da 0 a <input type="number" name="semi" min="0" max="{{ max_semi }}" value="{{ n.notte.semi }}" required></label>
-      <label>ordini da 0 a <input type="number" name="ordini" min="0" max="{{ max_ordini }}" value="{{ n.notte.ordini }}" required></label>
+      <label>classi da <input type="number" name="classi_da" min="1" max="{{ max_classi }}" value="{{ n.notte.classi_da }}" required></label>
+      <label>a <input type="number" name="classi_a" min="1" max="{{ max_classi }}" value="{{ n.notte.classi_a }}" required></label>
       <button class="secondario">Salva</button>
     </div>
   </form>
@@ -123,12 +124,12 @@ function mostra(n) {
   if (n.realtime !== null && !inCorso) t += ' Sta girando un test in tempo reale: il giro si può avviare quando finisce.';
   document.getElementById('stato-giro').textContent = t;
   const salto = n.notte.saltato, nt = n.notte;
-  const livello = nt.classi === null ? 'Le classi sono finite: non ci sono altri livelli.'
-    : nt.fuori_tempo ? `L'ultimo giro della notte è finito dopo le ${nt.fine}: non si aggiungono altri test finché un giro della notte non finisce in tempo (toglierne alcuni con ×).`
-    : `Il prossimo livello: ${nt.classi} classi, ${nt.nuovi} test nuovi.`;
+  const prossimo = nt.fuori_tempo
+    ? `L'ultimo giro della notte è finito dopo le ${nt.fine}: non si aggiungono altri test finché un giro della notte non finisce in tempo (toglierne alcuni con ×).`
+    : `Il prossimo ordine delle classi: ${nt.ordine}${nt.ordine === 0 ? ' (quello generato)' : ''}, ${numero(nt.nuovi)} test nuovi.`;
   document.getElementById('stato-notte').textContent =
-    (nt.acceso ? `Alle ${nt.ora}, se il sito è acceso e non gira altro, si aggiunge un livello e parte il giro, che dovrebbe finire entro le ${nt.fine}. `
-               : 'Il giro parte solo con il tasto, e i test si aggiungono solo a mano. ') + livello +
+    (nt.acceso ? `Alle ${nt.ora}, se il sito è acceso e non gira altro, si aggiungono i casi con l'ordine nuovo e parte il giro, che dovrebbe finire entro le ${nt.fine}. `
+               : 'Il giro parte solo con il tasto, e i test si aggiungono solo a mano. ') + prossimo +
     (salto ? ` Il giro delle ${salto.ora} del ${quando(salto.quando).slice(0, 5)} è saltato, senza test nuovi: ${salto.motivo}` : '');
 }
 

@@ -27,11 +27,12 @@ Due pagine, senza login e senza database:
   limite dei notturni fino al massimo dei test in tempo reale), per vederlo passo per passo. Con un clic sulla riga di un test si vedono le sue 5 esecuzioni precedenti (di qualunque
   limite) e i loro tempi; nella riga, se i numeri sono rimasti uguali o quante volte sono cambiati. Dei test notturni si tengono solo i
   numeri (in `lavoro/notturni/`), non i passi. Con il giro della notte acceso, ogni notte all'ora scelta nella pagina
-  si aggiunge all'elenco un livello e parte il giro. Un livello sono tutti i casi con una classe in più della notte
-  prima, partendo da 3: per i semi e gli ordini scelti nella pagina, senza e con ritardi, senza filtri (che il caso
-  abbia un errore nei dati, un orario o nessuna risposta non conta). Il giro della notte dovrebbe finire entro l'ora di
+  si aggiungono all'elenco i casi di base con un ordine delle classi nuovo, e parte il giro. I casi di base si
+  scelgono nella pagina (semi da 0 a…, classi da… a…, senza e con ritardi; senza filtri: che il caso abbia un errore nei
+  dati, un orario o nessuna risposta non conta). La prima sera entrano con l'ordine 0, quello generato, poi ogni sera
+  con l'ordine successivo: stessi dati, classi in un altro ordine. Il giro della notte dovrebbe finire entro l'ora di
   fine (dalle 22 alle 8, se non si cambiano): se va oltre finisce lo stesso, ma dalla sera dopo non si aggiungono altri
-  livelli finché un giro della notte non torna a finire in tempo; i test si tolgono a mano, con ×. Se all'ora di
+  ordini finché un giro della notte non torna a finire in tempo; i test si tolgono a mano, con ×. Se all'ora di
   partenza gira altro la notte salta, senza test nuovi (e la pagina lo dice); se il sito era spento si aspetta la notte
   dopo. Un giro e un test in tempo reale non girano
   insieme.

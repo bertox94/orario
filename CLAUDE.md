@@ -42,8 +42,8 @@ codice e messaggi di commit sono in italiano.
 - **Il sito** (`sito/`, Flask, senza login né database): test in tempo reale, storico, la ricerca passo per passo con
   i controlli di ogni cella. Mostra soltanto: dati, passi e controlli li calcola il solver. Vedi `sito/LEGGIMI.md`.
   Anche i test notturni (`sito/notturni.py`): un elenco di casi rieseguiti in un giro, con un limite di nodi unico e
-  il confronto con il giro prima; il giro della notte parte da solo e ogni sera aggiunge un livello (i casi con una
-  classe in più).
+  il confronto con il giro prima; il giro della notte parte da solo e ogni sera aggiunge i casi di base (semi e
+  classi scelti nella pagina) con un ordine delle classi nuovo.
 - `bf_search/`: SQL di Alb, da non toccare senza chiedere.
 
 ## Regole
