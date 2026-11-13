@@ -12,7 +12,7 @@ codice e messaggi di commit sono in italiano.
   - `comandi/`: i comandi per il sito e per le prove (`caso`, `passo`, `prove`), il file dei passi (`passi`) e
     l'uscita in JSON (`json.h`).
   Chi compila elenca queste cartelle: `CMakeLists.txt`, `sito/solver.py`, `tests/non_regressione.py`.
-- **Le potature** (ramo `potature`, richiesta di Alb del 12 novembre 2026; `ricerca/potature.c`): i sei controlli
+- **Le potature** (richiesta di Alb del 12 novembre 2026, in `main` dal 13; `ricerca/potature.c`): i sei controlli
   della verifica dei dati rifatti a ogni nodo su quello che resta, più una settima (idea di Alb del 13 novembre):
   una classe guardata da sola, come se i suoi docenti fossero sempre liberi, deve avere ancora un orario suo per il
   resto della settimana (una ricerca piccola dentro la ricerca, con le risposte ricordate per stato della classe).
@@ -41,8 +41,9 @@ codice e messaggi di commit sono in italiano.
   Il solver scrive solo quello che serve al sito: niente `orario.txt`, niente stampe in più.
 - **Il sito** (`sito/`, Flask, senza login né database): test in tempo reale, storico, la ricerca passo per passo con
   i controlli di ogni cella. Mostra soltanto: dati, passi e controlli li calcola il solver. Vedi `sito/LEGGIMI.md`.
-  In questo ramo (`test-notturni`) anche i test notturni (`sito/notturni.py`): un elenco di casi rieseguiti in un giro,
-  con un limite di nodi unico e il confronto con il giro prima.
+  Anche i test notturni (`sito/notturni.py`): un elenco di casi rieseguiti in un giro, con un limite di nodi unico e
+  il confronto con il giro prima; il giro della notte parte da solo e ogni sera aggiunge un livello (i casi con una
+  classe in più).
 - `bf_search/`: SQL di Alb, da non toccare senza chiedere.
 
 ## Regole
@@ -66,6 +67,14 @@ codice e messaggi di commit sono in italiano.
 `raspberry@192.168.1.5`, servizio `orario-sito`, repository `~/orario`, ambiente Python `~/orario-venv`. Da qui non si
 raggiunge: i comandi li lancia Alb. Aggiornare:
 `ssh -t raspberry@192.168.1.5 'cd ~/orario && git pull && sudo systemctl restart orario-sito'`, poi Ctrl+F5.
+
+## Rami
+
+- `main`: tutto il lavoro. Il 13 novembre 2026 (richiesta di Alb) è stato portato al ramo `potature`, con un commit di
+  unione che ne tiene tutti i file: i due coincidono, e `potature` non serve più.
+- `cella-piu-avanti`: il `main` di prima (923ec81), con la sezione «La cella più avanti» e il comando `ultima`, che
+  nel `main` di adesso non ci sono. Da lì si riprendono se servono.
+- `stabile/2026-11-11` e `stabile/2026-11-12`: punti fermi da cui ripartire; non si aggiornano.
 
 ## Rami vecchi
 
