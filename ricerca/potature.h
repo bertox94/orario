@@ -50,7 +50,7 @@ int potatura(const Ricerca *r, int pos);
 // Perche' una potatura non passa: i numeri del primo conto che non torna. Quello che non c'entra vale -1.
 //   1: al docente restano `servono` ore nella classe, ne puo' fare ancora `possibili`;
 //   2: al docente restano `servono` ore in tutto, ha ancora `possibili` ore libere;
-//   3: le classi del docente gli prendono ancora `servono` giorni in una classe, dopo oggi ne ha `possibili`;
+//   3: le ore che restano al docente richiedono `servono` classi-giorno, dopo oggi puo' stare in `possibili`;
 //   4: alla classe restano `servono` ore, puo' avere ancora `possibili` lezioni;
 //   5: la classe ha ancora `servono` celle da riempire fino all'ora `ora` di ogni giorno, le lezioni possibili in
 //      quelle ore sono `possibili`;

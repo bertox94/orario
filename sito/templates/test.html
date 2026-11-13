@@ -264,8 +264,8 @@ const FRASI_POTATURE = {
     `della settimana lì ne può fare al massimo ${p.possibili} (3 al giorno, di seguito, dal suo ingresso).`,
   ore_docente: p => `${esc(p.docente)}: gli restano ${ore(p.servono)} in tutto, ma da adesso alla fine della settimana ` +
     `ha solo ${ore(p.possibili)} liber${p.possibili === 1 ? 'a' : 'e'}.`,
-  classi_al_giorno: p => `${esc(p.docente)}: le sue classi gli prendono ancora ${p.servono} giorni in una classe, ma nei ` +
-    `giorni dopo oggi ne ha ${p.possibili} (3 classi al giorno).`,
+  classi_al_giorno: p => `${esc(p.docente)}: nei giorni dopo oggi può stare in al massimo ${p.possibili} classi-giorno ` +
+    `(3 classi al giorno), ma le ore che gli restano ne richiedono almeno ${p.servono}.`,
   ore_classe: p => `${esc(p.classe)}: le restano ${ore(p.servono)}, ma da adesso alla fine della settimana i suoi docenti ` +
     `possono darle al massimo ${lezioni(p.possibili)}.`,
   lezioni_obbligatorie: p => `${esc(p.classe)}: dalla prima ora alle ${esc(p.ora)} ha ancora ${ore(p.servono)} da riempire, ` +

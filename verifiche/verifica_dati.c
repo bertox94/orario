@@ -75,8 +75,10 @@ static int le_ore_del_docente_stanno_nella_settimana(const Scuola *s, char *erro
 }
 
 // 3. Un docente e le classi al giorno. In una classe fa al massimo 3 ore al giorno: una classe dove ha n ore lo vede
-// in almeno n / 3 giorni (arrotondato in su). Ogni giorno insegna in al massimo 3 classi, quindi in una settimana ha
-// 3 x G «giorni in una classe» da spendere: la somma dei giorni che servono alle sue classi deve starci.
+// in almeno n / 3 giorni (arrotondato in su). Ogni giorno insegna in al massimo 3 classi, quindi in una settimana
+// puo' stare in al massimo 3 x G «classi-giorno» (una classe in un giorno): la somma dei giorni che servono alle sue
+// classi deve starci.
+// Il motivo: una frase, e sotto una riga per ogni sua classe con le ore e i giorni che richiede.
 static int le_classi_del_docente_stanno_in_tre_al_giorno(const Scuola *s, char *errore, const size_t dimensione) {
     const int disponibili = MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO * s->actual_giorni_settimana;
     for (int p = 0; p < s->actual_insegnanti; p++) {
@@ -86,10 +88,16 @@ static int le_classi_del_docente_stanno_in_tre_al_giorno(const Scuola *s, char *
             servono += (ore + MAX_ORE_PROF_IN_UNA_CLASSE - 1) / MAX_ORE_PROF_IN_UNA_CLASSE;
         }
         if (servono <= disponibili) continue;
-        snprintf(errore, dimensione, "%s: con al massimo %d ore al giorno in una classe, le sue classi gli prendono in "
-                 "tutto almeno %d giorni, ma con %d classi al giorno per %d giorni ne ha %d", s->insegnanti[p],
-                 MAX_ORE_PROF_IN_UNA_CLASSE, servono, MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO,
-                 s->actual_giorni_settimana, disponibili);
+        int n = snprintf(errore, dimensione, "%s: in una settimana può stare in al massimo %d classi-giorno (%d "
+                         "classi al giorno per %d giorni), ma le sue ore ne richiedono almeno %d", s->insegnanti[p],
+                         disponibili, MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO, s->actual_giorni_settimana, servono);
+        for (int c = 0; c < s->actual_classi_sezione && n > 0 && (size_t) n < dimensione; c++) {
+            const int ore = get_ore_insegnante_in_una_classe(s, c, p);
+            if (!ore) continue;
+            const int giorni = (ore + MAX_ORE_PROF_IN_UNA_CLASSE - 1) / MAX_ORE_PROF_IN_UNA_CLASSE;
+            n += snprintf(errore + n, dimensione - n, "\n- %s: %d %s, almeno %d %s", s->classe_sezione[c], ore,
+                          ore == 1 ? "ora" : "ore", giorni, giorni == 1 ? "giorno" : "giorni");
+        }
         return 0;
     }
     return 1;
