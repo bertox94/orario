@@ -5,6 +5,9 @@ codice e messaggi di commit sono in italiano.
 
 ## Cosa c'è (tutto in `main`, dal 10 novembre 2026)
 
+`STATO.md` riassume la situazione all'ultimo punto fermo (che cosa c'è, che cosa è acceso, che cosa resta aperto): si
+riscrive quando si fa uno stabile nuovo.
+
 - **Le cartelle del solver** (richiesta di Alb del 12 novembre 2026; nella radice resta solo `main.c`):
   - `ricerca/`: la ricerca e i vincoli (`ricerca.c`, `ricerca.h`, `vincoli.h`); `ricerca/coda/`: la coda di priorità;
   - `dati/`: la scuola e i casi casuali (`database_initializers`, `generatore`, `nomi_docenti.h`);
