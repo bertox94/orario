@@ -96,6 +96,22 @@ def crea_app():
             flash(str(e))
         return redirect(url_for('indice'))
 
+    @app.route('/elimina-scelti', methods=['POST'])
+    def elimina_scelti():
+        """Elimina i test scelti con le caselle nello storico: i loro numeri arrivano in `ids`, separati da virgole.
+        Quello che sta girando non si elimina."""
+        ids = [int(x) for x in (request.form.get('ids') or '').split(',') if x.strip().isdigit()]
+        tolti = 0
+        for tid in ids:
+            try:
+                test_realtime.elimina(LAVORO, tid)
+                tolti += 1
+            except ValueError as e:
+                flash(str(e))
+        if tolti:
+            flash('Eliminati %d test.' % tolti if tolti > 1 else 'Eliminato 1 test.')
+        return redirect(url_for('indice'))
+
     # ---- i test notturni ----
 
     @app.route('/notturni')

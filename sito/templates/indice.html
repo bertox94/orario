@@ -23,11 +23,17 @@
 
 <h2>Storico</h2>
 {% if tests %}
-<div class="scorre"><table class="dati">
-  <thead><tr><th class="num">Test</th><th>Avviato</th><th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th><th class="num">Ordine</th>
+<form method="post" action="{{ url_for('elimina_scelti') }}" id="elimina-scelti" class="rigo">
+  <input type="hidden" name="ids">
+  <button class="secondario" disabled>Elimina i test scelti</button>
+  <span class="nota">Scegli i test con le caselle; quella in cima alla tabella li sceglie tutti.</span>
+</form>
+<div class="scorre"><table class="dati" id="storico">
+  <thead><tr><th><input type="checkbox" id="scegli-tutti" title="Scegli tutti i test, o nessuno" aria-label="Scegli tutti i test"></th><th class="num">Test</th><th>Avviato</th><th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th><th class="num">Ordine</th>
     <th class="num">Limite</th><th>Esito</th><th class="num">Nodi</th><th class="num">Cella più avanti</th><th class="num">Tempo</th><th></th><th></th></tr></thead>
   <tbody>{% for t in tests %}{% set i, s = t.info, t.stato %}
     <tr>
+      <td>{% if not s.gira %}<input type="checkbox" class="scegli" value="{{ i.id }}" aria-label="Scegli il test {{ i.id }}">{% endif %}</td>
       <td class="num"><a href="{{ url_for('pagina_test', tid=i.id) }}">{{ i.id }}</a></td>
       <td class="nota">{{ i.inizio|data }}</td>
       <td class="num">{{ i.seme }}</td><td class="num">{{ i.classi }}</td><td>{{ 'con' if i.ritardi else 'senza' }}</td>
@@ -44,4 +50,33 @@
   </tbody>
 </table></div>
 {% else %}<p class="nota">Nessun test ancora.</p>{% endif %}
+{% endblock %}
+{% block script %}
+{% if tests %}
+<script>
+// Le caselle dello storico: una per test (non per quello che sta girando) e quella in cima, che li sceglie tutti o
+// nessuno. Il tasto dice quanti sono scelti e, prima di eliminare, chiede conferma.
+const caselle = [...document.querySelectorAll('#storico input.scegli')], tutti = document.getElementById('scegli-tutti');
+const modulo = document.getElementById('elimina-scelti'), elimina = modulo.querySelector('button');
+const scelti = () => caselle.filter(c => c.checked);
+function aggiorna() {
+  const n = scelti().length;
+  tutti.checked = caselle.length > 0 && n === caselle.length;
+  tutti.indeterminate = n > 0 && n < caselle.length;
+  elimina.disabled = n === 0;
+  elimina.textContent = n === 1 ? 'Elimina il test scelto' : n ? `Elimina i ${n} test scelti` : 'Elimina i test scelti';
+}
+for (const c of caselle) c.addEventListener('change', aggiorna);
+tutti.addEventListener('change', () => {
+  for (const c of caselle) c.checked = tutti.checked;
+  aggiorna();
+});
+modulo.addEventListener('submit', e => {
+  const n = scelti().length;
+  if (!confirm(`Eliminare ${n === 1 ? 'il test scelto' : 'i ' + n + ' test scelti'}?`)) return e.preventDefault();
+  modulo.elements.ids.value = scelti().map(c => c.value).join(',');
+});
+aggiorna();
+</script>
+{% endif %}
 {% endblock %}
