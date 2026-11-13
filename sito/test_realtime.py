@@ -1,6 +1,7 @@
 """I test in tempo reale: ognuno in una cartella lavoro/test/<numero> con info.json (i parametri e quando e' partito)
 e stato.json (lo stato della ricerca, scritto dal solver), passi.bin (ogni nodo, per lo slider: vedi passi.h).
 Un test alla volta; gli altri restano come storico."""
+import array
 import json
 import os
 import shutil
@@ -113,6 +114,33 @@ def _caso(info):
 def dati(lavoro, info):
     """I dati del caso (./untitled dati): giorni, ore, lezioni e ore di ingresso."""
     return _solver(lavoro, ['dati'] + _caso(info))
+
+
+def ritorno(lavoro, tid, k, avanti):
+    """Il primo passo dopo k (avanti) o prima di k dove la ricerca torna indietro, cioe' dove il passo dopo decide una
+    cella che non viene dopo (vedi passi.h: tre interi a 16 bit per passo, il primo e' la cella). None se non c'e'.
+    Legge il file dei passi a pezzi, dal punto di partenza in poi (o indietro)."""
+    PEZZO = 65536  # passi letti per volta
+    try:
+        with open(os.path.join(_cartella(lavoro, tid), 'passi.bin'), 'rb') as f:
+            passi = os.fstat(f.fileno()).st_size // 6
+
+            def celle(da, a):  # la cella dei passi da `da` ad `a` compresi (da 1)
+                f.seek((da - 1) * 6)
+                return array.array('h', f.read((a - da + 1) * 6))[0::3]
+
+            # il passo j e' un ritorno se la cella del passo j + 1 non viene dopo la sua: l'ultimo passo non lo e'
+            j = k + 1 if avanti else k - 1
+            while 1 <= j < passi:
+                da, a = (j, min(j + PEZZO, passi)) if avanti else (max(1, j - PEZZO + 1), j + 1)
+                c = celle(da, a)
+                for i in (range(len(c) - 1) if avanti else range(len(c) - 2, -1, -1)):
+                    if c[i + 1] <= c[i]:
+                        return da + i
+                j = a if avanti else da - 1
+    except OSError:
+        pass
+    return None
 
 
 def passo(lavoro, tid, k):

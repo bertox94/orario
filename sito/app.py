@@ -76,6 +76,14 @@ def crea_app():
             abort(404)
         return jsonify(p)
 
+    @app.route('/test/<int:tid>/ritorno/<int:k>/<verso>')
+    def ritorno(tid, k, verso):
+        """Il passo, dopo k (verso «dopo») o prima (verso «prima»), dove la ricerca torna indietro: {"k": ...}, o
+        null se non ce ne sono."""
+        if verso not in ('prima', 'dopo'):
+            abort(404)
+        return jsonify({'k': test_realtime.ritorno(LAVORO, tid, k, verso == 'dopo')})
+
     @app.route('/test/<int:tid>/stato.json')
     def stato(tid):
         t = test_realtime.test(LAVORO, tid)

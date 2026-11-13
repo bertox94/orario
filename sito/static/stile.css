@@ -111,6 +111,7 @@ form.accanto { display: inline-block; margin: 0 0 8px; }
 .verifica h2 { margin-top: 10px; }
 /* il nodo dove una potatura fa tornare indietro la ricerca */
 .potatura { margin: 10px 0; padding: 10px 14px; background: var(--carta); border-left: 4px solid var(--male); }
+.potatura ul { margin: 6px 0 4px; padding-left: 22px; }
 
 /* ---- le tabelle ---- */
 .scorre { overflow-x: auto; }  /* una tabella larga scorre da sola, non tutta la pagina */
