@@ -33,7 +33,7 @@
 <h2>I test</h2>
 <div class="scorre"><table class="dati" id="notturni">
   <thead><tr><th class="num">Test</th><th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th><th class="num">Ordine</th>
-    <th>Esito</th><th class="num">Nodi</th><th class="num">Cella più avanti</th><th class="num">Tempo</th><th>Rispetto a prima</th><th></th></tr></thead>
+    <th>Esito</th><th class="num">Nodi</th><th class="num">Cella più avanti</th><th class="num">Tempo</th><th>Rispetto a prima</th><th></th><th></th></tr></thead>
   <tbody></tbody>
 </table></div>
 <p class="nota" id="nessun-test" hidden>Nessun test notturno ancora.</p>
@@ -41,6 +41,9 @@
 {% block script %}
 <script>
 const URL_STATO = '{{ url_for('stato_notturni') }}', URL_TOGLI = '{{ url_for('togli_notturno', tid=0)[:-1] }}';
+// un test notturno si puo' rifare in tempo reale: stesso caso, con il limite dei notturni (al massimo quello dei test
+// in tempo reale, che registrano ogni passo)
+const URL_AVVIA = '{{ url_for('avvia') }}', MAX_REALTIME = {{ max_realtime }};
 const numero = n => Number(n).toLocaleString('it-IT');
 const esc = x => String(x).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 const quando = t => new Date(t * 1000).toLocaleString('it-IT', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'});
@@ -54,11 +57,11 @@ const etichetta = r => `<span class="esito esito-${esc(r.esito.replace(/ /g, '-'
 
 // sotto la riga di un test: le sue esecuzioni precedenti, dalla piu' recente, e i tempi
 function precedenti(t) {
-  if (!t.prima.length) return '<tr class="precedenti"><td></td><td colspan="10" class="nota">Nessuna esecuzione precedente.</td></tr>';
+  if (!t.prima.length) return '<tr class="precedenti"><td></td><td colspan="11" class="nota">Nessuna esecuzione precedente.</td></tr>';
   const s = t.prima.map(r => r.secondi).filter(x => x != null);
   const tempi = s.length ? `Tempo nelle ${s.length} precedenti: da ${Math.min(...s).toFixed(1)} a ${Math.max(...s).toFixed(1)} s, ` +
     `in media ${(s.reduce((a, b) => a + b, 0) / s.length).toFixed(1)} s.` : '';
-  return '<tr class="precedenti"><td></td><td colspan="10"><table class="dati"><thead><tr><th class="num">Giro</th><th>Del</th>' +
+  return '<tr class="precedenti"><td></td><td colspan="11"><table class="dati"><thead><tr><th class="num">Giro</th><th>Del</th>' +
     '<th class="num">Limite</th><th>Esito</th><th class="num">Nodi</th><th class="num">Cella più avanti</th>' +
     '<th class="num">Tempo</th><th>Rispetto a prima</th></tr></thead><tbody>' +
     t.prima.map(r => `<tr><td class="num">${r.giro}</td><td>${quando(r.inizio)}</td><td class="num">${numero(r.limite)}</td>` +
@@ -68,7 +71,7 @@ function precedenti(t) {
 }
 
 // la riga di un test: i suoi valori e l'ultimo risultato; con un clic si aprono le esecuzioni precedenti
-function riga(t, adesso, inCorso, limite) {
+function riga(t, adesso, inCorso, limite, realtime) {
   const r = t.risultato;
   let risultato = '<td colspan="5" class="nota">' + (adesso === t.id ? 'sta girando…' : 'mai eseguito') + '</td>';
   if (r && adesso !== t.id) {
@@ -82,6 +85,12 @@ function riga(t, adesso, inCorso, limite) {
   }
   return `<tr class="test" data-test="${t.id}" title="Clic: le esecuzioni precedenti"><td class="num">${t.id}</td><td class="num">${t.seme}</td><td class="num">${t.classi}</td>` +
     `<td>${t.ritardi ? 'con' : 'senza'}</td><td class="num">${t.ordine}</td>${risultato}` +
+    `<td><form method="post" action="${URL_AVVIA}">` +
+    `<input type="hidden" name="seme" value="${t.seme}"><input type="hidden" name="classi" value="${t.classi}">` +
+    `<input type="hidden" name="ritardi" value="${t.ritardi ? 'con' : 'senza'}"><input type="hidden" name="ordine" value="${t.ordine}">` +
+    `<input type="hidden" name="milioni" value="${Math.min(limite / 1000000, MAX_REALTIME)}">` +
+    `<button class="piccolo secondario" title="Rifai questo caso come test in tempo reale, per vederlo passo per passo" ` +
+    `${inCorso || realtime ? 'disabled' : ''}>In tempo reale</button></form></td>` +
     `<td><form method="post" action="${URL_TOGLI}${t.id}" onsubmit="return confirm('Togliere il test ${t.id} dai notturni?')">` +
     `<button class="piccolo secondario" title="Togli" ${inCorso ? 'disabled' : ''}>×</button></form></td></tr>` +
     (aperti.has(t.id) ? precedenti(t) : '');
@@ -89,7 +98,7 @@ function riga(t, adesso, inCorso, limite) {
 
 function mostra(n) {
   const g = n.giro, inCorso = n.in_corso !== null;
-  document.querySelector('#notturni tbody').innerHTML = n.tests.map(t => riga(t, inCorso && g ? g.adesso : null, inCorso, n.limite)).join('');
+  document.querySelector('#notturni tbody').innerHTML = n.tests.map(t => riga(t, inCorso && g ? g.adesso : null, inCorso, n.limite, n.realtime !== null)).join('');
   document.getElementById('notturni').hidden = !n.tests.length;
   document.getElementById('nessun-test').hidden = !!n.tests.length;
   document.getElementById('avvia-giro').disabled = inCorso || !n.tests.length || n.realtime !== null;

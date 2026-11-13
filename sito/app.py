@@ -101,7 +101,7 @@ def crea_app():
     @app.route('/notturni')
     def pagina_notturni():
         return render_template('notturni.html', n=notturni.situazione(LAVORO), max_milioni=MAX_MILIONI_NOTTURNI,
-                               max_semi=MAX_SEMI_LIVELLO, max_ordini=MAX_ORDINI_LIVELLO)
+                               max_semi=MAX_SEMI_LIVELLO, max_ordini=MAX_ORDINI_LIVELLO, max_realtime=MAX_MILIONI)
 
     @app.route('/notturni/stato.json')
     def stato_notturni():
