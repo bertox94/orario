@@ -5,7 +5,7 @@
 <p class="nota">Un elenco di casi che si rieseguono tutti insieme, in un giro, per vedere se i loro numeri cambiano. Un caso
   si aggiunge dalla pagina di un test in tempo reale, con «Aggiungi ai notturni»; con il giro della notte acceso, ogni notte si aggiungono da soli i casi con una classe in più.</p>
 
-<form method="post" action="{{ url_for('limite_notturni') }}" class="modulo">
+<form method="post" action="{{ url_for('limite_notturni') }}" class="modulo riquadro">
   <label>Ogni test si ferma dopo
     <span><input type="number" name="milioni" min="0.1" max="{{ max_milioni }}" step="0.1" value="{{ '%g'|format(n.limite / 1000000) }}"> milioni di nodi</span></label>
   <button class="secondario">Cambia il limite</button>
@@ -14,21 +14,27 @@
   confrontano con quelli di prima («limite cambiato»).</p>
 
 <h2>Il giro</h2>
-<div class="giro">
-  <form method="post" action="{{ url_for('avvia_giro') }}"><button id="avvia-giro">Avvia il giro</button></form>
-  <form method="post" action="{{ url_for('ferma_giro') }}"><button class="secondario" id="ferma-giro">Ferma</button></form>
-  <span id="stato-giro"></span>
+<div class="riquadro">
+  <div class="rigo">
+    <form method="post" action="{{ url_for('avvia_giro') }}"><button id="avvia-giro">Avvia il giro</button></form>
+    <form method="post" action="{{ url_for('ferma_giro') }}"><button class="secondario" id="ferma-giro">Ferma</button></form>
+    <span id="stato-giro"></span>
+  </div>
+  <form method="post" action="{{ url_for('notte_notturni') }}" class="notte">
+    <div class="rigo">
+      <label><input type="checkbox" name="acceso" value="si" {{ 'checked' if n.notte.acceso }}> Ogni notte avvia il giro da solo</label>
+      <label>dalle <input type="time" name="ora" value="{{ n.notte.ora }}" required></label>
+      <label>alle <input type="time" name="fine" value="{{ n.notte.fine }}" required></label>
+    </div>
+    <div class="rigo">
+      <span>Prima aggiungi i casi con una classe in più:</span>
+      <label>semi da 0 a <input type="number" name="semi" min="0" max="{{ max_semi }}" value="{{ n.notte.semi }}" required></label>
+      <label>ordini da 0 a <input type="number" name="ordini" min="0" max="{{ max_ordini }}" value="{{ n.notte.ordini }}" required></label>
+      <button class="secondario">Salva</button>
+    </div>
+  </form>
+  <p class="nota" id="stato-notte"></p>
 </div>
-<form method="post" action="{{ url_for('notte_notturni') }}" class="giro notte">
-  <label><input type="checkbox" name="acceso" value="si" {{ 'checked' if n.notte.acceso }}> Ogni notte avvia il giro da solo, dalle</label>
-  <input type="time" name="ora" value="{{ n.notte.ora }}" required>
-  <label>alle <input type="time" name="fine" value="{{ n.notte.fine }}" required>.</label>
-  <label>Prima aggiungi i casi con una classe in più: semi da 0 a
-    <input type="number" name="semi" min="0" max="{{ max_semi }}" value="{{ n.notte.semi }}" required></label>
-  <label>ordini da 0 a <input type="number" name="ordini" min="0" max="{{ max_ordini }}" value="{{ n.notte.ordini }}" required></label>
-  <button class="secondario">Salva</button>
-</form>
-<p class="nota" id="stato-notte"></p>
 
 <h2>I test</h2>
 <div class="scorre"><table class="dati" id="notturni">
@@ -81,7 +87,7 @@ function riga(t, adesso, inCorso, limite, realtime) {
       `<td class="num">${r.secondi == null ? '' : r.secondi.toFixed(1) + ' s'}</td>` +
       `<td><span class="confronto confronto-${esc((r.confronto || '').replace(/ /g, '-'))}">${esc(r.confronto || '')}</span>` +
       (r.limite !== limite ? ` <span class="nota">a ${numero(r.limite)} nodi</span>` : '') +
-      (t.andamento ? ` <span class="nota">${esc(t.andamento)}</span>` : '') + '</td>';
+      (t.andamento ? `<span class="nota andamento">${esc(t.andamento)}</span>` : '') + '</td>';
   }
   return `<tr class="test" data-test="${t.id}" title="Clic: le esecuzioni precedenti"><td class="num">${t.id}</td><td class="num">${t.seme}</td><td class="num">${t.classi}</td>` +
     `<td>${t.ritardi ? 'con' : 'senza'}</td><td class="num">${t.ordine}</td>${risultato}` +

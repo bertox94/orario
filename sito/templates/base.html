@@ -8,10 +8,13 @@
 </head>
 <body>
 <main>
-  <nav class="schede">
-    <a href="{{ url_for('indice') }}" class="{{ 'attiva' if not request.path.startswith('/notturni') }}">Test in tempo reale</a>
-    <a href="{{ url_for('pagina_notturni') }}" class="{{ 'attiva' if request.path.startswith('/notturni') }}">Test notturni</a>
-  </nav>
+  <header class="testata">
+    <a class="nome" href="{{ url_for('indice') }}">Orario scolastico</a>
+    <nav class="schede">
+      <a href="{{ url_for('indice') }}" class="{{ 'attiva' if not request.path.startswith('/notturni') }}">Test in tempo reale</a>
+      <a href="{{ url_for('pagina_notturni') }}" class="{{ 'attiva' if request.path.startswith('/notturni') }}">Test notturni</a>
+    </nav>
+  </header>
   {% for m in get_flashed_messages() %}<p class="messaggio">{{ m }}</p>{% endfor %}
   {% block contenuto %}{% endblock %}
 </main>

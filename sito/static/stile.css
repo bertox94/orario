@@ -31,13 +31,19 @@ a { color: var(--accento); }
 ::selection { background: var(--lilla); }
 :focus-visible { outline: 2px solid var(--accento); outline-offset: 2px; }  /* chi usa la tastiera vede dov'e' */
 .nota { color: var(--tenue); font-size: 13px; }
+p.nota { max-width: 86ch; }  /* le spiegazioni non corrono per tutta la pagina: si leggono meglio */
+a { text-underline-offset: 3px; text-decoration-thickness: 1px; }
 .messaggio { padding: 10px 14px; border-left: 3px solid var(--male); background: var(--carta);
   border-radius: 0 var(--angolo) var(--angolo) 0; }
 details { margin: 14px 0; }
 summary { font-size: 16px; cursor: pointer; margin-bottom: 8px; }
 
-/* le due schede in cima: test in tempo reale e test notturni */
-nav.schede { display: flex; gap: 6px; width: max-content; max-width: 100%; margin-bottom: 26px; padding: 5px;
+/* la testata: il nome del sito e le due schede (test in tempo reale, test notturni), con un filo sotto */
+.testata { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px;
+  margin-bottom: 30px; padding-bottom: 16px; border-bottom: 1px solid var(--bordo); }
+.testata .nome { font-family: var(--titoli); font-style: italic; font-size: 24px; color: var(--accento);
+  text-decoration: none; letter-spacing: .01em; }
+nav.schede { display: flex; gap: 6px; width: max-content; max-width: 100%; padding: 5px;
   background: var(--riga); border-radius: var(--pillola); }
 nav.schede a { padding: 7px 20px; text-decoration: none; color: var(--tenue); border-radius: var(--pillola); }
 nav.schede a:hover { color: var(--accento-scuro); }
@@ -45,6 +51,12 @@ nav.schede a.attiva { color: var(--accento-scuro); font-weight: 600; background:
   box-shadow: 0 1px 3px rgba(111, 45, 90, .18); }
 
 /* ---- campi e tasti ---- */
+/* .riquadro: un foglio bianco che tiene insieme un modulo, o i comandi di una sezione; .rigo: una sua riga */
+.riquadro { background: var(--carta); border: 1px solid var(--bordo); border-radius: var(--angolo); padding: 16px 20px;
+  width: max-content; max-width: 100%; margin: 0 0 10px; }
+.riquadro > :last-child { margin-bottom: 0; }
+.rigo { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-bottom: 12px; }
+.rigo label { display: flex; align-items: center; gap: 8px; }
 .modulo { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; }
 .modulo label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--tenue); }
 .modulo label span { display: flex; align-items: center; gap: 6px; color: var(--testo); font-size: 15px; }
@@ -52,6 +64,10 @@ input, select { font: inherit; padding: 7px 10px; border: 1px solid var(--bordo)
   background: var(--carta); color: var(--testo); }
 input:focus, select:focus { border-color: var(--accento); outline: 0; box-shadow: 0 0 0 3px var(--lilla); }
 input[type=number] { width: 7em; }
+/* campi, menu e tasti di un modulo alti uguali: stanno sulla stessa riga */
+.modulo input, .modulo select, .modulo button, .rigo input:not([type=checkbox]), .rigo button { height: 38px; }
+.modulo button, .rigo button { padding-top: 0; padding-bottom: 0; }
+.modulo input, .modulo select { font-size: 15px; }  /* come il testo, anche sotto un'etichetta piccola */
 input[type=checkbox], input[type=range] { accent-color: var(--accento); }
 /* il tasto pieno e' l'azione principale; .secondario le altre; .piccolo dentro le righe; .salto i -10, +100... */
 button { font: inherit; font-weight: 500; padding: 8px 20px; border: 1px solid var(--accento);
@@ -91,9 +107,9 @@ table { border-collapse: collapse; background: var(--carta); }
 .num { text-align: right !important; font-variant-numeric: tabular-nums; }
 /* .dati: le tabelle di righe (storico, docenti, test notturni, controlli) */
 table.dati { border-radius: var(--angolo); overflow: hidden; }
-table.dati th, table.dati td { padding: 5px 10px; border-bottom: 1px solid var(--riga); text-align: left;
-  vertical-align: top; }
-table.dati th { font-size: 13px; color: var(--tenue); font-weight: 600; }
+table.dati th, table.dati td { padding: 6px 12px; border-bottom: 1px solid var(--riga); text-align: left;
+  vertical-align: baseline; }
+table.dati th { font-size: 13px; color: var(--tenue); font-weight: 600; white-space: nowrap; }
 table.dati > tbody > tr:hover > td { background: var(--sfondo); }
 
 /* .orario: la griglia dell'orario, per classi e per docenti. Le celle hanno tutte la stessa misura, cosi' la tabella
@@ -182,10 +198,9 @@ table.controlli tr.coppia td { border-bottom-style: dotted; background: var(--sf
 table.controlli tr.coppia td.con { padding-left: 22px; color: var(--coppia); white-space: nowrap; }
 
 /* ---- i test notturni: il giro, la notte, e le esecuzioni precedenti che si aprono sotto la riga di un test ---- */
-.giro { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-.notte { margin-top: 10px; }
-.notte label { display: flex; align-items: center; gap: 6px; }
+.notte { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--riga); }
 .notte input[type=number] { width: 70px; }
+.andamento { display: block; margin-top: 2px; white-space: nowrap; }  /* sotto l'etichetta del confronto, non di fianco */
 tr.test { cursor: pointer; }
 tr.precedenti > td { background: var(--riga); padding: 8px 10px 4px; }
 tr.precedenti table.dati { font-size: 13px; }
