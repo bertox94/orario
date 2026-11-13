@@ -22,14 +22,19 @@ Questo file descrive il punto fermo `stabile/2026-11-13`: che cosa c'è, che cos
 
 - **Test in tempo reale**: il modulo, lo storico (con «Rifai» e le caselle per eliminare), la pagina di un test con i
   dati del caso, l'orario passo per passo (per docenti e per classi, con i salti di 10 e 100 passi), i controlli di
-  ogni cella e il riquadro della potatura che fa tornare indietro.
+  ogni cella. A ogni ritorno indietro la pagina dice il motivo (la potatura scattata, oppure che nella classe ci vuole
+  una lezione e nessuno può farla, con i docenti raggruppati per motivo) e da quale cella la ricerca riparte; i
+  tasti «Ritorno» portano al ritorno indietro prima o dopo.
 - **Test notturni**: l'elenco dei casi, un limite di nodi unico, il giro che li riesegue e li confronta con la volta
   prima, le 5 esecuzioni precedenti di ogni test, il tasto «In tempo reale», le caselle per eliminare, i gruppi (per
-  seme, classi, ritardi, ordine o esito).
+  seme, classi, ritardi, ordine o esito). Il numero di un test eliminato non si riusa e la storia di un test parte
+  dalla sua aggiunta (correzione del 13 sera: prima un test nuovo poteva ereditare i giri di uno eliminato; la stessa
+  correzione è anche in `stabile/2026-11-12`).
 - **Il giro della notte**: parte da solo all'ora scelta; prima aggiunge i casi di base (semi e classi scelti nella
   pagina, senza e con ritardi) con un ordine delle classi nuovo, uno in più ogni sera. Se finisce dopo l'ora di fine,
   la sera dopo non aggiunge niente.
-- **La grafica**: in rosa, con la testata, i moduli nei riquadri e le ore in coppia in blu polvere; tutti i colori
+- **La grafica**: in rosa, con il lilla per le sfumature, il nome del sito in corsivo, la testata, i moduli nei
+  riquadri e le ore in coppia in blu polvere; tutti i colori
   sono variabili in cima a `sito/static/stile.css`.
 
 ## I rami
@@ -45,4 +50,6 @@ Questo file descrive il punto fermo `stabile/2026-11-13`: che cosa c'è, che cos
 - Riportare «La cella più avanti» in `main`, adattata a ordine delle classi, cartelle e potature.
 - I 35 casi (su 341) che restano fermi al limite anche con le potature: guardare che cosa hanno in comune.
 - `comandi/json.h` è usato anche da `dati/`: decidere se spostarlo.
+- Come mostrare i backtrack più costosi (quelli che ci mettono di più a essere superati): c'è una scrittura a
+  numeri di cella e una formula per il caso con m scelte per cella, da provare su un test vero.
 - Quanto dura un giro della notte sul Raspberry: da misurare dopo la prima notte, per scegliere quanti semi tenere.

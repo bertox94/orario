@@ -16,24 +16,33 @@
   /* le ore in codocenza, nei dati e nei controlli: un blu polvere, ben distinto dal rosa lampone delle ore da solo
      (anche per chi distingue male i colori: uno e' scuro e caldo, l'altro chiaro e freddo) */
   --coppia: #3b7cab;
+  /* un secondo colore, lilla, solo per sfumare: il fondo della pagina, i tasti pieni, i fili sotto i titoli */
+  --lilla: #a878c8; --lilla-chiaro: #f3ecfa;
   /* i caratteri: i titoli con le grazie, il testo senza (quelli del Mac per primi, poi quelli che ci sono) */
   --titoli: "Hoefler Text", "Baskerville", "Palatino Linotype", Palatino, Georgia, serif;
   --scritto: "Avenir Next", Avenir, "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  /* il nome del sito e' scritto a mano, in corsivo inglese (sul Mac Snell Roundhand) */
+  --corsivo: "Snell Roundhand", "Apple Chancery", "Segoe Script", "Lucida Handwriting", cursive;
+  /* la sfumatura dal rosa lampone al lilla: tasti pieni e fili */
+  --sfumato: linear-gradient(100deg, var(--accento), var(--lilla));
   /* gli angoli: i riquadri, e la pillola di tasti ed etichette */
-  --angolo: 16px; --pillola: 999px;
+  --angolo: 20px; --pillola: 999px;
 }
 
 /* ---- la pagina e i titoli ---- */
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }  /* nascosto vuol dire nascosto, anche dove una regola mette display */
-body { margin: 0; background: var(--sfondo); color: var(--testo); font: 15px/1.5 var(--scritto); }
+/* il fondo sfuma dal rosa cipria al lilla, fermo mentre la pagina scorre */
+body { margin: 0; background: linear-gradient(160deg, var(--sfondo) 30%, var(--lilla-chiaro)) fixed; color: var(--testo); font: 15px/1.5 var(--scritto); }
 main { max-width: 1200px; margin: 0 auto; padding: 24px 16px 48px; }
 h1, h2, h3, summary { font-family: var(--titoli); font-weight: 600; letter-spacing: .01em; }
 h1 { font-size: 32px; font-style: italic; line-height: 1.2; margin: 4px 0 22px; color: var(--accento-scuro); }
-/* un piccolo tratto rosa sotto il titolo della pagina */
-h1::after { content: ""; display: block; width: 44px; height: 3px; margin-top: 10px; border-radius: var(--pillola);
-  background: var(--accento); opacity: .55; }
+/* un filo sfumato sotto il titolo della pagina, e un fiorellino davanti ai titoli delle sezioni */
+h1::after { content: ""; display: block; width: 72px; height: 3px; margin-top: 10px; border-radius: var(--pillola);
+  background: var(--sfumato); opacity: .7; }
 h2 { font-size: 22px; margin: 36px 0 10px; color: var(--accento-scuro); }
+h2::before { content: "\273F"; margin-right: 8px; font-size: 15px; font-style: normal; color: var(--lilla);
+  vertical-align: 2px; }
 h3 { font-size: 18px; margin: 26px 0 8px; }
 a { color: var(--accento); }
 ::selection { background: var(--rosa); }
@@ -48,10 +57,12 @@ summary { font-size: 16px; cursor: pointer; margin-bottom: 8px; }
 
 /* la testata: il nome del sito e le due schede (test in tempo reale, test notturni), con un filo sotto */
 .testata { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px;
-  margin-bottom: 30px; padding-bottom: 16px; border-bottom: 1px solid var(--bordo); }
-.testata .nome { font-family: var(--titoli); font-style: italic; font-size: 26px; color: var(--accento);
-  text-decoration: none; letter-spacing: .01em; }
-.testata .nome::after { content: " \2766"; font-style: normal; opacity: .6; }  /* un fregio da tipografo */
+  margin-bottom: 30px; padding-bottom: 16px; border-bottom: 2px solid transparent;
+  border-image: linear-gradient(90deg, var(--bordo), var(--lilla-chiaro), transparent) 1; }
+.testata .nome { font-family: var(--corsivo); font-size: 40px; line-height: 1.1; color: var(--accento);
+  text-decoration: none; padding: 0 4px; }
+/* un fregio da tipografo dopo il nome, nel carattere dei titoli */
+.testata .nome::after { content: " \2766"; font-family: var(--titoli); font-size: 24px; color: var(--lilla); }
 nav.schede { display: flex; gap: 6px; width: max-content; max-width: 100%; padding: 5px;
   background: var(--riga); border-radius: var(--pillola); }
 nav.schede a { padding: 7px 20px; text-decoration: none; color: var(--tenue); border-radius: var(--pillola); }
@@ -62,7 +73,7 @@ nav.schede a.attiva { color: var(--accento-scuro); font-weight: 600; background:
 /* ---- campi e tasti ---- */
 /* .riquadro: un foglio bianco che tiene insieme un modulo, o i comandi di una sezione; .rigo: una sua riga */
 .riquadro { background: var(--carta); border: 1px solid var(--bordo); border-radius: var(--angolo); padding: 16px 20px;
-  box-shadow: 0 2px 10px var(--ombra);
+  box-shadow: 0 6px 22px var(--ombra);
   width: max-content; max-width: 100%; margin: 0 0 10px; }
 .riquadro > :last-child { margin-bottom: 0; }
 .rigo { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-bottom: 12px; }
@@ -81,9 +92,9 @@ input[type=number] { width: 7em; }
 input[type=checkbox], input[type=range] { accent-color: var(--accento); }
 /* il tasto pieno e' l'azione principale; .secondario le altre; .piccolo dentro le righe; .salto i -10, +100... */
 button { font: inherit; font-weight: 500; padding: 8px 20px; border: 1px solid var(--accento);
-  border-radius: var(--pillola); background: var(--accento); color: #fff; cursor: pointer; white-space: nowrap;
-  box-shadow: 0 2px 6px var(--ombra); }
-button:hover:not(:disabled) { background: var(--accento-scuro); border-color: var(--accento-scuro); }
+  border-radius: var(--pillola); background: var(--sfumato) border-box; border-color: transparent; color: #fff;
+  cursor: pointer; white-space: nowrap; box-shadow: 0 3px 10px var(--ombra); }
+button:hover:not(:disabled) { background: var(--accento-scuro); }
 button.secondario { background: var(--carta); color: var(--accento-scuro); border-color: var(--bordo); box-shadow: none; }
 button.secondario:hover:not(:disabled) { background: var(--rosa); border-color: var(--accento); }
 button:disabled { opacity: .5; cursor: default; }
@@ -111,6 +122,7 @@ form.accanto { display: inline-block; margin: 0 0 8px; }
 .verifica h2 { margin-top: 10px; }
 /* il nodo dove una potatura fa tornare indietro la ricerca */
 .potatura { margin: 10px 0; padding: 10px 14px; background: var(--carta); border-left: 4px solid var(--male); }
+.potatura ul { margin: 6px 0 4px; padding-left: 22px; }
 
 /* ---- le tabelle ---- */
 .scorre { overflow-x: auto; }  /* una tabella larga scorre da sola, non tutta la pagina */
