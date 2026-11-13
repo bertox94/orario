@@ -11,7 +11,9 @@
   /* gli esiti: va bene, non va, attenzione; ognuno con il suo chiaro per lo sfondo */
   --ok: #2b7a57; --ok-chiaro: #e3f3ea; --male: #b3263e; --male-chiaro: #fbe7ea;
   --avviso: #94610a; --avviso-chiaro: #fdf1d8;
-  --coppia: #a2553a;  /* le ore in codocenza, nei dati e nei controlli */
+  /* le ore in codocenza, nei dati e nei controlli: un blu polvere, ben distinto dal color mora delle ore da solo
+     (anche per chi distingue male i colori: uno e' scuro e caldo, l'altro chiaro e freddo) */
+  --coppia: #3b7cab;
   /* i caratteri: i titoli con le grazie, il testo senza (quelli del Mac per primi, poi quelli che ci sono) */
   --titoli: "Hoefler Text", "Baskerville", "Palatino Linotype", Palatino, Georgia, serif;
   --scritto: "Avenir Next", Avenir, "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
@@ -139,12 +141,12 @@ table.orario td.non-entrato {
 .riepilogo > div { padding: 8px 14px; }
 .riepilogo strong { font-family: var(--titoli); font-size: 21px; color: var(--accento-scuro); margin-right: 3px; }
 /* i quadretti delle ore: da solo color accento, in coppia color coppia; la barra li mette in fila */
-.q { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 2px; vertical-align: middle; }
+.q { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 2px; vertical-align: middle; }
 .q.solo, .barra .solo { background: var(--accento); }
 .q.coppia, .barra .coppia { background: var(--coppia); }
 .legenda .q { margin-left: 10px; }
 .legenda .q:first-child { margin-left: 0; }
-.barra { display: inline-flex; height: 10px; border-radius: 2px; overflow: hidden; vertical-align: middle; }
+.barra { display: inline-flex; gap: 2px; height: 12px; border-radius: 4px; overflow: hidden; vertical-align: middle; }
 /* una scheda per classe, con le sue lezioni */
 .schede { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
 .scheda { padding: 12px 14px; }
