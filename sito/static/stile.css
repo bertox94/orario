@@ -228,9 +228,31 @@ table.controlli tr.coppia td.con { padding-left: 22px; color: var(--coppia); whi
 tr.test, tr.gruppo { cursor: pointer; }
 /* la riga di un gruppo: il nome e il conto dei suoi esiti */
 tr.gruppo > td { background: var(--riga); }
-/* il gruppo dentro un gruppo (l'ordine delle classi): rientrato e piu' chiaro */
-tr.gruppo.livello-2 > td { background: var(--sfondo); }
-tr.gruppo.livello-2 > td:nth-child(2) { padding-left: 34px; }
+/* la tabella di un gruppo aperto: una riga per caso, una colonna per ordine delle classi, una casella per test. Il
+   colore della casella e' quello dell'esito; nell'angolo il segno del giudizio rispetto alla volta prima */
+tr.mappa > td { background: var(--sfondo); padding: 10px 12px 12px; }
+table.mappa { background: none; font-size: 13px; }
+table.mappa th { padding: 2px 6px; color: var(--tenue); font-weight: 600; text-align: center; white-space: nowrap;
+  border: 0; }
+table.mappa tbody th { text-align: left; padding-right: 12px; }
+/* il titolo di una delle due parti (senza ritardi, con ritardi), con il conto dei suoi esiti */
+table.mappa tr.parte th { padding: 10px 6px 4px; color: var(--testo); font-size: 14px; }
+table.mappa tr.parte:first-child th { padding-top: 2px; }
+table.mappa tr.parte .esito { font-size: 12px; font-weight: 600; padding: 0 9px; margin: 0 0 0 6px; }
+table.mappa td { padding: 2px; border: 0; }
+button.casella { position: relative; width: 52px; height: 28px; padding: 0; font-size: 12px; font-weight: 600;
+  border: 1px solid transparent; border-radius: 8px; box-shadow: none; background: var(--riga); color: var(--tenue);
+  font-variant-numeric: tabular-nums; }
+button.casella:hover:not(:disabled) { border-color: var(--accento); background: var(--riga); }
+button.casella.esito-trovato, button.casella.esito-trovato:hover { color: var(--ok); background: var(--ok-chiaro); }
+button.casella.esito-limite-di-nodi, button.casella.esito-limite-di-nodi:hover { color: var(--avviso);
+  background: var(--avviso-chiaro); }
+button.casella.esito-nessuna-soluzione, button.casella.esito-non-riuscito, button.casella.esito-nessuna-soluzione:hover,
+button.casella.esito-non-riuscito:hover { color: var(--male); background: var(--male-chiaro); }
+button.casella.aperta { border-color: var(--accento); box-shadow: 0 0 0 2px var(--rosa); }
+button.casella.scelta { outline: 2px dashed var(--accento); outline-offset: 1px; }
+button.casella .segno { position: absolute; top: -5px; right: -4px; min-width: 14px; height: 14px; padding: 0 2px;
+  border-radius: var(--pillola); font-size: 9px; line-height: 14px; background: var(--carta); }
 tr.gruppo .freccia { display: inline-block; width: 1em; color: var(--accento); }
 tr.gruppo .esito, tr.gruppo .confronto { font-size: 13px; padding: 1px 10px; margin: 0 0 0 8px; }
 /* le esecuzioni precedenti: righe della stessa tabella, piu' piccole e su fondo rosa, colonna sotto colonna */

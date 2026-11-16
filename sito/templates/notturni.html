@@ -43,7 +43,7 @@
   <button class="secondario" disabled>Elimina i test scelti</button>
   <span class="nota">Scegli i test con le caselle; quella in cima alla tabella li sceglie tutti.</span>
 </form>
-<p class="nota" id="nota-gruppi">I test sono raggruppati per numero di classi e, dentro, per ordine delle classi: un clic sulla riga di un gruppo lo apre o lo chiude; la sua casella sceglie tutti i suoi test.</p>
+<p class="nota" id="nota-gruppi">I test sono raggruppati per numero di classi: un clic sulla riga di un gruppo lo apre o lo chiude, e aperto mostra una tabella con una riga per caso (prima i semi senza ritardi, poi quelli con) e una colonna per ordine delle classi. Il colore è l'esito; dentro, i nodi se l'orario c'è, o a che punto dell'orario si è fermata la ricerca; un clic su una casella apre il test sotto la tabella. La casella di un gruppo sceglie tutti i suoi test.</p>
 <div class="scorre"><table class="dati" id="notturni">
   <thead><tr><th><input type="checkbox" id="scegli-tutti" title="Scegli tutti i test, o nessuno" aria-label="Scegli tutti i test"></th><th class="num">Test</th><th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th><th class="num">Ordine</th>
     <th>Esito</th><th class="num">Nodi</th><th class="num">Cella più avanti</th><th class="num">Tempo</th><th>Rispetto a prima</th><th></th><th></th></tr></thead>
@@ -132,10 +132,10 @@ function precedenti(t) {
 // i test scelti con le caselle, da eliminare insieme
 const scelti = new Set();
 
-// ---- i gruppi: l'elenco e' raggruppato per numero di classi e, dentro ogni numero di classi, per ordine delle
-// classi; ogni gruppo ha il conto dei suoi esiti. Partono chiusi, cosi' anche con migliaia di test la pagina disegna
-// poche righe ----
-const gruppiAperti = new Set();  // le chiavi dei gruppi aperti: "8" (8 classi), "8/2" (8 classi, ordine 2)
+// ---- i gruppi: l'elenco e' raggruppato per numero di classi; ogni gruppo ha il conto dei suoi esiti. Partono
+// chiusi, cosi' anche con migliaia di test la pagina disegna poche righe. Un gruppo aperto mostra la sua tabella:
+// una riga per caso (seme e ritardi), una colonna per ordine delle classi ----
+const gruppiAperti = new Set();  // i numeri di classi aperti, come scritte: "8"
 
 // i test divisi secondo un loro valore numerico, in ordine: [[valore, [test, ...]], ...]
 function divisi(tests, valore) {
@@ -146,16 +146,61 @@ function divisi(tests, valore) {
   }
   return [...gruppi].sort(([a], [b]) => a - b);
 }
-// tutti i gruppi, dei due livelli: [{chiave, nome, livello, tests}, ...], ognuno seguito dai suoi sottogruppi
-function gruppi(tests) {
-  const tutti = [];
-  for (const [classi, suoi] of divisi(tests, t => t.classi)) {
-    tutti.push({chiave: String(classi), nome: `${classi} classi`, livello: 1, tests: suoi});
-    for (const [ordine, loro] of divisi(suoi, t => t.ordine))
-      tutti.push({chiave: `${classi}/${ordine}`, nome: `Ordine delle classi ${ordine}` + (ordine === 0 ? ' (quello generato)' : ''),
-                  livello: 2, tests: loro});
+// i gruppi: [{chiave, nome, tests}, ...], uno per numero di classi
+const gruppi = tests => divisi(tests, t => t.classi).map(([classi, suoi]) =>
+  ({chiave: String(classi), nome: `${classi} classi`, tests: suoi}));
+
+// un numero grande in poco spazio: 950, 12k, 3,4M
+const corto = n => n < 10000 ? String(n) : n < 1e6 ? Math.round(n / 1000) + 'k' : (n / 1e6).toFixed(1).replace('.', ',') + 'M';
+// i segni del giudizio rispetto alla volta prima, nell'angolo di una casella
+const SEGNI = {migliorato: '▲', peggiorato: '▼', 'più avanti': '▸', 'più indietro': '◂', diverso: '≠'};
+// La casella di un test nella tabella di un gruppo: il colore e' l'esito; dentro, quanti nodi se l'orario c'e' (o
+// si e' visto che non c'e'), a che punto dell'orario e' arrivata la ricerca se si e' fermata al limite; nell'angolo
+// il segno del giudizio, se e' cambiato dalla volta prima. Un clic apre la riga del test sotto la tabella.
+function casella(t, adesso) {
+  const r = t.risultato;
+  let classe = 'mai-eseguito', dentro = '–', detto = adesso === t.id ? 'sta girando' : 'mai eseguito', segno = '';
+  if (adesso === t.id) dentro = '…';
+  else if (r) {
+    classe = r.esito.replace(/ /g, '-');
+    dentro = RISPOSTA.has(r.esito) && r.nodi != null ? corto(r.nodi)
+      : r.esito === 'limite di nodi' && r.celle ? Math.floor(Math.min(r.pos_max + 1, r.celle) / r.celle * 100) + '%'
+      : r.esito === 'errore nei dati' ? 'dati' : '!';
+    const [parola, dettaglio] = giudizio(r, quellaPrima(r, t.prima));
+    segno = SEGNI[parola] ? `<span class="segno confronto-${esc(parola.replace(/ /g, '-').replace('ù', 'u'))}">${SEGNI[parola]}</span>` : '';
+    detto = r.esito + (r.nodi != null ? `, ${numero(r.nodi)} nodi` : '') + (r.celle ? `, cella più avanti ${cella(r)}` : '') +
+      (parola ? ` · ${parola}` + (dettaglio ? ` (${dettaglio})` : '') : '');
   }
-  return tutti;
+  return `<td><button type="button" class="casella esito-${esc(classe)}${aperti.has(t.id) ? ' aperta' : ''}${scelti.has(t.id) ? ' scelta' : ''}" ` +
+    `data-test="${t.id}" title="Test ${t.id}: ${esc(detto)}">${esc(dentro)}${segno}</button></td>`;
+}
+// La tabella di un gruppo aperto: una riga per caso (gli stessi dati: seme e ritardi), una colonna per ordine delle
+// classi (gli stessi dati per un'altra strada), cosi' si vede se un caso e' difficile sempre o solo con certi ordini.
+// Le righe sono in due parti, prima i casi senza ritardi e poi quelli con: sono i ritardi a fare un caso difficile.
+function mappa(g, adesso) {
+  const ordini = divisi(g.tests, t => t.ordine);
+  // una delle due parti: la riga del titolo, con il conto degli esiti, e una riga per seme
+  const parte = (suoi, titolo) => {
+    if (!suoi.length) return '';
+    const esiti = {};
+    for (const t of suoi) {
+      const e = t.risultato ? t.risultato.esito : 'mai eseguito';
+      esiti[e] = (esiti[e] || 0) + 1;
+    }
+    return `<tr class="parte"><th colspan="${ordini.length + 1}">${titolo} ` +
+      Object.entries(esiti).map(([e, n]) => `<span class="esito esito-${esc(e.replace(/ /g, '-'))}">${numero(n)} ${esc(e)}</span>`).join('') +
+      '</th></tr>' +
+      divisi(suoi, t => t.seme).map(([seme, loro]) => `<tr><th>seme ${seme}</th>` +
+        ordini.map(([o]) => {
+          const t = loro.find(x => x.ordine === o);
+          return t ? casella(t, adesso) : '<td></td>';
+        }).join('') + '</tr>').join('');
+  };
+  return `<tr class="mappa" data-gruppo="${esc(g.chiave)}"><td></td><td colspan="12"><div class="scorre"><table class="mappa"><thead><tr><th>Ordine delle classi</th>` +
+    ordini.map(([o]) => `<th title="Ordine delle classi ${o}${o === 0 ? ' (quello generato)' : ''}">${o}</th>`).join('') +
+    '</tr></thead><tbody>' +
+    parte(g.tests.filter(t => !t.ritardi), 'Senza ritardi') + parte(g.tests.filter(t => t.ritardi), 'Con ritardi') +
+    '</tbody></table></div></td></tr>';
 }
 
 // la riga di un gruppo: il nome, quanti test, quanti per esito e quanti per giudizio rispetto alla volta prima
@@ -171,7 +216,7 @@ function rigaGruppo(g, inCorso) {
     if (parola) giudizi[parola] = (giudizi[parola] || 0) + 1;
   }
   const quanti = tests.filter(t => scelti.has(t.id)).length, aperto = gruppiAperti.has(g.chiave);
-  return `<tr class="gruppo livello-${g.livello}" data-gruppo="${esc(g.chiave)}"><td><input type="checkbox" class="scegli-gruppo" ` +
+  return `<tr class="gruppo" data-gruppo="${esc(g.chiave)}"><td><input type="checkbox" class="scegli-gruppo" ` +
     `aria-label="Scegli tutti i test del gruppo" ${quanti === tests.length ? 'checked' : ''} ${inCorso ? 'disabled' : ''}></td>` +
     `<td colspan="12"><span class="freccia">${aperto ? '▾' : '▸'}</span> <strong>${esc(g.nome)}</strong> ` +
     `<span class="nota">${numero(tests.length)} test</span> ` +
@@ -190,7 +235,7 @@ function riga(t, adesso, inCorso, limite, realtime) {
       (r.limite !== limite ? `<span class="nota andamento">a ${numero(r.limite)} nodi</span>` : '') +
       (andamento(t) ? `<span class="nota andamento">${esc(andamento(t))}</span>` : ''));
   }
-  return `<tr class="test" data-test="${t.id}" title="Clic: le esecuzioni precedenti">` +
+  return `<tr class="test" data-test="${t.id}" title="Clic: chiude il test">` +
     `<td><input type="checkbox" class="scegli" aria-label="Scegli il test ${t.id}" ${scelti.has(t.id) ? 'checked' : ''} ${inCorso ? 'disabled' : ''}></td>` +
     `<td class="num">${t.id}</td><td class="num">${t.seme}</td><td class="num">${t.classi}</td>` +
     `<td>${t.ritardi ? 'con' : 'senza'}</td><td class="num">${t.ordine}</td>${risultato}` +
@@ -208,12 +253,11 @@ function riga(t, adesso, inCorso, limite, realtime) {
 function mostra(n) {
   const g = n.giro, inCorso = n.in_corso !== null;
   const unaRiga = t => riga(t, inCorso && g ? g.adesso : null, inCorso, n.limite, n.realtime !== null);
-  // un gruppo di ordini si vede se il suo numero di classi e' aperto; i test, se e' aperto anche il loro ordine
-  document.querySelector('#notturni tbody').innerHTML = gruppi(n.tests).map(g => {
-    const sopra = g.livello === 1 || gruppiAperti.has(g.chiave.split('/')[0]);
-    return !sopra ? '' : rigaGruppo(g, inCorso) +
-      (g.livello === 2 && gruppiAperti.has(g.chiave) ? g.tests.map(unaRiga).join('') : '');
-  }).join('');
+  // un gruppo aperto mostra la sua tabella e, sotto, le righe dei test aperti con un clic sulla loro casella
+  const adesso = inCorso && g ? g.adesso : null;
+  document.querySelector('#notturni tbody').innerHTML = gruppi(n.tests).map(x => rigaGruppo(x, inCorso) +
+    (gruppiAperti.has(x.chiave) ? mappa(x, adesso) + x.tests.filter(t => aperti.has(t.id)).map(unaRiga).join('')
+                                : '')).join('');
   document.getElementById('nota-gruppi').hidden = !n.tests.length;
   document.getElementById('notturni').hidden = !n.tests.length;
   // le caselle: restano scelti solo i test che ci sono ancora; durante un giro non si elimina
@@ -276,7 +320,8 @@ document.querySelector('#notturni tbody').addEventListener('click', e => {
     if (!gruppiAperti.delete(gruppo.dataset.gruppo)) gruppiAperti.add(gruppo.dataset.gruppo);
     return mostra(ultima);
   }
-  const tr = e.target.closest('tr.test');
+  // una casella della tabella, o la riga di un test gia' aperta: apre o chiude quel test
+  const tr = e.target.closest('button.casella, tr.test');
   if (!tr || e.target.closest('form, input')) return;
   const id = Number(tr.dataset.test);
   if (!aperti.delete(id)) aperti.add(id);
