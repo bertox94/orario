@@ -228,6 +228,9 @@ table.controlli tr.coppia td.con { padding-left: 22px; color: var(--coppia); whi
 tr.test, tr.gruppo { cursor: pointer; }
 /* la riga di un gruppo: il nome e il conto dei suoi esiti */
 tr.gruppo > td { background: var(--riga); }
+/* il gruppo dentro un gruppo (l'ordine delle classi): rientrato e piu' chiaro */
+tr.gruppo.livello-2 > td { background: var(--sfondo); }
+tr.gruppo.livello-2 > td:nth-child(2) { padding-left: 34px; }
 tr.gruppo .freccia { display: inline-block; width: 1em; color: var(--accento); }
 tr.gruppo .esito, tr.gruppo .confronto { font-size: 13px; padding: 1px 10px; margin: 0 0 0 8px; }
 /* le esecuzioni precedenti: righe della stessa tabella, piu' piccole e su fondo rosa, colonna sotto colonna */

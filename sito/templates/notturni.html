@@ -43,7 +43,7 @@
   <button class="secondario" disabled>Elimina i test scelti</button>
   <span class="nota">Scegli i test con le caselle; quella in cima alla tabella li sceglie tutti.</span>
 </form>
-<p class="nota" id="nota-gruppi">I test sono raggruppati per numero di classi: un clic sulla riga di un gruppo lo apre o lo chiude; la sua casella sceglie tutti i suoi test.</p>
+<p class="nota" id="nota-gruppi">I test sono raggruppati per numero di classi e, dentro, per ordine delle classi: un clic sulla riga di un gruppo lo apre o lo chiude; la sua casella sceglie tutti i suoi test.</p>
 <div class="scorre"><table class="dati" id="notturni">
   <thead><tr><th><input type="checkbox" id="scegli-tutti" title="Scegli tutti i test, o nessuno" aria-label="Scegli tutti i test"></th><th class="num">Test</th><th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th><th class="num">Ordine</th>
     <th>Esito</th><th class="num">Nodi</th><th class="num">Cella più avanti</th><th class="num">Tempo</th><th>Rispetto a prima</th><th></th><th></th></tr></thead>
@@ -132,40 +132,52 @@ function precedenti(t) {
 // i test scelti con le caselle, da eliminare insieme
 const scelti = new Set();
 
-// ---- i gruppi: l'elenco e' raggruppato per numero di classi, con il conto degli esiti di ogni gruppo; i gruppi
-// partono chiusi, cosi' anche con migliaia di test la pagina disegna poche righe ----
-const gruppiAperti = new Set();
+// ---- i gruppi: l'elenco e' raggruppato per numero di classi e, dentro ogni numero di classi, per ordine delle
+// classi; ogni gruppo ha il conto dei suoi esiti. Partono chiusi, cosi' anche con migliaia di test la pagina disegna
+// poche righe ----
+const gruppiAperti = new Set();  // le chiavi dei gruppi aperti: "8" (8 classi), "8/2" (8 classi, ordine 2)
 
-// i test divisi per numero di classi, in ordine: [[classi, [test, ...]], ...]
-function inGruppi(tests) {
+// i test divisi secondo un loro valore numerico, in ordine: [[valore, [test, ...]], ...]
+function divisi(tests, valore) {
   const gruppi = new Map();
   for (const t of tests) {
-    if (!gruppi.has(t.classi)) gruppi.set(t.classi, []);
-    gruppi.get(t.classi).push(t);
+    if (!gruppi.has(valore(t))) gruppi.set(valore(t), []);
+    gruppi.get(valore(t)).push(t);
   }
   return [...gruppi].sort(([a], [b]) => a - b);
 }
+// tutti i gruppi, dei due livelli: [{chiave, nome, livello, tests}, ...], ognuno seguito dai suoi sottogruppi
+function gruppi(tests) {
+  const tutti = [];
+  for (const [classi, suoi] of divisi(tests, t => t.classi)) {
+    tutti.push({chiave: String(classi), nome: `${classi} classi`, livello: 1, tests: suoi});
+    for (const [ordine, loro] of divisi(suoi, t => t.ordine))
+      tutti.push({chiave: `${classi}/${ordine}`, nome: `Ordine delle classi ${ordine}` + (ordine === 0 ? ' (quello generato)' : ''),
+                  livello: 2, tests: loro});
+  }
+  return tutti;
+}
 
-// la riga di un gruppo: il nome, quanti test, quanti per esito e quanti diversi dalla volta prima
-function rigaGruppo(valore, tests, inCorso) {
-  const esiti = {};
+// la riga di un gruppo: il nome, quanti test, quanti per esito e quanti per giudizio rispetto alla volta prima
+function rigaGruppo(g, inCorso) {
+  const tests = g.tests, esiti = {};
   for (const t of tests) {
     const e = t.risultato ? t.risultato.esito : 'mai eseguito';
     esiti[e] = (esiti[e] || 0) + 1;
   }
   const giudizi = {};  // quanti test del gruppo per giudizio, tra quelli cambiati dalla volta prima
   for (const t of tests) {
-    const g = t.risultato && t.risultato.confronto === 'diverso' ? giudizio(t.risultato, quellaPrima(t.risultato, t.prima))[0] : '';
-    if (g) giudizi[g] = (giudizi[g] || 0) + 1;
+    const parola = t.risultato && t.risultato.confronto === 'diverso' ? giudizio(t.risultato, quellaPrima(t.risultato, t.prima))[0] : '';
+    if (parola) giudizi[parola] = (giudizi[parola] || 0) + 1;
   }
-  const quanti = tests.filter(t => scelti.has(t.id)).length, aperto = gruppiAperti.has(String(valore));
-  return `<tr class="gruppo" data-gruppo="${esc(valore)}"><td><input type="checkbox" class="scegli-gruppo" ` +
+  const quanti = tests.filter(t => scelti.has(t.id)).length, aperto = gruppiAperti.has(g.chiave);
+  return `<tr class="gruppo livello-${g.livello}" data-gruppo="${esc(g.chiave)}"><td><input type="checkbox" class="scegli-gruppo" ` +
     `aria-label="Scegli tutti i test del gruppo" ${quanti === tests.length ? 'checked' : ''} ${inCorso ? 'disabled' : ''}></td>` +
-    `<td colspan="12"><span class="freccia">${aperto ? '▾' : '▸'}</span> <strong>${valore} classi</strong> ` +
+    `<td colspan="12"><span class="freccia">${aperto ? '▾' : '▸'}</span> <strong>${esc(g.nome)}</strong> ` +
     `<span class="nota">${numero(tests.length)} test</span> ` +
     Object.entries(esiti).map(([e, n]) => `<span class="esito esito-${esc(e.replace(/ /g, '-'))}">${numero(n)} ${esc(e)}</span>`).join('') +
-    Object.entries(giudizi).map(([g, n]) =>
-      `<span class="confronto confronto-${esc(g.replace(/ /g, '-').replace('ù', 'u'))}">${numero(n)} ${esc(g)}</span>`).join('') +
+    Object.entries(giudizi).map(([parola, n]) =>
+      `<span class="confronto confronto-${esc(parola.replace(/ /g, '-').replace('ù', 'u'))}">${numero(n)} ${esc(parola)}</span>`).join('') +
     '</td></tr>';
 }
 
@@ -196,9 +208,12 @@ function riga(t, adesso, inCorso, limite, realtime) {
 function mostra(n) {
   const g = n.giro, inCorso = n.in_corso !== null;
   const unaRiga = t => riga(t, inCorso && g ? g.adesso : null, inCorso, n.limite, n.realtime !== null);
-  document.querySelector('#notturni tbody').innerHTML =
-    inGruppi(n.tests).map(([v, tests]) => rigaGruppo(v, tests, inCorso) +
-                                           (gruppiAperti.has(String(v)) ? tests.map(unaRiga).join('') : '')).join('');
+  // un gruppo di ordini si vede se il suo numero di classi e' aperto; i test, se e' aperto anche il loro ordine
+  document.querySelector('#notturni tbody').innerHTML = gruppi(n.tests).map(g => {
+    const sopra = g.livello === 1 || gruppiAperti.has(g.chiave.split('/')[0]);
+    return !sopra ? '' : rigaGruppo(g, inCorso) +
+      (g.livello === 2 && gruppiAperti.has(g.chiave) ? g.tests.map(unaRiga).join('') : '');
+  }).join('');
   document.getElementById('nota-gruppi').hidden = !n.tests.length;
   document.getElementById('notturni').hidden = !n.tests.length;
   // le caselle: restano scelti solo i test che ci sono ancora; durante un giro non si elimina
@@ -271,9 +286,9 @@ document.querySelector('#notturni tbody').addEventListener('click', e => {
 // le caselle: una per test, e quella in cima che li sceglie tutti o nessuno
 document.querySelector('#notturni tbody').addEventListener('change', e => {
   if (e.target.classList.contains('scegli-gruppo')) {  // la casella di un gruppo: tutti i suoi test, o nessuno
-    const valore = e.target.closest('tr.gruppo').dataset.gruppo;
-    for (const [v, tests] of inGruppi(ultima.tests))
-      if (String(v) === valore) for (const t of tests) e.target.checked ? scelti.add(t.id) : scelti.delete(t.id);
+    const chiave = e.target.closest('tr.gruppo').dataset.gruppo;
+    for (const g of gruppi(ultima.tests))
+      if (g.chiave === chiave) for (const t of g.tests) e.target.checked ? scelti.add(t.id) : scelti.delete(t.id);
     return mostra(ultima);
   }
   if (!e.target.classList.contains('scegli')) return;
