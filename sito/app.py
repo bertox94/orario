@@ -11,16 +11,6 @@ LAVORO = os.environ.get('SITO_LAVORO') or os.path.join(os.path.dirname(os.path.a
 MAX_MILIONI = 20  # i passi occupano 6 byte per nodo: 20 milioni di nodi sono 120 MB
 MAX_SEMI_NOTTE, MAX_CLASSI_NOTTE = 50, 120  # i casi di base del giro della notte: semi e classi al massimo
 MAX_MILIONI_NOTTURNI = 200  # nei notturni i passi non si tengono: il limite e' solo il tempo di un giro
-# le voci del report di un giro, nell'ordine di notturni.VOCI: (voce, titolo, colore dell'etichetta)
-VOCI_REPORT = (('allarmi', 'Allarmi', 'peggiorato'),
-               ('sbloccati', 'Ora con una risposta, prima fermi al limite', 'migliorato'),
-               ('persi', 'Ora fermi al limite, prima con una risposta', 'peggiorato'),
-               ('meno_nodi', 'Stessa risposta con meno nodi', 'migliorato'),
-               ('piu_nodi', 'Stessa risposta con più nodi', 'peggiorato'),
-               ('piu_avanti', 'Fermi al limite, più avanti', 'piu-avanti'),
-               ('piu_indietro', 'Fermi al limite, più indietro', 'piu-indietro'),
-               ('diversi', 'Altri cambiamenti', 'diverso'),
-               ('aperti', 'Fermi al limite di nodi', 'limite-cambiato'))
 
 
 def numero(v):
@@ -134,14 +124,15 @@ def crea_app():
 
     @app.route('/notturni')
     def pagina_notturni():
-        """Con ?report=N il report e' quello del giro N; senza, quello dell'ultimo giro finito."""
-        finiti = notturni.giri_finiti(LAVORO)
-        scelto = request.args.get('report', type=int)
-        if scelto not in [gid for gid, inizio in finiti]:  # nessuno scelto, o un giro che non c'e'
-            scelto = finiti[0][0] if finiti else None
         return render_template('notturni.html', n=notturni.situazione(LAVORO), max_milioni=MAX_MILIONI_NOTTURNI,
                                max_semi=MAX_SEMI_NOTTE, max_classi=MAX_CLASSI_NOTTE, max_realtime=MAX_MILIONI,
-                               finiti=finiti, gr=scelto and notturni.report_del_giro(LAVORO, scelto), voci=VOCI_REPORT)
+                               rp=notturni.report(LAVORO))
+
+    @app.route('/notturni/visto', methods=['POST'])
+    def visto_notturni():
+        """Conferma la presa visione dei test da verificare: i loro numeri arrivano in `ids`, separati da virgole."""
+        notturni.visto(LAVORO, [int(x) for x in (request.form.get('ids') or '').split(',') if x.strip().isdigit()])
+        return redirect(url_for('pagina_notturni'))
 
     @app.route('/notturni/stato.json')
     def stato_notturni():

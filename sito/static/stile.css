@@ -258,9 +258,9 @@ tr.gruppo .esito, tr.gruppo .confronto { font-size: 13px; padding: 1px 10px; mar
 /* le esecuzioni precedenti: righe della stessa tabella, piu' piccole e su fondo rosa, colonna sotto colonna */
 tr.precedenti > td { background: var(--riga); font-size: 13px; padding-top: 4px; padding-bottom: 4px; }
 tr.precedenti .esito { padding: 1px 10px; }
-/* il report di un giro: una voce per tipo di cambiamento, ognuna si apre e si chiude; gli allarmi con il bordo rosso */
+/* il report: i tre gruppi per esito, ognuno si apre e si chiude; nei test da verificare gli allarmi hanno il bordo
+   rosso */
 .report details { margin: 8px 0; }
-.report details.allarme { padding: 8px 14px; background: var(--carta); border-left: 4px solid var(--male);
-  border-radius: var(--angolo); }
-.report summary .confronto { margin-left: 6px; }
-.report p.nota .esito { margin-left: 4px; }
+.report summary .esito { margin-left: 6px; font-size: 13px; padding: 1px 10px; }
+table.verificare tr.allarme > td:first-child { box-shadow: inset 4px 0 0 var(--male); }
+table.verificare td form { margin: 0; }
