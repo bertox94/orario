@@ -37,9 +37,13 @@ Due pagine, senza login e senza database:
   ogni esecuzione rispetto a quella prima con lo stesso limite: uguale, migliorato o peggiorato (ora c'è una risposta
   e prima no, o il contrario; oppure la stessa risposta con meno o più nodi), più avanti o più indietro (ferma al
   limite tutte e due le volte, con la cella più avanti cambiata), con i numeri accanto; nella riga del test c'è anche
-  lo stesso giudizio su tutte le esecuzioni che si vedono, dalla più vecchia all'ultima. Sopra l'elenco dei test c'è il report, dall'ultima esecuzione di ogni test: i test in tre gruppi (orario
-  impossibile, cioè nessuna soluzione o errore nei dati; orario trovato; orario non trovato, cioè fermo al limite di
-  nodi), con i nodi e il record (la stessa risposta con meno nodi di sempre, con quel limite). Prima del report, «Da verificare»: i test
+  lo stesso giudizio su tutte le esecuzioni che si vedono, dalla più vecchia all'ultima. Sopra l'elenco dei test c'è il report, caso per caso: un caso (seme, classi, ritardi) sta su una riga con tutti i
+  suoi ordini delle classi, dall'ultima esecuzione di ognuno. I casi sono in quattro gruppi secondo il loro stato:
+  orario impossibile (con ogni ordine nessuna soluzione o errore nei dati), orario trovato con ogni ordine, trovato
+  solo con alcuni ordini, mai trovato (fermo al limite di nodi con tutti); con quali ordini sì e quali no, i nodi del
+  migliore, il record (la stessa risposta con meno nodi di sempre, con quel limite) e la cella più avanti di quelli
+  che non lo trovano. Lo stesso stato è in fondo a ogni riga della tabella di un numero di classi, e la riga del
+  gruppo conta i casi per stato. Prima del report, «Da verificare»: i casi che hanno almeno un ordine (ne basta uno)
   il cui ultimo risultato si scosta dal meglio di sempre fatto con lo stesso limite di nodi (cambiando il limite il
   meglio di sempre riparte da capo): gli allarmi (trovato dove una volta, con qualunque limite, era
   impossibile, o il contrario; un test non riuscito; un orario che non passa la verifica), i migliorati (una risposta

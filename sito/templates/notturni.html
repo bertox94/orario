@@ -40,60 +40,70 @@
 <h2>Da verificare</h2>
 {% set dv = rp.da_verificare %}
 {% if not dv %}
-<p class="nota">Niente da verificare: nessun test si scosta dal suo meglio di sempre, o ne hai già preso visione.</p>
+<p class="nota">Niente da verificare: nessun caso si scosta dal suo meglio di sempre, o ne hai già preso visione.</p>
 {% else %}
 <div class="report">
   <form method="post" action="{{ url_for('visto_notturni') }}" class="rigo">
-    <input type="hidden" name="ids" value="{{ dv|map(attribute='id')|join(',') }}">
+    <input type="hidden" name="ids" value="{% for c in dv %}{{ c.ids|join(',') }}{{ ',' if not loop.last }}{% endfor %}">
     <button class="secondario">{{ 'Visto' if dv|length == 1 else 'Visti tutti e %d'|format(dv|length) }}</button>
-    <span class="nota">L'ultimo risultato di questi test si scosta dal loro meglio di sempre con questo limite di nodi. Restano qui finché non
-      confermi di averli visti; poi tornano solo se il risultato cambia ancora.</span>
+    <span class="nota">Una riga per caso, con dentro gli ordini delle classi il cui ultimo risultato si scosta dal loro meglio di sempre con questo
+      limite di nodi ({{ rp.ordini_da_verificare|numero }} in tutto). Restano qui finché non confermi di averli visti; poi tornano solo se il risultato cambia ancora.</span>
   </form>
   <div class="scorre"><table class="dati verificare">
-    <thead><tr><th class="num">Test</th><th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th><th class="num">Ordine</th>
+    <thead><tr><th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th><th class="num">Ordine</th>
       <th>Esito</th><th class="num">Nodi</th><th class="num">Record</th><th>Rispetto al record</th><th></th></tr></thead>
     <tbody>
-    {% for x in dv %}
-    <tr class="{{ 'allarme' if x.giudizio == 'allarme' }}"><td class="num">{{ x.id }}</td><td class="num">{{ x.seme }}</td><td class="num">{{ x.classi }}</td>
-      <td>{{ 'con' if x.ritardi else 'senza' }}</td><td class="num">{{ x.ordine }}</td>
+    {% for c in dv %}{% for x in c.voci %}
+    <tr class="{{ 'allarme' if c.peso == 0 }} {{ 'primo-del-caso' if loop.first }}">
+      {% if loop.first %}<td class="num" rowspan="{{ c.voci|length }}">{{ c.seme }}</td><td class="num" rowspan="{{ c.voci|length }}">{{ c.classi }}</td>
+      <td rowspan="{{ c.voci|length }}">{{ 'con' if c.ritardi else 'senza' }}</td>{% endif %}
+      <td class="num" title="Test {{ x.id }}">{{ x.ordine }}</td>
       <td><span class="esito esito-{{ (x.esito or '')|replace(' ', '-') }}">{{ x.esito }}</span></td>
       <td class="num">{{ x.nodi|numero if x.nodi is not none }}</td>
       <td class="num">{% if x.record is not none %}{{ x.record|numero }} <span class="nota">giro {{ x.giro_record }}</span>{% endif %}</td>
       <td><span class="confronto confronto-{{ {'allarme': 'peggiorato', 'tornato al record': 'migliorato'}.get(x.giudizio, x.giudizio) }}">{{ x.giudizio }}</span>
         {% if x.frase %}{{ x.frase }}{% elif x.record %}{{ '+' if x.nodi > x.record else '−' }}{{ ((x.nodi - x.record)|abs / x.record * 100)|round|int }}% di nodi{% endif %}</td>
-      <td><form method="post" action="{{ url_for('visto_notturni') }}"><input type="hidden" name="ids" value="{{ x.id }}">
-        <button class="piccolo secondario">Visto</button></form></td></tr>
-    {% endfor %}
+      {% if loop.first %}<td rowspan="{{ c.voci|length }}"><form method="post" action="{{ url_for('visto_notturni') }}"><input type="hidden" name="ids" value="{{ c.ids|join(',') }}">
+        <button class="piccolo secondario">Visto</button></form></td>{% endif %}</tr>
+    {% endfor %}{% endfor %}
     </tbody>
   </table></div>
 </div>
 {% endif %}
 
 <h2>Il report</h2>
+<p class="nota">Una riga per caso (seme, classi, ritardi), con tutti i suoi ordini delle classi insieme: gli stessi dati, per strade diverse.</p>
 <div class="report">
-  {% for gruppo, titolo, colore in (('impossibile', 'Orario impossibile', 'nessuna-soluzione'), ('trovato', 'Orario trovato', 'trovato'), ('non trovato', 'Orario non trovato', 'limite-di-nodi')) %}
-  {% set tests = rp.gruppi[gruppo] %}
-  <details {{ 'open' if gruppo == 'non trovato' and tests|length <= 50 }}>
-    <summary>{{ titolo }} <span class="esito esito-{{ colore }}">{{ tests|length|numero }}</span></summary>
-    {% if tests %}
+  {% for stato, titolo, colore in (('impossibile', 'Orario impossibile', 'nessuna-soluzione'), ('sempre trovato', 'Orario trovato con ogni ordine', 'trovato'), ('trovato con alcuni ordini', 'Orario trovato solo con alcuni ordini', 'limite-di-nodi'), ('mai trovato', 'Orario mai trovato', 'limite-di-nodi')) %}
+  {% set casi = rp.gruppi[stato] %}
+  <details {{ 'open' if stato in ('trovato con alcuni ordini', 'mai trovato') and casi|length <= 50 }}>
+    <summary>{{ titolo }} <span class="esito esito-{{ colore }}">{{ casi|length|numero }}</span></summary>
+    {% if casi %}
     <div class="scorre"><table class="dati">
-      <thead><tr><th class="num">Test</th><th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th><th class="num">Ordine</th>
-        {% if gruppo == 'non trovato' %}<th class="num">Cella più avanti</th><th class="num">Limite</th>
-        {% else %}{% if gruppo == 'impossibile' %}<th>Esito</th>{% endif %}<th class="num">Nodi</th><th class="num">Record</th>{% endif %}</tr></thead>
+      <thead><tr><th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th><th class="num">Ordini</th>
+        {% if stato == 'impossibile' %}<th>Esito</th>
+        {% elif stato == 'sempre trovato' %}<th class="num">Nodi, dal migliore al peggiore</th><th class="num">Ordine migliore</th><th class="num">Record</th>
+        {% elif stato == 'trovato con alcuni ordini' %}<th>Trovato con gli ordini</th><th>Non trovato con</th><th class="num">Nodi del migliore</th><th class="num">Cella più avanti degli altri</th>
+        {% else %}<th class="num">Cella più avanti</th><th class="num">Con l'ordine</th><th class="num">Limite</th>{% endif %}</tr></thead>
       <tbody>
-      {% for x in tests %}
-      <tr><td class="num">{{ x.id }}</td><td class="num">{{ x.seme }}</td><td class="num">{{ x.classi }}</td>
-        <td>{{ 'con' if x.ritardi else 'senza' }}</td><td class="num">{{ x.ordine }}</td>
-        {% if gruppo == 'non trovato' %}<td class="num">{% if x.celle %}{{ [x.pos_max + 1, x.celle]|min|numero }} / {{ x.celle|numero }}{% endif %}</td><td class="num">{{ x.limite|numero }}</td>
-        {% else %}{% if gruppo == 'impossibile' %}<td>{{ x.esito }}</td>{% endif %}
-        <td class="num">{{ x.nodi|numero if x.nodi is not none }}</td><td class="num">{{ x.record|numero if x.record is not none }}</td>{% endif %}</tr>
+      {% for x in casi %}
+      <tr><td class="num">{{ x.seme }}</td><td class="num">{{ x.classi }}</td><td>{{ 'con' if x.ritardi else 'senza' }}</td><td class="num">{{ x.ordini }}</td>
+        {% if stato == 'impossibile' %}<td>{{ x.esiti|join(', ') }}</td>
+        {% elif stato == 'sempre trovato' %}<td class="num">{{ x.nodi|numero }}{% if x.nodi_peggiore != x.nodi %} – {{ x.nodi_peggiore|numero }}{% endif %}</td>
+        <td class="num">{{ x.ordine_migliore }}</td><td class="num">{{ x.record|numero if x.record is not none }}</td>
+        {% elif stato == 'trovato con alcuni ordini' %}<td><strong>{{ x.trovati }} su {{ x.ordini }}</strong> <span class="nota">{{ x.ordini_trovati|join(', ') }}</span></td>
+        <td class="nota">{{ x.ordini_no|join(', ') }}</td>
+        <td class="num">{{ x.nodi|numero }} <span class="nota">ordine {{ x.ordine_migliore }}</span></td>
+        <td class="num">{% if x.cella %}{{ x.cella|numero }} / {{ x.celle|numero }} <span class="nota">ordine {{ x.ordine_avanti }}</span>{% endif %}</td>
+        {% else %}<td class="num">{% if x.cella %}{{ x.cella|numero }} / {{ x.celle|numero }}{% endif %}</td><td class="num">{{ x.ordine_avanti if x.ordine_avanti is not none }}</td>
+        <td class="num">{{ x.limite|numero }}</td>{% endif %}</tr>
       {% endfor %}
       </tbody>
     </table></div>
-    {% else %}<p class="nota">Nessun test.</p>{% endif %}
+    {% else %}<p class="nota">Nessun caso.</p>{% endif %}
   </details>
   {% endfor %}
-  {% if rp.altri %}<p class="nota">{{ rp.altri|numero }} test non stanno in nessun gruppo: mai eseguiti, o non riusciti.</p>{% endif %}
+  {% if rp.altri %}<p class="nota">{{ rp.altri|numero }} casi non hanno ancora nessuna esecuzione.</p>{% endif %}
 </div>
 
 <h2>I test</h2>
@@ -102,7 +112,7 @@
   <button class="secondario" disabled>Elimina i test scelti</button>
   <span class="nota">Scegli i test con le caselle; quella in cima alla tabella li sceglie tutti.</span>
 </form>
-<p class="nota" id="nota-gruppi">I test sono raggruppati per numero di classi: un clic sulla riga di un gruppo lo apre o lo chiude, e aperto mostra una tabella con una riga per caso (prima i semi senza ritardi, poi quelli con) e una colonna per ordine delle classi. Il colore è l'esito; dentro, i nodi se l'orario c'è, o a che punto dell'orario si è fermata la ricerca; un clic su una casella apre il test sotto la tabella. La casella di un gruppo sceglie tutti i suoi test.</p>
+<p class="nota" id="nota-gruppi">I test sono raggruppati per numero di classi: un clic sulla riga di un gruppo lo apre o lo chiude, e aperto mostra una tabella con una riga per caso (prima i semi senza ritardi, poi quelli con) e una colonna per ordine delle classi; in fondo alla riga, lo stato del caso con tutti i suoi ordini. Il colore è l'esito; dentro, i nodi se l'orario c'è, o a che punto dell'orario si è fermata la ricerca; un clic su una casella apre il test sotto la tabella. La casella di un gruppo sceglie tutti i suoi test.</p>
 <div class="scorre"><table class="dati" id="notturni">
   <thead><tr><th><input type="checkbox" id="scegli-tutti" title="Scegli tutti i test, o nessuno" aria-label="Scegli tutti i test"></th><th class="num">Test</th><th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th><th class="num">Ordine</th>
     <th>Esito</th><th class="num">Nodi</th><th class="num">Cella più avanti</th><th class="num">Tempo</th><th>Rispetto a prima</th><th></th><th></th></tr></thead>
@@ -246,28 +256,48 @@ function mappa(g, adesso) {
       const e = t.risultato ? t.risultato.esito : 'mai eseguito';
       esiti[e] = (esiti[e] || 0) + 1;
     }
-    return `<tr class="parte"><th colspan="${ordini.length + 1}">${titolo} ` +
+    return `<tr class="parte"><th colspan="${ordini.length + 2}">${titolo} ` +
       Object.entries(esiti).map(([e, n]) => `<span class="esito esito-${esc(e.replace(/ /g, '-'))}">${numero(n)} ${esc(e)}</span>`).join('') +
       '</th></tr>' +
-      divisi(suoi, t => t.seme).map(([seme, loro]) => `<tr><th>seme ${seme}</th>` +
-        ordini.map(([o]) => {
-          const t = loro.find(x => x.ordine === o);
-          return t ? casella(t, adesso) : '<td></td>';
-        }).join('') + '</tr>').join('');
+      divisi(suoi, t => t.seme).map(([seme, loro]) => {
+        const [stato, trovati, fatti] = statoDelCaso(loro);  // in fondo alla riga: il caso con tutti i suoi ordini
+        return `<tr><th>seme ${seme}</th>` +
+          ordini.map(([o]) => {
+            const t = loro.find(x => x.ordine === o);
+            return t ? casella(t, adesso) : '<td></td>';
+          }).join('') +
+          `<td class="del-caso"><span class="esito esito-${STATI.find(([st]) => st === stato)[1]}">${esc(stato)}</span>` +
+          (stato === 'trovato con alcuni ordini' ? ` <span class="nota">${trovati} su ${fatti}</span>` : '') + '</td></tr>';
+      }).join('');
   };
   return `<tr class="mappa" data-gruppo="${esc(g.chiave)}"><td></td><td colspan="12"><div class="scorre"><table class="mappa"><thead><tr><th>Ordine delle classi</th>` +
     ordini.map(([o]) => `<th title="Ordine delle classi ${o}${o === 0 ? ' (quello generato)' : ''}">${o}</th>`).join('') +
-    '</tr></thead><tbody>' +
+    '<th class="del-caso">Il caso</th></tr></thead><tbody>' +
     parte(g.tests.filter(t => !t.ritardi), 'Senza ritardi') + parte(g.tests.filter(t => t.ritardi), 'Con ritardi') +
     '</tbody></table></div></td></tr>';
 }
 
-// la riga di un gruppo: il nome, quanti test, quanti per esito e quanti per giudizio rispetto alla volta prima
+// Lo stato di un caso (gli stessi dati: seme e ritardi, in un numero di classi) guardando tutti i suoi ordini delle
+// classi, con la stessa regola del report (notturni.py, stato_del_caso): [stato, quanti ordini trovano, quanti
+// eseguiti]. «Impossibile» se nessun ordine puo' avere un orario; altrimenti secondo quanti lo trovano.
+const STATI = [['impossibile', 'nessuna-soluzione'], ['sempre trovato', 'trovato'], ['trovato con alcuni ordini', 'limite-di-nodi'],
+               ['mai trovato', 'limite-di-nodi'], ['mai eseguito', 'mai-eseguito']];
+function statoDelCaso(tests) {
+  const fatti = tests.filter(t => t.risultato), trovati = fatti.filter(t => t.risultato.esito === 'trovato').length;
+  const stato = !fatti.length ? 'mai eseguito'
+    : fatti.every(t => t.risultato.esito === 'nessuna soluzione' || t.risultato.esito === 'errore nei dati') ? 'impossibile'
+    : trovati === fatti.length ? 'sempre trovato' : trovati ? 'trovato con alcuni ordini' : 'mai trovato';
+  return [stato, trovati, fatti.length];
+}
+
+// la riga di un gruppo: il nome, quanti casi e quanti test, i casi per stato e i test per giudizio rispetto alla
+// volta prima
 function rigaGruppo(g, inCorso) {
-  const tests = g.tests, esiti = {};
-  for (const t of tests) {
-    const e = t.risultato ? t.risultato.esito : 'mai eseguito';
-    esiti[e] = (esiti[e] || 0) + 1;
+  const tests = g.tests, stati = {};  // quanti casi del gruppo per stato (statoDelCaso)
+  const casi = divisi(tests, t => t.seme * 2 + (t.ritardi ? 1 : 0));
+  for (const [, suoi] of casi) {
+    const st = statoDelCaso(suoi)[0];
+    stati[st] = (stati[st] || 0) + 1;
   }
   const giudizi = {};  // quanti test del gruppo per giudizio, tra quelli cambiati dalla volta prima
   for (const t of tests) {
@@ -278,8 +308,9 @@ function rigaGruppo(g, inCorso) {
   return `<tr class="gruppo" data-gruppo="${esc(g.chiave)}"><td><input type="checkbox" class="scegli-gruppo" ` +
     `aria-label="Scegli tutti i test del gruppo" ${quanti === tests.length ? 'checked' : ''} ${inCorso ? 'disabled' : ''}></td>` +
     `<td colspan="12"><span class="freccia">${aperto ? '▾' : '▸'}</span> <strong>${esc(g.nome)}</strong> ` +
-    `<span class="nota">${numero(tests.length)} test</span> ` +
-    Object.entries(esiti).map(([e, n]) => `<span class="esito esito-${esc(e.replace(/ /g, '-'))}">${numero(n)} ${esc(e)}</span>`).join('') +
+    `<span class="nota">${numero(casi.length)} casi, ${numero(tests.length)} test</span> ` +
+    STATI.filter(([st]) => stati[st]).map(([st, colore]) =>
+      `<span class="esito esito-${colore}">${numero(stati[st])} ${esc(st)}</span>`).join('') +
     Object.entries(giudizi).map(([parola, n]) =>
       `<span class="confronto confronto-${esc(parola.replace(/ /g, '-').replace('ù', 'u'))}">${numero(n)} ${esc(parola)}</span>`).join('') +
     '</td></tr>';

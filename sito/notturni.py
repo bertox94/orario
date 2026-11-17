@@ -232,7 +232,8 @@ def _esegui_test(lavoro, exe, t, nodi):
 # un orario non c'e': lo dice la ricerca, arrivata in fondo, o la verifica dei dati (condizioni necessarie)
 IMPOSSIBILE = ('nessuna soluzione', 'errore nei dati')
 RISPOSTA = ('trovato',) + IMPOSSIBILE   # il test ha una risposta: l'orario c'e', o non c'e'
-GRUPPI = ('impossibile', 'trovato', 'non trovato')   # i tre gruppi del report, nell'ordine della pagina
+# gli stati di un caso (seme, classi, ritardi) guardando tutti i suoi ordini delle classi, nell'ordine della pagina
+STATI = ('impossibile', 'sempre trovato', 'trovato con alcuni ordini', 'mai trovato')
 
 
 def _chiave(r):
@@ -289,22 +290,20 @@ def _da_verificare(tutte, visto):
     return ('migliorato' if u['nodi'] < record['nodi'] else 'peggiorato'), record, None
 
 
-def report(lavoro):
-    """Per la pagina: i test da verificare e tutti i test per esito, dall'ultima esecuzione di ognuno.
-    - da_verificare: i test il cui risultato si scosta dal meglio di sempre (_da_verificare), finche' non se ne
-      conferma la presa visione (visto): prima gli allarmi, poi i peggiorati, poi gli altri;
-    - gruppi: per ogni gruppo di GRUPPI i suoi test: orario impossibile (nessuna soluzione, errore nei dati), orario
-      trovato, orario non trovato (fermo al limite di nodi); con il record, cioe' la stessa risposta con meno nodi
-      di sempre, tra le esecuzioni fatte con il limite dell'ultima;
-    - altri: quanti test non stanno in nessun gruppo (mai eseguiti, non riusciti)."""
+def _test_del_report(lavoro):
+    """Test per test, dall'ultima esecuzione di ognuno: (righe, da verificare, quanti mai eseguiti).
+    - righe: caso, ordine, esito, nodi, cella piu' avanti, giro e limite dell'ultima esecuzione, piu' il record: la
+      stessa risposta con meno nodi di sempre, tra le esecuzioni fatte con il limite dell'ultima;
+    - da verificare: le righe dei test il cui risultato si scosta dal meglio di sempre (_da_verificare), con il
+      giudizio, la frase e il record con cui si confrontano."""
     giri = [x for x in (giro(lavoro, gid) for gid in _giri(lavoro)) if x]   # dal piu' vecchio
     visti = _visti(lavoro)
-    da_verificare, gruppi, altri = [], {g: [] for g in GRUPPI}, 0
+    righe, da_verificare, mai = [], [], 0
     for t in elenco(lavoro):
         tutte = [dict(x['risultati'][str(t['id'])], giro=x['id'], limite=x['limite'])
                  for x in giri if str(t['id']) in x.get('risultati', {}) and _e_suo(t, x)]
         if not tutte:
-            altri += 1
+            mai += 1
             continue
         u = tutte[-1]
         riga = dict({k: t[k] for k in ('id', 'seme', 'classi', 'ritardi', 'ordine')},
@@ -312,6 +311,7 @@ def report(lavoro):
         stesse = [x for x in tutte if x.get('esito') == u.get('esito') and x.get('nodi') is not None
                   and x['limite'] == u['limite']]
         riga['record'] = min(x['nodi'] for x in stesse) if stesse and u.get('esito') in RISPOSTA else None
+        righe.append(riga)
         v = _da_verificare(tutte, visti.get(str(t['id'])))
         if v:
             giudizio, record, frase = v
@@ -319,15 +319,67 @@ def report(lavoro):
                 record = None
             da_verificare.append(dict(riga, giudizio=giudizio, frase=frase, record=record and record.get('nodi'),
                                       giro_record=record and record['giro']))
-        gruppo = 'impossibile' if u.get('esito') in IMPOSSIBILE else 'trovato' if u.get('esito') == 'trovato' else \
-            'non trovato' if u.get('esito') == 'limite di nodi' else None
-        if gruppo:
-            gruppi[gruppo].append(riga)
-        else:
-            altri += 1
-    ordine = {'allarme': 0, 'peggiorato': 1}
-    da_verificare.sort(key=lambda x: (ordine.get(x['giudizio'], 2), x['id']))
-    return {'da_verificare': da_verificare, 'gruppi': gruppi, 'altri': altri}
+    return righe, da_verificare, mai
+
+
+def _caso(r):
+    """Il caso di un test: gli stessi dati, qualunque sia l'ordine delle classi."""
+    return r['classi'], r['seme'], r['ritardi']
+
+
+def stato_del_caso(righe):
+    """Lo stato di un caso dalle ultime esecuzioni dei suoi ordini (righe, almeno una): «impossibile» se nessun ordine
+    puo' avere un orario (tutti nessuna soluzione o errore nei dati: i dati sono gli stessi, l'ordine non c'entra);
+    altrimenti secondo quanti ordini trovano l'orario: tutti, alcuni, nessuno."""
+    if all(r['esito'] in IMPOSSIBILE for r in righe):
+        return 'impossibile'
+    trovati = sum(r['esito'] == 'trovato' for r in righe)
+    return 'sempre trovato' if trovati == len(righe) else 'trovato con alcuni ordini' if trovati else 'mai trovato'
+
+
+def report(lavoro):
+    """Per la pagina, caso per caso: un caso (seme, classi, ritardi) sta su una riga con tutti i suoi ordini delle
+    classi, dall'ultima esecuzione di ognuno.
+    - da_verificare: i casi che hanno almeno un ordine il cui risultato si scosta dal suo meglio di sempre
+      (_da_verificare), finche' non se ne conferma la presa visione (visto), con quegli ordini dentro (voci): prima i
+      casi con un allarme, poi quelli con un peggioramento, poi gli altri;
+    - gruppi: per ogni stato di STATI (stato_del_caso) i suoi casi, ognuno con: quanti ordini ha e quanti trovano
+      l'orario, quali si' e quali no; tra quelli che lo trovano, i nodi del migliore e del peggiore, l'ordine migliore
+      e il record di sempre; tra quelli che non lo trovano, la cella piu' avanti a cui uno e' arrivato;
+    - altri: quanti casi non hanno ancora nessuna esecuzione."""
+    righe, verificare, _ = _test_del_report(lavoro)
+    casi = {}
+    for r in righe:
+        casi.setdefault(_caso(r), []).append(r)
+    tutti = {_caso(t) for t in elenco(lavoro)}
+    gruppi = {g: [] for g in STATI}
+    for caso in sorted(casi):
+        suoi = sorted(casi[caso], key=lambda r: r['ordine'])
+        trovati = [r for r in suoi if r['esito'] == 'trovato' and r['nodi'] is not None]
+        no = [r for r in suoi if r['esito'] != 'trovato']
+        fermi = [r for r in no if r.get('celle') and r.get('pos_max') is not None]
+        migliore = min(trovati, key=lambda r: r['nodi'], default=None)
+        avanti = max(fermi, key=lambda r: min(r['pos_max'] + 1, r['celle']), default=None)
+        record = [r['record'] for r in trovati if r['record'] is not None]
+        gruppi[stato_del_caso(suoi)].append({
+            'classi': caso[0], 'seme': caso[1], 'ritardi': caso[2], 'ordini': len(suoi), 'trovati': len(trovati),
+            'ordini_trovati': [r['ordine'] for r in trovati], 'ordini_no': [r['ordine'] for r in no],
+            'esiti': sorted({r['esito'] for r in no}),
+            'nodi': migliore and migliore['nodi'], 'ordine_migliore': migliore and migliore['ordine'],
+            'nodi_peggiore': max((r['nodi'] for r in trovati), default=None),
+            'record': min(record) if record else None,
+            'cella': avanti and min(avanti['pos_max'] + 1, avanti['celle']), 'celle': avanti and avanti['celle'],
+            'ordine_avanti': avanti and avanti['ordine'], 'limite': max(r['limite'] for r in suoi)})
+    peso = {'allarme': 0, 'peggiorato': 1}
+    da_verificare = {}
+    for v in sorted(verificare, key=lambda v: v['ordine']):
+        c = da_verificare.setdefault(_caso(v), {'classi': v['classi'], 'seme': v['seme'], 'ritardi': v['ritardi'],
+                                               'voci': [], 'ids': [], 'peso': 2})
+        c['voci'].append(v)
+        c['ids'].append(v['id'])
+        c['peso'] = min(c['peso'], peso.get(v['giudizio'], 2))
+    return {'da_verificare': [da_verificare[c] for c in sorted(da_verificare, key=lambda c: (da_verificare[c]['peso'], c))],
+            'ordini_da_verificare': len(verificare), 'gruppi': gruppi, 'altri': len(tutti - set(casi))}
 
 
 def visto(lavoro, ids):
@@ -336,7 +388,7 @@ def visto(lavoro, ids):
     ids = {str(i) for i in ids}
     with _lock:
         visti = _visti(lavoro)
-        for x in report(lavoro)['da_verificare']:
+        for x in _test_del_report(lavoro)[1]:
             if str(x['id']) in ids:
                 visti[str(x['id'])] = _chiave(x)
         _scrivi(_cartella(lavoro, 'visti.json'), visti)
