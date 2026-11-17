@@ -37,7 +37,11 @@ Due pagine, senza login e senza database:
   ogni esecuzione rispetto a quella prima con lo stesso limite: uguale, migliorato o peggiorato (ora c'è una risposta
   e prima no, o il contrario; oppure la stessa risposta con meno o più nodi), più avanti o più indietro (ferma al
   limite tutte e due le volte, con la cella più avanti cambiata), con i numeri accanto; nella riga del test c'è anche
-  lo stesso giudizio su tutte le esecuzioni che si vedono, dalla più vecchia all'ultima. Dei test notturni si tengono solo i
+  lo stesso giudizio su tutte le esecuzioni che si vedono, dalla più vecchia all'ultima. Alla fine di ogni giro si scrive il suo report, che la pagina mostra sopra l'elenco dei test (con il menu «Giro» si
+  rileggono quelli vecchi): gli allarmi (prima c'era un orario e ora risulta che non c'è, o il contrario; un test non
+  riuscito; un orario che non passa la verifica), i test che ora hanno una risposta e prima erano fermi al limite e
+  quelli che l'hanno persa, la stessa risposta con meno o più nodi, i fermi al limite più avanti o più indietro, e
+  tutti i fermi al limite; in fondo quanti test per esito sono uguali alla volta prima. Dei test notturni si tengono solo i
   numeri (in `lavoro/notturni/`), non i passi. Con il giro della notte acceso, ogni notte all'ora scelta nella pagina
   si aggiungono all'elenco i casi di base con un ordine delle classi nuovo, e parte il giro. I casi di base si
   scelgono nella pagina (semi da 0 a…, classi da… a…, senza e con ritardi; senza filtri: che il caso abbia un errore nei

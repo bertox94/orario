@@ -5,7 +5,8 @@ Tutto sta in lavoro/notturni/, in file JSON:
 - test.json: l'elenco dei test, ognuno con il suo numero;
 - impostazioni.json: il limite di nodi, uno solo per tutti i test (lo usa il giro, e si cambia dalla pagina), e il
   giro della notte: se parte da solo, a che ora, l'ultimo giorno in cui e' scattato e l'ultima volta che e' saltato;
-- giri/<n>.json: un giro, con il limite usato e il risultato di ogni test (esito, nodi, cella piu' avanti, tempo).
+- giri/<n>.json: un giro, con il limite usato, il risultato di ogni test (esito, nodi, cella piu' avanti, tempo) e,
+  quando finisce, il suo report: che cosa e' cambiato rispetto alla volta prima.
 
 Un giro esegue i test uno dopo l'altro con ./untitled caso (caso.h), in una cartella provvisoria: del test si tengono
 solo i numeri, il file dei passi si cancella. Ogni risultato si confronta con l'ultimo dello stesso test fatto con lo
@@ -172,12 +173,16 @@ def _e_suo(t, g):
     return (g.get('inizio') or 0) >= t.get('aggiunto', 0)
 
 
-def _prima(lavoro, t, nodi, fino_a):
+def _prima(lavoro, t, nodi, fino_a, letti=None):
     """L'ultimo risultato del test t, nei giri prima di fino_a: (risultato, limite di quel giro), con preferenza per
-    un giro fatto con il limite `nodi` (quello con cui si confronta). (None, None) se il test non ha mai girato."""
+    un giro fatto con il limite `nodi` (quello con cui si confronta). (None, None) se il test non ha mai girato.
+    letti: i giri gia' letti, per numero (chi chiede di tanti test li legge una volta sola)."""
     altro = (None, None)
     for gid in reversed([g for g in _giri(lavoro) if g < fino_a]):
-        g = giro(lavoro, gid) or {}
+        if letti is None:
+            g = giro(lavoro, gid) or {}
+        else:
+            g = letti[gid] if gid in letti else letti.setdefault(gid, giro(lavoro, gid) or {})
         r = g.get('risultati', {}).get(str(t['id'])) if _e_suo(t, g) else None
         if not r:
             continue
@@ -226,6 +231,99 @@ def _esegui_test(lavoro, exe, t, nodi):
         shutil.rmtree(d, ignore_errors=True)
 
 
+# ---- il report di un giro ----
+
+# le voci del report, nell'ordine in cui si leggono: prima quello che va guardato
+VOCI = ('allarmi', 'sbloccati', 'persi', 'meno_nodi', 'piu_nodi', 'piu_avanti', 'piu_indietro', 'diversi', 'aperti')
+# un orario non c'e': lo dice la ricerca, arrivata in fondo, o la verifica dei dati (condizioni necessarie)
+IMPOSSIBILE = ('nessuna soluzione', 'errore nei dati')
+RISPOSTA = ('trovato', 'nessuna soluzione')  # la ricerca e' arrivata in fondo (come in notturni.html, giudizio)
+
+
+def _voce(r, prima, limite_prima, nodi):
+    """In quale voce del report va il risultato r di un test, rispetto alla volta prima (prima, fatta con
+    limite_prima; None se e' la prima volta): (voce, motivo), con voce None se non c'e' niente da segnalare.
+    - allarmi: il test non e' riuscito, l'orario trovato non passa la verifica, oppure prima c'era un orario e ora
+      risulta che non c'e' (o il contrario): una delle due risposte e' sbagliata, con qualunque limite;
+    - sbloccati / persi: ora la ricerca arriva in fondo e prima si fermava al limite, o il contrario;
+    - meno_nodi / piu_nodi: la stessa risposta, con meno o piu' nodi;
+    - piu_avanti / piu_indietro: ferma al limite tutte e due le volte, con la cella piu' avanti cambiata;
+    - diversi: ogni altro cambiamento.
+    Tranne gli allarmi, i confronti si fanno solo con lo stesso limite, come nella pagina."""
+    if r.get('esito') == 'non riuscito':
+        return 'allarmi', 'il test non è riuscito'
+    if r.get('verificato') is False:
+        return 'allarmi', 'l\'orario trovato non passa la verifica'
+    if prima is None:
+        return None, None
+    a, b = prima.get('esito'), r.get('esito')
+    if (a == 'trovato' and b in IMPOSSIBILE) or (a in IMPOSSIBILE and b == 'trovato'):
+        return 'allarmi', 'prima «%s», ora «%s»: una delle due risposte è sbagliata' % (a, b)
+    if limite_prima != nodi:
+        return None, None
+    if a != b:
+        if (a in RISPOSTA) != (b in RISPOSTA):
+            return ('sbloccati' if b in RISPOSTA else 'persi'), None
+        return 'diversi', None
+    if prima.get('nodi') != r.get('nodi') and None not in (prima.get('nodi'), r.get('nodi')):
+        return ('meno_nodi' if r['nodi'] < prima['nodi'] else 'piu_nodi'), None
+    if prima.get('pos_max') != r.get('pos_max') and None not in (prima.get('pos_max'), r.get('pos_max')):
+        return ('piu_avanti' if r['pos_max'] > prima['pos_max'] else 'piu_indietro'), None
+    return None, None
+
+
+def report(lavoro, g):
+    """Il report del giro g: che cosa e' cambiato rispetto alla volta prima, test per test.
+    - voci: per ogni voce di VOCI l'elenco dei suoi test, ognuno con il caso (che resta leggibile anche se poi il test
+      si elimina), il risultato di adesso e quello di prima; in «aperti» ci sono tutti i test fermi al limite di nodi,
+      anche quelli gia' in un'altra voce (piu' avanti, persi...);
+    - conti: quanti test per esito, e di questi quanti alla prima esecuzione e quanti uguali alla volta prima;
+    - limite_cambiato: quanti test hanno prima solo esecuzioni con un altro limite (non si confrontano).
+    Dei test eliminati (non piu' nell'elenco) non si sa da quando valgono: restano fuori."""
+    nodi, letti = g.get('limite'), {}
+    voci, conti, limite_cambiato = {v: [] for v in VOCI}, {}, 0
+    for t in elenco(lavoro):
+        r = g.get('risultati', {}).get(str(t['id'])) if _e_suo(t, g) else None
+        if not r:
+            continue
+        prima, limite_prima = _prima(lavoro, t, nodi, g['id'], letti)
+        voce, motivo = _voce(r, prima, limite_prima, nodi)
+        c = conti.setdefault(r.get('esito'), {'tutti': 0, 'primi': 0, 'uguali': 0})
+        c['tutti'] += 1
+        if prima is None:
+            c['primi'] += 1
+        elif limite_prima != nodi:
+            limite_cambiato += 1
+        elif voce is None:
+            c['uguali'] += 1
+        riga = {'test': t['id'], 'seme': t['seme'], 'classi': t['classi'], 'ritardi': t['ritardi'],
+                'ordine': t['ordine'], 'esito': r.get('esito'), 'nodi': r.get('nodi'), 'pos_max': r.get('pos_max'),
+                'celle': r.get('celle'), 'motivo': motivo, 'voce': voce,
+                'prima': prima and {k: prima.get(k) for k in ('esito', 'nodi', 'pos_max', 'celle')}}
+        if voce:
+            voci[voce].append(riga)
+        if r.get('esito') == 'limite di nodi':
+            voci['aperti'].append(riga)
+    return {'voci': voci, 'conti': conti, 'limite_cambiato': limite_cambiato}
+
+
+def report_del_giro(lavoro, gid):
+    """Per la pagina: il giro gid con il suo report. Quello scritto alla fine del giro, se c'e'; per un giro piu'
+    vecchio del report si calcola adesso, con i test che ci sono ancora. None se il giro non c'e' o sta girando."""
+    g = giro(lavoro, gid)
+    if not g or g.get('stato') == 'in corso':
+        return None
+    if 'report' not in g:
+        g['report'] = report(lavoro, g)
+    return g
+
+
+def giri_finiti(lavoro):
+    """Per scegliere un report: i giri che non stanno girando, dal piu' recente: (numero, inizio)."""
+    return [(g['id'], g['inizio']) for g in (giro(lavoro, gid) for gid in reversed(_giri(lavoro)))
+            if g and g.get('stato') != 'in corso']
+
+
 def _esegui_giro(lavoro, gid, nodi, tests):
     percorso = _cartella(lavoro, 'giri', '%d.json' % gid)
     g = giro(lavoro, gid)
@@ -249,6 +347,11 @@ def _esegui_giro(lavoro, gid, nodi, tests):
         g['fine'] = time.time()
         g['fuori_tempo'] = g.get('entro') is not None and g['fine'] > g['entro']  # il giro della notte, oltre l'ora
         _scrivi(percorso, g)
+        try:  # il report dei test fatti, anche se il giro e' stato fermato: se non riesce, il giro resta com'e'
+            g['report'] = report(lavoro, g)
+            _scrivi(percorso, g)
+        except Exception:
+            pass
         with _lock:
             _giro.update(id=None, processo=None, fermare=False)
 
@@ -386,6 +489,8 @@ def situazione(lavoro):
     pagina, che le confronta (notturni.html, giudizio e andamento)."""
     nodi = limite(lavoro)
     giri = [x for x in (giro(lavoro, gid) for gid in reversed(_giri(lavoro))) if x]  # dal piu' recente
+    for x in giri:  # il report ha la sua parte della pagina (report_del_giro): qui non serve
+        x.pop('report', None)
     g = giri[0] if giri else None
     tests = []
     for t in elenco(lavoro):

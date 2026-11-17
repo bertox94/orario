@@ -37,6 +37,58 @@
   <p class="nota" id="stato-notte"></p>
 </div>
 
+<h2>Il report</h2>
+{% if not gr %}
+<p class="nota">Nessun giro finito ancora: il report si scrive alla fine di ogni giro.</p>
+{% else %}
+{% set rp = gr.report %}
+<div class="report">
+  <form method="get" action="{{ url_for('pagina_notturni') }}" class="rigo">
+    <label>Giro
+      <select name="report" onchange="this.form.submit()">
+        {% for gid, inizio in finiti %}<option value="{{ gid }}" {{ 'selected' if gid == gr.id }}>{{ gid }}, del {{ inizio|data }}</option>{% endfor %}
+      </select></label>
+    <span class="nota">{{ gr.stato }}{{ ', partito da solo' if gr.da_solo }}{{ ", finito oltre l'ora" if gr.fuori_tempo }};
+      {{ gr.risultati|length|numero }} test su {{ gr.test|length|numero }}, limite {{ gr.limite|numero }} nodi</span>
+  </form>
+  {% set cambiati = namespace(n=0) %}
+  {% for voce, titolo, colore in voci if voce != 'aperti' %}{% set cambiati.n = cambiati.n + rp.voci[voce]|length %}{% endfor %}
+  {% if not cambiati.n %}
+  {% if rp.conti.values()|sum(attribute='uguali') %}<p><span class="confronto confronto-uguale">Nessun cambiamento</span> rispetto alla volta prima.</p>
+  {% else %}<p class="nota">Niente da confrontare: nessun test ha un'esecuzione prima con questo limite.</p>{% endif %}
+  {% endif %}
+  {% for voce, titolo, colore in voci if rp.voci[voce] %}
+  <details class="{{ 'allarme' if voce == 'allarmi' }}" {{ 'open' if voce == 'allarmi' or (voce != 'aperti' and rp.voci[voce]|length <= 20) }}>
+    <summary>{{ titolo }} <span class="confronto confronto-{{ colore }}">{{ rp.voci[voce]|length|numero }}</span></summary>
+    <div class="scorre"><table class="dati">
+      <thead><tr><th class="num">Test</th><th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th><th class="num">Ordine</th>
+        <th>Esito</th><th>{{ 'Cella più avanti' if voce == 'aperti' else 'Che cosa è cambiato' }}</th></tr></thead>
+      <tbody>
+      {% for x in rp.voci[voce] %}
+      <tr><td class="num">{{ x.test }}</td><td class="num">{{ x.seme }}</td><td class="num">{{ x.classi }}</td>
+        <td>{{ 'con' if x.ritardi else 'senza' }}</td><td class="num">{{ x.ordine }}</td>
+        <td><span class="esito esito-{{ (x.esito or '')|replace(' ', '-') }}">{{ x.esito }}</span></td>
+        <td>{% if voce == 'allarmi' %}{{ x.motivo }}
+          {% elif voce in ('meno_nodi', 'piu_nodi') %}nodi: da {{ x.prima.nodi|numero }} a {{ x.nodi|numero }}{% if x.prima.nodi %}
+            ({{ '+' if x.nodi > x.prima.nodi else '−' }}{{ ((x.nodi - x.prima.nodi)|abs / x.prima.nodi * 100)|round|int }}%){% endif %}
+          {% elif voce in ('piu_avanti', 'piu_indietro') %}cella più avanti: da {{ [x.prima.pos_max + 1, x.prima.celle]|min|numero }} a {{ [x.pos_max + 1, x.celle]|min|numero }} su {{ x.celle|numero }}
+          {% elif voce == 'aperti' %}{% if x.celle %}{{ [x.pos_max + 1, x.celle]|min|numero }} / {{ x.celle|numero }}{% endif %}{% if x.voce in ('piu_avanti', 'piu_indietro', 'persi') %}
+            <span class="nota">{{ {'piu_avanti': 'più avanti', 'piu_indietro': 'più indietro', 'persi': 'prima: ' ~ x.prima.esito}[x.voce] }}</span>{% endif %}
+          {% else %}prima: {{ x.prima.esito }}{% if x.nodi is not none and voce == 'sbloccati' %}; ora {{ x.nodi|numero }} nodi{% endif %}
+          {% endif %}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </details>
+  {% endfor %}
+  <p class="nota">
+    {% for esito, c in rp.conti|dictsort %}<span class="esito esito-{{ (esito or '')|replace(' ', '-') }}">{{ c.tutti|numero }} {{ esito }}</span>
+      {{ c.uguali|numero }} uguali alla volta prima{% if c.primi %}, {{ c.primi|numero }} alla prima esecuzione{% endif %}{{ '. ' }}{% endfor %}
+    {% if rp.limite_cambiato %}{{ rp.limite_cambiato|numero }} test avevano prima solo esecuzioni con un altro limite: non si confrontano.{% endif %}
+  </p>
+</div>
+{% endif %}
+
 <h2>I test</h2>
 <form method="post" action="{{ url_for('togli_notturni_scelti') }}" id="togli-scelti" class="rigo">
   <input type="hidden" name="ids">
@@ -307,7 +359,7 @@ async function segui() {
     const n = await (await fetch(URL_STATO, {cache: 'no-store'})).json();
     ultima = n;
     mostra(n);
-    if (n.in_corso === null) return;
+    if (n.in_corso === null) return location.reload();  // il giro e' finito: la pagina si ricarica, con il suo report
   } catch (e) { /* si riprova */ }
   setTimeout(segui, 1500);
 }
