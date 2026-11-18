@@ -101,6 +101,20 @@
   <button type="button" class="secondario salto" data-ritorno="dopo" title="Il passo dopo questo dove la ricerca torna indietro">Ritorno ⏭</button>
 </div>
 <p id="testo-passo" class="testo-passo"></p>
+<h3>I backtrack</h3>
+<p class="nota" id="conto-backtrack"></p>
+<canvas id="profilo" height="130" title="Clic: vai a quel punto della ricerca"></canvas>
+<p class="nota">Il profilo della ricerca, da sinistra a destra: per ogni tratto, da quale cella a quale si è mossa. Dove la fascia è alta
+  e stretta la ricerca avanza; dove scende è tornata indietro, tanto più in basso quanto più indietro. Il filo è il passo che stai guardando.</p>
+<div id="ostacoli" hidden>
+  <p class="nota">Gli ostacoli che hanno richiesto più passi. Un ostacolo è una cella da cui la ricerca torna indietro, finché non riesce a
+    superarla; tra parentesi di quante celle è dovuta tornare indietro, al massimo, per riuscirci. Un clic sulla riga porta al suo primo ritorno e ne scrive il percorso.</p>
+  <div class="scorre"><table class="dati" id="tabella-ostacoli">
+    <thead><tr><th>Ostacolo</th><th>Dove</th><th class="num">Dal passo</th><th>Superato</th><th class="num">Passi</th><th class="num">Ritorni</th></tr></thead>
+    <tbody></tbody>
+  </table></div>
+  <p id="scrittura" class="scrittura" hidden></p>
+</div>
 <h3>L'orario visto dai docenti</h3>
 <div class="scorre"><table class="orario docenti" id="orario-docenti"></table></div>
 <p class="nota">Lo stesso passo, una riga per docente: la classe dove insegna a ogni ora e, in grigio, con chi è in
@@ -118,6 +132,7 @@
 {% set i, s = t.info, t.stato %}
 <script>
 const URL_STATO = '{{ url_for('stato', tid=i.id) }}', URL_PASSO = '{{ url_for('passo', tid=i.id, k=0)[:-1] }}';
+const URL_OSTACOLI = '{{ url_for('ostacoli', tid=i.id) }}', URL_SCRITTURA = '{{ url_for('scrittura', tid=i.id, dal=1, al=0)[:-3] }}';  // + dal + '/' + al
 const URL_RITORNO = '{{ url_for('ritorno', tid=i.id, k=0, verso='dopo')[:-6] }}';  // + k + '/prima' o '/dopo'
 const slider = document.getElementById('slider'), tabella = document.getElementById('orario');
 const testo = document.getElementById('testo-passo');
@@ -246,6 +261,7 @@ async function vai(k) {
   const p = await r.json();
   disegnaPasso(p);
   disegnaControlli(p);
+  disegnaProfilo();  // il filo del passo che si guarda
 }
 // «Prec.», «Succ.» e i salti di 10 e 100 passi anche accanto al titolo della cella (la pagina resta dov'e')
 const salto = n => `<button type="button" class="secondario salto" data-passo="${n}" title="${Math.abs(n)} passi ${n < 0 ? 'prima' : 'dopo'}">` +
@@ -422,11 +438,91 @@ document.addEventListener('keydown', e => {
 });
 
 // mentre il test gira: lo stato ogni secondo; lo slider si allunga e, se e' in fondo, segue la ricerca
+// ---- i backtrack: il profilo della ricerca e gli ostacoli piu' lunghi (./untitled ostacoli, ostacoli.h) ----
+let backtrack = null, ostacoloScelto = null;  // l'ultima risposta, e il «dal» dell'ostacolo di cui si vede il percorso
+const tela = document.getElementById('profilo');
+// il nome di una cella (da 0): «Ven 10, C03»
+const doveCella = k => {
+  const {giorni, ore, classi} = forma, O = ore.length, C = classi.length;
+  return k >= giorni.length * O * C ? 'orario completo' : `${giorni[Math.floor(k / (O * C))]} ${ore[Math.floor(k / C) % O]}, ${classi[k % C]}`;
+};
+// Il profilo: una barretta per fascia, dalla cella piu' bassa alla piu' alta decise in quel tratto (in alto la fine
+// dell'orario); sopra, il filo del passo che si guarda.
+function disegnaProfilo() {
+  const larga = tela.clientWidth, alta = 130, r = window.devicePixelRatio || 1, c = tela.getContext('2d');
+  tela.width = larga * r;
+  tela.height = alta * r;
+  c.setTransform(r, 0, 0, r, 0, 0);
+  c.clearRect(0, 0, larga, alta);
+  if (!backtrack || !backtrack.fasce || !backtrack.fasce.length || !forma) return;
+  const stile = getComputedStyle(document.documentElement), colore = v => stile.getPropertyValue(v).trim();
+  const celle = forma.giorni.length * forma.ore.length * forma.classi.length, F = backtrack.fasce;
+  const y = cella => alta - 4 - (alta - 8) * cella / celle, passo = larga / F.length;
+  c.strokeStyle = colore('--riga');
+  for (let g = 1; g < forma.giorni.length; g++) {  // un filo per giorno
+    const yy = Math.round(y(g * forma.ore.length * forma.classi.length)) + .5;
+    c.beginPath(); c.moveTo(0, yy); c.lineTo(larga, yy); c.stroke();
+  }
+  F.forEach(([basso, alto], i) => {
+    c.fillStyle = colore('--rosa');
+    c.fillRect(i * passo, y(alto), Math.max(1, passo), Math.max(1, y(basso) - y(alto)));
+    c.fillStyle = colore('--accento');
+    c.fillRect(i * passo, y(alto), Math.max(1, passo), 2);        // fin dove e' arrivata
+    c.fillStyle = colore('--male');
+    c.fillRect(i * passo, y(basso) - 1, Math.max(1, passo), 1.5);  // fin dove e' tornata indietro
+  });
+  const x = Math.round((Number(slider.value) - .5) / Math.max(1, backtrack.passi) * larga) + .5;
+  c.strokeStyle = colore('--testo');
+  c.beginPath(); c.moveTo(x, 0); c.lineTo(x, alta); c.stroke();
+}
+function mostraBacktrack(b) {
+  backtrack = b;
+  const conto = document.getElementById('conto-backtrack'), box = document.getElementById('ostacoli');
+  if (!b || !b.passi) { conto.textContent = 'Ancora nessun passo.'; box.hidden = true; return disegnaProfilo(); }
+  conto.textContent = !b.ritorni ? `In ${numero(b.passi)} passi la ricerca non è mai tornata indietro.`
+    : `In ${numero(b.passi)} passi la ricerca è tornata indietro ${numero(b.ritorni)} volte, da ${numero(b.ostacoli)} ostacoli. ` +
+      (forma && doveCella(b.cella_massima) === 'orario completo' ? 'È arrivata all\'orario completo.'
+        : `La cella più avanti: ${numero(b.cella_massima + 1)}` + (forma ? ` (${doveCella(b.cella_massima)}).` : '.'));
+  box.hidden = !b.lunghi.length;
+  document.querySelector('#tabella-ostacoli tbody').innerHTML = b.lunghi.map(o =>
+    `<tr class="ostacolo${o.dal === ostacoloScelto ? ' scelto' : ''}" data-dal="${o.dal}" data-al="${o.al || 0}">` +
+    `<td><strong>cella ${numero(o.cella + 1)} (${numero(o.profondita)})</strong></td><td>${forma ? esc(doveCella(o.cella)) : ''}</td>` +
+    `<td class="num">${numero(o.dal)}</td>` +
+    `<td>${o.al ? 'al passo ' + numero(o.al) : '<span class="confronto confronto-peggiorato">non ancora</span>'}</td>` +
+    `<td class="num">${numero(o.passi)}</td><td class="num">${numero(o.ritorni)}</td></tr>`).join('');
+  disegnaProfilo();
+}
+async function aggiornaBacktrack() {
+  try { mostraBacktrack(await (await fetch(URL_OSTACOLI, {cache: 'no-store'})).json()); } catch (e) { /* alla prossima */ }
+}
+// un clic sul profilo porta a quel punto della ricerca
+tela.addEventListener('click', e => {
+  if (backtrack && backtrack.passi) vai(Math.round(e.offsetX / tela.clientWidth * backtrack.passi) + 1);
+});
+window.addEventListener('resize', disegnaProfilo);
+// un clic su un ostacolo porta al suo primo ritorno e ne scrive il percorso, con le ripetizioni raccolte
+document.querySelector('#tabella-ostacoli tbody').addEventListener('click', async e => {
+  const tr = e.target.closest('tr.ostacolo');
+  if (!tr) return;
+  ostacoloScelto = Number(tr.dataset.dal);
+  mostraBacktrack(backtrack);
+  vai(ostacoloScelto);
+  const dove = document.getElementById('scrittura');
+  const s = await (await fetch(URL_SCRITTURA + ostacoloScelto + '/' + tr.dataset.al)).json();
+  dove.hidden = !s.pezzi;
+  if (!s.pezzi) return;
+  dove.innerHTML = '<span class="nota">Il percorso, cella per cella (un numero più basso del precedente è un ritorno indietro): </span>' +
+    s.pezzi.map(x => typeof x === 'number' ? numero(x) : `(${x[0].map(numero).join(' ')})<sup>${numero(x[1])}</sup>`).join(' ') +
+    (s.tagliata ? ' …' : '');
+});
+
+let giriDiSegui = 0;
 async function segui() {
   try {
     const s = await (await fetch(URL_STATO, {cache: 'no-store'})).json();
     const inFondo = Number(slider.value) >= Number(slider.max);
     mostraStato(s);
+    if (!s.gira || giriDiSegui++ % 4 === 0) aggiornaBacktrack();  // mentre gira, ogni quattro secondi; e alla fine
     if (s.passi > Number(slider.max) || !s.gira) {
       slider.max = Math.max(1, s.passi);
       if (inFondo) vai(s.passi);
@@ -439,6 +535,7 @@ const iniziale = {{ s|tojson }};
 mostraStato(iniziale);
 slider.max = Math.max(1, iniziale.passi || 1);
 if (iniziale.passi) vai(iniziale.passi);
+aggiornaBacktrack();
 if (iniziale.gira) setTimeout(segui, 1000);
 </script>
 {% endblock %}

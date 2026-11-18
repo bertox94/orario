@@ -76,6 +76,16 @@ def crea_app():
             abort(404)
         return jsonify(p)
 
+    @app.route('/test/<int:tid>/ostacoli.json')
+    def ostacoli(tid):
+        """I backtrack del test: il profilo della ricerca e gli ostacoli piu' lunghi."""
+        return jsonify(test_realtime.ostacoli(LAVORO, tid) or {})
+
+    @app.route('/test/<int:tid>/scrittura/<int:dal>/<int:al>')
+    def scrittura(tid, dal, al):
+        """Il percorso della ricerca dentro un ostacolo, dal nodo dal al nodo al (0: non ancora superato)."""
+        return jsonify(test_realtime.scrittura(LAVORO, tid, dal, al or None) or {})
+
     @app.route('/test/<int:tid>/ritorno/<int:k>/<verso>')
     def ritorno(tid, k, verso):
         """Il passo, dopo k (verso «dopo») o prima (verso «prima»), dove la ricerca torna indietro: {"k": ...}, o

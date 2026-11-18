@@ -196,6 +196,15 @@ svg.grafo text { font-size: 11px; fill: var(--testo); }
 .passi { display: flex; align-items: center; gap: 10px; }
 .passi input[type=range] { flex: 1; min-width: 0; }
 .testo-passo { margin: 6px 0 10px; min-height: 1.4em; }
+/* i backtrack: il profilo della ricerca (una tela larga quanto la pagina), gli ostacoli piu' lunghi e il percorso
+   di quello scelto */
+#profilo { display: block; width: 100%; height: 130px; background: var(--carta); border: 1px solid var(--bordo);
+  border-radius: var(--angolo); cursor: pointer; }
+tr.ostacolo { cursor: pointer; }
+tr.ostacolo.scelto > td { background: var(--rosa); }
+.scrittura { max-width: 900px; max-height: 9.5em; overflow-y: auto; padding: 10px 14px; background: var(--carta);
+  border: 1px solid var(--bordo); border-radius: var(--angolo); font-variant-numeric: tabular-nums; line-height: 1.7; }
+.scrittura sup { color: var(--accento); font-weight: 600; }
 .indietro { color: var(--male); font-weight: 600; }
 
 /* ---- sotto l'orario: la cella del passo, la coda di priorita' e i controlli dei docenti ---- */

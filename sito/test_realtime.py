@@ -143,6 +143,73 @@ def ritorno(lavoro, tid, k, avanti):
     return None
 
 
+FASCE, LUNGHI = 400, 12   # in quante parti si divide la ricerca per il profilo, e quanti ostacoli si elencano
+SCRITTURA = 600           # di quanti nodi, al massimo, si scrive il percorso di un ostacolo
+PERIODO = 12              # la ripetizione piu' lunga che si cerca nel percorso
+
+
+def ostacoli(lavoro, tid):
+    """I backtrack del test (./untitled ostacoli, vedi ostacoli.h): il profilo della ricerca in FASCE parti e i
+    LUNGHI ostacoli che hanno richiesto piu' nodi. None se non ci sono passi."""
+    return _solver(lavoro, ['ostacoli', 'passi.bin', FASCE, LUNGHI], _cartella(lavoro, tid))
+
+
+def _raccogli(numeri):
+    """Accorcia una fila di numeri raccogliendo i pezzi che si ripetono di seguito: [30, 29, 30, 29, 30, 28] ->
+    [30, ([29, 30], 2), 28]. Da sinistra, a ogni punto si prende la ripetizione che copre piu' numeri, con un pezzo
+    lungo al massimo PERIODO; se pero' partendo dal numero dopo se ne coprono altrettanti, il numero resta da solo e
+    la ripetizione parte dopo (cosi' viene 30 (29 30)^2 e non (30 29)^2 30: prima la cella dell'incaglio, poi i
+    giri). I pezzi raccolti non si raccolgono di nuovo."""
+    def ripetizione(i):  # (numeri coperti, lunghezza del pezzo, volte) della ripetizione migliore che parte da i
+        meglio = (0, 0, 0)
+        for p in range(1, min(PERIODO, (len(numeri) - i) // 2) + 1):
+            volte = 1
+            while numeri[i + volte * p:i + (volte + 1) * p] == numeri[i:i + p]:
+                volte += 1
+            if volte > 1 and volte * p > meglio[0]:
+                meglio = (volte * p, p, volte)
+        return meglio
+
+    fuori, i = [], 0
+    while i < len(numeri):
+        coperti, p, volte = ripetizione(i)
+        if coperti and ripetizione(i + 1)[0] < coperti:
+            fuori.append((numeri[i:i + p], volte))
+            i += coperti
+        else:
+            fuori.append(numeri[i])
+            i += 1
+    return fuori
+
+
+def scrittura(lavoro, tid, dal, al):
+    """Il percorso della ricerca dentro un ostacolo, dal nodo `dal` (il primo ritorno) al nodo `al` (quello in cui la
+    cella e' superata; None: non ancora), scritto con le celle su cui la ricerca lavora, da 1: la cella dove si
+    incaglia, la cella piu' bassa a cui torna per cambiare scelta, poi una dopo l'altra quelle che rimette, fino a
+    incagliarsi di nuovo o a passare. Un numero piu' basso del precedente e' un ritorno indietro. Per esempio
+    30 29 30 31: si incaglia alla 30, cambia la 29, rimette la 30, arriva alla 31. Si scrivono al massimo SCRITTURA
+    nodi. Ritorna {"pezzi": [numero | [[numeri], volte], ...], "tagliata": se l'ostacolo continua oltre}, o None."""
+    try:
+        with open(os.path.join(_cartella(lavoro, tid), 'passi.bin'), 'rb') as f:
+            passi = os.fstat(f.fileno()).st_size // 6
+            if not 1 <= dal <= passi:
+                return None
+            fine = min(al if al else passi, dal + SCRITTURA - 1, passi)
+            f.seek((dal - 1) * 6)
+            # una in piu' in fondo, se c'e': serve a sapere se l'ultimo nodo e' un ritorno
+            pos = array.array('h', f.read((min(fine + 1, passi) - dal + 1) * 6))[0::3]
+    except OSError:
+        return None
+    n = fine - dal + 1
+    numeri = [pos[0] + 1]          # il primo nodo e' il ritorno: la cella dove si incaglia
+    for i in range(1, n):
+        numeri.append(pos[i])      # la cella appena messa (pos - 1, da 1)
+        if (i + 1 < len(pos) and pos[i + 1] <= pos[i]) or (al and dal + i == al):
+            numeri.append(pos[i] + 1)   # e quella dove si incaglia di nuovo, o dove arriva superato l'ostacolo
+    return {'pezzi': [x if isinstance(x, int) else [x[0], x[1]] for x in _raccogli(numeri)],
+            'tagliata': fine < (al if al else passi)}
+
+
 def passo(lavoro, tid, k):
     """Il nodo k della ricerca (./untitled passo, vedi passo.h): l'orario fin li' e i controlli della cella."""
     info = _leggi(os.path.join(_cartella(lavoro, tid), 'info.json'))

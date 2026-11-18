@@ -8,7 +8,14 @@ Due pagine, senza login e senza database:
   completo o al limite, con «Prec.» e «Succ.» (o ← e →) e i salti di 10 e 100 passi; per ogni passo l'orario fin lì, con la cella che la ricerca
   sta per decidere (gialla), la scelta appena messa (rosa) e quando torna indietro. Quando la ricerca torna indietro la pagina
   dice perché: la potatura che è scattata, oppure che nella classe ci vuole una lezione e nessuno può farla (con i
-  docenti raggruppati per motivo), e da quale cella riparte; i tasti «Ritorno» portano al ritorno indietro prima o dopo. Mentre il test gira lo slider
+  docenti raggruppati per motivo), e da quale cella riparte; i tasti «Ritorno» portano al ritorno indietro prima o dopo. Sotto lo slider, «I backtrack»: il profilo della
+  ricerca (per ogni tratto, da quale cella a quale si è mossa: si vede dove avanza e quanto torna indietro; un clic porta
+  a quel punto) e gli ostacoli che hanno richiesto più passi. Un ostacolo è una cella da cui la ricerca torna indietro,
+  finché non la supera: «cella 81 (25)» vuol dire che per superare la 81 è dovuta tornare indietro fino a 25 celle.
+  Un clic su un ostacolo porta al suo primo ritorno e ne scrive il percorso con le celle su cui la ricerca lavora
+  (30 29 30 31: si incaglia alla 30, cambia la 29, rimette la 30, arriva alla 31), con le ripetizioni raccolte:
+  30 (29 30)⁴ 31. Mentre il test gira si aggiornano ogni quattro secondi. I numeri vengono dal comando `ostacoli` del
+  solver, che rilegge i passi salvati. Mentre il test gira lo slider
   si allunga e, se è in fondo, segue la ricerca; c'è il pulsante «Ferma». Le celle hanno tutte la stessa misura.
   Sopra l'orario per classi, lo stesso passo visto dai docenti: una riga per docente, con la classe dove insegna a ogni ora, con chi è
   in coppia e, tratteggiate, le ore prima del suo ingresso.
