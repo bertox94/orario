@@ -72,9 +72,13 @@ struct Ricerca {
 Ricerca *nuova_ricerca(const Scuola *s);
 void libera_ricerca(Ricerca *r);
 
-// Decide la cella pos e scende alle celle dopo (cerca_orario(r, 0): tutto l'orario). Ritorna 1 se la ricerca e'
-// finita (trovato o fermato dicono come): allora r->orario e' l'orario trovato, o quello del nodo dove si e' fermata.
-// Ritorna 0 se non c'e' nessun orario.
-int cerca_orario(Ricerca *r, int pos);
+// Decide la cella pos e scende alle celle dopo (cerca_orario(r, 0): tutto l'orario). Come e' andata lo dice la
+// ricerca stessa: r->trovato (l'orario e' completo, ed e' r->orario) oppure r->fermato (si e' arrivati al limite di
+// nodi: r->orario e' quello del nodo dove si e' fermata). Se dopo cerca_orario(r, 0) non vale nessuno dei due, non
+// c'e' nessun orario.
+void cerca_orario(Ricerca *r, int pos);
+
+// la ricerca e' finita: l'orario e' completo, o si e' arrivati al limite di nodi
+int ricerca_finita(const Ricerca *r);
 
 #endif //UNTITLED_RICERCA_H

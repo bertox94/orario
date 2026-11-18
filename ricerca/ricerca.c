@@ -275,8 +275,8 @@ void segna_coppia(Ricerca *r, const Cella *c, const int p1, const int p2, const 
 // da fare in tutto): ogni docente (ii) prima in coppia con
 // ognuno di quelli dopo di lui nella coda (jj) con cui ha ore insieme qui, poi da solo. In una coppia il docente della
 // lezione puo' essere tanto ii quanto jj: la coppia si prova una volta sola, quando si arriva al primo dei due.
-// Ritorna 1 se la ricerca e' finita (vedi cerca_orario): allora non si prova altro e non si toglie niente.
-static int prova_lezioni(Ricerca *r, const Cella *c) {
+// Se dopo una scelta la ricerca e' finita (ricerca_finita) non si prova altro e non si toglie niente: l'orario resta.
+static void prova_lezioni(Ricerca *r, const Cella *c) {
     r->ore_classe_svolte[c->cla]++;  // la lezione di questa cella conta gia' tra le ore della classe
     for (int ii = 0; ii < c->n_coda; ii++) {
         const int p1 = c->coda[ii]->teacher;
@@ -286,57 +286,69 @@ static int prova_lezioni(Ricerca *r, const Cella *c) {
             if (!secondo_della_coppia_puo_insegnare(r, c, p1, p2)) continue;
             segna_coppia(r, c, p1, p2, 1);
             r->orario[c->pos] = (teaching_slot){p1, p2};
-            if (cerca_orario(r, c->pos + 1)) return 1;
+            cerca_orario(r, c->pos + 1);
+            if (ricerca_finita(r)) return;
             segna_coppia(r, c, p1, p2, -1);
         }
         if (docente_puo_insegnare_da_solo(r, c, p1)) {
             segna_da_solo(r, c, p1, 1);
             r->orario[c->pos] = (teaching_slot){p1, -1};
-            if (cerca_orario(r, c->pos + 1)) return 1;
+            cerca_orario(r, c->pos + 1);
+            if (ricerca_finita(r)) return;
             segna_da_solo(r, c, p1, -1);
         }
     }
     r->ore_classe_svolte[c->cla]--;
-    return 0;
 }
 
-// L'ora buca: da li' la classe non ha piu' lezione oggi. Ritorna 1 se la ricerca e' finita.
-static int prova_ora_buca(Ricerca *r, const Cella *c) {
+// L'ora buca: da li' la classe non ha piu' lezione oggi. Se la ricerca e' finita, resta messa.
+static void prova_ora_buca(Ricerca *r, const Cella *c) {
     r->orario[c->pos] = (teaching_slot){-1, -1};
     r->n_ore_buche[c->base2d_gc]++;
-    if (cerca_orario(r, c->pos + 1)) return 1;
+    cerca_orario(r, c->pos + 1);
+    if (ricerca_finita(r)) return;
     r->n_ore_buche[c->base2d_gc]--;
-    return 0;
 }
 
-// Decide la cella pos e scende alle celle dopo. Ritorna 1 se la ricerca e' finita: l'orario e' completo (trovato) o
-// si e' arrivati al limite di nodi (fermato). Ritorna 0 se in questa cella non c'e' piu' niente da provare: chi l'ha
-// chiamata toglie la sua scelta e prova la successiva (si torna indietro).
-int cerca_orario(Ricerca *r, const int pos) {
+// la ricerca e' finita: l'orario e' completo, o si e' arrivati al limite di nodi
+int ricerca_finita(const Ricerca *r) {
+    return r->trovato || r->fermato;
+}
+
+// Decide la cella pos e scende alle celle dopo. Quando ritorna, o la ricerca e' finita (ricerca_finita: l'orario e'
+// completo, oppure si e' arrivati al limite di nodi), o in questa cella non c'e' piu' niente da provare: allora chi
+// l'ha chiamata toglie la sua scelta e prova la successiva (si torna indietro).
+void cerca_orario(Ricerca *r, const int pos) {
     if (r->limite_nodi && r->nodi >= r->limite_nodi) {  // il limite di nodi: la ricerca si ferma qui
         r->fermato = 1;
-        return 1;
+        return;
     }
     r->nodi++;
     if (pos > r->pos_max) r->pos_max = pos;
     if (r->ogni_nodo) r->ogni_nodo(r, pos);
     if (pos == r->orario_len) {  // tutte le celle decise: l'orario e' completo
         r->trovato = 1;
-        return 1;
+        return;
     }
     if (r->potature_attive) {  // da qui un orario non puo' piu' uscire: si torna indietro subito
         const int quale = potatura(r, pos);
         if (quale >= 0) {
             r->potate[quale]++;
-            return 0;
+            return;
         }
     }
     const Cella c = cella(r, pos);
     sort_queue(c.coda, c.n_coda);
     switch (stato_della_classe(r, &c)) {
-        case DEVE_FARE_ATTIVITA: return prova_lezioni(r, &c);
-        case PUO_FARE_ATTIVITA: return prova_lezioni(r, &c) || prova_ora_buca(r, &c);
-        case NON_PUO_FARE_ATTIVITA: return prova_ora_buca(r, &c);
+        case DEVE_FARE_ATTIVITA:
+            prova_lezioni(r, &c);
+            break;
+        case PUO_FARE_ATTIVITA:
+            prova_lezioni(r, &c);
+            if (!ricerca_finita(r)) prova_ora_buca(r, &c);
+            break;
+        case NON_PUO_FARE_ATTIVITA:
+            prova_ora_buca(r, &c);
+            break;
     }
-    return 0;
 }
