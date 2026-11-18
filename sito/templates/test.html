@@ -116,6 +116,10 @@
 </details>
 
 <h2>I ritorni indietro</h2>
+<div class="rigo">
+  <label>Dalla cella <select id="cella-ritorni" aria-label="La cella da cui la ricerca torna indietro"></select></label>
+  <span class="nota">I ritorni si guardano una cella per volta: ogni volta che la ricerca ci torna e si incaglia di nuovo, quelli dalle celle prima sono stati superati.</span>
+</div>
 <div class="passi">
   <button type="button" class="secondario salto" data-ritorni="-100" title="100 ritorni prima">−100</button>
   <button type="button" class="secondario salto" data-ritorni="-10" title="10 ritorni prima">−10</button>
@@ -148,7 +152,7 @@
 {% set i, s = t.info, t.stato %}
 <script>
 const URL_STATO = '{{ url_for('stato', tid=i.id) }}', URL_PASSO = '{{ url_for('passo', tid=i.id, k=0)[:-1] }}';
-const URL_RITORNI = '{{ url_for('ritorni', tid=i.id, i=0)[:-1] }}';  // + i, oppure + 'fino-a/' + k
+const URL_RITORNI = '{{ url_for('celle_dei_ritorni', tid=i.id)[:-10] }}';  // + 'celle.json', + cella + '/' + i, + cella + '/fino-a/' + k
 const URL_OSTACOLI = '{{ url_for('ostacoli', tid=i.id) }}', URL_SCRITTURA = '{{ url_for('scrittura', tid=i.id, dal=1, al=0)[:-3] }}';  // + dal + '/' + al
 const URL_RITORNO = '{{ url_for('ritorno', tid=i.id, k=0, verso='dopo')[:-6] }}';  // + k + '/prima' o '/dopo'
 // le tre parti dei dati del caso (classi, docenti, codocenze) stanno su una riga di linguette: se ne vede una alla
@@ -247,48 +251,53 @@ function riempiOrario(tab, p) {
     td.classList.toggle('appena', !!p && k === p.pos - 1);
   }
 }
-// ---- i ritorni indietro: uno slider suo, con una posizione per ogni ritorno; il sito sa a che passo e' ognuno ----
-const sliderRitorni = document.getElementById('slider-ritorni');
-let ritornoRichiesto = 0, attesaRitorni = null, quantiRitorni = 0;
+// ---- i ritorni indietro, una cella per volta: si sceglie la cella da cui la ricerca torna indietro, e lo slider ha
+// una posizione per ognuno dei suoi ritorni; il sito sa a che passo e' ognuno ----
+const sliderRitorni = document.getElementById('slider-ritorni'), sceltaCella = document.getElementById('cella-ritorni');
+let ritornoRichiesto = '', attesaRitorni = null, quantiRitorni = 0, cellaRitorni = null;
 async function vaiRitorno(i) {
   if (!forma) return;
   const scritta = document.getElementById('testo-ritorno');
-  i = Math.max(1, Math.min(Math.max(1, quantiRitorni), i));
-  sliderRitorni.value = i;
-  ritornoRichiesto = i;
-  let r;
-  try { r = await (await fetch(URL_RITORNI + i)).json(); } catch (e) { return; }
-  if (ritornoRichiesto !== i) return;  // un altro ritorno chiesto nel frattempo: vale l'ultimo
-  aggiornaQuantiRitorni(r.quanti);
-  if (!r.k) {
+  if (cellaRitorni === null) {
     riempiOrario(tabellaRitorno, null);
     scritta.textContent = 'La ricerca non è ancora tornata indietro.';
     return;
   }
+  i = Math.max(1, Math.min(Math.max(1, quantiRitorni), i));
+  sliderRitorni.value = i;
+  const chiesto = ritornoRichiesto = cellaRitorni + '/' + i;
+  let r;
+  try { r = await (await fetch(URL_RITORNI + chiesto)).json(); } catch (e) { return; }
+  if (ritornoRichiesto !== chiesto || !r.k) return;  // un altro ritorno chiesto nel frattempo: vale l'ultimo
   const risposta = await fetch(URL_PASSO + r.k);
-  if (!risposta.ok || ritornoRichiesto !== i) return;
+  if (!risposta.ok || ritornoRichiesto !== chiesto) return;
   const p = await risposta.json();
   riempiOrario(tabellaRitorno, p);
-  scritta.innerHTML = `Ritorno ${numero(i)} di ${numero(quantiRitorni)} · al passo ${numero(r.k)} · ` +
-    `la ricerca si è incagliata alla cella ${numero(p.pos + 1)} (${esc(doveCella(p.pos))}) ` +
-    `<button type="button" class="piccolo secondario" id="al-passo" data-k="${r.k}" title="Porta lo slider dei passi a questo passo">vai a questo passo</button>`;
+  scritta.innerHTML = `Ritorno ${numero(i)} di ${numero(quantiRitorni)} dalla cella ${numero(p.pos + 1)} (${esc(doveCella(p.pos))}) · ` +
+    `al passo ${numero(r.k)} <button type="button" class="piccolo secondario" id="al-passo" data-k="${r.k}" ` +
+    'title="Porta lo slider dei passi a questo passo">vai a questo passo</button>';
   const C = forma.classi.length, cella = Math.min(p.pos, forma.giorni.length * forma.ore.length * C - 1);
   inVista(tabellaRitorno, tabellaRitorno.tBodies[0].rows[cella % C].cells[1 + Math.floor(cella / C)], 64);
 }
-function aggiornaQuantiRitorni(n) {
-  quantiRitorni = n;
-  sliderRitorni.max = Math.max(1, n);
+// Le celle da cui la ricerca e' tornata indietro, con quanti ritorni ognuna: riempie il menu (la prima volta sceglie
+// la cella piu' avanti) e allunga lo slider della cella scelta; mentre il test gira, se lo slider era in fondo segue
+// i ritorni nuovi di quella cella.
+async function seguiRitorni(scegli, poi) {
+  if (!forma) return;  // i nomi delle celle servono al menu
+  let celle;
+  try { celle = await (await fetch(URL_RITORNI + 'celle.json')).json(); } catch (e) { return; }
+  if (scegli !== undefined) cellaRitorni = scegli;
+  else if (cellaRitorni === null && celle.length) cellaRitorni = celle[0].cella;
+  sceltaCella.innerHTML = celle.map(x => `<option value="${x.cella}"${x.cella === cellaRitorni ? ' selected' : ''}>` +
+    `${numero(x.cella + 1)} · ${esc(doveCella(x.cella))} · ${numero(x.quanti)} ritorn${x.quanti === 1 ? 'o' : 'i'}</option>`).join('');
+  const sua = celle.find(x => x.cella === cellaRitorni), prima = quantiRitorni, inFondo = Number(sliderRitorni.value) >= prima;
+  quantiRitorni = sua ? sua.quanti : 0;
+  sliderRitorni.max = Math.max(1, quantiRitorni);
+  if (poi) return poi();
+  if (scegli !== undefined || !prima) vaiRitorno(scegli !== undefined ? 1 : quantiRitorni);
+  else if (quantiRitorni !== prima && inFondo) vaiRitorno(quantiRitorni);
 }
-// quanti ritorni ci sono adesso: mentre il test gira crescono, e se lo slider era in fondo segue i nuovi
-async function seguiRitorni() {
-  const inFondo = Number(sliderRitorni.value) >= quantiRitorni;
-  let r;
-  try { r = await (await fetch(URL_RITORNI + 0)).json(); } catch (e) { return; }
-  const prima = quantiRitorni;
-  aggiornaQuantiRitorni(r.quanti);
-  if (r.quanti !== prima && (inFondo || !prima)) vaiRitorno(r.quanti);
-  else if (!r.quanti) vaiRitorno(1);
-}
+sceltaCella.addEventListener('change', () => seguiRitorni(Number(sceltaCella.value)));
 sliderRitorni.addEventListener('input', () => {
   clearTimeout(attesaRitorni);
   attesaRitorni = setTimeout(() => vaiRitorno(Number(sliderRitorni.value)), 60);
@@ -436,7 +445,7 @@ function mostraBacktrack(b) {
         : `La cella più avanti: ${numero(b.cella_massima + 1)}` + (forma ? ` (${doveCella(b.cella_massima)}).` : '.'));
   box.hidden = !b.lunghi.length;
   document.querySelector('#tabella-ostacoli tbody').innerHTML = b.lunghi.map(o =>
-    `<tr class="ostacolo${o.dal === ostacoloScelto ? ' scelto' : ''}" data-dal="${o.dal}" data-al="${o.al || 0}">` +
+    `<tr class="ostacolo${o.dal === ostacoloScelto ? ' scelto' : ''}" data-dal="${o.dal}" data-al="${o.al || 0}" data-cella="${o.cella}">` +
     `<td><strong>cella ${numero(o.cella + 1)} (${numero(o.profondita)})</strong></td><td>${forma ? esc(doveCella(o.cella)) : ''}</td>` +
     `<td class="num">${numero(o.dal)}</td>` +
     `<td>${o.al ? 'al passo ' + numero(o.al) : '<span class="confronto confronto-peggiorato">non ancora</span>'}</td>` +
@@ -458,7 +467,9 @@ document.querySelector('#tabella-ostacoli tbody').addEventListener('click', asyn
   ostacoloScelto = Number(tr.dataset.dal);
   mostraBacktrack(backtrack);
   vai(ostacoloScelto);
-  fetch(URL_RITORNI + 'fino-a/' + ostacoloScelto).then(x => x.json()).then(x => { if (x.i) vaiRitorno(x.i); });
+  // i ritorni passano alla cella dell'ostacolo, sul suo primo ritorno
+  const cella = Number(tr.dataset.cella);
+  fetch(URL_RITORNI + cella + '/fino-a/' + ostacoloScelto).then(x => x.json()).then(x => seguiRitorni(cella, () => vaiRitorno(x.i || 1)));
   const dove = document.getElementById('scrittura');
   const s = await (await fetch(URL_SCRITTURA + ostacoloScelto + '/' + tr.dataset.al)).json();
   dove.hidden = !s.pezzi;

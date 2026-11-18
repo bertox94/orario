@@ -18,9 +18,11 @@ Due pagine, senza login e senza database:
   solver, che rilegge i passi salvati. Mentre il test gira lo slider
   si allunga e, se è in fondo, segue la ricerca; c'è il pulsante «Ferma». Le celle hanno tutte la stessa misura.
   Le sezioni sono due, ognuna con il suo slider subito sopra il suo orario, e si muovono per conto loro: «La ricerca,
-  passo per passo» e «I ritorni indietro», dove lo slider ha una posizione per ogni ritorno e l'orario è quello di
-  quando la ricerca è tornata indietro, con in giallo la cella dove si è incagliata («vai a questo passo» porta lì lo
-  slider dei passi). Il sito tiene l'indice dei ritorni in `ritorni.idx`, accanto ai passi. Sotto l'orario dei passi, chiuso finché non lo si apre, lo stesso passo visto dai docenti: una riga per docente, con la classe dove insegna a ogni ora, con chi è
+  passo per passo» e «I ritorni indietro», che si guardano una cella per volta: si sceglie la cella da cui la ricerca
+  torna indietro (all'inizio la più avanti), lo slider ha una posizione per ognuno dei suoi ritorni e l'orario è quello
+  di quando la ricerca si è incagliata lì, con la cella in giallo («vai a questo passo» porta lì lo slider dei passi).
+  Ogni volta che la ricerca torna a incagliarsi nella stessa cella, i ritorni dalle celle prima sono stati superati.
+  Il sito tiene l'indice dei ritorni in `ritorni.idx` e `ritorni.celle`, accanto ai passi. Sotto l'orario dei passi, chiuso finché non lo si apre, lo stesso passo visto dai docenti: una riga per docente, con la classe dove insegna a ogni ora, con chi è
   in coppia e, tratteggiate, le ore prima del suo ingresso.
   Sotto la frase del passo, se da lì la ricerca torna indietro, c'è scritto da quale cella riparte. Le spiegazioni del perché di un ritorno (la
   potatura, il controllo della classe, la coda di priorità, i controlli dei docenti) sono state tolte il 18 novembre

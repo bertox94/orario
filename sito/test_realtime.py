@@ -145,53 +145,86 @@ def ritorno(lavoro, tid, k, avanti):
 
 
 _lock_indice = threading.Lock()
+_per_cella = {}   # (lavoro, test) -> [quanti ritorni gia' divisi, {cella: array dei suoi passi}]
 
 
 def _indice_dei_ritorni(lavoro, tid):
-    """I passi dove la ricerca torna indietro, in ordine (un array di interi): il ritorno numero i e' al passo
-    indice[i - 1]. Per non rileggere tutti i passi ogni volta, l'indice sta in ritorni.idx accanto ai passi: un intero
-    a 64 bit con quanti passi sono gia' stati guardati, poi un intero a 32 bit per ritorno. Si allunga da solo mentre
-    il test gira: si guardano solo i passi nuovi. (Un passo e' un ritorno se quello dopo decide una cella che non
-    viene dopo la sua: l'ultimo passo del file si giudica quando arriva il successivo.)"""
+    """I ritorni indietro della ricerca, in ordine: (passi, celle), due array lunghi uguali: il ritorno numero i e' al
+    passo passi[i - 1], e la ricerca tornava indietro dalla cella celle[i - 1]. Per non rileggere tutti i passi ogni
+    volta, l'indice sta accanto ai passi in due file: ritorni.idx (un intero a 64 bit con quanti passi sono gia' stati
+    guardati, poi un intero a 32 bit per ritorno) e ritorni.celle (un intero a 16 bit per ritorno). Si allunga da solo
+    mentre il test gira: si guardano solo i passi nuovi. Se i due file non vanno d'accordo si rifanno da capo.
+    (Un passo e' un ritorno se quello dopo decide una cella che non viene dopo la sua: l'ultimo passo del file si
+    giudica quando arriva il successivo.)"""
     d = _cartella(lavoro, tid)
-    indice = array.array('I')
+    indice, celle = array.array('I'), array.array('h')
     try:
-        with _lock_indice, open(os.path.join(d, 'passi.bin'), 'rb') as f, open(os.path.join(d, 'ritorni.idx'), 'a+b') as g:
+        with _lock_indice, open(os.path.join(d, 'passi.bin'), 'rb') as f:
             passi = os.fstat(f.fileno()).st_size // 6
-            g.seek(0)
-            testa = g.read(8)
-            guardati = int.from_bytes(testa, 'little') if len(testa) == 8 else 0
-            indice.frombytes(g.read())
-            if not testa:
-                g.write((0).to_bytes(8, 'little'))
-            nuovi = array.array('I')
+            guardati = 0
+            try:
+                with open(os.path.join(d, 'ritorni.idx'), 'rb') as g, open(os.path.join(d, 'ritorni.celle'), 'rb') as h:
+                    guardati = int.from_bytes(g.read(8), 'little')
+                    indice.frombytes(g.read())
+                    celle.frombytes(h.read())
+            except (OSError, ValueError):
+                pass
+            if len(indice) != len(celle) or guardati > passi:   # file a meta', o passi rifatti: da capo
+                indice, celle, guardati = array.array('I'), array.array('h'), 0
+            da, gia_guardati = len(indice), guardati
             while guardati < passi - 1:   # i passi da guardati + 1 a passi - 1 si possono giudicare
                 a = min(guardati + 65536, passi - 1)
                 f.seek(guardati * 6)
                 c = array.array('h', f.read((a - guardati + 1) * 6))[0::3]   # le celle dei passi guardati + 1 ... a + 1
-                nuovi.extend(guardati + 1 + i for i in range(len(c) - 1) if c[i + 1] <= c[i])
+                for i in range(len(c) - 1):
+                    if c[i + 1] <= c[i]:
+                        indice.append(guardati + 1 + i)
+                        celle.append(c[i])
                 guardati = a
-            if nuovi or testa[:8] != guardati.to_bytes(8, 'little'):
-                g.seek(0, os.SEEK_END)
-                g.write(nuovi.tobytes())
-                g.flush()
-                with open(os.path.join(d, 'ritorni.idx'), 'r+b') as testa_del_file:   # in modo «a» si scrive solo in fondo
-                    testa_del_file.write(guardati.to_bytes(8, 'little'))
-                indice.extend(nuovi)
+            if guardati != gia_guardati or not os.path.exists(os.path.join(d, 'ritorni.idx')):
+                with open(os.path.join(d, 'ritorni.celle'), 'wb' if not da else 'ab') as h:
+                    h.write(celle[da:].tobytes())
+                with open(os.path.join(d, 'ritorni.idx'), 'r+b' if da else 'wb') as g:
+                    if da:
+                        g.seek(0, os.SEEK_END)
+                    else:
+                        g.write(guardati.to_bytes(8, 'little'))
+                    g.write(indice[da:].tobytes())
+                    g.seek(0)
+                    g.write(guardati.to_bytes(8, 'little'))
     except OSError:
         pass
-    return indice
+    return indice, celle
 
 
-def ritorni(lavoro, tid, i=None, fino_a=None):
-    """I ritorni indietro del test, contati da 1: {"quanti": quanti sono}, piu' "i" e "k" (il numero di un ritorno e il
-    suo passo) se si chiede il ritorno numero i, oppure l'ultimo fino al passo fino_a (se ce n'e' uno)."""
-    indice = _indice_dei_ritorni(lavoro, tid)
-    r = {'quanti': len(indice)}
+def _ritorni_per_cella(lavoro, tid):
+    """Per ogni cella da cui la ricerca e' tornata indietro, i passi dei suoi ritorni, in ordine: {cella: array}.
+    Si tiene in memoria e si allunga con i ritorni nuovi."""
+    indice, celle = _indice_dei_ritorni(lavoro, tid)
+    with _lock_indice:
+        divisi = _per_cella.setdefault((lavoro, tid), [0, {}])
+        if divisi[0] > len(indice):
+            divisi[0], divisi[1] = 0, {}
+        for i in range(divisi[0], len(indice)):
+            divisi[1].setdefault(celle[i], array.array('I')).append(indice[i])
+        divisi[0] = len(indice)
+        return divisi[1]
+
+
+def celle_dei_ritorni(lavoro, tid):
+    """Le celle da cui la ricerca e' tornata indietro, dalla piu' avanti: [{"cella", "quanti"}, ...]."""
+    return [{'cella': c, 'quanti': len(v)} for c, v in sorted(_ritorni_per_cella(lavoro, tid).items(), reverse=True)]
+
+
+def ritorni(lavoro, tid, cella, i=None, fino_a=None):
+    """I ritorni indietro da una cella, contati da 1: {"quanti": quanti sono}, piu' "i" e "k" (il numero di un ritorno
+    e il suo passo) se si chiede il ritorno numero i, oppure l'ultimo fino al passo fino_a (se ce n'e' uno)."""
+    suoi = _ritorni_per_cella(lavoro, tid).get(cella, ())
+    r = {'quanti': len(suoi)}
     if fino_a is not None:
-        i = bisect.bisect_right(indice, fino_a)
-    if i is not None and 1 <= i <= len(indice):
-        r.update(i=i, k=indice[i - 1])
+        i = bisect.bisect_right(suoi, fino_a)
+    if i is not None and 1 <= i <= len(suoi):
+        r.update(i=i, k=suoi[i - 1])
     return r
 
 
