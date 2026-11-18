@@ -2,6 +2,7 @@
 e stato.json (lo stato della ricerca, scritto dal solver), passi.bin (ogni nodo, per lo slider: vedi passi.h).
 Un test alla volta; gli altri restano come storico."""
 import array
+import bisect
 import json
 import os
 import shutil
@@ -141,6 +142,57 @@ def ritorno(lavoro, tid, k, avanti):
     except OSError:
         pass
     return None
+
+
+_lock_indice = threading.Lock()
+
+
+def _indice_dei_ritorni(lavoro, tid):
+    """I passi dove la ricerca torna indietro, in ordine (un array di interi): il ritorno numero i e' al passo
+    indice[i - 1]. Per non rileggere tutti i passi ogni volta, l'indice sta in ritorni.idx accanto ai passi: un intero
+    a 64 bit con quanti passi sono gia' stati guardati, poi un intero a 32 bit per ritorno. Si allunga da solo mentre
+    il test gira: si guardano solo i passi nuovi. (Un passo e' un ritorno se quello dopo decide una cella che non
+    viene dopo la sua: l'ultimo passo del file si giudica quando arriva il successivo.)"""
+    d = _cartella(lavoro, tid)
+    indice = array.array('I')
+    try:
+        with _lock_indice, open(os.path.join(d, 'passi.bin'), 'rb') as f, open(os.path.join(d, 'ritorni.idx'), 'a+b') as g:
+            passi = os.fstat(f.fileno()).st_size // 6
+            g.seek(0)
+            testa = g.read(8)
+            guardati = int.from_bytes(testa, 'little') if len(testa) == 8 else 0
+            indice.frombytes(g.read())
+            if not testa:
+                g.write((0).to_bytes(8, 'little'))
+            nuovi = array.array('I')
+            while guardati < passi - 1:   # i passi da guardati + 1 a passi - 1 si possono giudicare
+                a = min(guardati + 65536, passi - 1)
+                f.seek(guardati * 6)
+                c = array.array('h', f.read((a - guardati + 1) * 6))[0::3]   # le celle dei passi guardati + 1 ... a + 1
+                nuovi.extend(guardati + 1 + i for i in range(len(c) - 1) if c[i + 1] <= c[i])
+                guardati = a
+            if nuovi or testa[:8] != guardati.to_bytes(8, 'little'):
+                g.seek(0, os.SEEK_END)
+                g.write(nuovi.tobytes())
+                g.flush()
+                with open(os.path.join(d, 'ritorni.idx'), 'r+b') as testa_del_file:   # in modo «a» si scrive solo in fondo
+                    testa_del_file.write(guardati.to_bytes(8, 'little'))
+                indice.extend(nuovi)
+    except OSError:
+        pass
+    return indice
+
+
+def ritorni(lavoro, tid, i=None, fino_a=None):
+    """I ritorni indietro del test, contati da 1: {"quanti": quanti sono}, piu' "i" e "k" (il numero di un ritorno e il
+    suo passo) se si chiede il ritorno numero i, oppure l'ultimo fino al passo fino_a (se ce n'e' uno)."""
+    indice = _indice_dei_ritorni(lavoro, tid)
+    r = {'quanti': len(indice)}
+    if fino_a is not None:
+        i = bisect.bisect_right(indice, fino_a)
+    if i is not None and 1 <= i <= len(indice):
+        r.update(i=i, k=indice[i - 1])
+    return r
 
 
 FASCE, LUNGHI = 400, 12   # in quante parti si divide la ricerca per il profilo, e quanti ostacoli si elencano

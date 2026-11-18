@@ -104,30 +104,10 @@
   <button type="button" class="secondario salto" data-ritorno="dopo" title="Il passo dopo questo dove la ricerca torna indietro">Ritorno ⏭</button>
 </div>
 <p id="testo-passo" class="testo-passo"></p>
-<h3>I backtrack</h3>
-<p class="nota" id="conto-backtrack"></p>
-<canvas id="profilo" height="130" title="Clic: vai a quel punto della ricerca"></canvas>
-<p class="nota">Il profilo della ricerca, da sinistra a destra: per ogni tratto, da quale cella a quale si è mossa. Dove la fascia è alta
-  e stretta la ricerca avanza; dove scende è tornata indietro, tanto più in basso quanto più indietro. Il filo è il passo che stai guardando.</p>
-<div id="ostacoli" hidden>
-  <p class="nota">Gli ostacoli che hanno richiesto più passi. Un ostacolo è una cella da cui la ricerca torna indietro, finché non riesce a
-    superarla; tra parentesi di quante celle è dovuta tornare indietro, al massimo, per riuscirci. Un clic sulla riga porta al suo primo ritorno e ne scrive il percorso.</p>
-  <div class="scorre"><table class="dati" id="tabella-ostacoli">
-    <thead><tr><th>Ostacolo</th><th>Dove</th><th class="num">Dal passo</th><th>Superato</th><th class="num">Passi</th><th class="num">Ritorni</th></tr></thead>
-    <tbody></tbody>
-  </table></div>
-  <p id="scrittura" class="scrittura" hidden></p>
-</div>
-<h3>L'orario al passo</h3>
+<p id="poi-riparte" class="testo-passo"></p>
 <div class="scorre"><table class="orario" id="orario"></table></div>
-<p class="nota">Ogni passo è un nodo della ricerca: la cella gialla è quella che la ricerca sta per decidere,
-  la rosa la scelta appena messa; «–» è un'ora buca. Mentre il test gira lo slider si allunga e, se è in fondo,
-  segue la ricerca.</p>
-<h3>L'orario all'ultimo ritorno indietro</h3>
-<p id="testo-ritorno" class="testo-passo"></p>
-<div class="scorre"><table class="orario" id="orario-ritorno"></table></div>
-<p class="nota">L'orario com'era l'ultima volta che la ricerca è tornata indietro, fino al passo che stai guardando: la cella gialla è
-  quella dove si è incagliata. Resta fermo finché, andando avanti con i passi, non si arriva a un altro ritorno.</p>
+<p class="nota">La cella gialla è quella che la ricerca sta per decidere, la rosa la scelta appena messa; «–» è un'ora buca.
+  Mentre il test gira lo slider si allunga e, se è in fondo, segue la ricerca.</p>
 <details id="dai-docenti">
   <summary>L'orario visto dai docenti</summary>
   <div class="scorre"><table class="orario docenti" id="orario-docenti"></table></div>
@@ -135,12 +115,40 @@
     coppia. Le ore tratteggiate sono prima del suo ingresso; la rosa è la scelta appena messa.</p>
 </details>
 
-<div id="controlli"></div>
+<h2>I ritorni indietro</h2>
+<div class="passi">
+  <button type="button" class="secondario salto" data-ritorni="-100" title="100 ritorni prima">−100</button>
+  <button type="button" class="secondario salto" data-ritorni="-10" title="10 ritorni prima">−10</button>
+  <button type="button" class="secondario" data-ritorni="-1" title="Il ritorno prima">◀ Prec.</button>
+  <input type="range" id="slider-ritorni" min="1" max="1" value="1" aria-label="Ritorno indietro della ricerca">
+  <button type="button" class="secondario" data-ritorni="1" title="Il ritorno dopo">Succ. ▶</button>
+  <button type="button" class="secondario salto" data-ritorni="10" title="10 ritorni dopo">+10</button>
+  <button type="button" class="secondario salto" data-ritorni="100" title="100 ritorni dopo">+100</button>
+</div>
+<p id="testo-ritorno" class="testo-passo"></p>
+<div class="scorre"><table class="orario" id="orario-ritorno"></table></div>
+<p class="nota">L'orario com'era quando la ricerca è tornata indietro: la cella gialla è quella dove si è incagliata.
+  Mentre il test gira lo slider si allunga e, se è in fondo, segue i ritorni nuovi.</p>
+<h3>Il profilo e gli ostacoli</h3>
+<p class="nota" id="conto-backtrack"></p>
+<canvas id="profilo" height="130" title="Clic: vai a quel punto della ricerca"></canvas>
+<p class="nota">Il profilo della ricerca, da sinistra a destra: per ogni tratto, da quale cella a quale si è mossa. Dove la fascia è alta
+  e stretta la ricerca avanza; dove scende è tornata indietro, tanto più in basso quanto più indietro. Il filo è il passo che stai guardando nella prima parte; un clic porta lì lo slider dei passi.</p>
+<div id="ostacoli" hidden>
+  <p class="nota">Gli ostacoli che hanno richiesto più passi. Un ostacolo è una cella da cui la ricerca torna indietro, finché non riesce a
+    superarla; tra parentesi di quante celle è dovuta tornare indietro, al massimo, per riuscirci. Un clic sulla riga porta i due slider al suo primo ritorno e ne scrive il percorso.</p>
+  <div class="scorre"><table class="dati" id="tabella-ostacoli">
+    <thead><tr><th>Ostacolo</th><th>Dove</th><th class="num">Dal passo</th><th>Superato</th><th class="num">Passi</th><th class="num">Ritorni</th></tr></thead>
+    <tbody></tbody>
+  </table></div>
+  <p id="scrittura" class="scrittura" hidden></p>
+</div>
 {% endblock %}
 {% block script %}
 {% set i, s = t.info, t.stato %}
 <script>
 const URL_STATO = '{{ url_for('stato', tid=i.id) }}', URL_PASSO = '{{ url_for('passo', tid=i.id, k=0)[:-1] }}';
+const URL_RITORNI = '{{ url_for('ritorni', tid=i.id, i=0)[:-1] }}';  // + i, oppure + 'fino-a/' + k
 const URL_OSTACOLI = '{{ url_for('ostacoli', tid=i.id) }}', URL_SCRITTURA = '{{ url_for('scrittura', tid=i.id, dal=1, al=0)[:-3] }}';  // + dal + '/' + al
 const URL_RITORNO = '{{ url_for('ritorno', tid=i.id, k=0, verso='dopo')[:-6] }}';  // + k + '/prima' o '/dopo'
 // le tre parti dei dati del caso (classi, docenti, codocenze) stanno su una riga di linguette: se ne vede una alla
@@ -239,32 +247,61 @@ function riempiOrario(tab, p) {
     td.classList.toggle('appena', !!p && k === p.pos - 1);
   }
 }
-// L'orario all'ultimo ritorno indietro fino al passo k: il sito trova quel ritorno nel file dei passi, e la pagina ne
-// chiede l'orario solo se e' cambiato. Senza ritorni fino a k la griglia resta vuota.
-let ritornoMostrato = null;  // il passo del ritorno che la griglia mostra, e il suo orario
-async function disegnaUltimoRitorno(k) {
+// ---- i ritorni indietro: uno slider suo, con una posizione per ogni ritorno; il sito sa a che passo e' ognuno ----
+const sliderRitorni = document.getElementById('slider-ritorni');
+let ritornoRichiesto = 0, attesaRitorni = null, quantiRitorni = 0;
+async function vaiRitorno(i) {
+  if (!forma) return;
   const scritta = document.getElementById('testo-ritorno');
+  i = Math.max(1, Math.min(Math.max(1, quantiRitorni), i));
+  sliderRitorni.value = i;
+  ritornoRichiesto = i;
   let r;
-  try { r = await (await fetch(URL_RITORNO + (k + 1) + '/prima')).json(); } catch (e) { return; }
-  if (richiesto !== k) return;
+  try { r = await (await fetch(URL_RITORNI + i)).json(); } catch (e) { return; }
+  if (ritornoRichiesto !== i) return;  // un altro ritorno chiesto nel frattempo: vale l'ultimo
+  aggiornaQuantiRitorni(r.quanti);
   if (!r.k) {
-    ritornoMostrato = null;
     riempiOrario(tabellaRitorno, null);
-    scritta.textContent = 'Fino a questo passo la ricerca non è mai tornata indietro.';
+    scritta.textContent = 'La ricerca non è ancora tornata indietro.';
     return;
   }
-  if (!ritornoMostrato || ritornoMostrato.k !== r.k) {
-    const risposta = await fetch(URL_PASSO + r.k);
-    if (!risposta.ok || richiesto !== k) return;
-    ritornoMostrato = await risposta.json();
-    riempiOrario(tabellaRitorno, ritornoMostrato);
-    const C = forma.classi.length, cella = Math.min(ritornoMostrato.pos, forma.giorni.length * forma.ore.length * C - 1);
-    inVista(tabellaRitorno, tabellaRitorno.tBodies[0].rows[cella % C].cells[1 + Math.floor(cella / C)], 64);
-  }
-  const fa = k - r.k, pos = ritornoMostrato.pos;
-  scritta.innerHTML = `Ritorno indietro al passo ${numero(r.k)}` + (fa ? `, ${numero(fa)} pass${fa === 1 ? 'o' : 'i'} fa` : ' (questo)') +
-    `: la ricerca si è incagliata alla cella ${numero(pos + 1)} (${esc(doveCella(pos))}).`;
+  const risposta = await fetch(URL_PASSO + r.k);
+  if (!risposta.ok || ritornoRichiesto !== i) return;
+  const p = await risposta.json();
+  riempiOrario(tabellaRitorno, p);
+  scritta.innerHTML = `Ritorno ${numero(i)} di ${numero(quantiRitorni)} · al passo ${numero(r.k)} · ` +
+    `la ricerca si è incagliata alla cella ${numero(p.pos + 1)} (${esc(doveCella(p.pos))}) ` +
+    `<button type="button" class="piccolo secondario" id="al-passo" data-k="${r.k}" title="Porta lo slider dei passi a questo passo">vai a questo passo</button>`;
+  const C = forma.classi.length, cella = Math.min(p.pos, forma.giorni.length * forma.ore.length * C - 1);
+  inVista(tabellaRitorno, tabellaRitorno.tBodies[0].rows[cella % C].cells[1 + Math.floor(cella / C)], 64);
 }
+function aggiornaQuantiRitorni(n) {
+  quantiRitorni = n;
+  sliderRitorni.max = Math.max(1, n);
+}
+// quanti ritorni ci sono adesso: mentre il test gira crescono, e se lo slider era in fondo segue i nuovi
+async function seguiRitorni() {
+  const inFondo = Number(sliderRitorni.value) >= quantiRitorni;
+  let r;
+  try { r = await (await fetch(URL_RITORNI + 0)).json(); } catch (e) { return; }
+  const prima = quantiRitorni;
+  aggiornaQuantiRitorni(r.quanti);
+  if (r.quanti !== prima && (inFondo || !prima)) vaiRitorno(r.quanti);
+  else if (!r.quanti) vaiRitorno(1);
+}
+sliderRitorni.addEventListener('input', () => {
+  clearTimeout(attesaRitorni);
+  attesaRitorni = setTimeout(() => vaiRitorno(Number(sliderRitorni.value)), 60);
+});
+document.addEventListener('click', e => {
+  const b = e.target.closest('button[data-ritorni]');
+  if (b) return vaiRitorno(Number(sliderRitorni.value) + Number(b.dataset.ritorni));
+  const passo = e.target.closest('#al-passo');
+  if (passo) {
+    vai(Number(passo.dataset.k));
+    slider.scrollIntoView({behavior: 'smooth', block: 'center'});
+  }
+});
 
 // il passo k: l'orario fino alla cella che la ricerca sta decidendo
 function disegnaPasso(p) {
@@ -320,51 +357,20 @@ async function vai(k) {
   if (!r.ok || richiesto !== k) return;  // un altro passo chiesto nel frattempo: vale l'ultimo
   const p = await r.json();
   disegnaPasso(p);
-  disegnaControlli(p);
+  dovRiparte(p);
   disegnaProfilo();  // il filo del passo che si guarda
-  disegnaUltimoRitorno(k);
 }
 // «Prec.», «Succ.» e i salti di 10 e 100 passi anche accanto al titolo della cella (la pagina resta dov'e')
-const salto = n => `<button type="button" class="secondario salto" data-passo="${n}" title="${Math.abs(n)} passi ${n < 0 ? 'prima' : 'dopo'}">` +
-  `${n < 0 ? '−' : '+'}${Math.abs(n)}</button>`;
-const ritorno = (verso, testo) => `<button type="button" class="secondario salto" data-ritorno="${verso}" ` +
-  `title="Il passo ${verso} di questo dove la ricerca torna indietro">${testo}</button>`;
-const TASTI_PRIMA = ritorno('prima', '⏮ Ritorno') + salto(-100) + salto(-10) +
-  '<button type="button" class="secondario" data-passo="-1" title="Il passo prima (←)">◀ Prec.</button>';
-const TASTI_DOPO = '<button type="button" class="secondario" data-passo="1" title="Il passo dopo (→)">Succ. ▶</button>' +
-  salto(10) + salto(100) + ritorno('dopo', 'Ritorno ⏭');
-document.getElementById('controlli').addEventListener('click', e => {
-  const b = e.target.closest('button[data-passo]');
-  if (b) vai(Number(slider.value) + Number(b.dataset.passo));
-});
-// «Ritorno»: salta al passo, prima o dopo questo, dove la ricerca torna indietro (lo trova il sito nel file dei passi)
-document.addEventListener('click', async e => {
-  const b = e.target.closest('button[data-ritorno]');
-  if (!b) return;
-  const r = await (await fetch(URL_RITORNO + slider.value + '/' + b.dataset.ritorno)).json();
-  if (r.k) vai(r.k);
-  else testo.innerHTML += ` · <span class="nota">nessun ritorno indietro ${b.dataset.ritorno === 'dopo' ? 'dopo' : 'prima di'} questo passo</span>`;
-});
-
-// ---- sotto gli orari: la cella del passo. Se da li' la ricerca torna indietro lo dice, con la cella da cui riparte
-// (le spiegazioni del perche' si rifanno una alla volta) ----
-function disegnaControlli(c) {
-  const box = document.getElementById('controlli');
-  if (!c || c.completo) {
-    box.innerHTML = c ? `<div class="testa-cella"><h2>Orario completo</h2>${TASTI_PRIMA}</div>` : '';
-    return;
-  }
-  box.innerHTML = `<div class="testa-cella"><h2>La cella ${numero(c.pos + 1)}: ${esc(doveCella(c.pos))}</h2>${TASTI_PRIMA}${TASTI_DOPO}</div>` +
-    '<p id="poi-riparte"></p>';
-  dovRiparte(c);
-}
-// La ricerca torna indietro da questo passo se quello dopo decide una cella che non viene dopo: allora scrive da quale
-// cella riparte e quante, in mezzo, hanno finito le scelte.
+// Sotto la frase del passo: se da questo passo la ricerca torna indietro (quello dopo decide una cella che non viene
+// dopo) lo dice, con la cella da cui riparte e quante, in mezzo, hanno finito le scelte. (Le spiegazioni del perche'
+// si rifanno una alla volta.)
 async function dovRiparte(c) {
+  const qui = document.getElementById('poi-riparte');
+  qui.innerHTML = '';
   if (c.k >= Number(slider.max)) return;
   const r = await fetch(URL_PASSO + (c.k + 1));
-  const dopo = r.ok ? await r.json() : null, qui = document.getElementById('poi-riparte');
-  if (!dopo || !qui || Number(slider.value) !== c.k || dopo.pos > c.pos) return;
+  const dopo = r.ok ? await r.json() : null;
+  if (!dopo || Number(slider.value) !== c.k || dopo.pos > c.pos) return;
   const cella = dopo.pos - 1, esaurite = c.pos - dopo.pos;
   qui.innerHTML = '<span class="indietro">Qui la ricerca torna indietro.</span> ' +
     `Riparte dalla cella ${numero(cella + 1)} (${esc(doveCella(cella))}), con la scelta successiva` +
@@ -452,6 +458,7 @@ document.querySelector('#tabella-ostacoli tbody').addEventListener('click', asyn
   ostacoloScelto = Number(tr.dataset.dal);
   mostraBacktrack(backtrack);
   vai(ostacoloScelto);
+  fetch(URL_RITORNI + 'fino-a/' + ostacoloScelto).then(x => x.json()).then(x => { if (x.i) vaiRitorno(x.i); });
   const dove = document.getElementById('scrittura');
   const s = await (await fetch(URL_SCRITTURA + ostacoloScelto + '/' + tr.dataset.al)).json();
   dove.hidden = !s.pezzi;
@@ -468,6 +475,7 @@ async function segui() {
     const inFondo = Number(slider.value) >= Number(slider.max);
     mostraStato(s);
     if (!s.gira || giriDiSegui++ % 4 === 0) aggiornaBacktrack();  // mentre gira, ogni quattro secondi; e alla fine
+    seguiRitorni();
     if (s.passi > Number(slider.max) || !s.gira) {
       slider.max = Math.max(1, s.passi);
       if (inFondo) vai(s.passi);
@@ -481,6 +489,7 @@ mostraStato(iniziale);
 slider.max = Math.max(1, iniziale.passi || 1);
 if (iniziale.passi) vai(iniziale.passi);
 aggiornaBacktrack();
+seguiRitorni();
 if (iniziale.gira) setTimeout(segui, 1000);
 </script>
 {% endblock %}

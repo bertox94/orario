@@ -8,7 +8,7 @@ Due pagine, senza login e senza database:
   parti stanno su una riga di linguette e se ne apre una alla volta, o nessuna), poi la ricerca passo per passo: uno slider su tutti i nodi, dal primo all'orario
   completo o al limite, con «Prec.» e «Succ.» (o ← e →) e i salti di 10 e 100 passi; per ogni passo l'orario fin lì, con la cella che la ricerca
   sta per decidere (gialla), la scelta appena messa (rosa) e quando torna indietro. Quando la ricerca torna indietro la pagina
-  lo dice, con la cella da cui riparte; i tasti «Ritorno» portano al ritorno indietro prima o dopo. Sotto lo slider, «I backtrack»: il profilo della
+  lo dice, con la cella da cui riparte; i tasti «Ritorno» portano al ritorno indietro prima o dopo. In fondo alla sezione dei ritorni, «Il profilo e gli ostacoli»: il profilo della
   ricerca (per ogni tratto, da quale cella a quale si è mossa: si vede dove avanza e quanto torna indietro; un clic porta
   a quel punto) e gli ostacoli che hanno richiesto più passi. Un ostacolo è una cella da cui la ricerca torna indietro,
   finché non la supera: «cella 81 (25)» vuol dire che per superare la 81 è dovuta tornare indietro fino a 25 celle.
@@ -17,11 +17,12 @@ Due pagine, senza login e senza database:
   30 (29 30)⁴ 31. Mentre il test gira si aggiornano ogni quattro secondi. I numeri vengono dal comando `ostacoli` del
   solver, che rilegge i passi salvati. Mentre il test gira lo slider
   si allunga e, se è in fondo, segue la ricerca; c'è il pulsante «Ferma». Le celle hanno tutte la stessa misura.
-  Gli orari sono due: «L'orario al passo» e, sotto, «L'orario all'ultimo ritorno indietro», cioè com'era l'ultima volta
-  che la ricerca è tornata indietro fino al passo che si guarda, con in giallo la cella dove si è incagliata; resta fermo
-  finché, andando avanti, non si arriva a un altro ritorno. Sotto, chiuso finché non lo si apre, lo stesso passo visto dai docenti: una riga per docente, con la classe dove insegna a ogni ora, con chi è
+  Le sezioni sono due, ognuna con il suo slider subito sopra il suo orario, e si muovono per conto loro: «La ricerca,
+  passo per passo» e «I ritorni indietro», dove lo slider ha una posizione per ogni ritorno e l'orario è quello di
+  quando la ricerca è tornata indietro, con in giallo la cella dove si è incagliata («vai a questo passo» porta lì lo
+  slider dei passi). Il sito tiene l'indice dei ritorni in `ritorni.idx`, accanto ai passi. Sotto l'orario dei passi, chiuso finché non lo si apre, lo stesso passo visto dai docenti: una riga per docente, con la classe dove insegna a ogni ora, con chi è
   in coppia e, tratteggiate, le ore prima del suo ingresso.
-  Sotto gli orari c'è la cella del passo, con i tasti per muoversi. Le spiegazioni del perché di un ritorno (la
+  Sotto la frase del passo, se da lì la ricerca torna indietro, c'è scritto da quale cella riparte. Le spiegazioni del perché di un ritorno (la
   potatura, il controllo della classe, la coda di priorità, i controlli dei docenti) sono state tolte il 18 novembre
   2026 per rifarle una alla volta: il comando `passo` del solver continua a calcolarle.
   Quando l'orario è trovato, in cima c'è «L'orario trovato»: l'esito della verifica indipendente del solver

@@ -76,6 +76,16 @@ def crea_app():
             abort(404)
         return jsonify(p)
 
+    @app.route('/test/<int:tid>/ritorni/<int:i>')
+    def ritorni(tid, i):
+        """Il ritorno indietro numero i (da 1) del test: {"quanti", "i", "k"}; con i = 0 solo quanti sono."""
+        return jsonify(test_realtime.ritorni(LAVORO, tid, i or None))
+
+    @app.route('/test/<int:tid>/ritorni/fino-a/<int:k>')
+    def ritorni_fino_a(tid, k):
+        """L'ultimo ritorno indietro fino al passo k: {"quanti", "i", "k"} (senza i e k se non ce n'e' nessuno)."""
+        return jsonify(test_realtime.ritorni(LAVORO, tid, fino_a=k))
+
     @app.route('/test/<int:tid>/ostacoli.json')
     def ostacoli(tid):
         """I backtrack del test: il profilo della ricerca e gli ostacoli piu' lunghi."""
