@@ -10,8 +10,9 @@
 // - "potatura": null, oppure la potatura per cui da questo nodo un orario non puo' piu' uscire (potature.h: il numero
 //   da 1 a 7, il nome, e i numeri del conto che non torna: docente, classe, ora, servono, possibili); allora la ricerca
 //   torna indietro senza provare niente in questa cella;
-// - "classe": lo stato della classe ("deve", "può", "non può" fare attivita': vedi stato_della_classe in
-//   ricerca.c), il controllo «puo' avere lezione» con i suoi numeri, e se puo' avere un'ora buca;
+// - "classe": che cosa deve fare la classe ("deve", "può", "non può" fare attivita': vedi stato_della_classe in
+//   ricerca.c) e i numeri da cui esce: se l'ora e' una delle prime, obbligatorie; le ore buche che ha gia' avuto
+//   oggi; le ore che le restano; quante ne deve per forza fare nei giorni dopo e quanti posti ha in quei giorni;
 // - "coda": la coda di priorita' in ordine;
 // - "docenti": per ogni docente con ore in quella classe il valore di ogni controllo (tutti, non solo fino al primo
 //   falso), da solo e in coppia con ognuno di quelli dopo di lui nella coda con cui ha ore insieme.

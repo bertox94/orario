@@ -257,21 +257,30 @@ function riempiOrario(tab, p) {
 // una posizione per ognuno dei suoi ritorni; il sito sa a che passo e' ognuno ----
 const sliderRitorni = document.getElementById('slider-ritorni'), sceltaCella = document.getElementById('cella-ritorni');
 let ritornoRichiesto = '', attesaRitorni = null, quantiRitorni = 0, cellaRitorni = null;
-// I controlli della ricerca nella cella del ritorno, uno per riga: il nome, se vale, e i numeri da cui esce (li
-// calcola il solver con le funzioni della ricerca: ./untitled passo). Si aggiungono uno alla volta.
+// I controlli della ricerca nella cella del ritorno, uno per riga: il nome, che cosa ne esce, e i numeri da cui esce
+// (li calcola il solver con le funzioni della ricerca: ./untitled passo). Si aggiungono uno alla volta.
+// Ogni voce ritorna [nome, esito, colore dell'esito ('si', 'no' o ''), numeri].
 const CONTROLLI_DEL_RITORNO = [
-  // la classe puo' avere lezione: le ore che le restano bastano per le celle obbligatorie ancora da riempire, e oggi
-  // non ha gia' avuto un'ora buca (dopo un'ora buca la giornata della classe e' finita)
-  p => ['La classe può avere lezione', p.classe.ha_attivita,
-        `a ${nomeClasse(p)} restano ${p.classe.ore_rimanenti} ore, e ${p.classe.celle_obbligatorie_rimanenti} celle obbligatorie da riempire` +
-        (p.classe.ore_rimanenti >= p.classe.celle_obbligatorie_rimanenti ? ' (bastano)' : ' (non bastano)') +
-        `; ore buche oggi: ${p.classe.ore_buche_oggi}` + (p.classe.ore_buche_oggi ? ' (dopo un\'ora buca la giornata è finita)' : '')],
+  // Che cosa deve fare la classe in questa cella (stato_della_classe nel solver): in una delle prime ore, obbligatorie,
+  // deve avere lezione; se oggi ha gia' avuto un'ora buca la sua giornata e' finita; altrimenti lo dicono le ore che
+  // le restano, confrontate con quelle che deve per forza fare nei giorni dopo e con i posti che ha in quei giorni.
+  p => {
+    const k = p.classe, ora = forma.ore[Math.floor(p.pos / forma.classi.length) % forma.ore.length];
+    const ESITI = {'deve': 'deve avere lezione', 'può': 'può avere lezione o un\'ora buca', 'non può': 'deve avere un\'ora buca'};
+    const restano = `le restano ${k.ore_rimanenti} or${k.ore_rimanenti === 1 ? 'a' : 'e'}`;
+    const perche = k.ora_obbligatoria ? `le ${ora} sono una delle prime ore, che hanno sempre lezione`
+      : k.ore_buche_oggi ? 'oggi ha già avuto un\'ora buca: la sua giornata è finita'
+      : k.ore_rimanenti <= k.ore_obbligatorie_dopo ? `${restano}, e nei giorni dopo ne deve fare per forza ${k.ore_obbligatorie_dopo}: servono tutte lì`
+      : k.ore_rimanenti > k.posti_dopo ? `${restano}, e nei giorni dopo ha solo ${k.posti_dopo} posti: non ci starebbero`
+      : `${restano}: più delle ${k.ore_obbligatorie_dopo} che deve fare per forza nei giorni dopo, e stanno nei ${k.posti_dopo} posti che ha`;
+    return [`Che cosa deve fare ${nomeClasse(p)}`, ESITI[k.stato] || k.stato, '', perche];
+  },
 ];
 const nomeClasse = p => forma.classi[p.pos % forma.classi.length];
 function mostraControlliDelRitorno(p) {
   document.querySelector('#controlli-ritorno tbody').innerHTML = !p ? '' : CONTROLLI_DEL_RITORNO.map(f => {
-    const [nome, vale, numeri] = f(p);
-    return `<tr><th>${esc(nome)}</th><td class="${vale ? 'si' : 'no'}">${vale ? '✓ sì' : '✗ no'}</td><td>${esc(numeri)}</td></tr>`;
+    const [nome, esito, colore, numeri] = f(p);
+    return `<tr><th>${esc(nome)}</th><td class="${colore}"><strong>${esc(esito)}</strong></td><td>${esc(numeri)}</td></tr>`;
   }).join('');
 }
 async function vaiRitorno(i) {

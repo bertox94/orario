@@ -21,18 +21,13 @@ Cella cella(const Ricerca *r, int pos);
 // le ore che restano al docente p nella classe della cella
 int ore_rimaste(const Ricerca *r, const Cella *c, int p);
 
-// i controlli della classe
+// il controllo della classe
 // le ore che la classe deve ancora fare, contando questa cella
 int ore_rimaste_alla_classe(const Ricerca *r, const Cella *c);
-// le celle obbligatorie che la classe deve ancora riempire, contando questa
-int celle_obbligatorie_rimaste(const Ricerca *r, const Cella *c);
-// la classe puo' avere lezione in questa cella
-int la_classe_puo_avere_lezione(const Ricerca *r, const Cella *c);
-// i posti che restano alla classe nei giorni dopo oggi
+// le ore che deve per forza fare nei giorni dopo oggi (le prime di ogni giorno), e i posti che ha in quei giorni
+int ore_obbligatorie_nei_giorni_dopo(const Ricerca *r, const Cella *c);
 int posti_nei_giorni_dopo(const Ricerca *r, const Cella *c);
-// la classe puo' avere un'ora buca in questa cella
-int la_classe_puo_avere_ora_buca(const Ricerca *r, const Cella *c);
-// lo stato della classe in questa cella: che cosa prova la ricerca (vedi ricerca.c)
+// che cosa deve fare la classe in questa cella: decide che cosa prova la ricerca (vedi ricerca.c)
 typedef enum { DEVE_FARE_ATTIVITA, PUO_FARE_ATTIVITA, NON_PUO_FARE_ATTIVITA } StatoClasse;
 StatoClasse stato_della_classe(const Ricerca *r, const Cella *c);
 

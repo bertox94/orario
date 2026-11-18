@@ -81,15 +81,10 @@ int stampa_passo(const unsigned long long int seme, const int classi, const int 
 
     // la classe
     const char *stati[] = {"deve", "può", "non può"};  // nell'ordine di StatoClasse
-    const int lezione = la_classe_puo_avere_lezione(r, &c);
-    printf(",\"classe\":{\"stato\":\"%s\",\"ha_attivita\":%d,\"ore_rimanenti\":%d,"
-           "\"celle_obbligatorie_rimanenti\":%d,\"ore_buche_oggi\":%d,\"ora_buca_possibile\":%d,"
-           "\"posti_nei_giorni_dopo\":%d}",
-           stati[stato_della_classe(r, &c)], lezione,
-           ore_rimaste_alla_classe(r, &c),
-           celle_obbligatorie_rimaste(r, &c),
-           r->n_ore_buche[c.base2d_gc], la_classe_puo_avere_ora_buca(r, &c),
-           posti_nei_giorni_dopo(r, &c));
+    printf(",\"classe\":{\"stato\":\"%s\",\"ora_obbligatoria\":%d,\"ore_buche_oggi\":%d,\"ore_rimanenti\":%d,"
+           "\"ore_obbligatorie_dopo\":%d,\"posti_dopo\":%d}",
+           stati[stato_della_classe(r, &c)], c.ora < PRIME_N_ORE_OBBLIGATORIE, r->n_ore_buche[c.base2d_gc],
+           ore_rimaste_alla_classe(r, &c), ore_obbligatorie_nei_giorni_dopo(r, &c), posti_nei_giorni_dopo(r, &c));
 
     // la coda, in ordine
     printf(",\"coda\":[");

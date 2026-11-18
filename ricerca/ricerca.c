@@ -88,48 +88,36 @@ int ore_rimaste_alla_classe(const Ricerca *r, const Cella *c) {
     return r->scuola->ore_classi[c->cla] - r->ore_classe_svolte[c->cla];
 }
 
-// Le celle obbligatorie (le prime PRIME_N_ORE_OBBLIGATORIE ore di ogni giorno) che la classe deve ancora riempire,
-// contando questa. Prima di questa cella ce ne sono giorno * PRIME_N_ORE_OBBLIGATORIE + ora (oggi); dopo l'ultima ora
-// obbligatoria il conto si ferma a PRIME_N_ORE_OBBLIGATORIE - 1: cosi' in un'ora facoltativa risulta una cella in
-// piu', quella che una lezione qui consumerebbe senza riempirne una obbligatoria.
-int celle_obbligatorie_rimaste(const Ricerca *r, const Cella *c) {
-    const int prima = c->giorno * PRIME_N_ORE_OBBLIGATORIE + MIN(c->ora, PRIME_N_ORE_OBBLIGATORIE - 1);
-    return PRIME_N_ORE_OBBLIGATORIE * r->scuola->actual_giorni_settimana - prima;
+// le ore che la classe deve per forza fare nei giorni dopo oggi: le prime PRIME_N_ORE_OBBLIGATORIE di ogni giorno
+int ore_obbligatorie_nei_giorni_dopo(const Ricerca *r, const Cella *c) {
+    return (r->scuola->actual_giorni_settimana - 1 - c->giorno) * PRIME_N_ORE_OBBLIGATORIE;
 }
 
-// La classe puo' avere lezione in questa cella?
-// - le ore che le restano (contando questa) devono bastare per le celle obbligatorie che restano: una lezione in
-//   un'ora facoltativa deve lasciare almeno un'ora per ognuna delle celle obbligatorie dei giorni dopo;
-// - dopo un'ora buca la giornata della classe e' finita.
-int la_classe_puo_avere_lezione(const Ricerca *r, const Cella *c) {
-    if (ore_rimaste_alla_classe(r, c) < celle_obbligatorie_rimaste(r, c)) return 0;
-    return r->n_ore_buche[c->base2d_gc] == 0;
-}
-
-// I posti che restano alla classe nei giorni dopo oggi: tutte le ore, obbligatorie e no.
+// i posti che la classe ha nei giorni dopo oggi: tutte le ore, obbligatorie e no
 int posti_nei_giorni_dopo(const Ricerca *r, const Cella *c) {
     return (r->scuola->actual_giorni_settimana - 1 - c->giorno) * r->scuola->actual_ore_giornaliere;
 }
 
-// La classe puo' avere un'ora buca in questa cella?
-// - solo dopo le ore obbligatorie;
-// - le ore che le restano devono stare nei giorni dopo: dopo un'ora buca oggi non ha piu' lezione, quindi quello che
-//   non sta nei giorni dopo non si potrebbe piu' mettere. Se non ci stanno, la lezione a quest'ora e' tassativa.
-// Cosi' l'ultimo giorno l'ora buca e' permessa solo a una classe che ha finito le ore: a orario completo ogni classe
-// le ha fatte tutte, e quindi (nessuno puo' farne piu' delle sue) anche ogni docente e ogni coppia.
-int la_classe_puo_avere_ora_buca(const Ricerca *r, const Cella *c) {
-    if (c->ora < PRIME_N_ORE_OBBLIGATORIE) return 0;
-    return ore_rimaste_alla_classe(r, c) <= posti_nei_giorni_dopo(r, c);
-}
-
-// Lo stato della classe in questa cella, dalle due domande sopra: decide che cosa prova la ricerca.
-//   deve fare attivita'      puo' avere lezione, non un'ora buca    si provano i docenti
-//   puo' fare attivita'      puo' avere lezione e un'ora buca       si provano i docenti, poi l'ora buca
-//   non puo' fare attivita'  non lezione, solo un'ora buca          si mette l'ora buca
-// (Ne' lezione ne' ora buca non succede con dati che hanno passato la verifica: verifica_dati.h.)
+// Che cosa deve fare la classe in questa cella: decide che cosa prova la ricerca.
+//   deve fare attivita'      solo la lezione             si provano i docenti
+//   puo' fare attivita'      la lezione o l'ora buca     si provano i docenti, poi l'ora buca
+//   non puo' fare attivita'  solo l'ora buca             si mette l'ora buca
+// La giornata di una classe e' fatta di lezioni di seguito dalla prima ora, almeno PRIME_N_ORE_OBBLIGATORIE, e poi
+// solo ore buche fino a sera. Quindi:
+// - in una delle prime ore, obbligatorie, deve avere lezione;
+// - se oggi ha gia' avuto un'ora buca la sua giornata e' finita: un'altra ora buca;
+// - altrimenti la giornata si puo' allungare di un'ora o chiudere qui, e lo dicono le ore che le restano (contando
+//   questa cella): la lezione si puo' fare se dopo ne restano abbastanza per le ore obbligatorie dei giorni dopo
+//   (devono essere piu' di quelle); l'ora buca si puo' mettere se le ore che restano stanno tutte nei giorni dopo.
+//   Una delle due vale sempre: se le ore non sono piu' delle obbligatorie dei giorni dopo, nei giorni dopo ci stanno.
+// (Con dati che hanno passato la verifica, verifica_dati.h, in un'ora obbligatoria alla classe restano sempre almeno
+// le ore per le celle obbligatorie da riempire, e dopo un'ora buca le ore che restano stanno nei giorni dopo: lo
+// garantiscono le scelte fatte qui nelle ore facoltative dei giorni prima.)
 StatoClasse stato_della_classe(const Ricerca *r, const Cella *c) {
-    const int lezione = la_classe_puo_avere_lezione(r, c), buca = la_classe_puo_avere_ora_buca(r, c);
-    assert(lezione || buca);
+    if (c->ora < PRIME_N_ORE_OBBLIGATORIE) return DEVE_FARE_ATTIVITA;
+    if (r->n_ore_buche[c->base2d_gc] > 0) return NON_PUO_FARE_ATTIVITA;
+    const int ore = ore_rimaste_alla_classe(r, c);
+    const int lezione = ore > ore_obbligatorie_nei_giorni_dopo(r, c), buca = ore <= posti_nei_giorni_dopo(r, c);
     return lezione && buca ? PUO_FARE_ATTIVITA : lezione ? DEVE_FARE_ATTIVITA : NON_PUO_FARE_ATTIVITA;
 }
 
