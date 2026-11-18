@@ -26,6 +26,8 @@ add_executable(untitled main.c
         comandi/passi.c
         comandi/passo.h
         comandi/passo.c
+        comandi/ostacoli.h
+        comandi/ostacoli.c
         comandi/json.h
         comandi/prove.h
         comandi/prove.c

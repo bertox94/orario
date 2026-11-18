@@ -4,6 +4,7 @@
 // ./untitled caso SEME CLASSI RITARDI ORDINE LIMITE FILE PASSI   un caso casuale per il sito (caso.h)
 // ./untitled dati SEME CLASSI RITARDI ORDINE                       i dati di quel caso in JSON (generatore.h)
 // ./untitled passo SEME CLASSI RITARDI ORDINE PASSI K             il nodo K di quel caso: orario e controlli (passo.h)
+// ./untitled ostacoli PASSI FASCE QUANTI                           i backtrack di una ricerca, dal file dei passi (ostacoli.h)
 // ORDINE e' l'ordine delle classi: 0 quello generato (generatore.h).
 // Senza comando, o con un comando che non esiste, stampa questo elenco ed esce con 2.
 
@@ -14,6 +15,7 @@
 #include "comandi/prove.h"
 #include "comandi/caso.h"
 #include "comandi/passo.h"
+#include "comandi/ostacoli.h"
 #include "dati/generatore.h"
 
 int main(const int argc, char **argv) {
@@ -42,6 +44,13 @@ int main(const int argc, char **argv) {
         return stampa_passo(strtoull(argv[2], NULL, 10), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), argv[6],
                             atoll(argv[7]));
     }
+    if (argc > 1 && !strcmp(argv[1], "ostacoli")) {  // i backtrack di una ricerca, dal file dei passi, per il sito
+        if (argc < 5) {
+            fprintf(stderr, "Uso: %s ostacoli PASSI FASCE QUANTI\n", argv[0]);
+            return 2;
+        }
+        return stampa_ostacoli(argv[2], atoi(argv[3]), atoi(argv[4]));
+    }
     if (argc > 1 && !strcmp(argv[1], "dati")) {  // i dati di un caso, per il sito
         if (argc < 6) {
             fprintf(stderr, "Uso: %s dati SEME CLASSI RITARDI ORDINE\n", argv[0]);
@@ -56,7 +65,8 @@ int main(const int argc, char **argv) {
             "  %s caso SEME CLASSI RITARDI ORDINE LIMITE FILE PASSI    un caso casuale, per il sito\n"
             "  %s dati SEME CLASSI RITARDI ORDINE                      i dati di quel caso\n"
             "  %s passo SEME CLASSI RITARDI ORDINE PASSI K             il nodo K di quel caso\n"
+            "  %s ostacoli PASSI FASCE QUANTI                          i backtrack di una ricerca\n"
             "ORDINE e' l'ordine delle classi: 0 quello generato.\n",
-            argv[0], argv[0], argv[0], argv[0]);
+            argv[0], argv[0], argv[0], argv[0], argv[0]);
     return 2;
 }
