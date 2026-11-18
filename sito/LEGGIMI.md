@@ -4,7 +4,8 @@ Due pagine, senza login e senza database:
 - **Test e storico** (`/`): il modulo per avviare un test (seme, classi, ritardi, ordine delle classi, limite in milioni di nodi, da 0,1
   a 20) e lo storico di tutti i test fatti (esito, nodi, cella più avanti, tempo), con la × per eliminarne uno.
 - **Un test** (`/test/<n>`): prima i dati del caso (un riepilogo; le classi a schede, con un quadretto per ogni ora
-  di lezione, da solo o in coppia; i docenti con ore, ingresso, classi e codocenti; le codocenze con il grafo), poi la ricerca passo per passo: uno slider su tutti i nodi, dal primo all'orario
+  di lezione, da solo o in coppia; i docenti con ore, ingresso, classi e codocenti; le codocenze con il grafo: le tre
+  parti stanno su una riga di linguette e se ne apre una alla volta, o nessuna), poi la ricerca passo per passo: uno slider su tutti i nodi, dal primo all'orario
   completo o al limite, con «Prec.» e «Succ.» (o ← e →) e i salti di 10 e 100 passi; per ogni passo l'orario fin lì, con la cella che la ricerca
   sta per decidere (gialla), la scelta appena messa (rosa) e quando torna indietro. Quando la ricerca torna indietro la pagina
   dice perché: la potatura che è scattata, oppure che nella classe ci vuole una lezione e nessuno può farla (con i

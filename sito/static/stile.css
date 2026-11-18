@@ -169,6 +169,13 @@ table.orario td.non-entrato {
 .legenda .q { margin-left: 10px; }
 .legenda .q:first-child { margin-left: 0; }
 .barra { display: inline-flex; gap: 2px; height: 12px; border-radius: 4px; overflow: hidden; vertical-align: middle; }
+/* le tre parti dei dati (classi, docenti, codocenze) su una riga di linguette: sotto si vede quella scelta */
+.linguette { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0 10px; }
+.linguetta { background: var(--carta); color: var(--accento-scuro); border-color: var(--bordo); box-shadow: none; }
+.linguetta:hover:not(:disabled) { background: var(--rosa); border-color: var(--accento); }
+.linguetta.attiva { background: var(--rosa); border-color: var(--accento); font-weight: 600; }
+.linguetta .nota { margin-left: 4px; }
+.pannello { margin: 0 0 14px; }
 /* una scheda per classe, con le sue lezioni */
 .schede { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
 .scheda { padding: 12px 14px; }

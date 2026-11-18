@@ -32,8 +32,13 @@
 </div>
 <p class="nota legenda"><span class="q solo"></span> un'ora da solo <span class="q coppia"></span> un'ora in coppia</p>
 
-<details open>
-  <summary>Le classi</summary>
+<div class="linguette" role="tablist" aria-label="I dati del caso">
+  <button type="button" class="linguetta" role="tab" data-pannello="classi">Le classi <span class="nota">{{ riepilogo.classi }}</span></button>
+  <button type="button" class="linguetta" role="tab" data-pannello="docenti">I docenti <span class="nota">{{ riepilogo.docenti }}</span></button>
+  <button type="button" class="linguetta" role="tab" data-pannello="codocenze">Le codocenze <span class="nota">{{ riepilogo.coppie }}</span></button>
+  <span class="nota">Un clic apre la parte, un altro la richiude.</span>
+</div>
+<div class="pannello" id="pannello-classi" role="tabpanel" hidden>
   <div class="schede">{% for c in classi %}
     <div class="scheda">
       <div class="testa"><strong>{{ c.nome }}</strong> <span class="nota">{{ c.ore }} ore · {{ c.docenti }} docenti</span></div>
@@ -46,10 +51,9 @@
       </table>
     </div>{% endfor %}
   </div>
-</details>
+</div>
 
-<details open>
-  <summary>I docenti</summary>
+<div class="pannello" id="pannello-docenti" role="tabpanel" hidden>
   <div class="scorre"><table class="dati docenti">
     <thead><tr><th>Docente</th><th class="num">Ore</th><th></th><th>Entra</th><th>Nelle classi</th><th>In coppia con</th></tr></thead>
     <tbody>{% for d in docenti %}
@@ -63,10 +67,9 @@
       </tr>{% endfor %}
     </tbody>
   </table></div>
-</details>
+</div>
 
-<details open>
-  <summary>Le codocenze</summary>
+<div class="pannello" id="pannello-codocenze" role="tabpanel" hidden>
   {% if grafo %}
   <div class="codocenze">
     <svg viewBox="0 0 {{ grafo.lato }} {{ grafo.lato }}" class="grafo" role="img" aria-label="Grafo delle codocenze">
@@ -86,7 +89,7 @@
   </div>
   <p class="nota">Nel grafo un filo unisce due docenti che hanno ore insieme: più spesso, più ore.</p>
   {% else %}<p class="nota">Nessuna codocenza.</p>{% endif %}
-</details>
+</div>
 
 <h2>La ricerca, passo per passo</h2>
 <div class="passi">
@@ -134,6 +137,21 @@
 const URL_STATO = '{{ url_for('stato', tid=i.id) }}', URL_PASSO = '{{ url_for('passo', tid=i.id, k=0)[:-1] }}';
 const URL_OSTACOLI = '{{ url_for('ostacoli', tid=i.id) }}', URL_SCRITTURA = '{{ url_for('scrittura', tid=i.id, dal=1, al=0)[:-3] }}';  // + dal + '/' + al
 const URL_RITORNO = '{{ url_for('ritorno', tid=i.id, k=0, verso='dopo')[:-6] }}';  // + k + '/prima' o '/dopo'
+// le tre parti dei dati del caso (classi, docenti, codocenze) stanno su una riga di linguette: se ne vede una alla
+// volta, o nessuna; la pagina ricorda quale
+const linguette = [...document.querySelectorAll('.linguetta')];
+function apriPannello(quale) {
+  for (const b of linguette) {
+    const aperto = b.dataset.pannello === quale;
+    b.classList.toggle('attiva', aperto);
+    b.setAttribute('aria-selected', aperto);
+    document.getElementById('pannello-' + b.dataset.pannello).hidden = !aperto;
+  }
+  try { localStorage.setItem('test-pannello', quale || ''); } catch (e) { /* pazienza */ }
+}
+for (const b of linguette)
+  b.addEventListener('click', () => apriPannello(b.classList.contains('attiva') ? null : b.dataset.pannello));
+try { apriPannello(localStorage.getItem('test-pannello') || null); } catch (e) { /* tutte chiuse */ }
 const slider = document.getElementById('slider'), tabella = document.getElementById('orario');
 const testo = document.getElementById('testo-passo');
 const tabellaDocenti = document.getElementById('orario-docenti');
