@@ -18,7 +18,7 @@ Due pagine, senza login e senza database:
   30 (29 30)⁴ 31. Mentre il test gira si aggiornano ogni quattro secondi. I numeri vengono dal comando `ostacoli` del
   solver, che rilegge i passi salvati. Mentre il test gira lo slider
   si allunga e, se è in fondo, segue la ricerca; c'è il pulsante «Ferma». Le celle hanno tutte la stessa misura.
-  Sopra l'orario per classi, lo stesso passo visto dai docenti: una riga per docente, con la classe dove insegna a ogni ora, con chi è
+  Sotto l'orario per classi, chiuso finché non lo si apre, lo stesso passo visto dai docenti: una riga per docente, con la classe dove insegna a ogni ora, con chi è
   in coppia e, tratteggiate, le ore prima del suo ingresso.
   Sotto l'orario, per la cella del passo: il controllo della classe (può avere lezione, può avere un'ora buca) con i
   suoi numeri, la coda di priorità in ordine, e per ogni docente della classe il valore di tutti i controlli, da solo
