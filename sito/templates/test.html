@@ -133,6 +133,8 @@
 <div class="scorre"><table class="orario" id="orario-ritorno"></table></div>
 <p class="nota">L'orario com'era quando la ricerca è tornata indietro: la cella gialla è quella dove si è incagliata.
   Mentre il test gira lo slider si allunga e, se è in fondo, segue i ritorni nuovi.</p>
+<h3>I controlli nella cella del ritorno</h3>
+<table class="dati controlli" id="controlli-ritorno"><tbody></tbody></table>
 <h3>Il profilo e gli ostacoli</h3>
 <p class="nota" id="conto-backtrack"></p>
 <canvas id="profilo" height="130" title="Clic: vai a quel punto della ricerca"></canvas>
@@ -255,11 +257,29 @@ function riempiOrario(tab, p) {
 // una posizione per ognuno dei suoi ritorni; il sito sa a che passo e' ognuno ----
 const sliderRitorni = document.getElementById('slider-ritorni'), sceltaCella = document.getElementById('cella-ritorni');
 let ritornoRichiesto = '', attesaRitorni = null, quantiRitorni = 0, cellaRitorni = null;
+// I controlli della ricerca nella cella del ritorno, uno per riga: il nome, se vale, e i numeri da cui esce (li
+// calcola il solver con le funzioni della ricerca: ./untitled passo). Si aggiungono uno alla volta.
+const CONTROLLI_DEL_RITORNO = [
+  // la classe puo' avere lezione: le ore che le restano bastano per le celle obbligatorie ancora da riempire, e oggi
+  // non ha gia' avuto un'ora buca (dopo un'ora buca la giornata della classe e' finita)
+  p => ['La classe può avere lezione', p.classe.ha_attivita,
+        `a ${nomeClasse(p)} restano ${p.classe.ore_rimanenti} ore, e ${p.classe.celle_obbligatorie_rimanenti} celle obbligatorie da riempire` +
+        (p.classe.ore_rimanenti >= p.classe.celle_obbligatorie_rimanenti ? ' (bastano)' : ' (non bastano)') +
+        `; ore buche oggi: ${p.classe.ore_buche_oggi}` + (p.classe.ore_buche_oggi ? ' (dopo un\'ora buca la giornata è finita)' : '')],
+];
+const nomeClasse = p => forma.classi[p.pos % forma.classi.length];
+function mostraControlliDelRitorno(p) {
+  document.querySelector('#controlli-ritorno tbody').innerHTML = !p ? '' : CONTROLLI_DEL_RITORNO.map(f => {
+    const [nome, vale, numeri] = f(p);
+    return `<tr><th>${esc(nome)}</th><td class="${vale ? 'si' : 'no'}">${vale ? '✓ sì' : '✗ no'}</td><td>${esc(numeri)}</td></tr>`;
+  }).join('');
+}
 async function vaiRitorno(i) {
   if (!forma) return;
   const scritta = document.getElementById('testo-ritorno');
   if (cellaRitorni === null) {
     riempiOrario(tabellaRitorno, null);
+    mostraControlliDelRitorno(null);
     scritta.textContent = 'La ricerca non è ancora tornata indietro.';
     return;
   }
@@ -273,6 +293,7 @@ async function vaiRitorno(i) {
   if (!risposta.ok || ritornoRichiesto !== chiesto) return;
   const p = await risposta.json();
   riempiOrario(tabellaRitorno, p);
+  mostraControlliDelRitorno(p);
   scritta.innerHTML = `Ritorno ${numero(i)} di ${numero(quantiRitorni)} dalla cella ${numero(p.pos + 1)} (${esc(doveCella(p.pos))}) · ` +
     `al passo ${numero(r.k)} <button type="button" class="piccolo secondario" id="al-passo" data-k="${r.k}" ` +
     'title="Porta lo slider dei passi a questo passo">vai a questo passo</button>';

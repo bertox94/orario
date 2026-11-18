@@ -213,8 +213,8 @@ tr.ostacolo.scelto > td { background: var(--rosa); }
 
 /* i segni della verifica dell'orario: verde il si', rosso il no */
 table.controlli tbody th { white-space: nowrap; color: var(--testo); font-size: 15px; }
-table.controlli td.si { color: var(--ok); font-weight: 700; text-align: center; }
-table.controlli td.no { color: var(--male); font-weight: 700; text-align: center; }
+table.controlli td.si { color: var(--ok); font-weight: 700; text-align: center; white-space: nowrap; }
+table.controlli td.no { color: var(--male); font-weight: 700; text-align: center; white-space: nowrap; }
 
 /* ---- i test notturni: il giro, la notte, e le esecuzioni precedenti che si aprono sotto la riga di un test ---- */
 .notte { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--riga); }
