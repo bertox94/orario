@@ -114,16 +114,13 @@ form.accanto { display: inline-block; margin: 0 0 8px; }
 .confronto-diverso, .confronto-peggiorato { color: var(--male); background: var(--male-chiaro); }
 .confronto-diverso, .confronto-peggiorato, .confronto-migliorato { font-weight: 600; }
 
-/* ---- i riquadri con il bordo a sinistra: l'errore nei dati, l'orario verificato, la potatura ---- */
-.errore-dati, .verifica, .potatura { max-width: 900px; border-radius: var(--angolo); }
+/* ---- i riquadri con il bordo a sinistra: l'errore nei dati, l'orario verificato ---- */
+.errore-dati, .verifica { max-width: 900px; border-radius: var(--angolo); }
 .errore-dati { white-space: pre-line; color: var(--male); background: var(--male-chiaro); padding: 8px 12px; }
 .verifica { margin: 14px 0; padding: 4px 14px 12px; background: var(--carta); border: 1px solid var(--riga);
   border-left: 4px solid var(--ok); }
 .verifica.non-valido { border-left-color: var(--male); }
 .verifica h2 { margin-top: 10px; }
-/* il nodo dove una potatura fa tornare indietro la ricerca */
-.potatura { margin: 10px 0; padding: 10px 14px; background: var(--carta); border-left: 4px solid var(--male); }
-.potatura ul { margin: 6px 0 4px; padding-left: 22px; }
 
 /* ---- le tabelle ---- */
 .scorre { overflow-x: auto; }  /* una tabella larga scorre da sola, non tutta la pagina */
@@ -214,28 +211,13 @@ tr.ostacolo.scelto > td { background: var(--rosa); }
 .scrittura sup { color: var(--accento); font-weight: 600; }
 .indietro { color: var(--male); font-weight: 600; }
 
-/* ---- sotto l'orario: la cella del passo, la coda di priorita' e i controlli dei docenti ---- */
-#controlli { min-height: 100vh; }  /* occupano sempre almeno lo schermo: cambiando passo la pagina non salta */
+/* ---- sotto gli orari: la cella del passo ---- */
 .testa-cella { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 32px; }
 .testa-cella h2 { margin: 0 8px 0 0; }
-/* la coda: una pillola per docente, in evidenza quelli della classe */
-ol.coda { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; padding: 0; margin: 0; counter-reset: coda; }
-ol.coda li { counter-increment: coda; background: var(--carta); border: 1px solid var(--bordo);
-  border-radius: var(--pillola); padding: 2px 8px; font-size: 13px; white-space: nowrap; }
-ol.coda li::before { content: counter(coda) ". "; color: var(--tenue); }
-ol.coda li.della-classe { border-color: var(--accento); background: var(--rosa); }
-/* i controlli: una riga per docente, sotto le sue coppie; verde il si', rosso il no */
-table.controlli th { white-space: normal; max-width: 9em; vertical-align: bottom; }
-table.controlli tbody th { max-width: none; white-space: nowrap; color: var(--testo); font-size: 15px; }
-table.controlli td strong, table.controlli td.esito-cella { white-space: nowrap; }
+/* i segni della verifica dell'orario: verde il si', rosso il no */
+table.controlli tbody th { white-space: nowrap; color: var(--testo); font-size: 15px; }
 table.controlli td.si { color: var(--ok); font-weight: 700; text-align: center; }
 table.controlli td.no { color: var(--male); font-weight: 700; text-align: center; }
-table.controlli td.esito-cella.si { background: var(--ok-chiaro); }
-table.controlli td.esito-cella.no { background: var(--male-chiaro); font-weight: 400; }
-table.controlli td.vuoto { color: var(--bordo); text-align: center; }
-table.controlli tr.docente td { border-top: 1px solid var(--bordo); }
-table.controlli tr.coppia td { border-bottom-style: dotted; background: var(--sfondo); }
-table.controlli tr.coppia td.con { padding-left: 22px; color: var(--coppia); white-space: nowrap; }
 
 /* ---- i test notturni: il giro, la notte, e le esecuzioni precedenti che si aprono sotto la riga di un test ---- */
 .notte { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--riga); }

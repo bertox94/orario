@@ -130,7 +130,7 @@ def ritorno(lavoro, tid, k, avanti):
                 return array.array('h', f.read((a - da + 1) * 6))[0::3]
 
             # il passo j e' un ritorno se la cella del passo j + 1 non viene dopo la sua: l'ultimo passo non lo e'
-            j = k + 1 if avanti else k - 1
+            j = k + 1 if avanti else min(k, passi) - 1   # l'ultimo passo non e' mai un ritorno
             while 1 <= j < passi:
                 da, a = (j, min(j + PEZZO, passi)) if avanti else (max(1, j - PEZZO + 1), j + 1)
                 c = celle(da, a)

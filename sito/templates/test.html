@@ -118,11 +118,16 @@
   </table></div>
   <p id="scrittura" class="scrittura" hidden></p>
 </div>
-<h3>L'orario per classi</h3>
+<h3>L'orario al passo</h3>
 <div class="scorre"><table class="orario" id="orario"></table></div>
 <p class="nota">Ogni passo è un nodo della ricerca: la cella gialla è quella che la ricerca sta per decidere,
   la rosa la scelta appena messa; «–» è un'ora buca. Mentre il test gira lo slider si allunga e, se è in fondo,
   segue la ricerca.</p>
+<h3>L'orario all'ultimo ritorno indietro</h3>
+<p id="testo-ritorno" class="testo-passo"></p>
+<div class="scorre"><table class="orario" id="orario-ritorno"></table></div>
+<p class="nota">L'orario com'era l'ultima volta che la ricerca è tornata indietro, fino al passo che stai guardando: la cella gialla è
+  quella dove si è incagliata. Resta fermo finché, andando avanti con i passi, non si arriva a un altro ritorno.</p>
 <details id="dai-docenti">
   <summary>L'orario visto dai docenti</summary>
   <div class="scorre"><table class="orario docenti" id="orario-docenti"></table></div>
@@ -158,7 +163,7 @@ try { apriPannello(localStorage.getItem('test-pannello') || null); } catch (e) {
 document.getElementById('dai-docenti').addEventListener('toggle', e => { if (e.target.open) vai(Number(slider.value)); });
 const slider = document.getElementById('slider'), tabella = document.getElementById('orario');
 const testo = document.getElementById('testo-passo');
-const tabellaDocenti = document.getElementById('orario-docenti');
+const tabellaDocenti = document.getElementById('orario-docenti'), tabellaRitorno = document.getElementById('orario-ritorno');
 // i docenti del caso, in ordine di nome, con l'ora (indice) da cui sono a scuola
 const DOCENTI = {{ docenti|map(attribute='nome')|list|tojson }}, INGRESSI = {{ docenti|map(attribute='ingresso')|list|tojson }};
 const RIGA_DOCENTE = Object.fromEntries(DOCENTI.map((n, i) => [n, i]));
@@ -218,8 +223,47 @@ function disegnaGriglia() {
     '</tr></thead><tbody>' + righe.map((nome, r) => `<tr><th>${esc(nome)}</th>` +
       giorni.map(() => ore.map((_, o) => `<td class="${o ? '' : 'inizio-giorno'} ${classeCella(r, o)}"></td>`).join('')).join('') +
       '</tr>').join('') + '</tbody>';
-  tabella.innerHTML = griglia('Classe', classi, () => '');
+  tabella.innerHTML = tabellaRitorno.innerHTML = griglia('Classe', classi, () => '');
   tabellaDocenti.innerHTML = griglia('Docente', DOCENTI, (r, o) => o < INGRESSI[r] ? 'non-entrato' : '');
+}
+
+// Riempie una griglia per classi con l'orario di un passo (o la svuota, senza passo): le celle decise, in giallo
+// quella che la ricerca sta per decidere, in rosa la scelta appena messa.
+function riempiOrario(tab, p) {
+  const {giorni, ore, classi} = forma, G = giorni.length, O = ore.length, C = classi.length, righe = tab.tBodies[0].rows;
+  for (let c = 0; c < C; c++) for (let g = 0; g < G; g++) for (let o = 0; o < O; o++) {
+    const k = (g * O + o) * C + c, td = righe[c].cells[1 + g * O + o], x = p ? p.orario[k] : null;
+    td.innerHTML = x ? (x[0] ? `<span class="riga">${esc(x[0])}</span>` + (x[1] ? `<span class="riga cod">${esc(x[1])}</span>` : '') : '–') : '';
+    td.classList.toggle('buca', !!x && !x[0]);
+    td.classList.toggle('attuale', !!p && k === p.pos);
+    td.classList.toggle('appena', !!p && k === p.pos - 1);
+  }
+}
+// L'orario all'ultimo ritorno indietro fino al passo k: il sito trova quel ritorno nel file dei passi, e la pagina ne
+// chiede l'orario solo se e' cambiato. Senza ritorni fino a k la griglia resta vuota.
+let ritornoMostrato = null;  // il passo del ritorno che la griglia mostra, e il suo orario
+async function disegnaUltimoRitorno(k) {
+  const scritta = document.getElementById('testo-ritorno');
+  let r;
+  try { r = await (await fetch(URL_RITORNO + (k + 1) + '/prima')).json(); } catch (e) { return; }
+  if (richiesto !== k) return;
+  if (!r.k) {
+    ritornoMostrato = null;
+    riempiOrario(tabellaRitorno, null);
+    scritta.textContent = 'Fino a questo passo la ricerca non è mai tornata indietro.';
+    return;
+  }
+  if (!ritornoMostrato || ritornoMostrato.k !== r.k) {
+    const risposta = await fetch(URL_PASSO + r.k);
+    if (!risposta.ok || richiesto !== k) return;
+    ritornoMostrato = await risposta.json();
+    riempiOrario(tabellaRitorno, ritornoMostrato);
+    const C = forma.classi.length, cella = Math.min(ritornoMostrato.pos, forma.giorni.length * forma.ore.length * C - 1);
+    inVista(tabellaRitorno, tabellaRitorno.tBodies[0].rows[cella % C].cells[1 + Math.floor(cella / C)], 64);
+  }
+  const fa = k - r.k, pos = ritornoMostrato.pos;
+  scritta.innerHTML = `Ritorno indietro al passo ${numero(r.k)}` + (fa ? `, ${numero(fa)} pass${fa === 1 ? 'o' : 'i'} fa` : ' (questo)') +
+    `: la ricerca si è incagliata alla cella ${numero(pos + 1)} (${esc(doveCella(pos))}).`;
 }
 
 // il passo k: l'orario fino alla cella che la ricerca sta decidendo
@@ -233,13 +277,7 @@ function disegnaPasso(p) {
     t += ` · <span class="indietro">torna indietro di ${numero(p.prima - pos + 1)} cell${p.prima - pos ? 'e' : 'a'}: nuova scelta in ${dove(pos - 1)}</span>`;
   testo.innerHTML = t;
   const righe = tabella.tBodies[0].rows;
-  for (let c = 0; c < C; c++) for (let g = 0; g < G; g++) for (let o = 0; o < O; o++) {
-    const k = (g * O + o) * C + c, td = righe[c].cells[1 + g * O + o], x = p.orario[k];
-    td.innerHTML = x ? (x[0] ? `<span class="riga">${esc(x[0])}</span>` + (x[1] ? `<span class="riga cod">${esc(x[1])}</span>` : '') : '–') : '';
-    td.classList.toggle('buca', !!x && !x[0]);
-    td.classList.toggle('attuale', k === pos);
-    td.classList.toggle('appena', k === pos - 1);
-  }
+  riempiOrario(tabella, p);
   // lo stesso orario visto dai docenti: per ogni cella decisa, la classe nella riga di ciascuno dei due docenti
   const righeDocenti = tabellaDocenti.tBodies[0].rows;
   for (const td of tabellaDocenti.querySelectorAll('td')) {
@@ -284,6 +322,7 @@ async function vai(k) {
   disegnaPasso(p);
   disegnaControlli(p);
   disegnaProfilo();  // il filo del passo che si guarda
+  disegnaUltimoRitorno(k);
 }
 // «Prec.», «Succ.» e i salti di 10 e 100 passi anche accanto al titolo della cella (la pagina resta dov'e')
 const salto = n => `<button type="button" class="secondario salto" data-passo="${n}" title="${Math.abs(n)} passi ${n < 0 ? 'prima' : 'dopo'}">` +
@@ -307,145 +346,29 @@ document.addEventListener('click', async e => {
   else testo.innerHTML += ` · <span class="nota">nessun ritorno indietro ${b.dataset.ritorno === 'dopo' ? 'dopo' : 'prima di'} questo passo</span>`;
 });
 
-// ---- perche' la ricerca torna indietro da una cella ----
-// La ricerca lascia una cella senza metterci niente in due casi: una potatura dice che da li' un orario non puo' piu'
-// uscire, oppure nella cella ci vuole una lezione e nessuno puo' farla. (Quando invece qualcuno puo', la ricerca
-// scende alla cella dopo: se poi torna, e' perche' piu' avanti e' successa una di queste due cose.)
-// Per ogni docente che non puo', il primo motivo che lo ferma, dal piu' semplice da capire.
-const MOTIVI_DOCENTE = [
-  ['ore_nella_classe', n => n === 1 ? 'ha finito le ore in questa classe' : 'hanno finito le ore in questa classe'],
-  ['entrato', n => n === 1 ? 'non è ancora entrato a scuola' : 'non sono ancora entrati a scuola'],
-  ['libero', n => n === 1 ? "a quest'ora è in un'altra classe" : "a quest'ora sono in un'altra classe"],
-  ['max_ore_oggi', n => n === 1 ? 'ha già fatto 3 ore oggi qui' : 'hanno già fatto 3 ore oggi qui'],
-  ['ore_contigue', n => (n === 1 ? 'oggi è già stato qui e se n\'è andato' : 'oggi sono già stati qui e se ne sono andati') +
-    ' (le ore di un giorno in una classe sono di seguito)'],
-  ['max_classi_oggi', n => n === 1 ? 'ha già 3 classi oggi' : 'hanno già 3 classi oggi'],
-];
-// null se in questa cella la ricerca puo' mettere qualcosa; se no l'elenco dei motivi: [[frase, [nomi]], ...]
-function nessunaScelta(c) {
-  const k = c.classe;
-  if (k.ora_buca_possibile || !k.ha_attivita) return null;  // con l'ora buca c'e' sempre una scelta
-  const motivi = new Map(), aggiungi = (frase, nome) => motivi.set(frase, [...(motivi.get(frase) || []), nome]);
-  for (const x of c.docenti) {
-    if (x.puo && (x.da_solo.puo || x.coppie.some(y => y.puo))) return null;
-    const fermo = MOTIVI_DOCENTE.find(([nome]) => x.controlli.some(y => y[0] === nome && !y[1]));
-    if (fermo) aggiungi(fermo[0], x.docente);
-    else if (x.da_solo.controlli.some(y => y[0] === 'sabato' && !y[1])) aggiungi('sabato', x.docente);
-    else aggiungi('solo_in_coppia', x.docente);
+// ---- sotto gli orari: la cella del passo. Se da li' la ricerca torna indietro lo dice, con la cella da cui riparte
+// (le spiegazioni del perche' si rifanno una alla volta) ----
+function disegnaControlli(c) {
+  const box = document.getElementById('controlli');
+  if (!c || c.completo) {
+    box.innerHTML = c ? `<div class="testa-cella"><h2>Orario completo</h2>${TASTI_PRIMA}</div>` : '';
+    return;
   }
-  const frase = (m, n) => m === 'sabato' ? 'è sabato e deve continuare chi era qui l\'ora prima, non ' + (n === 1 ? 'lui' : 'loro')
-    : m === 'solo_in_coppia' ? (n === 1 ? 'potrebbe, ma gli restano solo ore in coppia e nessuno dei suoi codocenti può'
-                                        : 'potrebbero, ma gli restano solo ore in coppia e nessuno dei loro codocenti può')
-    : MOTIVI_DOCENTE.find(([nome]) => nome === m)[1](n);
-  return [...motivi].sort((a, b) => b[1].length - a[1].length).map(([m, nomi]) => [frase(m, nomi.length), nomi]);
+  box.innerHTML = `<div class="testa-cella"><h2>La cella ${numero(c.pos + 1)}: ${esc(doveCella(c.pos))}</h2>${TASTI_PRIMA}${TASTI_DOPO}</div>` +
+    '<p id="poi-riparte"></p>';
+  dovRiparte(c);
 }
-
-// dopo un ritorno indietro: da dove riparte la ricerca (lo dice il passo dopo) e quante celle ha esaurito
+// La ricerca torna indietro da questo passo se quello dopo decide una cella che non viene dopo: allora scrive da quale
+// cella riparte e quante, in mezzo, hanno finito le scelte.
 async function dovRiparte(c) {
   if (c.k >= Number(slider.max)) return;
   const r = await fetch(URL_PASSO + (c.k + 1));
   const dopo = r.ok ? await r.json() : null, qui = document.getElementById('poi-riparte');
   if (!dopo || !qui || Number(slider.value) !== c.k || dopo.pos > c.pos) return;
-  const {giorni, ore, classi} = forma, O = ore.length, C = classi.length, cella = dopo.pos - 1;
-  const dove = `${giorni[Math.floor(cella / (O * C))]} ${ore[Math.floor(cella / C) % O]}, ${classi[cella % C]}`;
-  const esaurite = c.pos - dopo.pos;
-  qui.innerHTML = ` <strong>Poi riparte</strong> dalla cella ${numero(cella + 1)} (${esc(dove)}), con la scelta successiva` +
+  const cella = dopo.pos - 1, esaurite = c.pos - dopo.pos;
+  qui.innerHTML = '<span class="indietro">Qui la ricerca torna indietro.</span> ' +
+    `Riparte dalla cella ${numero(cella + 1)} (${esc(doveCella(cella))}), con la scelta successiva` +
     (esaurite ? `: nell${esaurite === 1 ? 'a cella' : 'e ' + esaurite + ' celle'} in mezzo le scelte sono finite.` : '.');
-}
-
-// ---- sotto l'orario: il controllo della classe, la coda di priorita' e i controlli dei docenti della classe ----
-const NOMI_CONTROLLI = {
-  libero: "libero a quest'ora", ore_nella_classe: 'ha ancora ore nella classe', max_ore_oggi: 'meno di 3 ore oggi nella classe',
-  ore_contigue: 'le ore di oggi sono di seguito', max_classi_oggi: 'al massimo 3 classi oggi', entrato: 'è già entrato',
-  ore_da_solo: 'ha ancora ore da solo', sabato: 'regola del sabato', ore_insieme: 'hanno ancora ore insieme',
-};
-const segno = v => `<td class="${v ? 'si' : 'no'}">${v ? '✓' : '✗'}</td>`;
-// Le potature (potature.h): il conto che non torna, con i numeri del solver. Da quel nodo un orario non puo' piu'
-// uscire, e la ricerca torna indietro senza provare niente nella cella.
-const ore = n => n === 1 ? "un'ora" : `${n} ore`, lezioni = n => n === 1 ? 'una lezione' : `${n} lezioni`;
-const FRASI_POTATURE = {
-  ore_docente_in_classe: p => `${esc(p.docente)} in ${esc(p.classe)}: gli restano ${ore(p.servono)}, ma da adesso alla fine ` +
-    `della settimana lì ne può fare al massimo ${p.possibili} (3 al giorno, di seguito, dal suo ingresso).`,
-  ore_docente: p => `${esc(p.docente)}: gli restano ${ore(p.servono)} in tutto, ma da adesso alla fine della settimana ` +
-    `ha solo ${ore(p.possibili)} liber${p.possibili === 1 ? 'a' : 'e'}.`,
-  classi_al_giorno: p => `${esc(p.docente)}: nei giorni dopo oggi può stare in al massimo ${p.possibili} classi-giorno ` +
-    `(3 classi al giorno), ma le ore che gli restano ne richiedono almeno ${p.servono}.`,
-  ore_classe: p => `${esc(p.classe)}: le restano ${ore(p.servono)}, ma da adesso alla fine della settimana i suoi docenti ` +
-    `possono darle al massimo ${lezioni(p.possibili)}.`,
-  lezioni_obbligatorie: p => `${esc(p.classe)}: dalla prima ora alle ${esc(p.ora)} ha ancora ${ore(p.servono)} da riempire, ` +
-    `da oggi alla fine della settimana, ma in quelle ore i suoi docenti possono darle al massimo ${lezioni(p.possibili)}.`,
-  docenti_per_ora: p => `Alle ${esc(p.ora)} servono ${p.servono} docenti, uno per classe, ma con ore da fare e già ` +
-    `entrati ce ne sono ${p.possibili}.`,
-  orario_della_classe: p => `${esc(p.classe)}: le restano ${ore(p.servono)} e, anche guardandola da sola (come se i suoi ` +
-    `docenti fossero sempre liberi), non c'è più modo di metterle nelle sue ore da adesso alla fine della settimana: ` +
-    `tra ingressi, 3 ore al giorno di seguito per docente e ore obbligatorie non si incastrano.`,
-};
-function disegnaControlli(c) {
-  const box = document.getElementById('controlli');
-  if (!c || c.completo) {
-    box.innerHTML = c ? `<div class="testa-cella"><h2>Orario completo</h2>${TASTI_PRIMA}</div>
-      <p class="nota">Nessuna cella da decidere.</p>` : '';
-    return;
-  }
-  const {giorni, ore, classi} = forma, O = ore.length, C = classi.length;
-  const dove = `${giorni[Math.floor(c.pos / (O * C))]} ${ore[Math.floor(c.pos / C) % O]}, ${classi[c.pos % C]}`;
-  const k = c.classe;
-  let h = `<div class="testa-cella"><h2>La cella ${numero(c.pos + 1)}: ${esc(dove)}</h2>${TASTI_PRIMA}${TASTI_DOPO}</div>`;
-  const fermi = c.potatura ? null : nessunaScelta(c);
-  if (c.potatura)
-    h += `<div class="potatura"><strong>Qui la ricerca torna indietro: da qui un orario non può più uscire</strong> ` +
-      `(potatura ${c.potatura.numero}). ${FRASI_POTATURE[c.potatura.nome](c.potatura)} Non prova niente in questa cella: ` +
-      `i controlli qui sotto dicono solo com'è la cella.<span id="poi-riparte"></span></div>`;
-  else if (fermi)
-    h += `<div class="potatura"><strong>Qui la ricerca torna indietro: in ${esc(classi[c.pos % C])} a quest'ora ci vuole una ` +
-      `lezione, ma nessuno può farla.</strong><ul>` +
-      fermi.map(([frase, nomi]) => `<li><strong>${nomi.length}</strong> ${frase}: ${nomi.map(esc).join(', ')}</li>`).join('') +
-      `</ul><span id="poi-riparte"></span></div>`;
-  if (c.potatura || fermi) dovRiparte(c);
-  // la classe
-  const STATI = {
-    'deve': 'deve fare attività: la ricerca prova i docenti',
-    'può': 'può fare attività: la ricerca prova i docenti, poi l\'ora buca',
-    'non può': 'non può fare attività: la ricerca mette l\'ora buca',
-  };
-  h += `<h3>Il controllo della classe</h3><p>In questa cella la classe <strong>${esc(STATI[k.stato] || k.stato)}</strong>.</p>
-    <table class="dati controlli"><tbody>
-    <tr><th>La classe può avere lezione</th>${segno(k.ha_attivita)}
-      <td class="nota">le restano ${k.ore_rimanenti} ore e ${k.celle_obbligatorie_rimanenti} celle obbligatorie da riempire` +
-      ` (le ore devono bastare); ore buche oggi: ${k.ore_buche_oggi} (dopo un'ora buca non ha più lezione)</td></tr>
-    <tr><th>Può avere un'ora buca</th>${segno(k.ora_buca_possibile)}<td class="nota">solo dopo le ore obbligatorie, e se le
-      ${k.ore_rimanenti} ore che le restano stanno nei ${k.posti_nei_giorni_dopo} posti dei giorni dopo (se no la lezione è tassativa)</td></tr>
-  </tbody></table>`;
-  // la coda
-  h += `<h3>La coda di priorità</h3><p class="nota">L'ordine in cui la ricerca prova i docenti: prima chi ha più ore ancora
-    da mettere (il numero). In evidenza i docenti di ${esc(classi[c.pos % C])}.</p><ol class="coda">` +
-    c.coda.map(x => `<li class="${x.nella_classe ? 'della-classe' : ''}">${esc(x.docente)} <strong>${x.priorita}</strong></li>`).join('') + '</ol>';
-  // i docenti della classe e, sotto ognuno, le sue coppie: una tabella sola. La riga del docente ha i suoi
-  // controlli e l'esito da solo; la riga di una coppia («con ...») ha i controlli sul secondo docente e l'esito in coppia.
-  const val = (lista, nome) => { const x = lista.find(y => y[0] === nome); return x ? segno(x[1]) : '<td class="vuoto">·</td>'; };
-  const esitoCella = (ok, testo) => `<td class="esito-cella ${ok ? 'si' : 'no'}">${ok ? testo : 'no'}</td>`;
-  const COLONNE = ['libero', 'ore', 'max_ore_oggi', 'ore_contigue', 'max_classi_oggi', 'entrato'];
-  const TITOLI = {ore: 'ha ancora ore nella classe (coppia: ore insieme)'};
-  h += `<h3>I controlli dei docenti della classe e delle coppie</h3>
-    <p class="nota">Nell'ordine della coda. Sotto ogni docente le sue coppie con chi viene dopo di lui nella coda: lì i
-    controlli sono sul secondo docente, e la coppia si prova solo se anche il primo può insegnare.</p>
-    <div class="scorre"><table class="dati controlli"><thead><tr><th>Coda</th><th>Docente</th><th class="num">Ore rimaste qui</th>` +
-    COLONNE.map(n => `<th>${TITOLI[n] || NOMI_CONTROLLI[n]}</th>`).join('') +
-    `<th>Può insegnare</th><th>${NOMI_CONTROLLI.ore_da_solo}</th><th>${NOMI_CONTROLLI.sabato}</th><th>Esito</th></tr></thead><tbody>` +
-    c.docenti.map(x => {
-      const solo = x.controlli.map(y => y[0] === 'ore_nella_classe' ? ['ore', y[1]] : y);
-      let righe = `<tr class="docente"><td class="num">${x.posto}°</td><td><strong>${esc(x.docente)}</strong></td><td class="num">${x.ore_rimaste}</td>` +
-        COLONNE.map(n => val(solo, n)).join('') + esitoCella(x.puo, 'sì') + val(x.da_solo.controlli, 'ore_da_solo') +
-        val(x.da_solo.controlli, 'sabato') + esitoCella(k.ha_attivita && x.puo && x.da_solo.puo, 'da solo: si prova') + '</tr>';
-      for (const y of x.coppie) {
-        const due = y.controlli.map(z => z[0] === 'ore_insieme' ? ['ore', z[1]] : z);
-        righe += `<tr class="coppia"><td></td><td class="con">con <strong>${esc(y.con)}</strong></td><td></td>` +
-          COLONNE.map(n => val(due, n)).join('') + '<td class="vuoto">·</td><td class="vuoto">·</td>' + val(due, 'sabato') +
-          esitoCella(k.ha_attivita && x.puo && y.puo, 'in coppia: si prova') + '</tr>';
-      }
-      return righe;
-    }).join('') + '</tbody></table></div>';
-  box.innerHTML = h;
 }
 slider.addEventListener('input', () => { clearTimeout(attesa); attesa = setTimeout(() => vai(Number(slider.value)), 60); });
 document.getElementById('prec').addEventListener('click', () => vai(Number(slider.value) - 1));
