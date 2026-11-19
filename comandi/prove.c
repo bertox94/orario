@@ -10,7 +10,7 @@
 
 // Quello che un test manda al processo che lo ha lanciato.
 typedef struct {
-    int al_limite;       // la ricerca si e' fermata a PROVE_LIMITE_NODI nodi
+    int al_limite;       // la ricerca si e' fermata al limite di nodi
     int pos_max, celle;  // la cella piu' avanti raggiunta, su quante
     double secondi;
 } Esito;
@@ -35,7 +35,8 @@ static Esito un_test(const int seme, const int classi, const int ritardi, const 
     return e;  // il processo finisce qui: la memoria torna al sistema
 }
 
-// Ogni test in un processo a parte (fork): lo stato della ricerca e i dati sono globali, cosi' ognuno parte da zero.
+// Ogni test in un processo a parte (fork): alla fine la sua memoria torna al sistema, e un test che va male non
+// ferma gli altri.
 static Esito in_un_processo(const int seme, const int classi, const int ritardi, const int ordine,
                             const long long int limite) {
     Esito e = {0};

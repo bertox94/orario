@@ -1,5 +1,5 @@
 """Il solver: si compila da solo (gcc) la prima volta e quando cambiano i sorgenti; un test lo lancia con
-./untitled caso SEME CLASSI RITARDI LIMITE FILE (vedi caso.h nella radice)."""
+./untitled caso SEME CLASSI RITARDI ORDINE LIMITE FILE PASSI (vedi comandi/caso.h)."""
 import hashlib
 import os
 import subprocess

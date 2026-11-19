@@ -49,8 +49,7 @@ int docente_puo_insegnare(const Ricerca *r, const Cella *c, int p1);
 int secondo_della_coppia_puo_insegnare(const Ricerca *r, const Cella *c, int p1, int p2);
 int docente_puo_insegnare_da_solo(const Ricerca *r, const Cella *c, int p1);
 
-// mettere (delta 1) o togliere (-1) un'ora in questa cella: di un docente da solo, o di una coppia
-void segna_da_solo(Ricerca *r, const Cella *c, int p, int delta);
-void segna_coppia(Ricerca *r, const Cella *c, int p1, int p2, int delta);
+// mettere (delta 1) o togliere (-1) una scelta in questa cella: una coppia, un docente da solo, o l'ora buca (-1, -1)
+void segna_scelta(Ricerca *r, const Cella *c, teaching_slot scelta, int delta);
 
 #endif //UNTITLED_VINCOLI_H
