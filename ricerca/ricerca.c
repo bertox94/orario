@@ -272,44 +272,46 @@ void segna_coppia(Ricerca *r, const Cella *c, const int p1, const int p2, const 
 
 // ---- la ricerca ----
 
-// Prova tutte le lezioni possibili in questa cella, nell'ordine della coda (i docenti della classe, da chi ha piu' ore
-// da fare in tutto): ogni docente (ii) prima in coppia con
-// ognuno di quelli dopo di lui nella coda (jj) con cui ha ore insieme qui, poi da solo. In una coppia il docente della
-// lezione puo' essere tanto ii quanto jj: la coppia si prova una volta sola, quando si arriva al primo dei due.
-// Quando la ricerca e' finita le chiamate ritornano subito: i giri rimasti si chiudono a vuoto e ogni scelta si toglie.
-static void prova_lezioni(Ricerca *r, const Cella *c) {
-    r->ore_classe_svolte[c->cla]++;  // la lezione di questa cella conta gia' tra le ore della classe
-    for (int ii = 0; ii < c->n_coda; ii++) {
-        const int p1 = c->coda[ii]->teacher;
-        if (!docente_puo_insegnare(r, c, p1)) continue;
-        for (int jj = ii + 1; jj < c->n_coda; jj++) {
-            const int p2 = c->coda[jj]->teacher;
-            if (!secondo_della_coppia_puo_insegnare(r, c, p1, p2)) continue;
-            segna_coppia(r, c, p1, p2, 1);
-            r->orario[c->pos] = (teaching_slot){p1, p2};
-            cerca_orario(r, c->pos + 1);
-            segna_coppia(r, c, p1, p2, -1);
-        }
-        if (docente_puo_insegnare_da_solo(r, c, p1)) {
-            segna_da_solo(r, c, p1, 1);
-            r->orario[c->pos] = (teaching_slot){p1, -1};
-            cerca_orario(r, c->pos + 1);
-            segna_da_solo(r, c, p1, -1);
+// Le scelte possibili in questa cella, nell'ordine in cui la ricerca le prova; ritorna quante sono (anche nessuna).
+// Una scelta e' quello che va nella cella: una coppia di docenti, un docente da solo, o l'ora buca (-1, -1).
+// Prima le lezioni, se la classe puo' averne, nell'ordine della coda (i docenti della classe, da chi ha piu' ore da
+// fare in tutto): ogni docente (ii) prima in coppia con ognuno di quelli dopo di lui nella coda (jj) con cui ha ore
+// insieme qui, poi da solo. In una coppia il docente della lezione puo' essere tanto ii quanto jj: la coppia c'e' una
+// volta sola, quando si arriva al primo dei due. Per ultima l'ora buca, se la classe puo' averla.
+static int scelte_possibili(const Ricerca *r, const Cella *c, teaching_slot *scelte) {
+    const StatoClasse stato = stato_della_classe(r, c);
+    const int lezione = stato == DEVE_FARE_ATTIVITA || stato == PUO_FARE_ATTIVITA;
+    const int ora_buca = stato == PUO_FARE_ATTIVITA || stato == NON_PUO_FARE_ATTIVITA;
+    int n = 0;
+    if (lezione) {
+        for (int ii = 0; ii < c->n_coda; ii++) {
+            const int p1 = c->coda[ii]->teacher;
+            if (!docente_puo_insegnare(r, c, p1)) continue;
+            for (int jj = ii + 1; jj < c->n_coda; jj++) {
+                const int p2 = c->coda[jj]->teacher;
+                if (secondo_della_coppia_puo_insegnare(r, c, p1, p2)) scelte[n++] = (teaching_slot){p1, p2};
+            }
+            if (docente_puo_insegnare_da_solo(r, c, p1)) scelte[n++] = (teaching_slot){p1, -1};
         }
     }
-    r->ore_classe_svolte[c->cla]--;
+    if (ora_buca) scelte[n++] = (teaching_slot){-1, -1};
+    return n;
 }
 
-// L'ora buca: da li' la classe non ha piu' lezione oggi.
-static void prova_ora_buca(Ricerca *r, const Cella *c) {
-    r->orario[c->pos] = (teaching_slot){-1, -1};
-    r->n_ore_buche[c->base2d_gc]++;
-    cerca_orario(r, c->pos + 1);
-    r->n_ore_buche[c->base2d_gc]--;
+// Mette la scelta in questa cella (delta = 1) o la toglie (delta = -1): aggiorna le ore gia' messe. Dopo un'ora buca
+// la classe non ha piu' lezione oggi; una lezione conta tra le ore della classe e tra quelle dei suoi docenti.
+static void segna(Ricerca *r, const Cella *c, const teaching_slot scelta, const int delta) {
+    if (scelta.insegnante1 < 0) {
+        r->n_ore_buche[c->base2d_gc] += delta;
+        return;
+    }
+    r->ore_classe_svolte[c->cla] += delta;
+    if (scelta.insegnante2 < 0) segna_da_solo(r, c, scelta.insegnante1, delta);
+    else segna_coppia(r, c, scelta.insegnante1, scelta.insegnante2, delta);
 }
 
-// Decide la cella pos e scende alle celle dopo. Quando ritorna, chi l'ha chiamata toglie la sua scelta e prova la
-// successiva (si torna indietro). Se la ricerca e' finita (l'orario e' completo, oppure si e' arrivati al limite di
+// Decide la cella pos: prova una per una le scelte possibili, e con ognuna scende alle celle dopo. Quando la chiamata
+// ritorna toglie la scelta e prova la successiva; finite le scelte ritorna a chi l'ha chiamata (si torna indietro). Se la ricerca e' finita (l'orario e' completo, oppure si e' arrivati al limite di
 // nodi) ritorna subito, senza contare il nodo: le scelte che restano da provare si chiudono a vuoto.
 void cerca_orario(Ricerca *r, const int pos) {
     if (r->trovato) return;  // l'orario c'e' gia' (orario_trovato): non si cerca piu'
@@ -334,16 +336,13 @@ void cerca_orario(Ricerca *r, const int pos) {
     }
     const Cella c = cella(r, pos);
     sort_queue(c.coda, c.n_coda);
-    switch (stato_della_classe(r, &c)) {
-        case DEVE_FARE_ATTIVITA:
-            prova_lezioni(r, &c);
-            break;
-        case PUO_FARE_ATTIVITA:
-            prova_lezioni(r, &c);
-            prova_ora_buca(r, &c);
-            break;
-        case NON_PUO_FARE_ATTIVITA:
-            prova_ora_buca(r, &c);
-            break;
+    // tante scelte quante le coppie e i docenti da soli della classe, piu' l'ora buca
+    teaching_slot scelte[c.n_coda * (c.n_coda + 1) / 2 + 1];
+    const int n_scelte = scelte_possibili(r, &c, scelte);
+    for (int i = 0; i < n_scelte; i++) {
+        segna(r, &c, scelte[i], 1);
+        r->orario[pos] = scelte[i];
+        cerca_orario(r, pos + 1);
+        segna(r, &c, scelte[i], -1);
     }
 }
