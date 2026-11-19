@@ -56,12 +56,15 @@ Due pagine, senza login e senza database:
   solo con alcuni ordini, mai trovato (fermo al limite di nodi con tutti); con quali ordini sì e quali no, i nodi del
   migliore, il record (la stessa risposta con meno nodi di sempre, con quel limite) e la cella più avanti di quelli
   che non lo trovano. Lo stesso stato è in fondo a ogni riga della tabella di un numero di classi, e la riga del
-  gruppo conta i casi per stato. Prima del report, «Da verificare»: i casi che hanno almeno un ordine (ne basta uno)
+  gruppo conta i casi per stato. Prima del report, «I cambiamenti»: i casi che hanno almeno un ordine (ne basta uno)
   il cui ultimo risultato si scosta dal meglio di sempre fatto con lo stesso limite di nodi (cambiando il limite il
   meglio di sempre riparte da capo): gli allarmi (trovato dove una volta, con qualunque limite, era
   impossibile, o il contrario; un test non riuscito; un orario che non passa la verifica), i migliorati (una risposta
   dove c'era solo il limite, o meno nodi del record) e i peggiorati (più nodi del record, o fermo al limite dove
-  aveva una risposta). Un test fermo al limite che non ha mai avuto una risposta non ci entra. I test restano lì
+  aveva una risposta). Un test fermo al limite che non ha mai avuto una risposta non ci entra. I casi sono divisi
+  in una tabella per tipo di cambiamento (le vuote non si vedono): allarmi; non risolto → risolto e risolto → non
+  risolto (risolto: almeno un ordine trova l'orario); più o meno ordini trovano l'orario; stesso esito con meno o con
+  più nodi; altri cambiamenti. I casi restano lì
   finché non si conferma la presa visione con «Visto» (uno, o tutti): poi tornano solo se il risultato cambia ancora
   (le conferme stanno in `lavoro/notturni/visti.json`). Dei test notturni si tengono solo i
   numeri (in `lavoro/notturni/`), non i passi. Con il giro della notte acceso, ogni notte all'ora scelta nella pagina

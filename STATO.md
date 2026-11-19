@@ -36,7 +36,8 @@ Questo file descrive il punto fermo `stabile/2026-11-18`: che cosa c'è, che cos
 - **Test notturni**: l'elenco dei casi raggruppato per numero di classi, e dentro ogni numero una tabella con una
   riga per caso (prima i semi senza ritardi, poi quelli con) e una colonna per ordine delle classi; un limite di nodi
   unico; il giro che li riesegue; il report caso per caso in quattro gruppi (orario impossibile, trovato con ogni
-  ordine, trovato solo con alcuni ordini, mai trovato) e «Da verificare» con la presa visione. Il numero di un test
+  ordine, trovato solo con alcuni ordini, mai trovato) e «I cambiamenti», una tabella per tipo di cambiamento, con la
+  presa visione. Il numero di un test
   eliminato non si riusa e la storia di un test parte dalla sua aggiunta.
 - **Il giro della notte**: parte da solo all'ora scelta; prima aggiunge i casi di base (semi e classi scelti nella
   pagina, senza e con ritardi) con un ordine delle classi nuovo, uno in più ogni sera. Se finisce dopo l'ora di fine,
@@ -61,8 +62,6 @@ Questo file descrive il punto fermo `stabile/2026-11-18`: che cosa c'è, che cos
 - I controlli a ogni ritorno, uno alla volta: dopo «che cosa deve fare la classe» vengono i controlli dei docenti
   (una riga per docente, con la risposta e il primo motivo che lo ferma), le coppie, la coda e le potature.
 - Segnare nell'orario di un ritorno che cosa è cambiato rispetto al ritorno prima dalla stessa cella.
-- Test notturni: al posto dell'unica tabella «Da verificare», una tabella per tipo di cambiamento (non risolto →
-  risolto, risolto → non risolto, meno nodi, più nodi, allarmi). Idea di Alb del 18 novembre, da fare più avanti.
 - L'ordine delle classi: su 369 casi con ritardi, mettere prima le classi con meno ore ne trova 246, l'ordine
   generato 233, a caso 224, prima quelle con più ore 185 (prove del 16 novembre, fuori dal repository). Farne un
   ordine vero della ricerca cambia come il solver calcola: solo se Alb lo chiede.

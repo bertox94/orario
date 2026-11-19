@@ -258,8 +258,8 @@ tr.precedenti .esito { padding: 1px 10px; }
 .report details { margin: 8px 0; }
 .report summary .esito { margin-left: 6px; font-size: 13px; padding: 1px 10px; }
 table.verificare tr.allarme > td:first-child { box-shadow: inset 4px 0 0 var(--male); }
-table.verificare td form { margin: 0; }
-/* in «Da verificare» un caso tiene piu' righe, una per ordine: tra un caso e l'altro il filo e' piu' marcato */
+table.verificare td form, table.verificare th form { margin: 0; }
+/* nelle tabelle dei cambiamenti un caso tiene piu' righe, una per ordine: tra un caso e l'altro il filo e' piu' marcato */
 table.verificare tr.primo-del-caso > td { border-top: 2px solid var(--bordo); }
 table.verificare td[rowspan] { vertical-align: top; }
 /* in fondo a una riga della tabella di un gruppo: lo stato del caso con tutti i suoi ordini */

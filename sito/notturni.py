@@ -6,7 +6,7 @@ Tutto sta in lavoro/notturni/, in file JSON:
 - impostazioni.json: il limite di nodi, uno solo per tutti i test (lo usa il giro, e si cambia dalla pagina), e il
   giro della notte: se parte da solo, a che ora, l'ultimo giorno in cui e' scattato e l'ultima volta che e' saltato;
 - giri/<n>.json: un giro, con il limite usato e il risultato di ogni test (esito, nodi, cella piu' avanti, tempo);
-- visti.json: per ogni test, il risultato di cui e' stata confermata la presa visione (il report, «Da verificare»).
+- visti.json: per ogni test, il risultato di cui e' stata confermata la presa visione (il report, «I cambiamenti»).
 
 Un giro esegue i test uno dopo l'altro con ./untitled caso (caso.h), in una cartella provvisoria: del test si tengono
 solo i numeri, il file dei passi si cancella. Ogni risultato si confronta con l'ultimo dello stesso test fatto con lo
@@ -318,6 +318,7 @@ def _test_del_report(lavoro):
             if giudizio == 'allarme':   # l'esecuzione che contraddice l'ultima non e' un record: e' gia' nella frase
                 record = None
             da_verificare.append(dict(riga, giudizio=giudizio, frase=frase, record=record and record.get('nodi'),
+                                      esito_prima=record and record.get('esito'),
                                       giro_record=record and record['giro']))
     return righe, da_verificare, mai
 
@@ -337,12 +338,41 @@ def stato_del_caso(righe):
     return 'sempre trovato' if trovati == len(righe) else 'trovato con alcuni ordini' if trovati else 'mai trovato'
 
 
+# I cambiamenti di un caso rispetto al suo meglio di sempre, una tabella l'uno nella pagina, in quest'ordine.
+CAMBIAMENTI = (('allarme', 'Allarmi'), ('risolto', 'Non risolto → Risolto'), ('non risolto', 'Risolto → Non risolto'),
+               ('piu ordini', 'Più ordini trovano l\'orario'), ('meno ordini', 'Meno ordini trovano l\'orario'),
+               ('meno nodi', 'Stesso esito, meno nodi'), ('piu nodi', 'Stesso esito, più nodi'),
+               ('altro', 'Altri cambiamenti'))
+
+
+def cambiamento_del_caso(suoi, voci):
+    """Che cosa e' cambiato in un caso: una delle chiavi di CAMBIAMENTI. suoi: le ultime esecuzioni dei suoi ordini;
+    voci: quelle, tra loro, che si scostano dal meglio di sempre (_da_verificare), almeno una.
+    Un caso e' risolto quando almeno un ordine trova l'orario. Prima di tutto gli allarmi; poi si contano gli ordini
+    che trovano l'orario adesso e quelli che lo trovavano nel meglio di sempre (un ordine che non e' tra le voci non
+    e' cambiato): da nessuno ad alcuni il caso e' risolto, da alcuni a nessuno non lo e' piu', altrimenti sono di
+    piu' o di meno. Se sono gli stessi, i nodi: con un ordine peggiorato «piu' nodi», altrimenti «meno nodi» (anche
+    tornato al record). Il resto (per esempio un ordine che ora dice che l'orario non c'e') e' «altro»."""
+    if any(v['giudizio'] == 'allarme' for v in voci):
+        return 'allarme'
+    cambiati = {v['id']: v for v in voci}
+    adesso = sum(r['esito'] == 'trovato' for r in suoi)
+    prima = sum((cambiati[r['id']]['esito_prima'] if r['id'] in cambiati else r['esito']) == 'trovato' for r in suoi)
+    if adesso != prima:
+        return ('risolto' if not prima else 'non risolto' if not adesso
+                else 'piu ordini' if adesso > prima else 'meno ordini')
+    if any(v['esito'] != v['esito_prima'] or v['record'] is None or v['nodi'] is None for v in voci):
+        return 'altro'
+    return 'piu nodi' if any(v['giudizio'] == 'peggiorato' for v in voci) else 'meno nodi'
+
+
 def report(lavoro):
     """Per la pagina, caso per caso: un caso (seme, classi, ritardi) sta su una riga con tutti i suoi ordini delle
     classi, dall'ultima esecuzione di ognuno.
-    - da_verificare: i casi che hanno almeno un ordine il cui risultato si scosta dal suo meglio di sempre
-      (_da_verificare), finche' non se ne conferma la presa visione (visto), con quegli ordini dentro (voci): prima i
-      casi con un allarme, poi quelli con un peggioramento, poi gli altri;
+    - cambiamenti: i casi che hanno almeno un ordine il cui risultato si scosta dal suo meglio di sempre
+      (_da_verificare), finche' non se ne conferma la presa visione (visto), con quegli ordini dentro (voci), divisi
+      per tipo di cambiamento (cambiamento_del_caso): una tabella per tipo, nell'ordine di CAMBIAMENTI, solo quelle
+      che hanno almeno un caso;
     - gruppi: per ogni stato di STATI (stato_del_caso) i suoi casi, ognuno con: quanti ordini ha e quanti trovano
       l'orario, quali si' e quali no; tra quelli che lo trovano, i nodi del migliore e del peggiore, l'ordine migliore
       e il record di sempre; tra quelli che non lo trovano, la cella piu' avanti a cui uno e' arrivato;
@@ -370,21 +400,23 @@ def report(lavoro):
             'record': min(record) if record else None,
             'cella': avanti and min(avanti['pos_max'] + 1, avanti['celle']), 'celle': avanti and avanti['celle'],
             'ordine_avanti': avanti and avanti['ordine'], 'limite': max(r['limite'] for r in suoi)})
-    peso = {'allarme': 0, 'peggiorato': 1}
-    da_verificare = {}
+    cambiati = {}
     for v in sorted(verificare, key=lambda v: v['ordine']):
-        c = da_verificare.setdefault(_caso(v), {'classi': v['classi'], 'seme': v['seme'], 'ritardi': v['ritardi'],
-                                               'voci': [], 'ids': [], 'peso': 2})
+        c = cambiati.setdefault(_caso(v), {'classi': v['classi'], 'seme': v['seme'], 'ritardi': v['ritardi'],
+                                           'voci': [], 'ids': []})
         c['voci'].append(v)
         c['ids'].append(v['id'])
-        c['peso'] = min(c['peso'], peso.get(v['giudizio'], 2))
-    return {'da_verificare': [da_verificare[c] for c in sorted(da_verificare, key=lambda c: (da_verificare[c]['peso'], c))],
-            'ordini_da_verificare': len(verificare), 'gruppi': gruppi, 'altri': len(tutti - set(casi))}
+    tabelle = {chiave: [] for chiave, _ in CAMBIAMENTI}
+    for caso in sorted(cambiati):
+        tabelle[cambiamento_del_caso(casi[caso], cambiati[caso]['voci'])].append(cambiati[caso])
+    return {'cambiamenti': [{'chiave': chiave, 'titolo': titolo, 'casi': tabelle[chiave]}
+                            for chiave, titolo in CAMBIAMENTI if tabelle[chiave]],
+            'casi_cambiati': len(cambiati), 'gruppi': gruppi, 'altri': len(tutti - set(casi))}
 
 
 def visto(lavoro, ids):
     """Conferma la presa visione dei test con questi numeri: si ricorda il loro ultimo risultato, e i test escono da
-    «Da verificare» finche' il risultato non cambia di nuovo."""
+    «I cambiamenti» finche' il risultato non cambia di nuovo."""
     ids = {str(i) for i in ids}
     with _lock:
         visti = _visti(lavoro)

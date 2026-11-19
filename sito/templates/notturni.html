@@ -37,37 +37,39 @@
   <p class="nota" id="stato-notte"></p>
 </div>
 
-<h2>Da verificare</h2>
-{% set dv = rp.da_verificare %}
-{% if not dv %}
-<p class="nota">Niente da verificare: nessun caso si scosta dal suo meglio di sempre, o ne hai già preso visione.</p>
+<h2>I cambiamenti</h2>
+{% if not rp.cambiamenti %}
+<p class="nota">Nessun cambiamento: nessun caso si scosta dal suo meglio di sempre, o ne hai già preso visione.</p>
 {% else %}
+<p class="nota">Una tabella per tipo di cambiamento, una riga per caso con dentro gli ordini delle classi il cui ultimo risultato si scosta dal loro
+  meglio di sempre con questo limite di nodi. Un caso resta nella sua tabella finché non premi «Visto»; poi torna solo se il risultato cambia ancora.</p>
 <div class="report">
-  <form method="post" action="{{ url_for('visto_notturni') }}" class="rigo">
-    <input type="hidden" name="ids" value="{% for c in dv %}{{ c.ids|join(',') }}{{ ',' if not loop.last }}{% endfor %}">
-    <button class="secondario">{{ 'Visto' if dv|length == 1 else 'Visti tutti e %d'|format(dv|length) }}</button>
-    <span class="nota">Una riga per caso, con dentro gli ordini delle classi il cui ultimo risultato si scosta dal loro meglio di sempre con questo
-      limite di nodi ({{ rp.ordini_da_verificare|numero }} in tutto). Restano qui finché non confermi di averli visti; poi tornano solo se il risultato cambia ancora.</span>
-  </form>
-  <div class="scorre"><table class="dati verificare">
-    <thead><tr><th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th><th class="num">Ordine</th>
-      <th>Esito</th><th class="num">Nodi</th><th class="num">Record</th><th>Rispetto al record</th><th></th></tr></thead>
-    <tbody>
-    {% for c in dv %}{% for x in c.voci %}
-    <tr class="{{ 'allarme' if c.peso == 0 }} {{ 'primo-del-caso' if loop.first }}">
-      {% if loop.first %}<td class="num" rowspan="{{ c.voci|length }}">{{ c.seme }}</td><td class="num" rowspan="{{ c.voci|length }}">{{ c.classi }}</td>
-      <td rowspan="{{ c.voci|length }}">{{ 'con' if c.ritardi else 'senza' }}</td>{% endif %}
-      <td class="num" title="Test {{ x.id }}">{{ x.ordine }}</td>
-      <td><span class="esito esito-{{ (x.esito or '')|replace(' ', '-') }}">{{ x.esito }}</span></td>
-      <td class="num">{{ x.nodi|numero if x.nodi is not none }}</td>
-      <td class="num">{% if x.record is not none %}{{ x.record|numero }} <span class="nota">giro {{ x.giro_record }}</span>{% endif %}</td>
-      <td><span class="confronto confronto-{{ {'allarme': 'peggiorato', 'tornato al record': 'migliorato'}.get(x.giudizio, x.giudizio) }}">{{ x.giudizio }}</span>
-        {% if x.frase %}{{ x.frase }}{% elif x.record %}{{ '+' if x.nodi > x.record else '−' }}{{ ((x.nodi - x.record)|abs / x.record * 100)|round|int }}% di nodi{% endif %}</td>
-      {% if loop.first %}<td rowspan="{{ c.voci|length }}"><form method="post" action="{{ url_for('visto_notturni') }}"><input type="hidden" name="ids" value="{{ c.ids|join(',') }}">
-        <button class="piccolo secondario">Visto</button></form></td>{% endif %}</tr>
-    {% endfor %}{% endfor %}
-    </tbody>
-  </table></div>
+  {% for t in rp.cambiamenti %}
+  <details open>
+    <summary>{{ t.titolo }} <span class="esito esito-{{ {'allarme': 'nessuna-soluzione', 'non risolto': 'nessuna-soluzione', 'meno ordini': 'nessuna-soluzione', 'piu nodi': 'nessuna-soluzione', 'altro': 'limite-di-nodi'}.get(t.chiave, 'trovato') }}">{{ t.casi|length|numero }}</span></summary>
+    <div class="scorre"><table class="dati verificare">
+      <thead><tr><th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th><th class="num">Ordine</th>
+        <th>Esito</th><th class="num">Nodi</th><th class="num">Record</th><th>Rispetto al record</th>
+        <th>{% if t.casi|length > 1 %}<form method="post" action="{{ url_for('visto_notturni') }}"><input type="hidden" name="ids" value="{% for c in t.casi %}{{ c.ids|join(',') }}{{ ',' if not loop.last }}{% endfor %}">
+          <button class="piccolo secondario">Visti tutti e {{ t.casi|length }}</button></form>{% endif %}</th></tr></thead>
+      <tbody>
+      {% for c in t.casi %}{% for x in c.voci %}
+      <tr class="{{ 'allarme' if t.chiave == 'allarme' }} {{ 'primo-del-caso' if loop.first }}">
+        {% if loop.first %}<td class="num" rowspan="{{ c.voci|length }}">{{ c.seme }}</td><td class="num" rowspan="{{ c.voci|length }}">{{ c.classi }}</td>
+        <td rowspan="{{ c.voci|length }}">{{ 'con' if c.ritardi else 'senza' }}</td>{% endif %}
+        <td class="num" title="Test {{ x.id }}">{{ x.ordine }}</td>
+        <td><span class="esito esito-{{ (x.esito or '')|replace(' ', '-') }}">{{ x.esito }}</span></td>
+        <td class="num">{{ x.nodi|numero if x.nodi is not none }}</td>
+        <td class="num">{% if x.record is not none %}{{ x.record|numero }} <span class="nota">giro {{ x.giro_record }}</span>{% endif %}</td>
+        <td><span class="confronto confronto-{{ {'allarme': 'peggiorato', 'tornato al record': 'migliorato'}.get(x.giudizio, x.giudizio) }}">{{ x.giudizio }}</span>
+          {% if x.frase %}{{ x.frase }}{% elif x.record %}{{ '+' if x.nodi > x.record else '−' }}{{ ((x.nodi - x.record)|abs / x.record * 100)|round|int }}% di nodi{% endif %}</td>
+        {% if loop.first %}<td rowspan="{{ c.voci|length }}"><form method="post" action="{{ url_for('visto_notturni') }}"><input type="hidden" name="ids" value="{{ c.ids|join(',') }}">
+          <button class="piccolo secondario">Visto</button></form></td>{% endif %}</tr>
+      {% endfor %}{% endfor %}
+      </tbody>
+    </table></div>
+  </details>
+  {% endfor %}
 </div>
 {% endif %}
 
