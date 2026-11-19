@@ -124,7 +124,7 @@ typedef struct {
 // Il conto non torna: scrive i numeri (se qualcuno li vuole) e ritorna 0, il valore della potatura che non passa.
 static int non_passa(const Punto *x, const int docente, const int classe, const int ora, const int servono,
                      const int possibili) {
-    if (x->perche) *x->perche = (Scatto){-1, docente, classe, ora, servono, possibili};
+    if (x->perche) *x->perche = (Scatto){-1, docente, classe, ora, servono, possibili, -1, -1};
     return 0;
 }
 
@@ -211,8 +211,12 @@ static int le_ore_del_docente_in_una_classe_stanno_nel_resto(const Punto *x) {
             const int p = t->docenti[k * INSEGNANTE_SZ + i], restano = ore_rimaste_in_classe(x, k, p);
             if (!restano) continue;
             const int al_giorno = MIN(MAX_ORE_PROF_IN_UNA_CLASSE, x->O - ingresso(x, p));
-            const int possibili = x->dopo * al_giorno + fino_a(puo_fare_oggi(x, k, i), x->O - 1);
-            if (restano > possibili) return non_passa(x, p, k, -1, restano, possibili);
+            const Oggi oggi = puo_fare_oggi(x, k, i);
+            const int possibili = x->dopo * al_giorno + fino_a(oggi, x->O - 1);
+            if (restano <= possibili) continue;
+            non_passa(x, p, k, -1, restano, possibili);
+            if (x->perche) x->perche->oggi = fino_a(oggi, x->O - 1), x->perche->oggi_da = oggi.comincia;
+            return 0;
         }
     }
     return 1;

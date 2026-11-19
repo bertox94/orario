@@ -48,7 +48,8 @@ void libera_potature(Ricerca *r);
 int potatura(const Ricerca *r, int pos);
 
 // Perche' una potatura non passa: i numeri del primo conto che non torna. Quello che non c'entra vale -1.
-//   1: al docente restano `servono` ore nella classe, ne puo' fare ancora `possibili`;
+//   1: al docente restano `servono` ore nella classe, ne puo' fare ancora `possibili`: `oggi` oggi (dall'ora
+//      `oggi_da`, di seguito) e le altre nei giorni dopo;
 //   2: al docente restano `servono` ore in tutto, ha ancora `possibili` ore libere;
 //   3: le ore che restano al docente richiedono `servono` classi-giorno, dopo oggi puo' stare in `possibili`;
 //   4: alla classe restano `servono` ore, puo' avere ancora `possibili` lezioni;
@@ -61,6 +62,7 @@ typedef struct {
     int docente, classe;  // di chi si parla
     int ora;
     int servono, possibili;
+    int oggi, oggi_da;    // solo la 1: quante delle possibili sono oggi, e da che ora (indice)
 } Scatto;
 
 // Come potatura, per chi vuole mostrare il perche' (passo.c): rifa' tutti i conti, non solo quelli cambiati (il

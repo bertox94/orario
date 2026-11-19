@@ -69,7 +69,9 @@ int stampa_passo(const unsigned long long int seme, const int classi, const int 
         json_nome(stdout, perche.classe < 0 ? NULL : s->classe_sezione[perche.classe]);
         printf(",\"ora\":");
         json_nome(stdout, perche.ora < 0 ? NULL : s->ore_giornaliere[perche.ora]);
-        printf(",\"servono\":%d,\"possibili\":%d}", perche.servono, perche.possibili);
+        printf(",\"servono\":%d,\"possibili\":%d", perche.servono, perche.possibili);
+        if (perche.oggi >= 0) printf(",\"oggi\":%d,\"oggi_da\":%d", perche.oggi, perche.oggi_da);
+        putchar('}');
     }
 
     // la classe

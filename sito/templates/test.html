@@ -135,6 +135,8 @@
   Mentre il test gira lo slider si allunga e, se è in fondo, segue i ritorni nuovi.</p>
 <h3>I controlli nella cella del ritorno</h3>
 <table class="dati controlli" id="controlli-ritorno"><tbody></tbody></table>
+<p class="nota legenda-segni" id="legenda-potatura" hidden><span class="segno-fatta">le ore che ha già fatto nella classe</span>
+  <span class="segno-puo">dove può ancora insegnare</span> <span class="segno-no">dove non può più</span></p>
 <h3>Il profilo e gli ostacoli</h3>
 <p class="nota" id="conto-backtrack"></p>
 <canvas id="profilo" height="130" title="Clic: vai a quel punto della ricerca"></canvas>
@@ -282,12 +284,73 @@ const CONTROLLI_DEL_RITORNO = [
   },
 ];
 const nomeClasse = p => forma.classi[p.pos % forma.classi.length];
+// ---- le potature nella cella del ritorno, una alla volta. Se il ritorno e' di una potatura (./untitled passo,
+// "potatura") la sua riga sta in cima ai controlli: dice di chi parla e i numeri del conto che non torna, e ha un
+// tasto che segna nell'orario del ritorno le celle che fanno il conto. Ogni voce: potatura -> {titolo, frase, segni},
+// dove segni e' una funzione che ritorna [[classe (indice), giorno, ora, segno], ...] con segno 'fatta', 'puo' o 'no'.
+const quanteOre = n => `${n} or${n === 1 ? 'a' : 'e'}`;
+const POTATURE = {
+  // 1. Un docente in una classe: le ore che gli restano li' devono stare in quelle che ci puo' ancora fare, oggi e nei
+  // giorni dopo (potature.h). Nell'orario: le ore che ha gia' fatto nella classe; oggi, dove puo' ancora insegnare (da
+  // oggi_da, per `oggi` ore) e dove non piu'; nei giorni dopo, dal suo ingresso in poi.
+  1: (t, p) => {
+    const {giorni, ore, classi} = forma, G = giorni.length, O = ore.length, C = classi.length;
+    const k = classi.indexOf(t.classe), giorno = Math.floor(p.pos / (O * C)), ora = Math.floor(p.pos / C) % O;
+    const dopo = t.possibili - t.oggi, giorniDopo = G - 1 - giorno, entra = INGRESSI[RIGA_DOCENTE[t.docente]] || 0;
+    return {
+      titolo: 'Potatura 1 · le ore di un docente in una classe',
+      frase: `A ${t.docente} restano ${quanteOre(t.servono)} in ${t.classe}, ma ne può fare ancora ${t.possibili}: ` +
+        `oggi ${t.oggi || 'nessuna'}, ` + (giorniDopo ? `nei giorni dopo ${dopo} (${giorniDopo === 1 ? 'resta un giorno' : 'restano ' + giorniDopo + ' giorni'}, ` +
+        `al massimo ${dopo / giorniDopo} al giorno` + (entra ? `: entra alle ${ore[entra]}` : '') + ').' : 'e non ci sono altri giorni.'),
+      segni: () => {
+        const segni = [];
+        p.orario.forEach((x, i) => {  // le ore che ha gia' fatto in questa classe
+          if (i % C === k && x.includes(t.docente)) segni.push([k, Math.floor(i / (O * C)), Math.floor(i / C) % O, 'fatta']);
+        });
+        // oggi, dalla prima ora della classe non ancora decisa: dove puo' ancora, e dove non piu'
+        for (let o = ora + (k < p.pos % C ? 1 : 0); o < O; o++) segni.push([k, giorno, o, o >= t.oggi_da && o < t.oggi_da + t.oggi ? 'puo' : 'no']);
+        for (let g = giorno + 1; g < G; g++) for (let o = 0; o < O; o++) segni.push([k, g, o, o >= entra ? 'puo' : 'no']);
+        return segni;
+      },
+    };
+  },
+};
+const SEGNI = ['fatta', 'puo', 'no'].map(x => 'segno-' + x);
+let potaturaMostrata = null;  // la potatura del ritorno che si guarda, se la pagina la sa mostrare
+function segnaPotatura(acceso) {
+  for (const td of tabellaRitorno.querySelectorAll('td')) td.classList.remove(...SEGNI);
+  const tasto = document.getElementById('segna-potatura');
+  if (tasto) tasto.setAttribute('aria-pressed', acceso), tasto.textContent = acceso ? 'Togli i segni dall\'orario' : 'Mostra nell\'orario';
+  document.getElementById('legenda-potatura').hidden = !acceso;
+  if (!acceso || !potaturaMostrata) return;
+  const O = forma.ore.length, righe = tabellaRitorno.tBodies[0].rows;
+  let prima = null;
+  for (const [k, g, o, segno] of potaturaMostrata.segni()) {
+    const td = righe[k].cells[1 + g * O + o];
+    td.classList.add('segno-' + segno);
+    prima = prima || (segno !== 'fatta' && td);
+  }
+  inVista(tabellaRitorno, prima, 64);
+}
 function mostraControlliDelRitorno(p) {
-  document.querySelector('#controlli-ritorno tbody').innerHTML = !p ? '' : CONTROLLI_DEL_RITORNO.map(f => {
+  const fatta = p && p.potatura && POTATURE[p.potatura.numero];
+  potaturaMostrata = fatta ? fatta(p.potatura, p) : null;
+  // la riga della potatura, se il ritorno e' suo; quelle che la pagina non sa ancora spiegare hanno solo il numero
+  const riga = potaturaMostrata ? `<tr><th>${esc(potaturaMostrata.titolo)}</th><td class="no"><strong>non passa</strong></td>` +
+      `<td>${esc(potaturaMostrata.frase)} La ricerca torna indietro senza provare niente in questa cella. ` +
+      '<button type="button" class="piccolo secondario" id="segna-potatura" aria-pressed="false">Mostra nell\'orario</button></td></tr>'
+    : p && p.potatura ? `<tr><th>Potatura ${p.potatura.numero}</th><td class="no"><strong>non passa</strong></td>` +
+      '<td>La ricerca torna indietro senza provare niente in questa cella.</td></tr>' : '';
+  document.querySelector('#controlli-ritorno tbody').innerHTML = !p ? '' : riga + CONTROLLI_DEL_RITORNO.map(f => {
     const [nome, esito, colore, numeri] = f(p);
     return `<tr><th>${esc(nome)}</th><td class="${colore}"><strong>${esc(esito)}</strong></td><td>${esc(numeri)}</td></tr>`;
   }).join('');
+  segnaPotatura(false);
 }
+document.getElementById('controlli-ritorno').addEventListener('click', e => {
+  const tasto = e.target.closest('#segna-potatura');
+  if (tasto) segnaPotatura(tasto.getAttribute('aria-pressed') !== 'true');
+});
 async function vaiRitorno(i) {
   if (!forma) return;
   const scritta = document.getElementById('testo-ritorno');
