@@ -43,6 +43,7 @@ CONFRONTATI = ('esito', 'nodi', 'pos_max')
 PRECEDENTI = 5      # quante esecuzioni precedenti di un test mostra la pagina
 
 _lock = threading.Lock()
+_lock_giri = threading.Lock()   # per i giri tenuti in memoria (giro)
 _giro = {'id': None, 'processo': None, 'fermare': False}  # il giro in corso
 _orologio = {'partito': False}                             # il thread che guarda l'ora per il giro della notte
 
@@ -157,8 +158,28 @@ def _giri(lavoro):
         if os.path.isdir(d) else []
 
 
+_giri_letti = {}   # percorso -> (data e lunghezza del file, il giro): i giri finiti, gia' letti
+
+
 def giro(lavoro, gid):
-    return _leggi(_cartella(lavoro, 'giri', '%d.json' % gid), None)
+    """Il giro numero gid (None se non c'e'). La pagina li rilegge tutti a ogni aggiornamento, e mentre un giro gira
+    succede ogni secondo e mezzo: un giro finito non cambia piu', quindi si legge una volta sola e poi si tiene in
+    memoria finche' il suo file resta quello. Chi lo riceve non lo deve cambiare. Il giro in corso si rilegge sempre."""
+    percorso = _cartella(lavoro, 'giri', '%d.json' % gid)
+    try:
+        s = os.stat(percorso)
+    except OSError:
+        return None
+    file = (s.st_mtime_ns, s.st_size)
+    with _lock_giri:
+        letto = _giri_letti.get(percorso)
+    if letto and letto[0] == file:
+        return letto[1]
+    g = _leggi(percorso, None)
+    if g and g.get('fine') is not None:
+        with _lock_giri:
+            _giri_letti[percorso] = (file, g)
+    return g
 
 
 def in_corso():
@@ -604,9 +625,12 @@ def situazione(lavoro):
     pagina, che le confronta (notturni.html, giudizio e andamento)."""
     nodi = limite(lavoro)
     giri = [x for x in (giro(lavoro, gid) for gid in reversed(_giri(lavoro))) if x]  # dal piu' recente
-    for x in giri:  # i giri del 17 novembre 2026 hanno dentro un report, scritto a fine giro: non si usa piu'
-        x.pop('report', None)
-    g = giri[0] if giri else None
+    # il giro da mostrare, in una copia (quelli letti non si cambiano, vedi giro), senza il report che i giri del 17
+    # novembre 2026 hanno dentro, scritto a fine giro: non si usa piu'
+    g = None
+    if giri:
+        g = {k: v for k, v in giri[0].items() if k != 'report'}
+        g['risultati'] = {k: dict(v) for k, v in g.get('risultati', {}).items()}
     tests = []
     for t in elenco(lavoro):
         # le esecuzioni del test, dalla piu' recente: il risultato, piu' il giro, la data e il limite di quel giro
