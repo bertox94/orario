@@ -56,7 +56,10 @@ Due pagine, senza login e senza database:
   solo con alcuni ordini, mai trovato (fermo al limite di nodi con tutti); con quali ordini sì e quali no, i nodi del
   migliore, il record (la stessa risposta con meno nodi di sempre, con quel limite) e la cella più avanti di quelli
   che non lo trovano. Lo stesso stato è in fondo a ogni riga della tabella di un numero di classi, e la riga del
-  gruppo conta i casi per stato. Prima del report, «I cambiamenti»: i casi che hanno almeno un ordine (ne basta uno)
+  gruppo conta i casi per stato. Prima del report, «Le contraddizioni» (solo se ce ne sono): i casi in cui un
+  ordine trova l'orario e un altro risponde nessuna soluzione o errore nei dati; i dati sono gli stessi, quindi una
+  delle due risposte è sbagliata, e il caso resta lì finché i risultati non cambiano (non c'è «Visto»). Poi
+  «I cambiamenti»: i casi che hanno almeno un ordine (ne basta uno)
   il cui ultimo risultato si scosta dal meglio di sempre fatto con lo stesso limite di nodi (cambiando il limite il
   meglio di sempre riparte da capo): gli allarmi (trovato dove una volta, con qualunque limite, era
   impossibile, o il contrario; un test non riuscito; un orario che non passa la verifica), i migliorati (una risposta

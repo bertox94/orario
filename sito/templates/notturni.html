@@ -37,6 +37,24 @@
   <p class="nota" id="stato-notte"></p>
 </div>
 
+{% if rp.contraddizioni %}
+<h2>Le contraddizioni</h2>
+<p class="nota">Casi in cui un ordine delle classi trova l'orario e un altro dice che non c'è. I dati sono gli stessi, quindi una delle due risposte è
+  sbagliata: se l'orario trovato passa la verifica, è sbagliata l'altra. Restano qui finché i risultati non cambiano.</p>
+<div class="report">
+  <div class="scorre"><table class="dati verificare">
+    <thead><tr><th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th><th>Trovano l'orario gli ordini</th><th>Dicono che non c'è</th></tr></thead>
+    <tbody>
+    {% for c in rp.contraddizioni %}
+    <tr class="allarme"><td class="num">{{ c.seme }}</td><td class="num">{{ c.classi }}</td><td>{{ 'con' if c.ritardi else 'senza' }}</td>
+      <td><span class="esito esito-trovato">trovato</span> <span class="nota">{{ 'ordine' if c.trovano|length == 1 else 'ordini' }}</span> {{ c.trovano|join(', ') }}</td>
+      <td>{% for ordine, esito in c.negano %}<span class="esito esito-{{ esito|replace(' ', '-') }}">{{ esito }}</span> <span class="nota">ordine</span> {{ ordine }}{{ ' ' if not loop.last }}{% endfor %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endif %}
+
 <h2>I cambiamenti</h2>
 {% if not rp.cambiamenti %}
 <p class="nota">Nessun cambiamento: nessun caso si scosta dal suo meglio di sempre, o ne hai già preso visione.</p>

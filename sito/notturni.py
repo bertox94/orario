@@ -366,6 +366,17 @@ def cambiamento_del_caso(suoi, voci):
     return 'piu nodi' if any(v['giudizio'] == 'peggiorato' for v in voci) else 'meno nodi'
 
 
+def contraddizione_del_caso(suoi):
+    """Se gli ordini di un caso si contraddicono: (ordini che trovano l'orario, [(ordine, esito)] di quelli che dicono
+    che non c'e'), oppure None. I dati sono gli stessi e cambia solo l'ordine delle classi, quindi l'orario o c'e' o
+    non c'e': se un ordine lo trova e un altro risponde «nessuna soluzione» o «errore nei dati», una delle due
+    risposte e' sbagliata (se l'orario trovato passa la verifica, la seconda). Non e' un cambiamento nel tempo: vale
+    finche' i risultati sono questi, e non si conferma con «Visto»."""
+    trovano = [r['ordine'] for r in suoi if r['esito'] == 'trovato']
+    negano = [(r['ordine'], r['esito']) for r in suoi if r['esito'] in IMPOSSIBILE]
+    return (trovano, negano) if trovano and negano else None
+
+
 def report(lavoro):
     """Per la pagina, caso per caso: un caso (seme, classi, ritardi) sta su una riga con tutti i suoi ordini delle
     classi, dall'ultima esecuzione di ognuno.
@@ -373,6 +384,8 @@ def report(lavoro):
       (_da_verificare), finche' non se ne conferma la presa visione (visto), con quegli ordini dentro (voci), divisi
       per tipo di cambiamento (cambiamento_del_caso): una tabella per tipo, nell'ordine di CAMBIAMENTI, solo quelle
       che hanno almeno un caso;
+    - contraddizioni: i casi i cui ordini si contraddicono adesso (contraddizione_del_caso), con gli ordini che
+      trovano l'orario e quelli che dicono che non c'e';
     - gruppi: per ogni stato di STATI (stato_del_caso) i suoi casi, ognuno con: quanti ordini ha e quanti trovano
       l'orario, quali si' e quali no; tra quelli che lo trovano, i nodi del migliore e del peggiore, l'ordine migliore
       e il record di sempre; tra quelli che non lo trovano, la cella piu' avanti a cui uno e' arrivato;
@@ -383,8 +396,13 @@ def report(lavoro):
         casi.setdefault(_caso(r), []).append(r)
     tutti = {_caso(t) for t in elenco(lavoro)}
     gruppi = {g: [] for g in STATI}
+    contraddizioni = []
     for caso in sorted(casi):
         suoi = sorted(casi[caso], key=lambda r: r['ordine'])
+        contro = contraddizione_del_caso(suoi)
+        if contro:
+            contraddizioni.append({'classi': caso[0], 'seme': caso[1], 'ritardi': caso[2],
+                                   'trovano': contro[0], 'negano': contro[1]})
         trovati = [r for r in suoi if r['esito'] == 'trovato' and r['nodi'] is not None]
         no = [r for r in suoi if r['esito'] != 'trovato']
         fermi = [r for r in no if r.get('celle') and r.get('pos_max') is not None]
@@ -411,7 +429,7 @@ def report(lavoro):
         tabelle[cambiamento_del_caso(casi[caso], cambiati[caso]['voci'])].append(cambiati[caso])
     return {'cambiamenti': [{'chiave': chiave, 'titolo': titolo, 'casi': tabelle[chiave]}
                             for chiave, titolo in CAMBIAMENTI if tabelle[chiave]],
-            'casi_cambiati': len(cambiati), 'gruppi': gruppi, 'altri': len(tutti - set(casi))}
+            'casi_cambiati': len(cambiati), 'contraddizioni': contraddizioni, 'gruppi': gruppi, 'altri': len(tutti - set(casi))}
 
 
 def visto(lavoro, ids):

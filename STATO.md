@@ -36,8 +36,8 @@ Questo file descrive il punto fermo `stabile/2026-11-18`: che cosa c'è, che cos
 - **Test notturni**: l'elenco dei casi raggruppato per numero di classi, e dentro ogni numero una tabella con una
   riga per caso (prima i semi senza ritardi, poi quelli con) e una colonna per ordine delle classi; un limite di nodi
   unico; il giro che li riesegue; il report caso per caso in quattro gruppi (orario impossibile, trovato con ogni
-  ordine, trovato solo con alcuni ordini, mai trovato) e «I cambiamenti», una tabella per tipo di cambiamento, con la
-  presa visione. Il numero di un test
+  ordine, trovato solo con alcuni ordini, mai trovato) «Le contraddizioni» (un ordine trova l'orario e un altro dice che non c'è) e
+  «I cambiamenti», una tabella per tipo di cambiamento, con la presa visione. Il numero di un test
   eliminato non si riusa e la storia di un test parte dalla sua aggiunta.
 - **Il giro della notte**: parte da solo all'ora scelta; prima aggiunge i casi di base (semi e classi scelti nella
   pagina, senza e con ritardi) con un ordine delle classi nuovo, uno in più ogni sera. Se finisce dopo l'ora di fine,
