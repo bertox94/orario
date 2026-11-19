@@ -119,7 +119,7 @@ int esegui_caso(const unsigned long long int seme, const int classi, const int r
     cerca_orario(r, 0);
     passi_chiudi(k->passi);
     k->esito = r->trovato ? "trovato" : r->fermato ? "limite di nodi" : "nessuna soluzione";
-    if (r->trovato) k->verificato = verifica_orario(s, r->orario, k->verifica);
+    if (r->trovato) k->verificato = verifica_orario(s, r->orario_trovato, k->verifica);
     if (!r->trovato && !r->fermato) k->foto_pos = 0;  // nessuna soluzione: non resta niente da mostrare
     scrivi_stato(k, s, r, 0);
     libera_ricerca(r);

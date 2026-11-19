@@ -18,6 +18,8 @@ struct Ricerca {
     // l'orario: una cella per (giorno, ora, classe), la cella (giorno * ore + ora) * classi + classe
     teaching_slot orario[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ];
     int orario_len;  // giorni * ore * classi
+    // l'orario completo, quando la ricerca lo trova: orario[] risalendo si svuota, questo resta
+    teaching_slot orario_trovato[GIORNO_SETTIMANA_SZ * ORA_GIORNALIERA_SZ * CLASSE_SEZIONE_SZ];
 
     // le ore gia' messe nell'orario fino alla cella che la ricerca sta decidendo. Gli array sono piatti, con gli
     // stessi indici dei dati: classe, docente -> classe * INSEGNANTE_SZ + docente; giorno, ora, docente ->
@@ -53,7 +55,7 @@ struct Ricerca {
     long long int potate[8];
 
     // come e' finita
-    int trovato;  // l'orario e' completo: e' in orario
+    int trovato;  // l'orario e' completo: e' in orario_trovato
     int fermato;  // si e' fermata al limite di nodi
 
     // il conto dei nodi (le chiamate di cerca_orario) e i limiti: non cambiano la ricerca, la fermano soltanto
@@ -73,12 +75,9 @@ Ricerca *nuova_ricerca(const Scuola *s);
 void libera_ricerca(Ricerca *r);
 
 // Decide la cella pos e scende alle celle dopo (cerca_orario(r, 0): tutto l'orario). Come e' andata lo dice la
-// ricerca stessa: r->trovato (l'orario e' completo, ed e' r->orario) oppure r->fermato (si e' arrivati al limite di
-// nodi: r->orario e' quello del nodo dove si e' fermata). Se dopo cerca_orario(r, 0) non vale nessuno dei due, non
-// c'e' nessun orario.
+// ricerca stessa: r->trovato (l'orario e' completo, ed e' r->orario_trovato) oppure r->fermato (si e' arrivati al limite
+// di nodi). Da quel momento ogni chiamata ritorna subito, e risalendo le scelte si tolgono: alla fine r->orario non
+// dice piu' niente. Se dopo cerca_orario(r, 0) non vale nessuno dei due, non c'e' nessun orario.
 void cerca_orario(Ricerca *r, int pos);
-
-// la ricerca e' finita: l'orario e' completo, o si e' arrivati al limite di nodi
-int ricerca_finita(const Ricerca *r);
 
 #endif //UNTITLED_RICERCA_H
