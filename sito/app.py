@@ -18,6 +18,11 @@ def numero(v):
     return '{:,}'.format(v).replace(',', '.') if isinstance(v, int) else v
 
 
+def _numeri(campo):
+    """I numeri (di test) arrivati in un campo del modulo, separati da virgole."""
+    return [int(x) for x in (request.form.get(campo) or '').split(',') if x.strip().isdigit()]
+
+
 def crea_app():
     app = Flask(__name__)
     app.secret_key = os.environ.get('SITO_SEGRETO') or os.urandom(16)
@@ -133,7 +138,7 @@ def crea_app():
     def elimina_scelti():
         """Elimina i test scelti con le caselle nello storico: i loro numeri arrivano in `ids`, separati da virgole.
         Quello che sta girando non si elimina."""
-        ids = [int(x) for x in (request.form.get('ids') or '').split(',') if x.strip().isdigit()]
+        ids = _numeri('ids')
         tolti = 0
         for tid in ids:
             try:
@@ -155,8 +160,8 @@ def crea_app():
 
     @app.route('/notturni/visto', methods=['POST'])
     def visto_notturni():
-        """Conferma la presa visione dei test da verificare: i loro numeri arrivano in `ids`, separati da virgole."""
-        notturni.visto(LAVORO, [int(x) for x in (request.form.get('ids') or '').split(',') if x.strip().isdigit()])
+        """Conferma la presa visione dei test di «I cambiamenti»: i loro numeri arrivano in `ids`, separati da virgole."""
+        notturni.visto(LAVORO, _numeri('ids'))
         return redirect(url_for('pagina_notturni'))
 
     @app.route('/notturni/stato.json')
@@ -201,7 +206,7 @@ def crea_app():
     @app.route('/notturni/togli-scelti', methods=['POST'])
     def togli_notturni_scelti():
         """Toglie i test scelti con le caselle: i loro numeri arrivano in `ids`, separati da virgole."""
-        ids = [int(x) for x in (request.form.get('ids') or '').split(',') if x.strip().isdigit()]
+        ids = _numeri('ids')
         if notturni.in_corso() is not None:
             flash('C\'è un giro in corso: i test si tolgono quando è finito.')
         elif ids:

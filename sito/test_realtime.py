@@ -51,7 +51,9 @@ def avvia(lavoro, seme, classi, ritardi, ordine, milioni):
         exe = solver.compila(os.path.join(lavoro, 'bin'))
         os.makedirs(_cartella(lavoro), exist_ok=True)
         ids = [int(x) for x in os.listdir(_cartella(lavoro)) if x.isdigit()]
-        tid = max(ids, default=0) + 1
+        tid = max(ids, default=0) + 1   # il numero dell'ultimo test, se e' stato eliminato, si riusa
+        with _lock_indice:
+            _per_cella.pop((lavoro, tid), None)
         d = _cartella(lavoro, tid)
         os.makedirs(d)
         limite = int(round(milioni * 1000000))
@@ -312,3 +314,5 @@ def elimina(lavoro, tid):
     if in_corso() == tid:
         raise ValueError('Il test sta girando: prima fermalo.')
     shutil.rmtree(_cartella(lavoro, tid), ignore_errors=True)
+    with _lock_indice:
+        _per_cella.pop((lavoro, tid), None)

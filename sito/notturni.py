@@ -104,13 +104,18 @@ def _numero_nuovo(lavoro, tutti):
     return ultimo
 
 
+def _parametri(t):
+    """Quello che fa di un test quel test: due test con gli stessi parametri sono lo stesso."""
+    return t['seme'], t['classi'], t['ritardi'], t['ordine']
+
+
 def aggiungi(lavoro, seme, classi, ritardi, ordine, da_solo=False):
     """Aggiunge il caso ai test notturni, se non c'e' gia' (seme, classi, ritardi e ordine uguali). Ritorna il test, e
     se e' nuovo. da_solo: lo ha aggiunto il giro della notte."""
     with _lock:
         tutti = elenco(lavoro)
         for t in tutti:
-            if (t['seme'], t['classi'], t['ritardi'], t['ordine']) == (seme, classi, ritardi, ordine):
+            if _parametri(t) == (seme, classi, ritardi, ordine):
                 return t, False
         t = {'id': _numero_nuovo(lavoro, tutti), 'seme': seme, 'classi': classi, 'ritardi': ritardi,
              'ordine': ordine, 'aggiunto': time.time(), 'da_solo': da_solo}
@@ -122,13 +127,13 @@ def aggiungi_tanti(lavoro, casi, da_solo=False):
     """Aggiunge tanti casi (seme, classi, ritardi, ordine) in una volta sola, saltando quelli che ci sono gia'."""
     with _lock:
         tutti = elenco(lavoro)
-        presenti = {(t['seme'], t['classi'], t['ritardi'], t['ordine']) for t in tutti}
+        presenti = {_parametri(t) for t in tutti}
         for seme, classi, ritardi, ordine in casi:
             if (seme, classi, ritardi, ordine) in presenti:
                 continue
             presenti.add((seme, classi, ritardi, ordine))
-            tutti.append({'id': _numero_nuovo(lavoro, tutti), 'seme': seme, 'classi': classi, 'ritardi': ritardi, 'ordine': ordine,
-                          'aggiunto': time.time(), 'da_solo': da_solo})
+            tutti.append({'id': _numero_nuovo(lavoro, tutti), 'seme': seme, 'classi': classi, 'ritardi': ritardi,
+                          'ordine': ordine, 'aggiunto': time.time(), 'da_solo': da_solo})
         _scrivi(_cartella(lavoro, 'test.json'), tutti)
 
 
@@ -154,11 +159,6 @@ def _giri(lavoro):
 
 def giro(lavoro, gid):
     return _leggi(_cartella(lavoro, 'giri', '%d.json' % gid), None)
-
-
-def ultimo_giro(lavoro):
-    numeri = _giri(lavoro)
-    return giro(lavoro, numeri[-1]) if numeri else None
 
 
 def in_corso():
@@ -227,7 +227,7 @@ def _esegui_test(lavoro, exe, t, nodi):
         shutil.rmtree(d, ignore_errors=True)
 
 
-# ---- il report: i test per esito, e quelli da verificare ----
+# ---- il report: le contraddizioni, i cambiamenti e i casi per stato ----
 
 # un orario non c'e': lo dice la ricerca, arrivata in fondo, o la verifica dei dati (condizioni necessarie)
 IMPOSSIBILE = ('nessuna soluzione', 'errore nei dati')
@@ -528,7 +528,7 @@ def _prossimo_ordine(lavoro):
     che non sono gia' nell'elenco: per ogni numero di classi e ogni seme scelti, senza e con ritardi."""
     i = _impostazioni(lavoro)
     ordine = i.get('notte_ordine', 0)
-    presenti = {(t['seme'], t['classi'], t['ritardi'], t['ordine']) for t in elenco(lavoro)}
+    presenti = {_parametri(t) for t in elenco(lavoro)}
     casi = [(seme, classi, ritardi, ordine)
             for classi in range(i.get('notte_classi_da', CLASSI_DA), i.get('notte_classi_a', CLASSI_A) + 1)
             for seme in range(i.get('notte_semi', SEMI) + 1) for ritardi in (False, True)]

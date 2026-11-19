@@ -148,13 +148,15 @@ const URL_STATO = '{{ url_for('stato_notturni') }}', URL_TOGLI = '{{ url_for('to
 const URL_AVVIA = '{{ url_for('avvia') }}', MAX_REALTIME = {{ max_realtime }};
 const numero = n => Number(n).toLocaleString('it-IT');
 const esc = x => String(x).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+// una parola (un esito, un giudizio) come finisce nel nome di una classe del foglio di stile: «più avanti» -> piu-avanti
+const trattini = x => esc(x.replace(/ /g, '-').replace('ù', 'u'));
 const quando = t => new Date(t * 1000).toLocaleString('it-IT', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'});
 
 // i test di cui si vedono le esecuzioni precedenti: restano aperti anche quando la pagina si ricarica
 let aperti = new Set();
 try { aperti = new Set(JSON.parse(sessionStorage.getItem('notturni-aperti') || '[]')); } catch (e) { /* si parte da chiusi */ }
 const cella = r => r.celle ? numero(Math.min(r.pos_max + 1, r.celle)) + ' / ' + numero(r.celle) : '';
-const etichetta = r => `<span class="esito esito-${esc(r.esito.replace(/ /g, '-'))}" title="${esc(r.errore || '')}">` +
+const etichetta = r => `<span class="esito esito-${trattini(r.esito)}" title="${esc(r.errore || '')}">` +
   esc(r.esito + (r.verificato === false ? ' (non valido)' : '')) + '</span>';
 
 // ---- rispetto alla volta prima: uguale, migliorato, peggiorato... ----
@@ -183,7 +185,7 @@ function giudizio(r, prec) {
 // l'esecuzione con cui r si confronta: la prima, tra quelle piu' vecchie (dalla piu' recente), con il suo limite
 const quellaPrima = (r, vecchie) => vecchie.find(x => x.limite === r.limite);
 const etichettaGiudizio = ([parola, dettaglio]) =>
-  `<span class="confronto confronto-${esc(parola.replace(/ /g, '-').replace('ù', 'u'))}">${esc(parola)}</span>` +
+  `<span class="confronto confronto-${trattini(parola)}">${esc(parola)}</span>` +
   (dettaglio ? `<span class="nota andamento">${esc(dettaglio)}</span>` : '');
 // Come e' andato il test su tutte le esecuzioni che la pagina ha (l'ultima e fino a 5 prima), tra quelle fatte con il
 // limite dell'ultima: il giudizio dell'ultima rispetto alla piu' vecchia, con lo stesso metro di giudizio(). '' se
@@ -251,16 +253,16 @@ function casella(t, adesso) {
   let classe = 'mai-eseguito', dentro = '–', detto = adesso === t.id ? 'sta girando' : 'mai eseguito', segno = '';
   if (adesso === t.id) dentro = '…';
   else if (r) {
-    classe = r.esito.replace(/ /g, '-');
+    classe = trattini(r.esito);
     dentro = RISPOSTA.has(r.esito) && r.nodi != null ? corto(r.nodi)
       : r.esito === 'limite di nodi' && r.celle ? Math.floor(Math.min(r.pos_max + 1, r.celle) / r.celle * 100) + '%'
       : r.esito === 'errore nei dati' ? 'dati' : '!';
     const [parola, dettaglio] = giudizio(r, quellaPrima(r, t.prima));
-    segno = SEGNI[parola] ? `<span class="segno confronto-${esc(parola.replace(/ /g, '-').replace('ù', 'u'))}">${SEGNI[parola]}</span>` : '';
+    segno = SEGNI[parola] ? `<span class="segno confronto-${trattini(parola)}">${SEGNI[parola]}</span>` : '';
     detto = r.esito + (r.nodi != null ? `, ${numero(r.nodi)} nodi` : '') + (r.celle ? `, cella più avanti ${cella(r)}` : '') +
       (parola ? ` · ${parola}` + (dettaglio ? ` (${dettaglio})` : '') : '');
   }
-  return `<td><button type="button" class="casella esito-${esc(classe)}${aperti.has(t.id) ? ' aperta' : ''}${scelti.has(t.id) ? ' scelta' : ''}" ` +
+  return `<td><button type="button" class="casella esito-${classe}${aperti.has(t.id) ? ' aperta' : ''}${scelti.has(t.id) ? ' scelta' : ''}" ` +
     `data-test="${t.id}" title="Test ${t.id}: ${esc(detto)}">${esc(dentro)}${segno}</button></td>`;
 }
 // La tabella di un gruppo aperto: una riga per caso (gli stessi dati: seme e ritardi), una colonna per ordine delle
@@ -277,7 +279,7 @@ function mappa(g, adesso) {
       esiti[e] = (esiti[e] || 0) + 1;
     }
     return `<tr class="parte"><th colspan="${ordini.length + 2}">${titolo} ` +
-      Object.entries(esiti).map(([e, n]) => `<span class="esito esito-${esc(e.replace(/ /g, '-'))}">${numero(n)} ${esc(e)}</span>`).join('') +
+      Object.entries(esiti).map(([e, n]) => `<span class="esito esito-${trattini(e)}">${numero(n)} ${esc(e)}</span>`).join('') +
       '</th></tr>' +
       divisi(suoi, t => t.seme).map(([seme, loro]) => {
         const [stato, trovati, fatti] = statoDelCaso(loro);  // in fondo alla riga: il caso con tutti i suoi ordini
@@ -332,7 +334,7 @@ function rigaGruppo(g, inCorso) {
     STATI.filter(([st]) => stati[st]).map(([st, colore]) =>
       `<span class="esito esito-${colore}">${numero(stati[st])} ${esc(st)}</span>`).join('') +
     Object.entries(giudizi).map(([parola, n]) =>
-      `<span class="confronto confronto-${esc(parola.replace(/ /g, '-').replace('ù', 'u'))}">${numero(n)} ${esc(parola)}</span>`).join('') +
+      `<span class="confronto confronto-${trattini(parola)}">${numero(n)} ${esc(parola)}</span>`).join('') +
     '</td></tr>';
 }
 
@@ -362,9 +364,9 @@ function riga(t, adesso, inCorso, limite, realtime) {
 
 function mostra(n) {
   const g = n.giro, inCorso = n.in_corso !== null;
-  const unaRiga = t => riga(t, inCorso && g ? g.adesso : null, inCorso, n.limite, n.realtime !== null);
+  const adesso = inCorso && g ? g.adesso : null;  // il test che sta girando
+  const unaRiga = t => riga(t, adesso, inCorso, n.limite, n.realtime !== null);
   // un gruppo aperto mostra la sua tabella e, sotto, le righe dei test aperti con un clic sulla loro casella
-  const adesso = inCorso && g ? g.adesso : null;
   document.querySelector('#notturni tbody').innerHTML = gruppi(n.tests).map(x => rigaGruppo(x, inCorso) +
     (gruppiAperti.has(x.chiave) ? mappa(x, adesso) + x.tests.filter(t => aperti.has(t.id)).map(unaRiga).join('')
                                 : '')).join('');
@@ -422,7 +424,6 @@ async function segui() {
   setTimeout(segui, 1500);
 }
 let ultima = {{ n|tojson }};  // l'ultima situazione mostrata
-const iniziale = ultima;
 // un clic sulla riga di un test (non sul tasto che lo toglie) apre o chiude le sue esecuzioni precedenti
 document.querySelector('#notturni tbody').addEventListener('click', e => {
   const gruppo = e.target.closest('tr.gruppo');
@@ -461,7 +462,7 @@ document.getElementById('togli-scelti').addEventListener('submit', e => {
   if (!confirm(`Togliere ${scelti.size === 1 ? 'il test scelto' : 'i ' + scelti.size + ' test scelti'} dai notturni?`)) return e.preventDefault();
   e.target.elements.ids.value = [...scelti].join(',');
 });
-mostra(iniziale);
-if (iniziale.in_corso !== null) setTimeout(segui, 1500);
+mostra(ultima);
+if (ultima.in_corso !== null) setTimeout(segui, 1500);
 </script>
 {% endblock %}

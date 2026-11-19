@@ -155,8 +155,8 @@
 <script>
 const URL_STATO = '{{ url_for('stato', tid=i.id) }}', URL_PASSO = '{{ url_for('passo', tid=i.id, k=0)[:-1] }}';
 const URL_RITORNI = '{{ url_for('celle_dei_ritorni', tid=i.id)[:-10] }}';  // + 'celle.json', + cella + '/' + i, + cella + '/fino-a/' + k
-const URL_OSTACOLI = '{{ url_for('ostacoli', tid=i.id) }}', URL_SCRITTURA = '{{ url_for('scrittura', tid=i.id, dal=1, al=0)[:-3] }}';  // + dal + '/' + al
 const URL_RITORNO = '{{ url_for('ritorno', tid=i.id, k=0, verso='dopo')[:-6] }}';  // + k + '/prima' o '/dopo'
+const URL_OSTACOLI = '{{ url_for('ostacoli', tid=i.id) }}', URL_SCRITTURA = '{{ url_for('scrittura', tid=i.id, dal=1, al=0)[:-3] }}';  // + dal + '/' + al
 // le tre parti dei dati del caso (classi, docenti, codocenze) stanno su una riga di linguette: se ne vede una alla
 // volta, o nessuna; la pagina ricorda quale
 const linguette = [...document.querySelectorAll('.linguetta')];
@@ -184,6 +184,11 @@ const RIGA_DOCENTE = Object.fromEntries(DOCENTI.map((n, i) => [n, i]));
 const numero = n => Number(n).toLocaleString('it-IT');
 const esc = x => String(x).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 let forma = null;  // giorni, ore, classi (dallo stato)
+// il nome di una cella (da 0): «Ven 10, C03»
+const doveCella = k => {
+  const {giorni, ore, classi} = forma, O = ore.length, C = classi.length;
+  return k >= giorni.length * O * C ? 'orario completo' : `${giorni[Math.floor(k / (O * C))]} ${ore[Math.floor(k / C) % O]}, ${classi[k % C]}`;
+};
 
 // l'esito, i numeri e il pulsante Ferma, dallo stato del test
 function mostraStato(s) {
@@ -346,11 +351,10 @@ document.addEventListener('click', e => {
 function disegnaPasso(p) {
   const {giorni, ore, classi} = forma, G = giorni.length, O = ore.length, C = classi.length, celle = G * O * C;
   const pos = p.pos;
-  const dove = k => `${giorni[Math.floor(k / (O * C))]} ${ore[Math.floor(k / C) % O]}, ${classi[k % C]}`;
   let t = `Passo ${numero(p.k)} di ${numero(Number(slider.max))} · ` +
-    (pos >= celle ? 'orario completo' : `decide la cella ${numero(pos + 1)} di ${numero(celle)} (${dove(pos)})`);
+    (pos >= celle ? 'orario completo' : `decide la cella ${numero(pos + 1)} di ${numero(celle)} (${esc(doveCella(pos))})`);
   if (p.prima !== null && pos <= p.prima)
-    t += ` · <span class="indietro">torna indietro di ${numero(p.prima - pos + 1)} cell${p.prima - pos ? 'e' : 'a'}: nuova scelta in ${dove(pos - 1)}</span>`;
+    t += ` · <span class="indietro">torna indietro di ${numero(p.prima - pos + 1)} cell${p.prima - pos ? 'e' : 'a'}: nuova scelta in ${esc(doveCella(pos - 1))}</span>`;
   testo.innerHTML = t;
   const righe = tabella.tBodies[0].rows;
   riempiOrario(tabella, p);
@@ -396,14 +400,13 @@ async function vai(k) {
   if (!r.ok || richiesto !== k) return;  // un altro passo chiesto nel frattempo: vale l'ultimo
   const p = await r.json();
   disegnaPasso(p);
-  dovRiparte(p);
+  doveRiparte(p);
   disegnaProfilo();  // il filo del passo che si guarda
 }
-// «Prec.», «Succ.» e i salti di 10 e 100 passi anche accanto al titolo della cella (la pagina resta dov'e')
 // Sotto la frase del passo: se da questo passo la ricerca torna indietro (quello dopo decide una cella che non viene
 // dopo) lo dice, con la cella da cui riparte e quante, in mezzo, hanno finito le scelte. (Le spiegazioni del perche'
 // si rifanno una alla volta.)
-async function dovRiparte(c) {
+async function doveRiparte(c) {
   const qui = document.getElementById('poi-riparte');
   qui.innerHTML = '';
   if (c.k >= Number(slider.max)) return;
@@ -421,21 +424,24 @@ document.getElementById('succ').addEventListener('click', () => vai(Number(slide
 // i salti di 10 e di 100 passi, avanti e indietro
 for (const b of document.querySelectorAll('button[data-salto]'))
   b.addEventListener('click', () => vai(Number(slider.value) + Number(b.dataset.salto)));
+// «Ritorno»: salta al passo, prima o dopo questo, dove la ricerca torna indietro (lo trova il sito nel file dei passi)
+for (const b of document.querySelectorAll('button[data-ritorno]'))
+  b.addEventListener('click', async () => {
+    let r;
+    try { r = await (await fetch(URL_RITORNO + slider.value + '/' + b.dataset.ritorno)).json(); } catch (e) { return; }
+    if (r.k) return vai(r.k);
+    document.getElementById('poi-riparte').innerHTML =
+      `<span class="nota">Nessun ritorno indietro ${b.dataset.ritorno === 'dopo' ? 'dopo' : 'prima di'} questo passo.</span>`;
+  });
 document.addEventListener('keydown', e => {
   if (e.target.closest('input:not([type=range]), select, textarea')) return;
   if (e.key === 'ArrowLeft') { e.preventDefault(); vai(Number(slider.value) - 1); }
   if (e.key === 'ArrowRight') { e.preventDefault(); vai(Number(slider.value) + 1); }
 });
 
-// mentre il test gira: lo stato ogni secondo; lo slider si allunga e, se e' in fondo, segue la ricerca
 // ---- i backtrack: il profilo della ricerca e gli ostacoli piu' lunghi (./untitled ostacoli, ostacoli.h) ----
 let backtrack = null, ostacoloScelto = null;  // l'ultima risposta, e il «dal» dell'ostacolo di cui si vede il percorso
 const tela = document.getElementById('profilo');
-// il nome di una cella (da 0): «Ven 10, C03»
-const doveCella = k => {
-  const {giorni, ore, classi} = forma, O = ore.length, C = classi.length;
-  return k >= giorni.length * O * C ? 'orario completo' : `${giorni[Math.floor(k / (O * C))]} ${ore[Math.floor(k / C) % O]}, ${classi[k % C]}`;
-};
 // Il profilo: una barretta per fascia, dalla cella piu' bassa alla piu' alta decise in quel tratto (in alto la fine
 // dell'orario); sopra, il filo del passo che si guarda.
 function disegnaProfilo() {
@@ -509,6 +515,7 @@ document.querySelector('#tabella-ostacoli tbody').addEventListener('click', asyn
     (s.tagliata ? ' …' : '');
 });
 
+// mentre il test gira: lo stato ogni secondo; lo slider si allunga e, se e' in fondo, segue la ricerca
 let giriDiSegui = 0;
 async function segui() {
   try {
