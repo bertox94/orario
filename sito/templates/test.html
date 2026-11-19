@@ -335,12 +335,10 @@ function segnaPotatura(acceso) {
 function mostraControlliDelRitorno(p) {
   const fatta = p && p.potatura && POTATURE[p.potatura.numero];
   potaturaMostrata = fatta ? fatta(p.potatura, p) : null;
-  // la riga della potatura, se il ritorno e' suo; quelle che la pagina non sa ancora spiegare hanno solo il numero
+  // la riga della potatura, se il ritorno e' suo e la pagina la sa spiegare (delle altre, per ora, non dice niente)
   const riga = potaturaMostrata ? `<tr><th>${esc(potaturaMostrata.titolo)}</th><td class="no"><strong>non passa</strong></td>` +
       `<td>${esc(potaturaMostrata.frase)} La ricerca torna indietro senza provare niente in questa cella. ` +
-      '<button type="button" class="piccolo secondario" id="segna-potatura" aria-pressed="false">Mostra nell\'orario</button></td></tr>'
-    : p && p.potatura ? `<tr><th>Potatura ${p.potatura.numero}</th><td class="no"><strong>non passa</strong></td>` +
-      '<td>La ricerca torna indietro senza provare niente in questa cella.</td></tr>' : '';
+      '<button type="button" class="piccolo secondario" id="segna-potatura" aria-pressed="false">Mostra nell\'orario</button></td></tr>' : '';
   document.querySelector('#controlli-ritorno tbody').innerHTML = !p ? '' : riga + CONTROLLI_DEL_RITORNO.map(f => {
     const [nome, esito, colore, numeri] = f(p);
     return `<tr><th>${esc(nome)}</th><td class="${colore}"><strong>${esc(esito)}</strong></td><td>${esc(numeri)}</td></tr>`;
