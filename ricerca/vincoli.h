@@ -40,9 +40,9 @@ int ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(const Ricerca *r, const Cel
 int verifica_ora_ingresso(const Ricerca *r, int p, int ora);
 // in coppia, e da solo
 int docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(const Ricerca *r, const Cella *c, int p1, int p2);
-int sabato_esaurisci_priorita_subito_cod(const Ricerca *r, const Cella *c, int prof1, int prof2);
+int ultimo_giorno_chi_ha_ancora_ore_continua_in_coppia(const Ricerca *r, const Cella *c, int prof1, int prof2);
 int deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(const Ricerca *r, const Cella *c, int p);
-int sabato_esaurisci_priorita_subito(const Ricerca *r, const Cella *c, int prof);
+int ultimo_giorno_chi_ha_ancora_ore_continua_da_solo(const Ricerca *r, const Cella *c, int prof);
 
 // i tre gruppi, come li usa la ricerca
 int docente_puo_insegnare(const Ricerca *r, const Cella *c, int p1);

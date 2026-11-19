@@ -75,9 +75,9 @@ Ricerca *nuova_ricerca(const Scuola *s);
 void libera_ricerca(Ricerca *r);
 
 // Decide la cella pos e scende alle celle dopo (cerca_orario(r, 0): tutto l'orario). Come e' andata lo dice la
-// ricerca stessa: r->trovato (l'orario e' completo, ed e' r->orario_trovato) oppure r->fermato (si e' arrivati al limite
-// di nodi). Da quel momento ogni chiamata ritorna subito, e risalendo le scelte si tolgono: alla fine r->orario non
-// dice piu' niente. Se dopo cerca_orario(r, 0) non vale nessuno dei due, non c'e' nessun orario.
+// ricerca stessa: r->trovato (l'orario e' completo, ed e' r->orario_trovato) oppure r->fermato (si e' arrivati al
+// limite di nodi). Da quel momento ogni chiamata ritorna subito, e risalendo le scelte si tolgono: alla fine
+// r->orario non dice piu' niente. Se dopo cerca_orario(r, 0) non vale nessuno dei due, non c'e' nessun orario.
 void cerca_orario(Ricerca *r, int pos);
 
 #endif //UNTITLED_RICERCA_H

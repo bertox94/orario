@@ -179,11 +179,12 @@ int deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(const Ricerca *r, 
     return r->ore_classi_docenti_alone_svolte[c->base2d_ci + p] < r->scuola->ore_classi_docenti_alone[c->base2d_ci + p];
 }
 
-// La regola del sabato. Il sabato e' l'ultimo giorno: un docente che e' nell'ora prima in questa classe e ha ancora
-// ore da fare qui non potrebbe tornare dopo (le ore di un giorno sono di seguito) e non ci sono altri giorni, quindi
-// deve continuare adesso. Dice quale dei docenti dell'ora prima deve esserci: 1 il primo, 2 il secondo, 3 tutti e due,
-// 0 nessuno (non e' sabato, e' la prima ora, o nessuno dei due ha ancora ore qui).
-static int sabato_chi_deve_continuare(const Ricerca *r, const Cella *c, int *prev_prof1, int *prev_prof2) {
+// La regola dell'ultimo giorno (l'ultimo che la ricerca decide: oggi l'ultimo della settimana). Un docente che e'
+// nell'ora prima in questa classe e ha ancora ore da fare qui non potrebbe tornare dopo (le ore di un giorno sono di
+// seguito) e non ci sono altri giorni, quindi deve continuare adesso. Dice quale dei docenti dell'ora prima deve
+// esserci: 1 il primo, 2 il secondo, 3 tutti e due, 0 nessuno (non e' l'ultimo giorno, e' la prima ora, o nessuno dei
+// due ha ancora ore qui).
+static int ultimo_giorno_chi_deve_continuare(const Ricerca *r, const Cella *c, int *prev_prof1, int *prev_prof2) {
     if (c->giorno != r->scuola->actual_giorni_settimana - 1 || c->ora == 0) return 0;
     *prev_prof1 = r->orario[c->pos - r->scuola->actual_classi_sezione].insegnante1;
     *prev_prof2 = r->orario[c->pos - r->scuola->actual_classi_sezione].insegnante2;
@@ -192,10 +193,12 @@ static int sabato_chi_deve_continuare(const Ricerca *r, const Cella *c, int *pre
     return r1 + 2 * r2;
 }
 
-// la coppia (prof1, prof2) rispetta la regola del sabato: contiene chi deve continuare (tutti e due, se tutti e due)
-int sabato_esaurisci_priorita_subito_cod(const Ricerca *r, const Cella *c, const int prof1, const int prof2) {
+// la coppia (prof1, prof2) rispetta la regola dell'ultimo giorno: contiene chi deve continuare (tutti e due, se
+// tutti e due)
+int ultimo_giorno_chi_ha_ancora_ore_continua_in_coppia(const Ricerca *r, const Cella *c, const int prof1,
+                                                       const int prof2) {
     int prev_prof1, prev_prof2;
-    switch (sabato_chi_deve_continuare(r, c, &prev_prof1, &prev_prof2)) {
+    switch (ultimo_giorno_chi_deve_continuare(r, c, &prev_prof1, &prev_prof2)) {
         case 3: return prof1 == prev_prof1 && prof2 == prev_prof2 || prof1 == prev_prof2 && prof2 == prev_prof1;
         case 1: return prof1 == prev_prof1 || prof2 == prev_prof1;
         case 2: return prof1 == prev_prof2 || prof2 == prev_prof2;
@@ -203,11 +206,11 @@ int sabato_esaurisci_priorita_subito_cod(const Ricerca *r, const Cella *c, const
     }
 }
 
-// il docente prof da solo rispetta la regola del sabato: e' lui che deve continuare (se devono continuare tutti e due,
-// da solo non va bene)
-int sabato_esaurisci_priorita_subito(const Ricerca *r, const Cella *c, const int prof) {
+// il docente prof da solo rispetta la regola dell'ultimo giorno: e' lui che deve continuare (se devono continuare
+// tutti e due, da solo non va bene)
+int ultimo_giorno_chi_ha_ancora_ore_continua_da_solo(const Ricerca *r, const Cella *c, const int prof) {
     int prev_prof1, prev_prof2;
-    switch (sabato_chi_deve_continuare(r, c, &prev_prof1, &prev_prof2)) {
+    switch (ultimo_giorno_chi_deve_continuare(r, c, &prev_prof1, &prev_prof2)) {
         case 3: return 0;
         case 1: return prof == prev_prof1;
         case 2: return prof == prev_prof2;
@@ -233,7 +236,7 @@ int secondo_della_coppia_puo_insegnare(const Ricerca *r, const Cella *c, const i
            && docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(r, c, p1, p2)
            && prof_fa_al_max_n_ore(r, c, p2)
            && prof_fa_ore_contigue(r, c, p2)
-           && sabato_esaurisci_priorita_subito_cod(r, c, p1, p2)
+           && ultimo_giorno_chi_ha_ancora_ore_continua_in_coppia(r, c, p1, p2)
            && ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(r, c, p2)
            && verifica_ora_ingresso(r, p2, c->ora);
 }
@@ -241,7 +244,7 @@ int secondo_della_coppia_puo_insegnare(const Ricerca *r, const Cella *c, const i
 // I controlli per mettere p1 da solo.
 int docente_puo_insegnare_da_solo(const Ricerca *r, const Cella *c, const int p1) {
     return deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(r, c, p1)
-           && sabato_esaurisci_priorita_subito(r, c, p1);
+           && ultimo_giorno_chi_ha_ancora_ore_continua_da_solo(r, c, p1);
 }
 
 // ---- mettere e togliere un docente ----
@@ -311,8 +314,9 @@ static void segna(Ricerca *r, const Cella *c, const teaching_slot scelta, const 
 }
 
 // Decide la cella pos: prova una per una le scelte possibili, e con ognuna scende alle celle dopo. Quando la chiamata
-// ritorna toglie la scelta e prova la successiva; finite le scelte ritorna a chi l'ha chiamata (si torna indietro). Se la ricerca e' finita (l'orario e' completo, oppure si e' arrivati al limite di
-// nodi) ritorna subito, senza contare il nodo: le scelte che restano da provare si chiudono a vuoto.
+// ritorna toglie la scelta e prova la successiva; finite le scelte ritorna a chi l'ha chiamata (si torna indietro).
+// Se la ricerca e' finita (l'orario e' completo, oppure si e' arrivati al limite di nodi) ritorna subito, senza
+// contare il nodo: le scelte che restano da provare si chiudono a vuoto.
 void cerca_orario(Ricerca *r, const int pos) {
     if (r->trovato) return;  // l'orario c'e' gia' (orario_trovato): non si cerca piu'
     if (r->limite_nodi && r->nodi >= r->limite_nodi) {  // il limite di nodi: la ricerca si ferma qui

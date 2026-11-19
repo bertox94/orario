@@ -19,7 +19,7 @@
 //  5. un docente insegna in al massimo MAX_CLASSI_DIVERSE_STESSO_PROF_OGNI_GIORNO classi al giorno
 //  6. le prime PRIME_N_ORE_OBBLIGATORIE ore di ogni giorno ogni classe ha lezione
 //  7. dopo un'ora buca la classe quel giorno non ha piu' lezione
-// (La regola del sabato della ricerca non e' una regola dell'orario: e' una conseguenza di queste.)
+// (La regola dell'ultimo giorno della ricerca non e' una regola dell'orario: e' una conseguenza di queste.)
 
 #define VERIFICA_ORARIO_CONTROLLI 8
 

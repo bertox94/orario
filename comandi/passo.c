@@ -116,7 +116,7 @@ int stampa_passo(const unsigned long long int seme, const int classi, const int 
         printf("],\"da_solo\":{\"puo\":%d,\"controlli\":[", docente_puo_insegnare_da_solo(r, &c, p1));
         primo = 1;
         primo = controllo(primo, "ore_da_solo", deve_svolgere_ancora_ora_in_questa_classe_senza_codocente(r, &c, p1));
-        primo = controllo(primo, "sabato", sabato_esaurisci_priorita_subito(r, &c, p1));
+        primo = controllo(primo, "ultimo_giorno", ultimo_giorno_chi_ha_ancora_ore_continua_da_solo(r, &c, p1));
         printf("]},\"coppie\":[");
         int coppie = 0;
         for (int j = i + 1; j < n_coda; j++) {  // con quelli dopo di lui nella coda, come la ricerca
@@ -131,7 +131,8 @@ int stampa_passo(const unsigned long long int seme, const int classi, const int 
                               docente_e_codocente_hanno_ore_da_fare_insieme_in_questa_classe(r, &c, p1, p2));
             primo = controllo(primo, "max_ore_oggi", prof_fa_al_max_n_ore(r, &c, p2));
             primo = controllo(primo, "ore_contigue", prof_fa_ore_contigue(r, &c, p2));
-            primo = controllo(primo, "sabato", sabato_esaurisci_priorita_subito_cod(r, &c, p1, p2));
+            primo = controllo(primo, "ultimo_giorno",
+                              ultimo_giorno_chi_ha_ancora_ore_continua_in_coppia(r, &c, p1, p2));
             primo = controllo(primo, "max_classi_oggi", ogni_prof_fa_al_max_n_classi_diverse_ogni_giorno(r, &c, p2));
             primo = controllo(primo, "entrato", verifica_ora_ingresso(r, p2, c.ora));
             printf("]}");
