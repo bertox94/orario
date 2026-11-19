@@ -201,25 +201,53 @@ static int ore_rimaste_alla_voce(const Punto *x, const int k, const Voce v) {
     return v.ore - r->ore_classi_codocenza_svolte[k * INSEGNANTE_SZ * INSEGNANTE_SZ + v.p * INSEGNANTE_SZ + v.q];
 }
 
-// 1. Un docente in una classe: le ore che gli restano li' stanno in quelle che ci puo' ancora fare, oggi
-// (puo_fare_oggi) e nei giorni dopo (al massimo 3 al giorno, e meno se entra tardi).
+// 1. Un docente in una classe.
+//
+// Che cosa controlla: per un docente e una sua classe, le ore che gli restano da fare li' devono stare in quelle che ci
+// puo' ancora fare da adesso alla fine della settimana. Se gliene restano di piu', da questo nodo un orario non puo'
+// piu' uscire: qualunque cosa si metta nelle celle che mancano, a quel docente avanzeranno delle ore in quella classe.
+//
+// Le ore che puo' ancora fare sono la somma di due pezzi:
+// - nei giorni dopo oggi: in una classe un docente fa al massimo MAX_ORE_PROF_IN_UNA_CLASSE (3) ore al giorno, e
+//   meno se entra cosi' tardi che nella giornata gliene restano meno di 3;
+// - oggi: dipende da quello che e' gia' deciso (puo_fare_oggi, vedi potature.h): niente se la classe ha gia' avuto
+//   un'ora buca; se oggi ci ha gia' insegnato, solo continuando subito fino a 3 ore; se no dal suo ingresso, al
+//   massimo 3 ore, e niente se oggi e' gia' stato in 3 classi. In ogni caso non piu' delle ore che restano nella
+//   giornata della classe.
+// Il conto e' ottimista (non guarda se nelle ore dopo il docente sara' libero, ne' se la classe avra' davvero lezione
+// all'ultima ora): scarta solo quando e' sicuro.
+//
+// Quali coppie docente-classe guarda: tutti i docenti delle classi in x->classi, cioe' le classi per cui la scelta
+// appena messa ha cambiato qualcosa (la classe appena decisa e le altre classi dei docenti messi: vedi
+// guarda_quello_che_e_cambiato); all'inizio di un giorno, tutte. Si ferma alla prima coppia che non torna.
+//
+// Un esempio: venerdi' (resta solo sabato), a Sirius restano 4 ore in C01. Alle 8 era in C01, alle 9 in C01 e' stato
+// messo un altro: il suo blocco di oggi e' chiuso, oggi 0. Sabato al massimo 3. 4 > 3: non passa.
 static int le_ore_del_docente_in_una_classe_stanno_nel_resto(const Punto *x) {
-    const struct Potature *t = x->r->potature;
-    for (int j = 0; j < x->n_classi; j++) {
-        const int k = x->classi[j];
-        for (int i = 0; i < t->n_docenti[k]; i++) {
-            const int p = t->docenti[k * INSEGNANTE_SZ + i], restano = ore_rimaste_in_classe(x, k, p);
-            if (!restano) continue;
+    const struct Potature *t = x->r->potature;  // gli elenchi preparati: i docenti di ogni classe
+    for (int j = 0; j < x->n_classi; j++) {     // per ogni classe da guardare in questo nodo
+        const int k = x->classi[j];             // la classe
+        for (int i = 0; i < t->n_docenti[k]; i++) {  // per ogni suo docente: i e' il posto nell'elenco della classe
+            const int p = t->docenti[k * INSEGNANTE_SZ + i];  // il docente (il suo indice nella scuola)
+            const int restano = ore_rimaste_in_classe(x, k, p);  // le ore che deve ancora fare in questa classe
+            if (!restano) continue;                              // qui ha finito: niente da controllare
+            // quante ne puo' fare in un giorno intero: al massimo 3, o le ore tra il suo ingresso e l'ultima
             const int al_giorno = MIN(MAX_ORE_PROF_IN_UNA_CLASSE, x->O - ingresso(x, p));
+            // oggi: da che ora puo' cominciare (o continuare) e quante ore al massimo
             const Oggi oggi = puo_fare_oggi(x, k, i);
-            const int possibili = x->dopo * al_giorno + fino_a(oggi, x->O - 1);
-            if (restano <= possibili) continue;
+            // di quelle, quante stanno nella giornata fino all'ultima ora (x->O - 1) compresa
+            const int ancora_oggi = fino_a(oggi, x->O - 1);
+            // in tutto: i giorni dopo oggi (x->dopo), ognuno pieno, piu' quello che resta di oggi
+            const int possibili = x->dopo * al_giorno + ancora_oggi;
+            if (restano <= possibili) continue;  // ci stanno: questa coppia e' a posto
+            // non ci stanno: la potatura non passa. Per chi la spiega (passo.c) i numeri del conto: chi, dove,
+            // quante ne restano e quante sono possibili, di cui quante oggi e da che ora
             non_passa(x, p, k, -1, restano, possibili);
-            if (x->perche) x->perche->oggi = fino_a(oggi, x->O - 1), x->perche->oggi_da = oggi.comincia;
+            if (x->perche) x->perche->oggi = ancora_oggi, x->perche->oggi_da = oggi.comincia;
             return 0;
         }
     }
-    return 1;
+    return 1;  // tutte le coppie guardate sono a posto
 }
 
 // 2. Un docente in tutto: le ore che gli restano stanno nelle ore libere che ha ancora, oggi (dal suo ingresso, da
