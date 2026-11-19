@@ -29,7 +29,7 @@ typedef struct {
     int n_classi, classe_al_posto[CLASSE_SEZIONE_SZ];  // l'ordine delle classi: quale classe e' la k-esima
 } Generatore;
 
-// ---- i numeri casuali: xorshift64*, come _Casuale in sito/generatore.py ----
+// ---- i numeri casuali: xorshift64*, come _Casuale nel generatore.py del sito vecchio ----
 static uint64_t prossimo(Generatore *gen) {
     uint64_t s = gen->stato;
     s ^= s >> 12;
@@ -126,10 +126,9 @@ static void nome_docente(const int d, char out[MAX_LEN_WORDS]) {
     else snprintf(out, MAX_LEN_WORDS, "D%03d", d + 1);
 }
 
-// Genera il caso in gen e lo registra nella scuola s. Ritorna 0 se non riesce.
 // L'ordine delle classi numero `ordine`: 0 quello generato (C01, C02...); gli altri un rimescolamento (Fisher-Yates)
-// riproducibile dal numero, con numeri casuali suoi (gli stessi di riordina_classi in sito/generatore.py). Lo stato
-// dei numeri casuali del caso non cambia: serve ancora per i ritardi.
+// riproducibile dal numero, con numeri casuali suoi (gli stessi di riordina_classi nel generatore.py del sito
+// vecchio). Lo stato dei numeri casuali del caso non cambia: serve ancora per i ritardi.
 static void ordina_classi(Generatore *gen, const int n_classi, const int ordine) {
     gen->n_classi = n_classi;
     for (int k = 0; k < n_classi; k++) gen->classe_al_posto[k] = k;
@@ -144,6 +143,7 @@ static void ordina_classi(Generatore *gen, const int n_classi, const int ordine)
     gen->stato = del_caso;
 }
 
+// Genera il caso in gen e lo registra nella scuola s. Ritorna 0 se non riesce.
 static int genera(Generatore *gen, Scuola *s, const unsigned long long int seme, const int n_classi,
                   const int con_ritardi, const int ordine) {
     if (n_classi < 1 || n_classi > CLASSE_SEZIONE_SZ || ordine < 0) return 0;

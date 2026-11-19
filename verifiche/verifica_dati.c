@@ -225,7 +225,7 @@ static int i_docenti_entrati_bastano_per_le_classi(const Scuola *s, char *errore
     return 1;
 }
 
-// I sei controlli in ordine: si ferma al primo che non vale, con il suo motivo in testo.
+// I sei controlli in ordine: si ferma al primo che non vale, con il suo motivo in errore.
 int verifica_dati(const Scuola *s, char *errore, const size_t dimensione) {
     return le_ore_del_docente_in_una_classe_stanno_nella_settimana(s, errore, dimensione)
            && le_ore_del_docente_stanno_nella_settimana(s, errore, dimensione)
