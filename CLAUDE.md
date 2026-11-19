@@ -12,8 +12,8 @@ riscrive quando si fa uno stabile nuovo.
   - `ricerca/`: la ricerca e i vincoli (`ricerca.c`, `ricerca.h`, `vincoli.h`); `ricerca/coda/`: la coda di priorità;
   - `dati/`: la scuola e i casi casuali (`database_initializers`, `generatore`, `nomi_docenti.h`);
   - `verifiche/`: la verifica dei dati prima della ricerca e quella dell'orario dopo;
-  - `comandi/`: i comandi per il sito e per le prove (`caso`, `passo`, `prove`), il file dei passi (`passi`) e
-    l'uscita in JSON (`json.h`).
+  - `comandi/`: i comandi per il sito e per le prove (`caso`, `passo`, `ostacoli`, `prove`), il file dei passi
+    (`passi`) e l'uscita in JSON (`json.h`).
   Chi compila elenca queste cartelle: `CMakeLists.txt`, `sito/solver.py`, `tests/non_regressione.py`.
 - **Le potature** (richiesta di Alb del 12 novembre 2026, in `main` dal 13; `ricerca/potature.c`): i sei controlli
   della verifica dei dati rifatti a ogni nodo su quello che resta, più una settima (idea di Alb del 13 novembre):
@@ -27,10 +27,14 @@ riscrive quando si fa uno stabile nuovo.
   perso. La parità nella coda («a parità, chi ha più ore nella classe») è stata provata e lasciata fuori: cambia la
   strada e perde dei casi.
 - **Il solver** (C): ricerca con backtracking dell'orario, un orario solo. `ricerca.c` è la ricerca (la cella, i
-  vincoli, la coda, `cerca_orario`); `vincoli.h` dichiara i vincoli per chi li valuta uno per uno; `main.c` lancia:
+  vincoli, la coda, `cerca_orario`): in ogni cella costruisce l'elenco delle scelte possibili (`scelte_possibili`:
+  coppie e docenti da soli nell'ordine della coda, poi l'ora buca) e le prova in un ciclo solo; l'orario completo
+  finisce in `r->orario_trovato` e da lì ogni chiamata ritorna subito (19 novembre 2026, richieste di Alb: la ricerca
+  è identica a prima). `vincoli.h` dichiara i vincoli per chi li valuta uno per uno; `main.c` lancia:
   - `./untitled test N [ORDINI LIMITE]`: le prove con i dati casuali (`prove.c`), su stdout solo i test che arrivano
     al limite;
-  - `./untitled caso|dati|passo ...`: per il sito (`caso.c`, `dati/generatore.c`, `passo.c`, `passi.c`).
+  - `./untitled caso|dati|passo|ostacoli ...`: per il sito (`caso.c`, `dati/generatore.c`, `passo.c`, `passi.c`,
+    `ostacoli.c`).
   I casi casuali hanno anche un ordine delle classi (`ORDINE`, 0 quello generato: stessi dati, classi in un altro
   ordine, quindi un'altra strada della ricerca), uguale a quello del sito vecchio.
   Niente variabili globali né `static` (richiesta di Alb dell'11 novembre 2026): i dati stanno in una `Scuola`
@@ -77,7 +81,8 @@ raggiunge: i comandi li lancia Alb. Aggiornare:
   unione che ne tiene tutti i file: i due coincidono, e `potature` non serve più.
 - `cella-piu-avanti`: il `main` di prima (923ec81), con la sezione «La cella più avanti» e il comando `ultima`, che
   nel `main` di adesso non ci sono. Da lì si riprendono se servono.
-- `stabile/2026-11-11` e `stabile/2026-11-12`: punti fermi da cui ripartire; non si aggiornano.
+- `stabile/2026-11-11`, `-12`, `-13` e `-18`: punti fermi da cui ripartire; si toccano solo quando Alb lo chiede
+  (il 19 novembre ha chiesto di portare avanti quello del 18).
 
 ## Rami vecchi
 

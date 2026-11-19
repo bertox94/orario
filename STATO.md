@@ -8,7 +8,10 @@ Questo file descrive il punto fermo `stabile/2026-11-18`: che cosa c'è, che cos
 
 - **La ricerca** (`ricerca/`): backtracking cella per cella, un orario solo, senza variabili globali. Che cosa deve
   fare la classe in una cella (lezione, scelta, ora buca) lo decide una regola sola, `stato_della_classe`, che vale con
-  qualunque numero di ore obbligatorie (semplificata il 18 novembre: la ricerca è identica a prima).
+  qualunque numero di ore obbligatorie (semplificata il 18 novembre: la ricerca è identica a prima). Dal 19 novembre
+  `cerca_orario` non ritorna niente: in ogni cella costruisce l'elenco delle scelte possibili (`scelte_possibili`) e
+  le prova in un ciclo solo, e l'orario completo sta in `orario_trovato`. La «regola del sabato» si chiama regola
+  dell'ultimo giorno.
 - **La verifica dei dati** (`verifiche/verifica_dati.c`), prima della ricerca: sei controlli; se uno non vale l'esito è
   «errore nei dati» e la ricerca non parte. La frase del terzo (le classi-giorno del docente) è quella scelta il 13 novembre.
 - **Le potature** (`ricerca/potature.c`), durante la ricerca: le stesse sei condizioni rifatte a ogni nodo su quello che
