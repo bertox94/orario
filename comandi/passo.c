@@ -71,10 +71,15 @@ int stampa_passo(const unsigned long long int seme, const int classi, const int 
         json_nome(stdout, perche.ora < 0 ? NULL : s->ore_giornaliere[perche.ora]);
         printf(",\"servono\":%d,\"possibili\":%d", perche.servono, perche.possibili);
         if (perche.oggi >= 0) printf(",\"oggi\":%d,\"oggi_da\":%d", perche.oggi, perche.oggi_da);
-        if (perche.quale == POTATURA_LEZIONI_OBBLIGATORIE) {  // gli addendi del conto: le voci della classe
+        // le voci della classe con le ore che restano: per la 5 gli addendi del conto (le lezioni possibili fino
+        // all'ora della potatura), per la 7 quello che la classe deve ancora mettere (fino all'ultima ora)
+        if (perche.quale == POTATURA_LEZIONI_OBBLIGATORIE || perche.quale == POTATURA_ORARIO_DELLA_CLASSE) {
             VoceFinoA voci[512];
-            const int n = voci_fino_a(r, pos, perche.classe, perche.ora, voci, 512);
-            printf(",\"ora_indice\":%d,\"voci\":[", perche.ora);
+            const int h = perche.quale == POTATURA_LEZIONI_OBBLIGATORIE ? perche.ora : s->actual_ore_giornaliere - 1;
+            const int n = voci_fino_a(r, pos, perche.classe, h, voci, 512);
+            if (perche.quale == POTATURA_LEZIONI_OBBLIGATORIE) printf(",\"ora_indice\":%d", perche.ora);
+            else printf(",\"ore_obbligatorie\":%d", MIN(PRIME_N_ORE_OBBLIGATORIE, s->actual_ore_giornaliere));
+            printf(",\"voci\":[");
             for (int i = 0; i < n; i++) {
                 printf("%s{\"docente\":", i ? "," : "");
                 json_stringa(stdout, s->insegnanti[voci[i].docente]);

@@ -393,6 +393,37 @@ const POTATURE = {
       },
     };
   },
+  // 7. L'orario della classe, da sola: guardata come se le altre non ci fossero (i suoi docenti sempre liberi), con
+  // le ore che restano alle sue voci la classe non riesce a riempire le celle che le restano rispettando le regole
+  // che riguardano solo lei (potature.c). Non c'e' un conto: e' una piccola ricerca che non trova niente. Sotto la
+  // riga, quello che deve ancora mettere: una riga per voce. Nell'orario: le celle che le restano, quelle delle
+  // prime ore (che devono avere lezione) e quelle dell'ultima.
+  7: (t, p) => {
+    const {giorni, ore, classi} = forma, G = giorni.length, O = ore.length, C = classi.length, M = t.ore_obbligatorie;
+    const k = classi.indexOf(t.classe), giorno = Math.floor(p.pos / (O * C)), ora = Math.floor(p.pos / C) % O;
+    const entra = nome => INGRESSI[RIGA_DOCENTE[nome]] || 0;
+    // le celle che restano alla classe: oggi dalla sua prima ora non decisa (se oggi non ha gia' avuto un'ora buca,
+    // che chiude la giornata), e tutti i giorni dopo
+    const oggi = p.orario.slice(giorno * O * C, p.pos).filter((x, i) => i % C === k);
+    const celle = [];
+    if (!oggi.some(x => !x[0])) for (let o = ora + (k < p.pos % C ? 1 : 0); o < O; o++) celle.push([giorno, o]);
+    for (let g = giorno + 1; g < G; g++) for (let o = 0; o < O; o++) celle.push([g, o]);
+    const prime = celle.filter(([, o]) => o < M).length;
+    return {
+      titolo: 'Potatura 7 · l\'orario della classe, da sola',
+      frase: `A ${t.classe} restano ${quanteOre(t.servono)} da mettere in ${celle.length} cell${celle.length === 1 ? 'a' : 'e'}, ` +
+        `di cui ${prime} nelle prime ore, che devono avere lezione. Anche guardandola da sola, come se i suoi docenti fossero sempre liberi, ` +
+        'non c\'è modo di metterle: ogni docente dal suo ingresso, al massimo 3 ore al giorno nella classe e di seguito, e dopo un\'ora buca la giornata è finita.',
+      legenda: {puo: 'le celle delle prime ore: devono avere lezione', fatta: 'le celle dell\'ultima ora: lezione o ora buca'},
+      vista: 'primo',
+      righe: t.voci.map(v => {
+        const tardi = [v.docente, v.codocente].filter(n => n && entra(n) > 0).sort((a, b) => entra(b) - entra(a))[0];
+        return [`· ${v.codocente ? v.docente + ' con ' + v.codocente : v.docente + ' da solo'}`, quanteOre(v.restano), '',
+                tardi ? `${tardi} entra alle ${ore[entra(tardi)]}` : 'dalla prima ora'];
+      }),
+      segni: () => celle.map(([g, o]) => [k, g, o, o < M ? 'puo' : 'fatta']),
+    };
+  },
 };
 const quanteLezioni = n => `${n} lezion${n === 1 ? 'e' : 'i'}`;
 const SEGNI = ['fatta', 'puo', 'no'].map(x => 'segno-' + x);
@@ -414,9 +445,9 @@ function segnaPotatura(acceso) {
     td.classList.add('segno-' + segno);
     trovate[segno] = [(trovate[segno] || [td])[0], td];
   }
-  const {puo, no} = trovate;
+  const {puo, no, fatta} = trovate;
   inVista(tabellaRitorno, potaturaMostrata.vista === 'ultimo-no' ? (no ? no[1] : puo && puo[0])
-    : (no && puo ? (no[0].cellIndex < puo[0].cellIndex ? no[0] : puo[0]) : (no || puo || [null])[0]), 64);
+    : (no && puo ? (no[0].cellIndex < puo[0].cellIndex ? no[0] : puo[0]) : (no || puo || fatta || [null])[0]), 64);
 }
 function mostraControlliDelRitorno(p) {
   const fatta = p && p.potatura && POTATURE[p.potatura.numero];
