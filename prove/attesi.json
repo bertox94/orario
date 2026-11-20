@@ -1,0 +1,247 @@
+{
+ "seme 0, 3 classi, senza ritardi": {
+  "esito": "trovato",
+  "nodi": 111,
+  "verificato": true
+ },
+ "seme 0, 3 classi, con ritardi": {
+  "esito": "trovato",
+  "nodi": 111,
+  "verificato": true
+ },
+ "seme 0, 5 classi, senza ritardi": {
+  "esito": "trovato",
+  "nodi": 183,
+  "verificato": true
+ },
+ "seme 0, 5 classi, con ritardi": {
+  "esito": "impossibile",
+  "nodi": 1
+ },
+ "seme 0, 8 classi, senza ritardi": {
+  "esito": "trovato",
+  "nodi": 374,
+  "verificato": true
+ },
+ "seme 0, 8 classi, con ritardi": {
+  "esito": "impossibile",
+  "nodi": 1
+ },
+ "seme 0, 12 classi, senza ritardi": {
+  "esito": "trovato",
+  "nodi": 439,
+  "verificato": true
+ },
+ "seme 0, 12 classi, con ritardi": {
+  "esito": "impossibile",
+  "nodi": 1
+ },
+ "seme 1, 3 classi, senza ritardi": {
+  "esito": "trovato",
+  "nodi": 111,
+  "verificato": true
+ },
+ "seme 1, 3 classi, con ritardi": {
+  "esito": "trovato",
+  "nodi": 112,
+  "verificato": true
+ },
+ "seme 1, 5 classi, senza ritardi": {
+  "esito": "trovato",
+  "nodi": 183,
+  "verificato": true
+ },
+ "seme 1, 5 classi, con ritardi": {
+  "esito": "impossibile",
+  "nodi": 1
+ },
+ "seme 1, 8 classi, senza ritardi": {
+  "esito": "trovato",
+  "nodi": 297,
+  "verificato": true
+ },
+ "seme 1, 8 classi, con ritardi": {
+  "esito": "impossibile",
+  "nodi": 1
+ },
+ "seme 1, 12 classi, senza ritardi": {
+  "esito": "trovato",
+  "nodi": 444,
+  "verificato": true
+ },
+ "seme 1, 12 classi, con ritardi": {
+  "esito": "trovato",
+  "nodi": 5211,
+  "verificato": true
+ },
+ "seme 2, 3 classi, senza ritardi": {
+  "esito": "trovato",
+  "nodi": 112,
+  "verificato": true
+ },
+ "seme 2, 3 classi, con ritardi": {
+  "esito": "trovato",
+  "nodi": 112,
+  "verificato": true
+ },
+ "seme 2, 5 classi, senza ritardi": {
+  "esito": "trovato",
+  "nodi": 188,
+  "verificato": true
+ },
+ "seme 2, 5 classi, con ritardi": {
+  "esito": "trovato",
+  "nodi": 184,
+  "verificato": true
+ },
+ "seme 2, 8 classi, senza ritardi": {
+  "esito": "trovato",
+  "nodi": 296,
+  "verificato": true
+ },
+ "seme 2, 8 classi, con ritardi": {
+  "esito": "trovato",
+  "nodi": 294,
+  "verificato": true
+ },
+ "seme 2, 12 classi, senza ritardi": {
+  "esito": "trovato",
+  "nodi": 447,
+  "verificato": true
+ },
+ "seme 2, 12 classi, con ritardi": {
+  "esito": "impossibile",
+  "nodi": 1
+ },
+ "seme 3, 3 classi, senza ritardi": {
+  "esito": "trovato",
+  "nodi": 111,
+  "verificato": true
+ },
+ "seme 3, 3 classi, con ritardi": {
+  "esito": "trovato",
+  "nodi": 115,
+  "verificato": true
+ },
+ "seme 3, 5 classi, senza ritardi": {
+  "esito": "trovato",
+  "nodi": 183,
+  "verificato": true
+ },
+ "seme 3, 5 classi, con ritardi": {
+  "esito": "trovato",
+  "nodi": 188,
+  "verificato": true
+ },
+ "seme 3, 8 classi, senza ritardi": {
+  "esito": "trovato",
+  "nodi": 294,
+  "verificato": true
+ },
+ "seme 3, 8 classi, con ritardi": {
+  "esito": "impossibile",
+  "nodi": 1
+ },
+ "seme 3, 12 classi, senza ritardi": {
+  "esito": "trovato",
+  "nodi": 443,
+  "verificato": true
+ },
+ "seme 3, 12 classi, con ritardi": {
+  "esito": "impossibile",
+  "nodi": 1
+ },
+ "seme 4, 3 classi, senza ritardi": {
+  "esito": "trovato",
+  "nodi": 111,
+  "verificato": true
+ },
+ "seme 4, 3 classi, con ritardi": {
+  "esito": "impossibile",
+  "nodi": 1
+ },
+ "seme 4, 5 classi, senza ritardi": {
+  "esito": "trovato",
+  "nodi": 185,
+  "verificato": true
+ },
+ "seme 4, 5 classi, con ritardi": {
+  "esito": "limite di nodi",
+  "nodi": 200000
+ },
+ "seme 4, 8 classi, senza ritardi": {
+  "esito": "trovato",
+  "nodi": 302,
+  "verificato": true
+ },
+ "seme 4, 8 classi, con ritardi": {
+  "esito": "trovato",
+  "nodi": 300,
+  "verificato": true
+ },
+ "seme 4, 12 classi, senza ritardi": {
+  "esito": "trovato",
+  "nodi": 442,
+  "verificato": true
+ },
+ "seme 4, 12 classi, con ritardi": {
+  "esito": "impossibile",
+  "nodi": 1
+ },
+ "seme 5, 3 classi, senza ritardi": {
+  "esito": "trovato",
+  "nodi": 110,
+  "verificato": true
+ },
+ "seme 5, 3 classi, con ritardi": {
+  "esito": "trovato",
+  "nodi": 111,
+  "verificato": true
+ },
+ "seme 5, 5 classi, senza ritardi": {
+  "esito": "trovato",
+  "nodi": 186,
+  "verificato": true
+ },
+ "seme 5, 5 classi, con ritardi": {
+  "esito": "impossibile",
+  "nodi": 1
+ },
+ "seme 5, 8 classi, senza ritardi": {
+  "esito": "trovato",
+  "nodi": 297,
+  "verificato": true
+ },
+ "seme 5, 8 classi, con ritardi": {
+  "esito": "trovato",
+  "nodi": 879,
+  "verificato": true
+ },
+ "seme 5, 12 classi, senza ritardi": {
+  "esito": "trovato",
+  "nodi": 437,
+  "verificato": true
+ },
+ "seme 5, 12 classi, con ritardi": {
+  "esito": "impossibile",
+  "nodi": 1
+ },
+ "seme 10, 3 classi, con ritardi": {
+  "esito": "limite di nodi",
+  "nodi": 200000
+ },
+ "seme 1, 14 classi, con ritardi": {
+  "esito": "limite di nodi",
+  "nodi": 200000
+ },
+ "seme 2, 20 classi, senza ritardi": {
+  "esito": "trovato",
+  "nodi": 747,
+  "verificato": true
+ },
+ "seme 3, 30 classi, con ritardi": {
+  "esito": "trovato",
+  "nodi": 2343,
+  "verificato": true
+ }
+}

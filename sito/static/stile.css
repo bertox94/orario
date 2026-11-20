@@ -1,0 +1,113 @@
+/* Lo stile del sito. In cima i colori e le misure: per cambiare l'aspetto basta cambiare queste righe. Poi la pagina e
+   i titoli, campi e tasti, le etichette degli esiti, le tabelle, l'orario. */
+
+:root {
+  /* fondo rosa cipria, inchiostro prugna, bordi rosa pallido; un accento solo, rosa lampone, e il lilla per sfumare */
+  --sfondo: #fdf4f7; --carta: #fff; --testo: #33202b; --tenue: #8a6b79; --bordo: #efd3de; --riga: #f9e9ef;
+  --accento: #c0407c; --accento-scuro: #96285c; --rosa: #fbe1eb; --ombra: rgba(192, 64, 124, .16);
+  --lilla: #a878c8; --lilla-chiaro: #f3ecfa; --coppia: #3b7cab;
+  /* gli esiti: va bene, non va, attenzione, ognuno con il suo chiaro */
+  --ok: #2b7a57; --ok-chiaro: #e3f3ea; --male: #b5301c; --male-chiaro: #fde9e3; --avviso: #94610a; --avviso-chiaro: #fdf1d8;
+  --titoli: "Hoefler Text", "Baskerville", "Palatino Linotype", Palatino, Georgia, serif;
+  --scritto: "Avenir Next", Avenir, "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  --corsivo: "Snell Roundhand", "Apple Chancery", "Segoe Script", "Lucida Handwriting", cursive;
+  --sfumato: linear-gradient(100deg, var(--accento), var(--lilla));
+  --angolo: 20px; --pillola: 999px;
+}
+
+/* ---- la pagina e i titoli ---- */
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: linear-gradient(160deg, var(--sfondo) 30%, var(--lilla-chiaro)) fixed; color: var(--testo);
+  font: 15px/1.5 var(--scritto); }
+main { max-width: 1200px; margin: 0 auto; padding: 24px 16px 48px; }
+h1, h2, h3, summary { font-family: var(--titoli); font-weight: 600; }
+h1 { font-size: 32px; font-style: italic; line-height: 1.2; margin: 4px 0 22px; color: var(--accento-scuro); }
+h1::after { content: ""; display: block; width: 72px; height: 3px; margin-top: 10px; border-radius: var(--pillola);
+  background: var(--sfumato); opacity: .7; }
+h2 { font-size: 22px; margin: 36px 0 10px; color: var(--accento-scuro); }
+h2::before { content: "\273F"; margin-right: 8px; font-size: 15px; color: var(--lilla); vertical-align: 2px; }
+h3 { font-size: 18px; margin: 26px 0 8px; }
+a { color: var(--accento); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+:focus-visible { outline: 2px solid var(--accento); outline-offset: 2px; }
+.nota { color: var(--tenue); font-size: 13px; }
+p.nota { max-width: 86ch; }
+.male { color: var(--male); font-weight: 600; }
+.messaggio { padding: 10px 14px; border-left: 3px solid var(--male); background: var(--carta);
+  border-radius: 0 var(--angolo) var(--angolo) 0; max-width: 86ch; }
+details { margin: 14px 0; }
+summary { font-size: 16px; cursor: pointer; margin-bottom: 8px; }
+.testata { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px;
+  margin-bottom: 30px; padding-bottom: 16px; border-bottom: 2px solid var(--bordo); }
+.testata .nome { font-family: var(--corsivo); font-size: 40px; line-height: 1.1; color: var(--accento); text-decoration: none; }
+nav.schede { display: flex; gap: 6px; padding: 5px; background: var(--riga); border-radius: var(--pillola); }
+nav.schede a { padding: 7px 20px; text-decoration: none; color: var(--tenue); border-radius: var(--pillola); }
+nav.schede a.attiva { color: var(--accento-scuro); font-weight: 600; background: var(--carta); box-shadow: 0 1px 4px var(--ombra); }
+
+/* ---- campi e tasti ---- */
+.riquadro { background: var(--carta); border: 1px solid var(--bordo); border-radius: var(--angolo); padding: 16px 20px;
+  box-shadow: 0 6px 22px var(--ombra); width: max-content; max-width: 100%; margin: 0 0 10px; }
+.riquadro > :last-child { margin-bottom: 0; }
+.rigo { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-bottom: 12px; }
+.rigo form { margin: 0; }
+.rigo label { display: flex; align-items: center; gap: 8px; }
+.modulo { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; }
+.modulo label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--tenue); }
+.modulo label span { display: flex; align-items: center; gap: 6px; color: var(--testo); font-size: 15px; }
+input, select { font: inherit; padding: 7px 10px; border: 1px solid var(--bordo); border-radius: var(--angolo);
+  background: var(--carta); color: var(--testo); }
+input:focus, select:focus { border-color: var(--accento); outline: 0; box-shadow: 0 0 0 3px var(--rosa); }
+input[type=number] { width: 7em; }
+input[type=checkbox], input[type=range] { accent-color: var(--accento); }
+button { font: inherit; font-weight: 500; padding: 8px 20px; border: 1px solid transparent; border-radius: var(--pillola);
+  background: var(--sfumato) border-box; color: #fff; cursor: pointer; white-space: nowrap; box-shadow: 0 3px 10px var(--ombra); }
+button:hover:not(:disabled) { background: var(--accento-scuro); }
+button.secondario { background: var(--carta); color: var(--accento-scuro); border-color: var(--bordo); box-shadow: none; }
+button.secondario:hover:not(:disabled) { background: var(--rosa); border-color: var(--accento); }
+button:disabled { opacity: .5; cursor: default; }
+button.piccolo { padding: 3px 12px; font-size: 13px; }
+button.salto { padding-left: 12px; padding-right: 12px; }
+
+/* ---- le etichette degli esiti ---- */
+.esito, .tardi { display: inline-block; padding: 2px 12px; border-radius: var(--pillola); font-weight: 600; white-space: nowrap;
+  margin-right: 6px; background: var(--riga); }
+.esito-trovato, .esito-verificato { color: var(--ok); background: var(--ok-chiaro); }
+.esito-limite-di-nodi, .esito-in-corso, .tardi { color: var(--avviso); background: var(--avviso-chiaro); }
+.esito-impossibile, .esito-non-valido, .esito-non-riuscito, .esito-non-generato, .esito-fermata, .esito-interrotta {
+  color: var(--male); background: var(--male-chiaro); }
+.esito-mai-eseguito { color: var(--tenue); }
+.tardi { font-weight: 400; font-size: 13px; padding: 1px 8px; }
+summary .esito { font-family: var(--scritto); font-size: 13px; padding: 1px 10px; margin-left: 6px; }
+
+/* ---- le tabelle ---- */
+.scorre { overflow-x: auto; max-width: 100%; }
+table.dati { border-collapse: collapse; }
+table.dati th, table.dati td { padding: 7px 12px; text-align: left; border-bottom: 1px solid var(--riga); vertical-align: top; }
+table.dati thead th { font-size: 13px; color: var(--tenue); font-weight: 600; white-space: nowrap; }
+table.dati .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+table.dati td.si { color: var(--ok); font-weight: 600; }
+table.dati td.no { color: var(--male); font-weight: 600; }
+table.dati form { margin: 0; }
+.voce { display: inline-block; padding: 1px 9px; margin: 2px 4px 2px 0; border-radius: var(--pillola); background: var(--riga); white-space: nowrap; }
+
+/* ---- la ricerca passo per passo: i tasti con lo slider, la frase del passo, l'orario ---- */
+.passi { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.passi input[type=range] { flex: 1; min-width: 120px; }
+.testo-passo { margin: 6px 0; font-size: 16px; }
+.motivo { margin: 6px 0 10px; padding: 8px 14px; border-left: 3px solid var(--male); background: var(--male-chiaro);
+  border-radius: 0 var(--angolo) var(--angolo) 0; max-width: 100ch; }
+/* tutte le celle larghe uguali, anche quelle vuote: la tabella e' larga quanto serve e il suo riquadro scorre */
+table.orario { border-collapse: collapse; font-size: 13px; background: var(--carta); width: max-content; }
+table.orario th, table.orario td { border: 1px solid var(--riga); padding: 3px 5px; text-align: center; min-width: 88px;
+  max-width: 88px; }
+table.orario thead th { color: var(--tenue); font-weight: 600; background: var(--sfondo); }
+table.orario th.giorno, table.orario .inizio-giorno { border-left: 2px solid var(--bordo); }
+table.orario tbody th { position: sticky; left: 0; min-width: 64px; max-width: 64px; background: var(--sfondo); color: var(--tenue); }
+table.orario td { height: 40px; line-height: 16px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+table.orario td span { display: block; }
+table.orario td.buca, table.orario .cod { color: var(--tenue); }
+table.orario td.appena { background: var(--rosa); }
+/* la classe di cui parla il conto che non torna */
+table.orario tr.in-causa th { background: var(--male-chiaro); color: var(--male); box-shadow: inset 4px 0 0 var(--male); }
+canvas#profilo { display: block; width: 100%; height: 120px; background: var(--carta); border: 1px solid var(--bordo);
+  border-radius: 12px; cursor: pointer; }

@@ -4,3 +4,5 @@ cmake-build-*/
 # i file di lavoro del sito e di Python
 sito/lavoro/
 __pycache__/
+# il solver compilato a mano (make)
+/orario

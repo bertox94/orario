@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+{% set i, s = p.info, p.stato %}
+{% block titolo %}Orario · prova {{ i.numero }}{% endblock %}
+{% block contenuto %}
+<p><a href="{{ url_for('indice') }}">← Tutte le prove</a></p>
+<h1>Prova {{ i.numero }}: seme {{ i.seme }}, {{ i.classi }} classi, {{ 'con' if i.ritardi else 'senza' }} ritardi</h1>
+<p><span id="esito" class="esito"></span> <span id="numeri"></span>
+  <span class="nota">limite {{ i.limite|numero }} nodi</span></p>
+<div class="rigo">
+  <form method="post" action="{{ url_for('ferma') }}" id="ferma" hidden>
+    <input type="hidden" name="poi" value="{{ request.path }}"><button class="secondario">Ferma</button></form>
+  <form method="post" action="{{ url_for('avvia') }}">
+    <input type="hidden" name="seme" value="{{ i.seme }}"><input type="hidden" name="classi" value="{{ i.classi }}">
+    <input type="hidden" name="ritardi" value="{{ 'con' if i.ritardi else 'senza' }}">
+    <input type="hidden" name="milioni" value="{{ i.limite / 1000000 }}">
+    <button class="secondario" id="rifai" title="Una prova nuova sullo stesso caso">Rifai</button></form>
+  <form method="post" action="{{ url_for('notturno_da_prova') }}"><input type="hidden" name="prova" value="{{ i.numero }}">
+    <button class="secondario" title="Il caso di questa prova entra tra i test notturni">Aggiungi ai notturni</button></form>
+</div>
+<p id="in-partenza" class="messaggio" hidden></p>
+<div id="verifica" class="riquadro" hidden></div>
+
+<h2>La ricerca, passo per passo</h2>
+<div class="passi">
+  <button type="button" class="secondario salto" data-morto="prima" title="Il passo prima di questo da cui la ricerca non va avanti">⏮ Punto morto</button>
+  <button type="button" class="secondario salto" data-salto="-100">−100</button>
+  <button type="button" class="secondario salto" data-salto="-10">−10</button>
+  <button type="button" class="secondario" data-salto="-1" title="Il passo prima (←)">◀ Prec.</button>
+  <input type="range" id="slider" min="1" max="1" value="1" aria-label="Passo della ricerca">
+  <button type="button" class="secondario" data-salto="1" title="Il passo dopo (→)">Succ. ▶</button>
+  <button type="button" class="secondario salto" data-salto="10">+10</button>
+  <button type="button" class="secondario salto" data-salto="100">+100</button>
+  <button type="button" class="secondario salto" data-morto="dopo" title="Il passo dopo questo da cui la ricerca non va avanti">Punto morto ⏭</button>
+</div>
+<p id="testo-passo" class="testo-passo"></p>
+<p id="motivo" class="motivo" hidden></p>
+<div class="scorre"><table class="orario" id="orario"></table></div>
+<p class="nota">In rosa l'ultima scelta; «–» è un'ora buca. Quando da un passo la ricerca non va avanti, sopra l'orario
+  c'è il conto che non torna, e la classe di cui parla è segnata. Mentre la prova gira lo slider si allunga e, se è in
+  fondo, la segue.</p>
+
+<h3>Il profilo della ricerca</h3>
+<canvas id="profilo" height="120" title="Clic: vai a quel punto della ricerca"></canvas>
+<p class="nota">Da sinistra a destra tutti i passi; in altezza quante celle sono decise, in alto l'orario completo. Dove la
+  striscia torna a zero comincia un tentativo nuovo. Il filo scuro è il passo che stai guardando.</p>
+
+<h2>Il caso</h2>
+<details><summary>Le classi e le loro lezioni</summary><div class="scorre"><table class="dati" id="classi"></table></div></details>
+<details><summary>I docenti</summary><div class="scorre"><table class="dati" id="docenti"></table></div></details>
+{% endblock %}
+{% block script %}
+<script>
+const URL_STATO = '{{ url_for('stato', n=i.numero) }}', URL_PASSO = '{{ url_for('passo', n=i.numero, k=0)[:-1] }}';
+const URL_MORTO = '{{ url_for('punto_morto', n=i.numero, k=0, verso='dopo')[:-6] }}';  // + k + '/prima' o '/dopo'
+const URL_PROFILO = '{{ url_for('profilo', n=i.numero) }}';
+const slider = document.getElementById('slider'), tabella = document.getElementById('orario'), tela = document.getElementById('profilo');
+let scuola = null;   // giorni, ore, classi, docenti [nome, ingresso], voci [classe, docente, codocente, ore]
+const ore = n => `${n} or${n === 1 ? 'a' : 'e'}`;
+// i nomi dei docenti di una voce, e il nome di una cella: «Ven 10, C03»
+const nomi = v => scuola.voci[v].slice(1, 3).filter(t => t >= 0).map(t => scuola.docenti[t][0]);
+const dove = cella => {
+  const {giorni, ore: O, classi} = scuola, C = classi.length;
+  return `${giorni[Math.floor(cella / (O.length * C))]} ${O[Math.floor(cella / C) % O.length]}, ${classi[cella % C]}`;
+};
+
+// ---- lo stato: l'esito, i numeri, e quello che si sa a ricerca finita ----
+function mostraStato(s) {
+  const esito = s.esito || 'in corso', e = document.getElementById('esito');
+  e.textContent = esito;
+  e.className = 'esito esito-' + esito.replace(/ /g, '-');
+  document.getElementById('numeri').textContent = `${numero(s.nodi || 0)} nodi` +
+    (s.tentativi > 1 ? `, ${numero(s.tentativi)} tentativi` : '') + `, ${(s.secondi || 0).toFixed(1)} s`;
+  document.getElementById('ferma').hidden = !s.gira;
+  document.getElementById('rifai').disabled = !!s.gira;
+  if (s.scuola && !scuola) {
+    scuola = s.scuola;
+    disegnaGriglia();
+    disegnaCaso();
+  }
+  // impossibile gia' in partenza: il conto che non torna
+  const partenza = document.getElementById('in-partenza');
+  partenza.hidden = !s.motivo;
+  if (s.motivo) partenza.textContent = 'Un orario non può esserci, e si vede prima ancora di cercare. ' + spiega(s.motivo);
+  if (s.verifica && document.getElementById('verifica').hidden) mostraVerifica(s.verifica);
+}
+
+// l'orario trovato, ricontrollato dal solver regola per regola (solver/verifica.h)
+function mostraVerifica(v) {
+  const box = document.getElementById('verifica');
+  box.hidden = false;
+  box.innerHTML = `<p>${etichetta(v.ok ? 'verificato' : 'non valido')} L'orario trovato, ricontrollato da capo senza usare la ricerca, ` +
+    `${v.ok ? 'rispetta' : 'non rispetta'} tutte le regole. È l'ultimo passo.</p><table class="dati"><tbody>` +
+    v.controlli.map(([regola, ok, dove]) => `<tr><td class="${ok ? 'si' : 'no'}">${ok ? '✓' : '✗'}</td><td>${esc(regola)}</td>` +
+      `<td class="nota">${esc(dove)}</td></tr>`).join('') + '</tbody></table>';
+}
+
+// Perche' da un nodo non si va avanti: una frase dal motivo che il solver scrive (solver/ricerca.h, Motivo).
+function spiega(m) {
+  const docente = m.docente >= 0 ? scuola.docenti[m.docente][0] : '', classe = m.classe >= 0 ? scuola.classi[m.classe] : '';
+  const ora = m.ora >= 0 ? scuola.ore[m.ora] : '';
+  return {
+    ore_docente: `A ${docente} restano ${ore(m.servono)}, ma da adesso alla fine della settimana è a scuola solo per ${m.possibili}.`,
+    ore_docente_in_classe: `A ${docente} restano ${ore(m.servono)} in ${classe}, ma ne può fare ancora ${m.possibili}.`,
+    ore_classe: `A ${classe} restano ${ore(m.servono)}, ma ha ancora solo ${m.possibili} celle.`,
+    prime_ore: `${classe} deve ancora riempire ${m.servono} celle fino alle ${ora}, ma i docenti che a quelle ore ci sono possono farci solo ${m.possibili} lezioni.`,
+    docente_senza_posto: `${docente} in quest'ora deve insegnare (gli restano ${ore(m.servono)}, e dopo ne ha libere solo ${m.possibili}), ma nessuna classe lo può prendere.`,
+    classe_senza_scelte: `Per ${classe}, in quest'ora, non c'è niente che si possa mettere.`,
+    orario_della_classe: `${classe}, anche guardata da sola, non ha più modo di mettere le ${ore(m.servono)} che le restano.`,
+  }[m.tipo] || m.tipo;
+}
+
+// ---- l'orario ----
+// la griglia vuota, una volta sola: una riga per classe, una colonna per ogni ora della settimana
+function disegnaGriglia() {
+  const {giorni, ore: O, classi} = scuola;
+  tabella.innerHTML = '<thead><tr><th rowspan="2">Classe</th>' + giorni.map(g => `<th colspan="${O.length}" class="giorno">${esc(g)}</th>`).join('') +
+    '</tr><tr>' + giorni.map(() => O.map((o, i) => `<th class="${i ? '' : 'inizio-giorno'}">${esc(o)}</th>`).join('')).join('') +
+    '</tr></thead><tbody>' + classi.map(k => `<tr><th>${esc(k)}</th>` +
+      giorni.map(() => O.map((_, i) => `<td class="${i ? '' : 'inizio-giorno'}"></td>`).join('')).join('') + '</tr>').join('') + '</tbody>';
+}
+
+// un passo: l'ultima scelta, l'orario fin li', e il motivo se da li' non si va avanti
+function disegnaPasso(p) {
+  const {giorni, ore: O, classi} = scuola, C = classi.length, celle = giorni.length * O.length * C, righe = tabella.tBodies[0].rows;
+  p.orario.forEach((v, cella) => {
+    const td = righe[cella % C].cells[1 + Math.floor(cella / C)];
+    td.innerHTML = v === null ? '' : v < 0 ? '–' : nomi(v).map((n, i) => `<span class="${i ? 'cod' : ''}">${esc(n)}</span>`).join('');
+    td.classList.toggle('buca', v !== null && v < 0);
+    td.classList.toggle('appena', cella === p.cella);
+  });
+  for (const tr of righe) tr.classList.toggle('in-causa', !!p.motivo && p.motivo.classe >= 0 && tr.rowIndex - 2 === p.motivo.classe);
+  const scelta = p.cella < 0 ? 'comincia un tentativo: l\'orario è vuoto'
+    : `${p.voce < 0 ? 'ora buca' : esc(nomi(p.voce).join(' con '))} in ${esc(dove(p.cella))}`;
+  document.getElementById('testo-passo').innerHTML = `Passo ${numero(p.k)} di ${numero(Number(slider.max))} · ${scelta} · ` +
+    (p.profondita === celle ? 'orario completo' : `${numero(p.profondita)} celle decise su ${numero(celle)}`);
+  const motivo = document.getElementById('motivo');
+  motivo.hidden = !p.motivo;
+  if (p.motivo) motivo.textContent = 'Da qui la ricerca non va avanti. ' + spiega(p.motivo);
+  // l'ultima scelta in vista: il riquadro scorre di lato fino a quell'ora
+  const td = p.cella >= 0 && righe[p.cella % C].cells[1 + Math.floor(p.cella / C)];
+  if (td) {
+    const box = tabella.parentElement, a = td.getBoundingClientRect(), b = box.getBoundingClientRect();
+    if (a.left < b.left + 70) box.scrollLeft -= b.left + 70 - a.left + 40;
+    else if (a.right > b.right) box.scrollLeft += a.right - b.right + 40;
+  }
+}
+
+let richiesto = 0, attesa = null;
+async function vai(k) {
+  if (!scuola || Number(slider.max) < 1) return;
+  k = Math.max(1, Math.min(Number(slider.max), k));
+  slider.value = richiesto = k;
+  const r = await fetch(URL_PASSO + k);
+  if (!r.ok || richiesto !== k) return;   // un altro passo chiesto nel frattempo: vale l'ultimo
+  disegnaPasso(await r.json());
+  disegnaProfilo();
+}
+slider.addEventListener('input', () => { clearTimeout(attesa); attesa = setTimeout(() => vai(Number(slider.value)), 60); });
+for (const b of document.querySelectorAll('button[data-salto]'))
+  b.addEventListener('click', () => vai(Number(slider.value) + Number(b.dataset.salto)));
+for (const b of document.querySelectorAll('button[data-morto]'))
+  b.addEventListener('click', async () => {
+    const r = await (await fetch(URL_MORTO + slider.value + '/' + b.dataset.morto)).json();
+    if (r.k) vai(r.k);
+  });
+document.addEventListener('keydown', e => {
+  if (e.target.closest('input:not([type=range]), select, textarea')) return;
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); vai(Number(slider.value) + (e.key === 'ArrowLeft' ? -1 : 1)); }
+});
+
+// ---- il profilo: una barretta per tratto, dalla profondita' piu' bassa alla piu' alta ----
+let ultimoProfilo = null;
+function disegnaProfilo() {
+  const larga = tela.clientWidth, alta = 120, r = window.devicePixelRatio || 1, c = tela.getContext('2d');
+  tela.width = larga * r;
+  tela.height = alta * r;
+  c.setTransform(r, 0, 0, r, 0, 0);
+  if (!ultimoProfilo || !ultimoProfilo.fasce.length || !scuola) return;
+  const stile = getComputedStyle(document.documentElement), colore = v => stile.getPropertyValue(v).trim();
+  const celle = scuola.giorni.length * scuola.ore.length * scuola.classi.length, F = ultimoProfilo.fasce, passo = larga / F.length;
+  const y = profondita => alta - 3 - (alta - 6) * profondita / celle;
+  F.forEach(([bassa, altaP], i) => {
+    c.fillStyle = colore('--rosa');
+    c.fillRect(i * passo, y(altaP), Math.max(1, passo), Math.max(1, y(bassa) - y(altaP)));
+    c.fillStyle = colore('--accento');
+    c.fillRect(i * passo, y(altaP), Math.max(1, passo), 2);
+  });
+  const x = Math.round((Number(slider.value) - .5) / Math.max(1, ultimoProfilo.nodi) * larga) + .5;
+  c.strokeStyle = colore('--testo');
+  c.beginPath(); c.moveTo(x, 0); c.lineTo(x, alta); c.stroke();
+}
+async function aggiornaProfilo() {
+  try { ultimoProfilo = await (await fetch(URL_PROFILO, {cache: 'no-store'})).json(); disegnaProfilo(); } catch (e) { /* alla prossima */ }
+}
+tela.addEventListener('click', e => { if (ultimoProfilo) vai(Math.round(e.offsetX / tela.clientWidth * ultimoProfilo.nodi) + 1); });
+window.addEventListener('resize', disegnaProfilo);
+
+// ---- il caso: le lezioni di ogni classe e i docenti ----
+function disegnaCaso() {
+  const {classi, docenti, voci, ore: O} = scuola;
+  document.getElementById('classi').innerHTML = '<thead><tr><th>Classe</th><th class="num">Ore</th><th>Lezioni</th></tr></thead><tbody>' +
+    classi.map((k, i) => {
+      const sue = voci.map((v, j) => [v, j]).filter(([v]) => v[0] === i);
+      return `<tr><th>${esc(k)}</th><td class="num">${sue.reduce((a, [v]) => a + v[3], 0)}</td><td>` +
+        sue.map(([v, j]) => `<span class="voce">${esc(nomi(j).join(' con '))} <strong>${v[3]}</strong></span>`).join(' ') + '</td></tr>';
+    }).join('') + '</tbody>';
+  document.getElementById('docenti').innerHTML = '<thead><tr><th>Docente</th><th class="num">Ore</th><th>Entra</th><th>Classi</th></tr></thead><tbody>' +
+    docenti.map(([nome, ingresso], t) => {
+      const sue = voci.filter(v => v[1] === t || v[2] === t), suClassi = [...new Set(sue.map(v => classi[v[0]]))];
+      return `<tr><th>${esc(nome)}</th><td class="num">${sue.reduce((a, v) => a + v[3], 0)}</td>` +
+        `<td>${ingresso ? `<span class="tardi">alle ${esc(O[ingresso])}</span>` : ''}</td><td class="nota">${esc(suClassi.join(', '))}</td></tr>`;
+    }).join('') + '</tbody>';
+}
+
+// ---- mentre la prova gira: lo stato ogni secondo, il profilo ogni quattro ----
+let giri = 0;
+async function segui() {
+  try {
+    const s = await (await fetch(URL_STATO, {cache: 'no-store'})).json();
+    const inFondo = Number(slider.value) >= Number(slider.max);
+    mostraStato(s);
+    slider.max = Math.max(1, s.passi);
+    if (inFondo) vai(s.passi);
+    if (!s.gira || giri++ % 4 === 0) aggiornaProfilo();
+    if (!s.gira) return;
+  } catch (e) { /* si riprova */ }
+  setTimeout(segui, 1000);
+}
+const iniziale = {{ s|tojson }};
+mostraStato(iniziale);
+slider.max = Math.max(1, iniziale.passi || 1);
+if (iniziale.passi) vai(iniziale.passi);
+aggiornaProfilo();
+if (iniziale.gira) setTimeout(segui, 1000);
+</script>
+{% endblock %}
