@@ -1,12 +1,10 @@
-#ifndef UNTITLED_NOMI_DOCENTI_H
-#define UNTITLED_NOMI_DOCENTI_H
+#ifndef NOMI_H
+#define NOMI_H
 
-// Nomi di docenti: personaggi di fantasia, mescolati tra le varie saghe, tutti diversi; in fondo quelli che erano dei
-// dati di prova. Per i docenti dei dati casuali (generatore.c): il docente d (da 0) si chiama
-// NOMI_DOCENTI_CASUALI[d], oltre la fine dell'elenco D%03d. Solo ASCII e al massimo 16 caratteri.
-// Cambiare l'elenco cambia solo i nomi, non la ricerca (che lavora sugli indici dei docenti).
+// I nomi dei docenti dei casi casuali (genera.c): personaggi di fantasia, tutti diversi. Il docente d (da 0) si
+// chiama NOMI_DOCENTI[d]; oltre la fine dell'elenco, D seguito dal suo numero. Cambiare l'elenco cambia solo i nomi.
 
-static const char *const NOMI_DOCENTI_CASUALI[] = {
+static const char *const NOMI_DOCENTI[] = {
     "Bardack", "Kakashi", "Rufy", "Sirius", "Thranduil", "Topolino", "Zelda", "Radish", "Gaara", "Zoro", "N. Paciock",
     "Thorin", "Paperino", "Link", "Nappa", "Hinata", "Nami", "L. Lovegood", "Balin", "Pippo", "Ganondorf", "Zarbon",
     "Neji", "Usopp", "G. Weasley", "Dwalin", "Pluto", "Impa", "Dodoria", "Rock Lee", "Sanji", "F. Weasley", "Fili",
@@ -51,6 +49,6 @@ static const char *const NOMI_DOCENTI_CASUALI[] = {
     "Theoden", "Morgoth", "Gothmog", "Feanor", "Fingolfin"
 };
 
-#define N_NOMI_DOCENTI_CASUALI ((int) (sizeof NOMI_DOCENTI_CASUALI / sizeof NOMI_DOCENTI_CASUALI[0]))
+#define N_NOMI_DOCENTI ((int) (sizeof NOMI_DOCENTI / sizeof NOMI_DOCENTI[0]))
 
-#endif //UNTITLED_NOMI_DOCENTI_H
+#endif
