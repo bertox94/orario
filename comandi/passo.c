@@ -71,6 +71,19 @@ int stampa_passo(const unsigned long long int seme, const int classi, const int 
         json_nome(stdout, perche.ora < 0 ? NULL : s->ore_giornaliere[perche.ora]);
         printf(",\"servono\":%d,\"possibili\":%d", perche.servono, perche.possibili);
         if (perche.oggi >= 0) printf(",\"oggi\":%d,\"oggi_da\":%d", perche.oggi, perche.oggi_da);
+        if (perche.quale == POTATURA_LEZIONI_OBBLIGATORIE) {  // gli addendi del conto: le voci della classe
+            VoceFinoA voci[512];
+            const int n = voci_fino_a(r, pos, perche.classe, perche.ora, voci, 512);
+            printf(",\"ora_indice\":%d,\"voci\":[", perche.ora);
+            for (int i = 0; i < n; i++) {
+                printf("%s{\"docente\":", i ? "," : "");
+                json_stringa(stdout, s->insegnanti[voci[i].docente]);
+                printf(",\"codocente\":");
+                json_nome(stdout, voci[i].codocente < 0 ? NULL : s->insegnanti[voci[i].codocente]);
+                printf(",\"restano\":%d,\"possibili\":%d}", voci[i].restano, voci[i].possibili);
+            }
+            putchar(']');
+        }
         putchar('}');
     }
 

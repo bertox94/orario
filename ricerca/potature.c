@@ -327,6 +327,16 @@ static int le_ore_della_classe_stanno_nel_resto(const Punto *x) {
 // possono ancora fare in quelle ore: ogni voce, oggi quello che possono fare i suoi docenti (puo_fare_oggi), nei
 // giorni dopo al massimo 3 al giorno dall'ingresso (per una coppia: di chi entra piu' tardi), e in tutto non piu' delle
 // ore che le restano.
+// Quante lezioni puo' ancora fare, tra la prima ora e l'ora h, una voce a cui restano `restano` ore: oggi quello che
+// possono fare i suoi docenti fino ad h (per una coppia il meno dei due; per un docente da solo oggi_q e' oggi_p), nei
+// giorni dopo le ore tra l'ingresso e h, al massimo 3 al giorno; in tutto non piu' delle ore che le restano.
+static int lezioni_della_voce_fino_a(const Punto *x, const int restano, const Oggi oggi_p, const Oggi oggi_q,
+                                     const int entra, const int h) {
+    const int oggi = MIN(fino_a(oggi_p, h), fino_a(oggi_q, h));
+    const int al_giorno = MIN(MAX_ORE_PROF_IN_UNA_CLASSE, MAX(0, h + 1 - entra));
+    return MIN(restano, oggi + x->dopo * al_giorno);
+}
+
 static int le_lezioni_bastano_per_le_ore_obbligatorie_nel_resto(const Punto *x) {
     const struct Potature *t = x->r->potature;
     for (int j = 0; j < x->n_classi; j++) {
@@ -351,11 +361,8 @@ static int le_lezioni_bastano_per_le_ore_obbligatorie_nel_resto(const Punto *x) 
         for (int h = 0; h < x->M; h++) {
             const int celle = x->dopo * (h + 1) + MAX(0, h - da + 1);
             int servono = celle;
-            for (int i = 0; i < n && servono > 0; i++) {
-                const int oggi = MIN(fino_a(oggi_p[i], h), fino_a(oggi_q[i], h));
-                const int al_giorno = MIN(MAX_ORE_PROF_IN_UNA_CLASSE, MAX(0, h + 1 - entra[i]));
-                servono -= MIN(restano[i], oggi + x->dopo * al_giorno);
-            }
+            for (int i = 0; i < n && servono > 0; i++)
+                servono -= lezioni_della_voce_fino_a(x, restano[i], oggi_p[i], oggi_q[i], entra[i], h);
             if (servono > 0) return non_passa(x, -1, k, h, celle, celle - servono);
         }
     }
@@ -549,16 +556,23 @@ static void guarda_quello_che_e_cambiato(Punto *x, const int pos) {
     }
 }
 
-// Le potature accese con le celle fino a pos - 1 decise. tutto: si rifanno tutti i conti, non solo quelli cambiati.
-static int guarda_le_potature(const Ricerca *r, const int pos, const int tutto, Scatto *perche) {
+// Il punto della ricerca con le celle fino a pos - 1 decise: la cella, le dimensioni, e gli elenchi di che cosa
+// guardare ancora vuoti. (x non si azzera: gli elenchi sono lunghi, e si leggono solo fin dove sono scritti.)
+static void prepara_punto(Punto *x, const Ricerca *r, const int pos, Scatto *perche) {
     const Scuola *s = r->scuola;
     const int G = s->actual_giorni_settimana, O = s->actual_ore_giornaliere, C = s->actual_classi_sezione;
-    Punto x;  // (non azzerato: gli elenchi sono lunghi, e si leggono solo fin dove sono scritti)
-    x.r = r, x.s = s, x.giorno = pos / C / O, x.ora = pos / C % O, x.cla = pos % C, x.G = G, x.O = O, x.C = C;
-    x.M = MIN(PRIME_N_ORE_OBBLIGATORIE, O), x.dopo = G - 1 - x.giorno;
-    x.n_classi = x.n_docenti_classi = x.n_docenti_ore = x.n_classi_decise = 0;
-    x.perche = perche;
+    x->r = r, x->s = s, x->giorno = pos / C / O, x->ora = pos / C % O, x->cla = pos % C, x->G = G, x->O = O, x->C = C;
+    x->M = MIN(PRIME_N_ORE_OBBLIGATORIE, O), x->dopo = G - 1 - x->giorno;
+    x->n_classi = x->n_docenti_classi = x->n_docenti_ore = x->n_classi_decise = 0;
+    x->perche = perche;
     r->potature->adesso++;  // un nodo nuovo: l'appunto di prima non vale piu'
+}
+
+// Le potature accese con le celle fino a pos - 1 decise. tutto: si rifanno tutti i conti, non solo quelli cambiati.
+static int guarda_le_potature(const Ricerca *r, const int pos, const int tutto, Scatto *perche) {
+    const int O = r->scuola->actual_ore_giornaliere, C = r->scuola->actual_classi_sezione;
+    Punto x;
+    prepara_punto(&x, r, pos, perche);
     // la prima cella di un giorno (e della ricerca): tutto. (La 7 per una classe cambia solo quando si decide una
     // sua cella: all'inizio di un giorno basterebbe la classe appena decisa, ma all'inizio della ricerca servono
     // tutte.)
@@ -584,4 +598,20 @@ int potatura(const Ricerca *r, const int pos) {
 
 int potatura_spiegata(const Ricerca *r, const int pos, Scatto *perche) {
     return guarda_le_potature(r, pos, 1, perche);
+}
+
+int voci_fino_a(const Ricerca *r, const int pos, const int k, const int h, VoceFinoA *voci, const int massimo) {
+    const struct Potature *t = r->potature;
+    Punto x;
+    prepara_punto(&x, r, pos, NULL);
+    int n = 0;
+    for (int i = t->inizio_voci[k]; i < t->inizio_voci[k + 1] && n < massimo; i++) {
+        const Voce v = t->voci[i];
+        const int restano = ore_rimaste_alla_voce(&x, k, v);
+        if (!restano) continue;
+        const Oggi oggi_p = puo_fare_oggi(&x, k, v.ip), oggi_q = v.q >= 0 ? puo_fare_oggi(&x, k, v.iq) : oggi_p;
+        const int entra = v.q >= 0 ? MAX(ingresso(&x, v.p), ingresso(&x, v.q)) : ingresso(&x, v.p);
+        voci[n++] = (VoceFinoA){v.p, v.q, restano, lezioni_della_voce_fino_a(&x, restano, oggi_p, oggi_q, entra, h)};
+    }
+    return n;
 }

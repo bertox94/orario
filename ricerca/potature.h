@@ -70,4 +70,14 @@ typedef struct {
 // risultato e' lo stesso), e se una potatura non passa mette i suoi numeri in perche.
 int potatura_spiegata(const Ricerca *r, int pos, Scatto *perche);
 
+// Per spiegare la potatura 5: le voci della classe che hanno ancora ore (un docente da solo, codocente -1, o una
+// coppia), ognuna con le ore che le restano e quante lezioni puo' ancora fare tra la prima ora e l'ora h, con le
+// celle fino a pos - 1 decise: sono gli addendi del conto della potatura. Ne scrive al massimo `massimo` in voci e
+// ritorna quante.
+typedef struct {
+    int docente, codocente;
+    int restano, possibili;
+} VoceFinoA;
+int voci_fino_a(const Ricerca *r, int pos, int classe, int h, VoceFinoA *voci, int massimo);
+
 #endif //UNTITLED_POTATURE_H

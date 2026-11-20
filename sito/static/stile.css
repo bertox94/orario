@@ -219,6 +219,9 @@ tr.ostacolo.scelto > td { background: var(--rosa); }
 
 /* i segni della verifica dell'orario: verde il si', rosso il no */
 table.controlli tbody th { white-space: nowrap; color: var(--testo); font-size: 15px; }
+/* gli addendi di un conto (le voci della potatura 5): sotto la sua riga, rientrati e piu' piccoli */
+table.controlli tr.sotto th { padding-left: 28px; font-weight: 400; font-size: 14px; color: var(--tenue); }
+table.controlli tr.sotto td { font-size: 14px; padding-top: 5px; padding-bottom: 5px; }
 table.controlli td.si { color: var(--ok); font-weight: 700; text-align: center; white-space: nowrap; }
 table.controlli td.no { color: var(--male); font-weight: 700; text-align: center; white-space: nowrap; }
 

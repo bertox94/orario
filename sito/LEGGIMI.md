@@ -32,7 +32,9 @@ Due pagine, senza login e senza database:
   ritorno è di una potatura la sua riga sta in cima; per la prima (le ore di un docente in una classe) e la seconda (le
   ore di un docente in tutto) dice di chi parla e i numeri del conto, e il tasto «Mostra nell'orario» segna dove il
   docente ha già insegnato, dove può ancora e dove non più (per la seconda: le ore in cui era a scuola e non ha
-  insegnato); delle altre potature, per ora, la pagina non dice niente.
+  insegnato); per la quinta (le lezioni per le prime ore di una classe) ci sono anche le voci
+  della classe, una per riga, con le lezioni che possono fare in quelle ore, e nell'orario le celle da riempire;
+  della settima, per ora, la pagina non dice niente.
   Quando l'orario è trovato, in cima c'è «L'orario trovato»: l'esito della verifica indipendente del solver
   (`verifica_orario.h`), controllo per controllo, e un pulsante che porta lo slider all'orario completo.
   Se i dati non passano la verifica del solver (`verifica_dati.h`) l'esito è «errore nei dati»: la ricerca non parte e

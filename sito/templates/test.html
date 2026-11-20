@@ -286,7 +286,8 @@ const nomeClasse = p => forma.classi[p.pos % forma.classi.length];
 // ---- le potature nella cella del ritorno, una alla volta. Se il ritorno e' di una potatura (./untitled passo,
 // "potatura") la sua riga sta in cima ai controlli: dice di chi parla e i numeri del conto che non torna, e ha un
 // tasto che segna nell'orario del ritorno le celle che fanno il conto. Ogni voce: potatura -> {titolo, frase, legenda,
-// segni, vista}: segni e' una funzione che ritorna [[classe (indice; -1: l'intestazione dell'ora), giorno, ora, segno],
+// segni, vista, righe}: righe (se ci sono) sono gli addendi del conto, una riga l'uno sotto quella della potatura,
+// [nome, esito, colore ('si', 'no' o ''), numeri]; segni e' una funzione che ritorna [[classe (indice; -1: l'intestazione dell'ora), giorno, ora, segno],
 // ...] con segno 'fatta', 'puo' o 'no'; legenda dice che cosa vuol dire ogni segno; vista quale cella portare in vista
 // ('primo': il primo segno che non e' 'fatta'; 'ultimo-no': l'ultimo 'no', o se non ce ne sono il primo 'puo').
 const quanteOre = n => `${n} or${n === 1 ? 'a' : 'e'}`;
@@ -352,7 +353,48 @@ const POTATURE = {
       },
     };
   },
+  // 5. Una classe e le prime ore: le celle che deve ancora riempire tra la prima ora e l'ora della potatura, da adesso
+  // alla fine della settimana, non devono essere piu' delle lezioni che le sue voci (un docente da solo, o una coppia)
+  // possono ancora fare in quelle ore: chi entra dopo non ne puo' fare. Sotto la riga, una riga per voce: quante
+  // lezioni puo' fare in quelle ore (./untitled passo, "voci"). Nell'orario: le celle da riempire, e le lezioni gia'
+  // messe nelle ore dopo da chi alle prime ore c'e' (ore che potevano servire li').
+  5: (t, p) => {
+    const {giorni, ore, classi} = forma, G = giorni.length, O = ore.length, C = classi.length;
+    const k = classi.indexOf(t.classe), h = t.ora_indice, giorno = Math.floor(p.pos / (O * C)), ora = Math.floor(p.pos / C) % O;
+    const entra = nome => INGRESSI[RIGA_DOCENTE[nome]] || 0;
+    const fascia = h ? `tra le ${ore[0]} e le ${ore[h]}` : `alle ${ore[0]}`;
+    // prima le voci che in quelle ore possono fare lezione, poi le altre
+    const voci = [...t.voci].sort((a, b) => (b.possibili > 0) - (a.possibili > 0));
+    return {
+      titolo: 'Potatura 5 · le lezioni per le prime ore',
+      frase: `${t.classe} deve ancora riempire ${t.servono} cell${t.servono === 1 ? 'a' : 'e'} ${fascia}, da adesso alla fine della settimana, ` +
+        `ma i docenti che a quelle ore ci sono possono farci solo ${t.possibili} lezion${t.possibili === 1 ? 'e' : 'i'}.`,
+      legenda: {puo: `le celle da riempire ${fascia}`, fatta: `lezioni già messe dopo le ${ore[h]} da chi c'è anche prima`},
+      vista: 'primo',
+      righe: voci.map(v => {
+        const chi = v.codocente ? `${v.docente} con ${v.codocente}` : `${v.docente} da solo`;
+        const tardi = [v.docente, v.codocente].filter(n => n && entra(n) > h).sort((a, b) => entra(b) - entra(a))[0];
+        return [`· ${chi}`, v.possibili ? quanteLezioni(v.possibili) : 'nessuna', v.possibili ? 'si' : 'no',
+                tardi ? `${quanteOre(v.restano)} da fare, ma ${tardi} entra alle ${ore[entra(tardi)]}`
+                  : v.possibili < v.restano ? `${quanteOre(v.restano)} da fare, ma ${fascia} ne può fare ${v.possibili || 'nessuna'}`
+                  : `${quanteOre(v.restano)} da fare`];
+      }),
+      segni: () => {
+        const segni = [];
+        // le celle da riempire: oggi dalla prima ora della classe non ancora decisa, poi tutti i giorni dopo
+        for (let o = ora + (k < p.pos % C ? 1 : 0); o <= h; o++) segni.push([k, giorno, o, 'puo']);
+        for (let g = giorno + 1; g < G; g++) for (let o = 0; o <= h; o++) segni.push([k, g, o, 'puo']);
+        // nelle ore dopo: le lezioni della classe fatte da docenti che alle prime ore ci sono tutti
+        p.orario.forEach((x, i) => {
+          const o = Math.floor(i / C) % O, suoi = x.filter(Boolean);
+          if (i % C === k && o > h && suoi.length && suoi.every(n => entra(n) <= h)) segni.push([k, Math.floor(i / (O * C)), o, 'fatta']);
+        });
+        return segni;
+      },
+    };
+  },
 };
+const quanteLezioni = n => `${n} lezion${n === 1 ? 'e' : 'i'}`;
 const SEGNI = ['fatta', 'puo', 'no'].map(x => 'segno-' + x);
 let potaturaMostrata = null;  // la potatura del ritorno che si guarda, se la pagina la sa mostrare
 function segnaPotatura(acceso) {
@@ -362,7 +404,8 @@ function segnaPotatura(acceso) {
   const legenda = document.getElementById('legenda-potatura');
   legenda.hidden = !acceso || !potaturaMostrata;
   if (!acceso || !potaturaMostrata) return;
-  legenda.innerHTML = ['fatta', 'puo', 'no'].map(x => `<span class="segno-${x}">${esc(potaturaMostrata.legenda[x])}</span>`).join(' ');
+  legenda.innerHTML = ['fatta', 'puo', 'no'].filter(x => potaturaMostrata.legenda[x])
+    .map(x => `<span class="segno-${x}">${esc(potaturaMostrata.legenda[x])}</span>`).join(' ');
   // le intestazioni delle ore stanno nella seconda riga della testa, una per ora della settimana
   const O = forma.ore.length, righe = tabellaRitorno.tBodies[0].rows, testa = tabellaRitorno.tHead.rows[1].cells;
   const trovate = {};  // per ogni segno, la prima e l'ultima cella segnata
@@ -381,7 +424,9 @@ function mostraControlliDelRitorno(p) {
   // la riga della potatura, se il ritorno e' suo e la pagina la sa spiegare (delle altre, per ora, non dice niente)
   const riga = potaturaMostrata ? `<tr><th>${esc(potaturaMostrata.titolo)}</th><td class="no"><strong>non passa</strong></td>` +
       `<td>${esc(potaturaMostrata.frase)} La ricerca torna indietro senza provare niente in questa cella. ` +
-      '<button type="button" class="piccolo secondario" id="segna-potatura" aria-pressed="false">Mostra nell\'orario</button></td></tr>' : '';
+      '<button type="button" class="piccolo secondario" id="segna-potatura" aria-pressed="false">Mostra nell\'orario</button></td></tr>' +
+      (potaturaMostrata.righe || []).map(([nome, esito, colore, numeri]) =>
+        `<tr class="sotto"><th>${esc(nome)}</th><td class="${colore}"><strong>${esc(esito)}</strong></td><td>${esc(numeri)}</td></tr>`).join('') : '';
   document.querySelector('#controlli-ritorno tbody').innerHTML = !p ? '' : riga + CONTROLLI_DEL_RITORNO.map(f => {
     const [nome, esito, colore, numeri] = f(p);
     return `<tr><th>${esc(nome)}</th><td class="${colore}"><strong>${esc(esito)}</strong></td><td>${esc(numeri)}</td></tr>`;
