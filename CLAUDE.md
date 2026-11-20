@@ -10,7 +10,7 @@ guardando solo a leggibilità e prestazioni, senza vincoli sul metodo): vedi `LE
 `main` e negli stabili, e lì non si tocca da qui.
 
 - `solver/` (C): `scuola` (i dati e la lettura di un caso), `genera` (i casi casuali, gli stessi di prima), `ricerca`
-  (un'ora alla volta, la classe con meno scelte per prima, a tentativi), `limiti` e `classe_sola` (i conti che
+  (un'ora alla volta, la classe con meno scelte per prima; senza ripartenze: richiesta di Alb), `limiti` e `classe_sola` (i conti che
   scartano i rami senza orario), `verifica` (l'orario ricontrollato da capo), `passi` (ogni nodo su file), `main`.
 - `sito/` (Flask, senza login né database): prove in tempo reale (`prove.py`, `passi.py`) e test notturni
   (`notturni.py`). Mostra soltanto: casi e ricerca sono del solver.

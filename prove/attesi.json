@@ -71,7 +71,7 @@
  },
  "seme 1, 12 classi, con ritardi": {
   "esito": "trovato",
-  "nodi": 5211,
+  "nodi": 1195,
   "verificato": true
  },
  "seme 2, 3 classi, senza ritardi": {
@@ -241,7 +241,7 @@
  },
  "seme 3, 30 classi, con ritardi": {
   "esito": "trovato",
-  "nodi": 2343,
+  "nodi": 1108,
   "verificato": true
  }
 }

@@ -15,15 +15,6 @@
 //
 // Per non perdersi in rami senza uscita, a ogni passo si guardano dei LIMITI (limiti.c): conti che devono tornare
 // perche' un orario possa ancora esistere. Se uno non torna si torna indietro subito.
-//
-// La ricerca procede a TENTATIVI. Spesso ci si incaglia lontano dalla causa: un errore di lunedi' si paga sabato, e
-// tornando indietro una cella alla volta ci vorrebbe troppo per arrivare a correggerlo. Percio' ogni tentativo ha un
-// numero di nodi a disposizione: se li finisce si riparte da capo, con l'ordine delle scelte un po' rimescolato. Ogni
-// tentativo ne ha la meta' in piu' del precedente, quindi se un orario non c'e' prima o poi un tentativo arriva in
-// fondo e lo dimostra. Il rimescolamento dipende solo dal numero del tentativo: lo stesso caso da' sempre la stessa
-// ricerca.
-
-#define NODI_DEL_PRIMO_TENTATIVO 1000
 
 #define VUOTA (-2)  // una cella non ancora decisa
 #define BUCA (-1)   // un'ora buca
@@ -96,15 +87,12 @@ struct Ricerca {
     long long *visto;     // a quale nodo il docente e' comparso tra le scelte di una classe: [t]
 
     Esito esito;
-    long long nodi, limite;  // i nodi visitati (in tutti i tentativi); dopo `limite` nodi la ricerca si ferma (0: mai)
-    int tentativo;           // quale tentativo e' (da 0)
-    long long fine_del_tentativo;  // a quanti nodi il tentativo finisce
-    int riparti;             // il tentativo e' finito: si esce da tutti i nodi togliendo le scelte, e si riparte
+    long long nodi, limite;  // i nodi visitati; dopo `limite` nodi la ricerca si ferma (0: mai)
     int profondita_massima;  // il massimo di celle decise insieme
     Motivo motivo_radice;    // se non c'e' nessun orario gia' in partenza: il conto che non torna
 
-    // se c'e', si chiama a ogni nodo: `profondita` celle decise, l'ultima e' `cella` con dentro `voce` (alla radice,
-    // cioe' all'inizio di ogni tentativo, -1 e VUOTA); motivo->tipo dice se da qui non si va avanti, e perche'
+    // se c'e', si chiama a ogni nodo: `profondita` celle decise, l'ultima e' `cella` con dentro `voce` (alla radice
+    // -1 e VUOTA); motivo->tipo dice se da qui non si va avanti, e perche'
     void (*a_ogni_nodo)(const Ricerca *r, int profondita, int cella, int voce, const Motivo *motivo);
     void *di_chi;
 };

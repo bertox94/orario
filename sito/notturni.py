@@ -101,7 +101,7 @@ def _esegui_caso(caso, limite):
         s = archivio.leggi(os.path.join(d, 'stato.json'), {})
         if s.get('in_corso', 1):
             return {'esito': 'non riuscito'}
-        r = {k: s.get(k) for k in ('esito', 'nodi', 'tentativi', 'secondi', 'profondita_massima', 'celle')}
+        r = {k: s.get(k) for k in ('esito', 'nodi', 'secondi', 'profondita_massima', 'celle')}
         if 'verifica' in s:
             r['verificato'] = bool(s['verifica']['ok'])
         return r

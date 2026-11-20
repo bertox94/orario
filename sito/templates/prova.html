@@ -41,8 +41,7 @@
 
 <h3>Il profilo della ricerca</h3>
 <canvas id="profilo" height="120" title="Clic: vai a quel punto della ricerca"></canvas>
-<p class="nota">Da sinistra a destra tutti i passi; in altezza quante celle sono decise, in alto l'orario completo. Dove la
-  striscia torna a zero comincia un tentativo nuovo. Il filo scuro è il passo che stai guardando.</p>
+<p class="nota">Da sinistra a destra tutti i passi; in altezza quante celle sono decise, in alto l'orario completo. Il filo scuro è il passo che stai guardando.</p>
 
 <h2>Il caso</h2>
 <details><summary>Le classi e le loro lezioni</summary><div class="scorre"><table class="dati" id="classi"></table></div></details>
@@ -68,8 +67,7 @@ function mostraStato(s) {
   const esito = s.esito || 'in corso', e = document.getElementById('esito');
   e.textContent = esito;
   e.className = 'esito esito-' + esito.replace(/ /g, '-');
-  document.getElementById('numeri').textContent = `${numero(s.nodi || 0)} nodi` +
-    (s.tentativi > 1 ? `, ${numero(s.tentativi)} tentativi` : '') + `, ${(s.secondi || 0).toFixed(1)} s`;
+  document.getElementById('numeri').textContent = `${numero(s.nodi || 0)} nodi, ${(s.secondi || 0).toFixed(1)} s`;
   document.getElementById('ferma').hidden = !s.gira;
   document.getElementById('rifai').disabled = !!s.gira;
   if (s.scuola && !scuola) {
@@ -129,7 +127,7 @@ function disegnaPasso(p) {
     td.classList.toggle('appena', cella === p.cella);
   });
   for (const tr of righe) tr.classList.toggle('in-causa', !!p.motivo && p.motivo.classe >= 0 && tr.rowIndex - 2 === p.motivo.classe);
-  const scelta = p.cella < 0 ? 'comincia un tentativo: l\'orario è vuoto'
+  const scelta = p.cella < 0 ? 'si comincia: l\'orario è vuoto'
     : `${p.voce < 0 ? 'ora buca' : esc(nomi(p.voce).join(' con '))} in ${esc(dove(p.cella))}`;
   document.getElementById('testo-passo').innerHTML = `Passo ${numero(p.k)} di ${numero(Number(slider.max))} · ${scelta} · ` +
     (p.profondita === celle ? 'orario completo' : `${numero(p.profondita)} celle decise su ${numero(celle)}`);

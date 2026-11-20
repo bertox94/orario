@@ -45,8 +45,8 @@ L'orario si riempie un'ora alla volta, da lunedì alla prima ora a sabato all'ul
 la classe che ha meno scelte; le scelte si provano mettendo per primi i docenti con meno margine, poi chi sta
 continuando le sue ore di seguito, poi le voci quasi finite. A ogni passo si guardano i limiti: le ore di un docente
 in tutto e in ogni classe, le lezioni possibili nelle prime ore di una classe, chi deve insegnare per forza adesso, e
-se la classe, guardata da sola, ha ancora un orario. Se la ricerca si incaglia riparte da capo con le scelte un po'
-rimescolate (un tentativo nuovo, con più nodi a disposizione del precedente). Il perché di ogni cosa è nei commenti di
+se la classe, guardata da sola, ha ancora un orario. Quando da un punto non esce niente si torna indietro di una
+scelta e si prova la successiva. Il perché di ogni cosa è nei commenti di
 `solver/ricerca.h`, `solver/limiti.c` e `solver/classe_sola.c`.
 
 ## Il sito
@@ -79,12 +79,14 @@ Stessi casi (il generatore dà gli stessi di prima: controllato su 420), limite 
 
 | Casi | Orari trovati, prima | Orari trovati, adesso | Nodi, prima | Nodi, adesso |
 |---|---|---|---|---|
-| semi 0–19, classi 3–14 (480) | 306 | 330 | 74 milioni | 23 milioni |
-| semi 20–39, classi 3–14 (480), mai usati per la messa a punto | 310 | 341 | 87 milioni | 24 milioni |
-| semi 0–5, classi 20–25 (72) | 33 | 48 | 37 milioni | 9 milioni |
+| semi 0–19, classi 3–14 (480) | 306 | 323 | 74 milioni | 36 milioni |
+| semi 20–39, classi 3–14 (480), mai usati per la messa a punto | 310 | 326 | 87 milioni | 52 milioni |
+| semi 0–5, classi 20–25 (72) | 33 | 44 | 37 milioni | 14 milioni |
 
-Tra i casi nuovi c'è seme 10, 3 classi, con ritardi: il programma di prima non lo risolveva nemmeno con 20 milioni di
-nodi, e non si sapeva se un orario ci fosse. C'è: questo lo trova in 406.467 nodi, al quattordicesimo tentativo.
+Ogni orario trovato passa la verifica, e i casi dichiarati impossibili sono gli stessi. Nei tre gruppi questo
+programma trova 53 orari che quello di prima non trova, e ne perde 9 che quello di prima trova.
 
-Ogni orario trovato passa la verifica; ogni caso che il programma di prima risolveva lo risolve anche questo; i casi
-dichiarati impossibili sono gli stessi.
+Una versione che ripartiva da capo quando si incagliava (a tentativi, con le scelte rimescolate) ne trovava di più:
+330, 341 e 48, senza perderne nessuno, e risolveva anche seme 10, 3 classi, con ritardi (406.467 nodi), che senza
+ripartenze non si risolve nemmeno con 20 milioni. Tolta il 20 novembre 2026 su richiesta di Alb; è nel commit
+`8af8001` di questo ramo.

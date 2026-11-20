@@ -130,14 +130,6 @@ static int scelte_della_classe(const Ricerca *r, const int giorno, const int ora
 // - A pari anche questo, prima la voce a cui restano meno ore: si chiudono le voci quasi finite, invece di lasciare
 //   un'ora qua e una la' per la fine della settimana.
 // L'ora buca viene dopo tutte le lezioni.
-// Dal secondo tentativo in poi il margine di ogni voce e' ritoccato di poco (da 0 a 3 ore in piu', secondo la voce e
-// il tentativo): basta a far prendere alla ricerca un'altra strada.
-static int ritocco(const int tentativo, const int v) {
-    unsigned x = (unsigned) tentativo * 7919u + (unsigned) v;  // un numero che sembra a caso, ma e' sempre lo stesso
-    x ^= x >> 16, x *= 0x7feb352dU, x ^= x >> 15, x *= 0x846ca68bU, x ^= x >> 16;
-    return tentativo ? (int) (x % 4) : 0;
-}
-
 static long long quando_provarla(const Ricerca *r, const int giorno, const int ora, const int k, const int v) {
     if (v == BUCA) return 1LL << 60;
     const Scuola *s = r->s;
@@ -148,7 +140,7 @@ static long long quando_provarla(const Ricerca *r, const int giorno, const int o
         meno_margine = MIN(meno_margine, margine[t]);
         continua |= r->ore_oggi[(giorno * s->classi + k) * s->docenti + t] > 0;
     }
-    return ((meno_margine + ritocco(r->tentativo, v)) * 2LL + !continua) * 1000 + r->resto_voce[v];
+    return (meno_margine * 2LL + !continua) * 1000 + r->resto_voce[v];
 }
 
 // mette le scelte della classe k nell'ordine in cui si provano
@@ -199,15 +191,11 @@ static int scegli_la_classe(Ricerca *r, const int giorno, const int ora, int *cl
 
 // Un nodo: `profondita` celle decise, l'ultima e' `cella` con dentro `voce`. Guarda i limiti, sceglie la classe da
 // decidere e ne prova le scelte una per una, scendendo. Quando la ricerca e' finita (orario trovato, o limite di
-// nodi) si esce senza togliere niente: l'orario resta com'e'. Quando finisce il tentativo si esce togliendo tutto.
+// nodi) si esce senza togliere niente: l'orario resta com'e'.
 static void nodo(Ricerca *r, const int profondita, const int cella, const int voce) {
     const Scuola *s = r->s;
     if (r->limite && r->nodi >= r->limite) {
         r->esito = LIMITE_DI_NODI;
-        return;
-    }
-    if (r->nodi >= r->fine_del_tentativo) {
-        r->riparti = 1;
         return;
     }
     r->nodi++;
@@ -228,20 +216,11 @@ static void nodo(Ricerca *r, const int profondita, const int cella, const int vo
         nodo(r, profondita + 1, qui, scelte[i]);
         if (r->esito != IN_CORSO) return;
         segna(r, qui, scelte[i], -1);
-        if (r->riparti) return;
     }
 }
 
 void cerca_orario(Ricerca *r) {
-    long long nodi_a_disposizione = NODI_DEL_PRIMO_TENTATIVO;
     r->esito = IN_CORSO;
-    for (r->tentativo = 0;; r->tentativo++) {
-        r->riparti = 0;
-        r->fine_del_tentativo = r->nodi + nodi_a_disposizione;
-        nodi_a_disposizione += nodi_a_disposizione / 2;
-        nodo(r, 0, -1, VUOTA);
-        if (r->esito != IN_CORSO) return;
-        if (!r->riparti) break;  // il tentativo e' arrivato in fondo senza trovare niente: un orario non c'e'
-    }
-    r->esito = IMPOSSIBILE;
+    nodo(r, 0, -1, VUOTA);
+    if (r->esito == IN_CORSO) r->esito = IMPOSSIBILE;  // arrivata in fondo senza trovare niente: un orario non c'e'
 }

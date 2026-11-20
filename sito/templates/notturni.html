@@ -65,7 +65,7 @@
 </form>
 <div class="scorre"><table class="dati" id="casi">
   <thead><tr><th><input type="checkbox" id="tutti" aria-label="Scegli tutti i casi"></th><th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th>
-    <th>Esito</th><th class="num">Nodi</th><th class="num">Tentativi</th><th class="num">Celle decise</th><th class="num">Tempo</th><th>Rispetto al giro prima</th></tr></thead>
+    <th>Esito</th><th class="num">Nodi</th><th class="num">Celle decise</th><th class="num">Tempo</th><th>Rispetto al giro prima</th></tr></thead>
   <tbody></tbody>
 </table></div>
 {% endblock %}
@@ -92,9 +92,9 @@ function mostra(n) {
     const [parola, colore] = r ? rispetto(c) : ['', ''];
     return `<tr><td><input type="checkbox" class="scegli" value="${c.numero}" ${scelti.has(c.numero) ? 'checked' : ''} ${gira ? 'disabled' : ''} aria-label="Scegli il caso"></td>` +
       `<td class="num">${c.seme}</td><td class="num">${c.classi}</td><td>${c.ritardi ? 'con' : 'senza'}</td>` +
-      (adesso ? '<td colspan="6" class="nota">sta girando…</td>' : !r ? '<td colspan="6" class="nota">mai eseguito</td>'
+      (adesso ? '<td colspan="5" class="nota">sta girando…</td>' : !r ? '<td colspan="5" class="nota">mai eseguito</td>'
         : `<td>${etichetta(r.esito)}${r.verificato === false ? '<span class="male">non valido</span>' : ''}</td>` +
-          `<td class="num">${r.nodi == null ? '' : numero(r.nodi)}</td><td class="num">${r.tentativi || ''}</td>` +
+          `<td class="num">${r.nodi == null ? '' : numero(r.nodi)}</td>` +
           `<td class="num">${r.celle ? r.profondita_massima + ' / ' + r.celle : ''}</td>` +
           `<td class="num">${r.secondi == null ? '' : r.secondi.toFixed(1) + ' s'}</td><td class="${colore}">${esc(parola)}</td>`) + '</tr>';
   }).join('');

@@ -9,7 +9,7 @@
 //
 // Lo stato:
 //   {"in_corso": 0 | 1, "esito": "in corso" | "trovato" | "impossibile" | "limite di nodi",
-//    "nodi": N, "tentativi": T, "secondi": S, "profondita_massima": P, "celle": C,
+//    "nodi": N, "secondi": S, "profondita_massima": P, "celle": C,
 //    "scuola": {"giorni": [...], "ore": [...], "classi": [...], "obbligatorie": M,
 //               "docenti": [[nome, ingresso], ...], "voci": [[classe, docente, codocente | -1, ore], ...]},
 //    "motivo": {...}              con «impossibile» gia' in partenza: il conto che non torna (ricerca.h, Motivo)
@@ -52,9 +52,9 @@ static void json_nomi(FILE *f, const char *chiave, const char nomi[][MAX_NOME], 
 
 static void scrivi_stato(FILE *f, const Ricerca *r, const double secondi) {
     const Scuola *s = r->s;
-    fprintf(f, "{\"in_corso\":%d,\"esito\":\"%s\",\"nodi\":%lld,\"tentativi\":%d,\"secondi\":%.2f,"
-            "\"profondita_massima\":%d,\"celle\":%d,\"scuola\":{", r->esito == IN_CORSO, ESITI[r->esito], r->nodi,
-            r->tentativo + 1, secondi, r->profondita_massima, r->celle);
+    fprintf(f, "{\"in_corso\":%d,\"esito\":\"%s\",\"nodi\":%lld,\"secondi\":%.2f,\"profondita_massima\":%d,"
+            "\"celle\":%d,\"scuola\":{", r->esito == IN_CORSO, ESITI[r->esito], r->nodi, secondi,
+            r->profondita_massima, r->celle);
     json_nomi(f, "giorni", s->nome_giorno, s->giorni);
     json_nomi(f, "ore", s->nome_ora, s->ore);
     json_nomi(f, "classi", s->nome_classe, s->classi);
