@@ -29,9 +29,10 @@ Due pagine, senza login e senza database:
   2026 per rifarle una alla volta: il comando `passo` del solver continua a calcolarle. Tornano una alla volta sotto l'orario del
   ritorno, in «I controlli nella cella del ritorno»: una riga per controllo, con il nome, se vale e i numeri da cui
   esce. Per ora: che cosa deve fare la classe (deve avere lezione, può scegliere, deve avere un'ora buca). Se il
-  ritorno è di una potatura la sua riga sta in cima; per la prima (le ore di un docente in una classe) dice di chi
-  parla e i numeri del conto, e il tasto «Mostra nell'orario» segna le ore che ha già fatto nella classe, dove può
-  ancora insegnare e dove non più; delle altre potature, per ora, la pagina non dice niente.
+  ritorno è di una potatura la sua riga sta in cima; per la prima (le ore di un docente in una classe) e la seconda (le
+  ore di un docente in tutto) dice di chi parla e i numeri del conto, e il tasto «Mostra nell'orario» segna dove il
+  docente ha già insegnato, dove può ancora e dove non più (per la seconda: le ore in cui era a scuola e non ha
+  insegnato); delle altre potature, per ora, la pagina non dice niente.
   Quando l'orario è trovato, in cima c'è «L'orario trovato»: l'esito della verifica indipendente del solver
   (`verifica_orario.h`), controllo per controllo, e un pulsante che porta lo slider all'orario completo.
   Se i dati non passano la verifica del solver (`verifica_dati.h`) l'esito è «errore nei dati»: la ricerca non parte e

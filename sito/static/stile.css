@@ -153,9 +153,9 @@ table.orario td.attuale { background: var(--avviso-chiaro); outline: 2px solid v
 table.orario td.appena { background: var(--rosa); }
 /* i segni di una potatura nell'orario del ritorno (il tasto «Mostra nell'orario»): ben visibili, sopra gli altri
    colori */
-table.orario td.segno-fatta, .legenda-segni .segno-fatta { background: #d6e8f5; box-shadow: inset 0 0 0 3px var(--coppia); }
-table.orario td.segno-puo, .legenda-segni .segno-puo { background: var(--ok-chiaro); box-shadow: inset 0 0 0 3px var(--ok); }
-table.orario td.segno-no, .legenda-segni .segno-no { background: var(--male-chiaro); box-shadow: inset 0 0 0 3px var(--male); }
+table.orario td.segno-fatta, table.orario th.segno-fatta, .legenda-segni .segno-fatta { background: #d6e8f5; box-shadow: inset 0 0 0 3px var(--coppia); }
+table.orario td.segno-puo, table.orario th.segno-puo, .legenda-segni .segno-puo { background: var(--ok-chiaro); box-shadow: inset 0 0 0 3px var(--ok); }
+table.orario td.segno-no, table.orario th.segno-no, .legenda-segni .segno-no { background: var(--male-chiaro); box-shadow: inset 0 0 0 3px var(--male); }
 .legenda-segni span { display: inline-block; padding: 3px 10px; margin-right: 6px; color: var(--testo); }
 table.orario td.non-entrato {
   background: repeating-linear-gradient(45deg, var(--carta), var(--carta) 4px, var(--riga) 4px, var(--riga) 5px); }

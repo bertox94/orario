@@ -257,9 +257,13 @@ static int le_ore_del_docente_stanno_nel_resto(const Punto *x) {
         const int p = x->docenti_ore[j], restano = ore_rimaste_in_tutto(x, p);
         if (!restano) continue;
         const int da = MAX(x->ora, ingresso(x, p));
-        int libere = x->dopo * (x->O - ingresso(x, p)) + MAX(0, x->O - da);
-        if (da == x->ora && impegnato(x, x->ora, p)) libere--;
-        if (restano > libere) return non_passa(x, p, -1, -1, restano, libere);
+        int oggi = MAX(0, x->O - da);
+        if (da == x->ora && impegnato(x, x->ora, p)) oggi--;
+        const int libere = x->dopo * (x->O - ingresso(x, p)) + oggi;
+        if (restano <= libere) continue;
+        non_passa(x, p, -1, -1, restano, libere);
+        if (x->perche) x->perche->oggi = oggi, x->perche->oggi_da = da;
+        return 0;
     }
     return 1;
 }

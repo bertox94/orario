@@ -8,8 +8,8 @@
 // - "pos": la cella che la ricerca sta per decidere, "prima": quella del nodo prima (null per il primo; se pos <=
 //   prima la ricerca e' tornata indietro), "orario": [[docente, codocente], ...] le celle gia' decise;
 // - "potatura": null, oppure la potatura per cui da questo nodo un orario non puo' piu' uscire (potature.h: il numero
-//   da 1 a 7, il nome, e i numeri del conto che non torna: docente, classe, ora, servono, possibili; per la 1 anche
-//   "oggi" e "oggi_da": quante delle possibili sono oggi e da che ora, indice); allora la ricerca torna indietro
+//   da 1 a 7, il nome, e i numeri del conto che non torna: docente, classe, ora, servono, possibili; per la 1 e la 2
+//   anche "oggi" e "oggi_da": quante delle possibili sono oggi e da che ora, indice); allora la ricerca torna indietro
 //   senza provare niente in questa cella;
 // - "classe": che cosa deve fare la classe ("deve", "può", "non può" fare attivita': vedi stato_della_classe in
 //   ricerca.c) e i numeri da cui esce: se l'ora e' una delle prime, obbligatorie; le ore buche che ha gia' avuto

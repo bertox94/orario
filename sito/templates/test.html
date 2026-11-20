@@ -135,8 +135,7 @@
   Mentre il test gira lo slider si allunga e, se è in fondo, segue i ritorni nuovi.</p>
 <h3>I controlli nella cella del ritorno</h3>
 <table class="dati controlli" id="controlli-ritorno"><tbody></tbody></table>
-<p class="nota legenda-segni" id="legenda-potatura" hidden><span class="segno-fatta">le ore che ha già fatto nella classe</span>
-  <span class="segno-puo">dove può ancora insegnare</span> <span class="segno-no">dove non può più</span></p>
+<p class="nota legenda-segni" id="legenda-potatura" hidden></p>
 <h3>Il profilo e gli ostacoli</h3>
 <p class="nota" id="conto-backtrack"></p>
 <canvas id="profilo" height="130" title="Clic: vai a quel punto della ricerca"></canvas>
@@ -286,8 +285,10 @@ const CONTROLLI_DEL_RITORNO = [
 const nomeClasse = p => forma.classi[p.pos % forma.classi.length];
 // ---- le potature nella cella del ritorno, una alla volta. Se il ritorno e' di una potatura (./untitled passo,
 // "potatura") la sua riga sta in cima ai controlli: dice di chi parla e i numeri del conto che non torna, e ha un
-// tasto che segna nell'orario del ritorno le celle che fanno il conto. Ogni voce: potatura -> {titolo, frase, segni},
-// dove segni e' una funzione che ritorna [[classe (indice), giorno, ora, segno], ...] con segno 'fatta', 'puo' o 'no'.
+// tasto che segna nell'orario del ritorno le celle che fanno il conto. Ogni voce: potatura -> {titolo, frase, legenda,
+// segni, vista}: segni e' una funzione che ritorna [[classe (indice; -1: l'intestazione dell'ora), giorno, ora, segno],
+// ...] con segno 'fatta', 'puo' o 'no'; legenda dice che cosa vuol dire ogni segno; vista quale cella portare in vista
+// ('primo': il primo segno che non e' 'fatta'; 'ultimo-no': l'ultimo 'no', o se non ce ne sono il primo 'puo').
 const quanteOre = n => `${n} or${n === 1 ? 'a' : 'e'}`;
 const POTATURE = {
   // 1. Un docente in una classe: le ore che gli restano li' devono stare in quelle che ci puo' ancora fare, oggi e nei
@@ -299,6 +300,8 @@ const POTATURE = {
     const dopo = t.possibili - t.oggi, giorniDopo = G - 1 - giorno, entra = INGRESSI[RIGA_DOCENTE[t.docente]] || 0;
     return {
       titolo: 'Potatura 1 · le ore di un docente in una classe',
+      legenda: {fatta: 'le ore che ha già fatto nella classe', puo: 'dove può ancora insegnare', no: 'dove non può più'},
+      vista: 'primo',
       frase: `A ${t.docente} restano ${quanteOre(t.servono)} in ${t.classe}, ma ne può fare ancora ${t.possibili}: ` +
         `oggi ${t.oggi || 'nessuna'}, ` + (giorniDopo ? `nei giorni dopo ${dopo} (${giorniDopo === 1 ? 'resta un giorno' : 'restano ' + giorniDopo + ' giorni'}, ` +
         `al massimo ${dopo / giorniDopo} al giorno` + (entra ? `: entra alle ${ore[entra]}` : '') + ').' : 'e non ci sono altri giorni.'),
@@ -314,23 +317,63 @@ const POTATURE = {
       },
     };
   },
+  // 2. Un docente in tutto: le ore che gli restano in tutte le classi devono stare nelle ore in cui e' ancora libero,
+  // oggi (da oggi_da, `oggi` ore) e nei giorni dopo (dal suo ingresso). Nell'orario: le celle dove ha gia' insegnato;
+  // le ore in cui e' ancora libero, su tutta la colonna (non sono di una classe); e le ore passate in cui era a scuola
+  // e non ha insegnato in nessuna classe, che sono quelle che gli mancano.
+  2: (t, p) => {
+    const {giorni, ore, classi} = forma, G = giorni.length, O = ore.length, C = classi.length;
+    const giorno = Math.floor(p.pos / (O * C)), ora = Math.floor(p.pos / C) % O;
+    const dopo = t.possibili - t.oggi, giorniDopo = G - 1 - giorno, entra = INGRESSI[RIGA_DOCENTE[t.docente]] || 0;
+    const insegna = (g, o) => p.orario.slice((g * O + o) * C, (g * O + o + 1) * C).some(x => x.includes(t.docente));
+    return {
+      titolo: 'Potatura 2 · le ore di un docente in tutto',
+      frase: `A ${t.docente} restano ${quanteOre(t.servono)} in tutto, ma ha ancora ${quanteOre(t.possibili)} liber${t.possibili === 1 ? 'a' : 'e'}: ` +
+        `oggi ${t.oggi || 'nessuna'}, ` + (giorniDopo ? `nei giorni dopo ${dopo} (${giorniDopo === 1 ? 'resta un giorno' : 'restano ' + giorniDopo + ' giorni'}, ` +
+        `${quanteOre(O - entra)} al giorno` + (entra ? `: entra alle ${ore[entra]}` : '') + ').' : 'e non ci sono altri giorni.'),
+      legenda: {fatta: 'dove ha già insegnato', puo: 'le ore in cui è ancora libero', no: 'le ore in cui era a scuola e non ha insegnato'},
+      vista: 'ultimo-no',
+      segni: () => {
+        const segni = [];
+        const colonna = (g, o, segno, da) => {  // l'intestazione dell'ora e le sue celle dalla classe `da` in poi
+          segni.push([-1, g, o, segno]);
+          for (let k = da; k < C; k++) segni.push([k, g, o, segno]);
+        };
+        p.orario.forEach((x, i) => {  // dove ha gia' insegnato
+          if (x.includes(t.docente)) segni.push([i % C, Math.floor(i / (O * C)), Math.floor(i / C) % O, 'fatta']);
+        });
+        // le ore gia' tutte decise in cui era a scuola e non e' in nessuna classe
+        for (let g = 0; g <= giorno; g++) for (let o = entra; o < (g < giorno ? O : ora); o++) if (!insegna(g, o)) colonna(g, o, 'no', 0);
+        // oggi da oggi_da: le ore in cui e' ancora libero (in quella che si sta decidendo, solo se non insegna gia',
+        // nelle celle ancora da decidere); poi i giorni dopo, dal suo ingresso
+        for (let o = t.oggi_da; o < O; o++) if (o > ora || !insegna(giorno, ora)) colonna(giorno, o, 'puo', o === ora ? p.pos % C : 0);
+        for (let g = giorno + 1; g < G; g++) for (let o = entra; o < O; o++) colonna(g, o, 'puo', 0);
+        return segni;
+      },
+    };
+  },
 };
 const SEGNI = ['fatta', 'puo', 'no'].map(x => 'segno-' + x);
 let potaturaMostrata = null;  // la potatura del ritorno che si guarda, se la pagina la sa mostrare
 function segnaPotatura(acceso) {
-  for (const td of tabellaRitorno.querySelectorAll('td')) td.classList.remove(...SEGNI);
+  for (const td of tabellaRitorno.querySelectorAll('td, thead th')) td.classList.remove(...SEGNI);
   const tasto = document.getElementById('segna-potatura');
   if (tasto) tasto.setAttribute('aria-pressed', acceso), tasto.textContent = acceso ? 'Togli i segni dall\'orario' : 'Mostra nell\'orario';
-  document.getElementById('legenda-potatura').hidden = !acceso;
+  const legenda = document.getElementById('legenda-potatura');
+  legenda.hidden = !acceso || !potaturaMostrata;
   if (!acceso || !potaturaMostrata) return;
-  const O = forma.ore.length, righe = tabellaRitorno.tBodies[0].rows;
-  let prima = null;
+  legenda.innerHTML = ['fatta', 'puo', 'no'].map(x => `<span class="segno-${x}">${esc(potaturaMostrata.legenda[x])}</span>`).join(' ');
+  // le intestazioni delle ore stanno nella seconda riga della testa, una per ora della settimana
+  const O = forma.ore.length, righe = tabellaRitorno.tBodies[0].rows, testa = tabellaRitorno.tHead.rows[1].cells;
+  const trovate = {};  // per ogni segno, la prima e l'ultima cella segnata
   for (const [k, g, o, segno] of potaturaMostrata.segni()) {
-    const td = righe[k].cells[1 + g * O + o];
+    const td = k < 0 ? testa[g * O + o] : righe[k].cells[1 + g * O + o];
     td.classList.add('segno-' + segno);
-    prima = prima || (segno !== 'fatta' && td);
+    trovate[segno] = [(trovate[segno] || [td])[0], td];
   }
-  inVista(tabellaRitorno, prima, 64);
+  const {puo, no} = trovate;
+  inVista(tabellaRitorno, potaturaMostrata.vista === 'ultimo-no' ? (no ? no[1] : puo && puo[0])
+    : (no && puo ? (no[0].cellIndex < puo[0].cellIndex ? no[0] : puo[0]) : (no || puo || [null])[0]), 64);
 }
 function mostraControlliDelRitorno(p) {
   const fatta = p && p.potatura && POTATURE[p.potatura.numero];
