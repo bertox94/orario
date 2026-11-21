@@ -6,11 +6,17 @@
 //       cerca un orario per il caso (ricerca.h) e ne scrive lo stato, in JSON: su stdout alla fine, oppure in FILE
 //       ogni mezzo secondo e alla fine (scritto a parte e poi rinominato: chi legge trova sempre un JSON intero).
 //       --limite: dopo tanti nodi si ferma; --passi: scrive ogni nodo della ricerca (passi.h)
+//   orario segni CASO
+//       per il sito: le celle di cui parla il conto per cui da un nodo la ricerca non va avanti. Il nodo arriva su
+//       stdin, tutto in numeri: il motivo (tipo, docente, classe, ora, servono, possibili: i campi di un record dei
+//       passi), quante celle sono decise, e per ognuna, nell'ordine in cui sono state decise, la cella e la voce
+//       (-1: ora buca). Scrive su stdout {"giorno": G, "ora": O, "segni": [[cella, segno], ...]}: l'ora a cui il
+//       conto e' stato fatto, e per ogni cella segnata 1 fatta, 2 puo', 3 no, 4 serve (ricerca.h, SEGNO_).
 //
 // Lo stato:
 //   {"in_corso": 0 | 1, "esito": "in corso" | "trovato" | "impossibile" | "limite di nodi",
 //    "nodi": N, "secondi": S, "profondita_massima": P, "celle": C,
-//    "scuola": {"giorni": [...], "ore": [...], "classi": [...], "obbligatorie": M,
+//    "scuola": {"giorni": [...], "ore": [...], "classi": [...], "obbligatorie": M, "ore_di_seguito": N,
 //               "docenti": [[nome, ingresso], ...], "voci": [[classe, docente, codocente | -1, ore], ...]},
 //    "motivo": {...}              con «impossibile» gia' in partenza: il conto che non torna (ricerca.h, Motivo)
 //    "orario": [voce | -1, ...]   con «trovato»: una voce per cella (-1: ora buca); la cella di (giorno, ora, classe)
@@ -32,6 +38,9 @@ static const char *const ESITI[] = {"in corso", "trovato", "impossibile", "limit
 static const char *const MOTIVI[] = {"", "ore_docente", "ore_docente_in_classe", "ore_classe", "prime_ore",
                                      "docente_senza_posto", "classe_senza_scelte", "orario_della_classe"};
 
+// ---- scrivere lo stato, in JSON ----
+
+// un testo tra virgolette, con la barra davanti alle virgolette e alle barre che contiene
 static void json_testo(FILE *f, const char *testo) {
     fputc('"', f);
     for (; *testo; testo++) {
@@ -41,6 +50,7 @@ static void json_testo(FILE *f, const char *testo) {
     fputc('"', f);
 }
 
+// "chiave": ["nome", "nome", ...], con la virgola in fondo
 static void json_nomi(FILE *f, const char *chiave, const char nomi[][MAX_NOME], const int n) {
     fprintf(f, "\"%s\":[", chiave);
     for (int i = 0; i < n; i++) {
@@ -50,6 +60,8 @@ static void json_nomi(FILE *f, const char *chiave, const char nomi[][MAX_NOME], 
     fputs("],", f);
 }
 
+// Lo stato della ricerca (com'e' fatto e' scritto in cima al file): sempre i numeri e la scuola; a ricerca finita
+// anche il motivo, se un orario non c'era gia' in partenza, oppure l'orario trovato con la sua verifica.
 static void scrivi_stato(FILE *f, const Ricerca *r, const double secondi) {
     const Scuola *s = r->s;
     fprintf(f, "{\"in_corso\":%d,\"esito\":\"%s\",\"nodi\":%lld,\"secondi\":%.2f,\"profondita_massima\":%d,"
@@ -58,7 +70,7 @@ static void scrivi_stato(FILE *f, const Ricerca *r, const double secondi) {
     json_nomi(f, "giorni", s->nome_giorno, s->giorni);
     json_nomi(f, "ore", s->nome_ora, s->ore);
     json_nomi(f, "classi", s->nome_classe, s->classi);
-    fprintf(f, "\"obbligatorie\":%d,\"docenti\":[", s->obbligatorie);
+    fprintf(f, "\"obbligatorie\":%d,\"ore_di_seguito\":%d,\"docenti\":[", s->obbligatorie, MAX_ORE_DI_SEGUITO);
     for (int t = 0; t < s->docenti; t++) {
         fputs(t ? ",[" : "[", f);
         json_testo(f, s->nome_docente[t]);
@@ -105,6 +117,8 @@ static double secondi_da(const clock_t inizio) {
     return (clock() - inizio) / (double) CLOCKS_PER_SEC;
 }
 
+// Scrive lo stato nel suo file: prima in un file accanto, poi lo rinomina. Rinominare e' un colpo solo: chi legge
+// (il sito) trova o il file vecchio o quello nuovo, mai uno scritto a meta'.
 static void stato_su_file(const Seguito *x, const Ricerca *r) {
     char provvisorio[1024];
     snprintf(provvisorio, sizeof provvisorio, "%s.tmp", x->file_stato);
@@ -115,6 +129,7 @@ static void stato_su_file(const Seguito *x, const Ricerca *r) {
     rename(provvisorio, x->file_stato);
 }
 
+// Chiamata dalla ricerca a ogni nodo (ricerca.h, a_ogni_nodo): scrive il passo e, ogni tanto, lo stato.
 static void segui(const Ricerca *r, const int profondita, const int cella, const int voce, const Motivo *m) {
     Seguito *x = r->di_chi;
     if (x->passi) passi_nodo(x->passi, r->nodi, profondita, cella, voce, m);
@@ -125,16 +140,56 @@ static void segui(const Ricerca *r, const int profondita, const int cella, const
     stato_su_file(x, r);
 }
 
+// ---- i segni di un nodo, per il sito ----
+
+// Rimette l'orario com'era al nodo che arriva su stdin (una scelta dopo l'altra, con la stessa segna della ricerca)
+// e scrive le celle di cui parla il suo motivo. 0, o 2 se quello che arriva non e' un nodo di questo caso.
+static int segni(const Scuola *s) {
+    Ricerca *r = nuova_ricerca(s);
+    signed char *segno = r ? malloc(r->celle) : NULL;
+    int tipo, profondita, cella = -1;
+    Motivo m;
+    if (!segno || scanf("%d %d %d %d %d %d %d", &tipo, &m.docente, &m.classe, &m.ora, &m.servono, &m.possibili,
+                        &profondita) != 7)
+        return 2;
+    m.tipo = (TipoMotivo) tipo;
+    // chi e' nominato nel motivo deve esistere: i segni si scrivono nelle sue celle
+    if (tipo < NESSUNO || tipo > ORARIO_DELLA_CLASSE || m.docente >= s->docenti || m.classe >= s->classi
+        || m.ora >= s->ore || profondita < 0 || profondita > r->celle)
+        return 2;
+    const int del_docente = tipo == ORE_DOCENTE || tipo == ORE_DOCENTE_IN_CLASSE || tipo == DOCENTE_SENZA_POSTO;
+    const int della_classe = tipo != NESSUNO && tipo != ORE_DOCENTE && tipo != DOCENTE_SENZA_POSTO;
+    if ((del_docente && m.docente < 0) || (della_classe && m.classe < 0) || (tipo == PRIME_ORE && m.ora < 0)) return 2;
+    for (int i = 0; i < profondita; i++) {
+        int voce;
+        // ogni scelta: una cella ancora vuota, con l'ora buca o una voce della classe di quella cella
+        if (scanf("%d %d", &cella, &voce) != 2 || cella < 0 || cella >= r->celle || r->orario[cella] != VUOTA
+            || voce < BUCA || voce >= s->voci || (voce >= 0 && s->voce[voce].classe != cella % s->classi))
+            return 2;
+        segna(r, cella, voce, 1);
+    }
+    const int ora_della_settimana = segni_del_nodo(r, profondita, cella, &m, segno);
+    printf("{\"giorno\":%d,\"ora\":%d,\"segni\":[", ora_della_settimana / s->ore, ora_della_settimana % s->ore);
+    for (int i = 0, primo = 1; i < r->celle; i++)
+        if (segno[i]) printf("%s[%d,%d]", primo ? "" : ",", i, segno[i]), primo = 0;
+    puts("]}");
+    free(segno);
+    libera_ricerca(r);
+    return 0;
+}
+
 static int usa(const char *programma) {
     fprintf(stderr, "Uso:\n  %s genera SEME CLASSI RITARDI\n  %s risolvi CASO [--limite NODI] [--stato FILE] "
-            "[--passi FILE]\n", programma, programma);
+            "[--passi FILE]\n  %s segni CASO < NODO\n", programma, programma, programma);
     return 2;
 }
 
 int main(const int argc, char **argv) {
     if (argc == 5 && !strcmp(argv[1], "genera"))
         return genera_caso(stdout, strtoull(argv[2], NULL, 10), atoi(argv[3]), atoi(argv[4])) ? 0 : 2;
-    if (argc < 3 || strcmp(argv[1], "risolvi")) return usa(argv[0]);
+    const int vuole_i_segni = argc == 3 && !strcmp(argv[1], "segni");
+    if (!vuole_i_segni && (argc < 3 || strcmp(argv[1], "risolvi"))) return usa(argv[0]);
+    // le opzioni di «risolvi»: ognuna con il suo valore dopo
     const char *file_stato = NULL, *file_passi = NULL;
     long long limite = 0;
     for (int i = 3; i < argc; i += 2) {
@@ -150,6 +205,12 @@ int main(const int argc, char **argv) {
         fprintf(stderr, "%s\n", errore);
         return 2;
     }
+    if (vuole_i_segni) {
+        const int uscita = segni(s);
+        free(s);
+        return uscita;
+    }
+    // «risolvi»: la ricerca, con chi la segue (i passi e lo stato su file, se chiesti)
     Ricerca *r = nuova_ricerca(s);
     Seguito seguito = {r && file_passi ? passi_apri(file_passi, r->celle) : NULL, file_stato, clock(), clock()};
     if (!r || (file_passi && !seguito.passi)) {
@@ -159,9 +220,10 @@ int main(const int argc, char **argv) {
     r->limite = limite;
     r->a_ogni_nodo = segui;
     r->di_chi = &seguito;
-    if (file_stato) stato_su_file(&seguito, r);
+    if (file_stato) stato_su_file(&seguito, r);  // subito uno stato «in corso»: il sito ha gia' la scuola da mostrare
     cerca_orario(r);
     passi_chiudi(seguito.passi);
+    // lo stato finale: nel file se c'e', se no su stdout
     if (file_stato) stato_su_file(&seguito, r);
     else scrivi_stato(stdout, r, secondi_da(seguito.inizio));
     libera_ricerca(r);

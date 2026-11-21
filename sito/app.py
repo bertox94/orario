@@ -76,6 +76,14 @@ def crea_app():
             abort(404)
         return jsonify(x)
 
+    @app.route('/prova/<int:n>/segni/<int:k>')
+    def segni(n, k):
+        """Le celle di cui parla il conto per cui dal nodo k non si va avanti (il tasto «Mostra nell'orario»)."""
+        x = prove.segni(n, k)
+        if not x:
+            abort(404)
+        return jsonify(x)
+
     @app.route('/prova/<int:n>/punto-morto/<int:k>/<verso>')
     def punto_morto(n, k, verso):
         """Il primo nodo dopo k (verso «dopo») o prima da cui la ricerca non va avanti: {"k": ...}, null se non

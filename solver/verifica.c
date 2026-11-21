@@ -3,6 +3,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// Come guarda: un giorno alla volta, e dentro il giorno un'ora alla volta e una classe alla volta. Le regole che
+// riguardano una cella (prime ore, ora buca, ingresso, una classe per volta) si controllano li'; quelle sulla giornata
+// di un docente (ore al giorno, di seguito, classi al giorno) alla fine di ogni giorno; le ore di ogni voce alla fine.
+// Non usa niente della ricerca (ne' i suoi conti, ne' le sue tabelle): solo la scuola e le celle.
+
+// le regole, nell'ordine in cui compaiono nel risultato
 enum { ORE_GIUSTE, UNA_CLASSE_PER_VOLTA, DOPO_L_INGRESSO, ORE_AL_GIORNO, DI_SEGUITO, CLASSI_AL_GIORNO, PRIME_ORE_PIENE,
        DOPO_LA_BUCA };
 
@@ -35,14 +41,15 @@ int verifica_orario(const Scuola *s, const int *orario, Controllo c[CONTROLLI]) 
         for (int o = 0; o < O; o++) {
             for (int t = 0; t < T; t++) dove_e[t] = -1;
             for (int k = 0; k < C; k++) {
-                const int v = orario[(g * O + o) * C + k];
-                const int buca_prima = o > 0 && orario[(g * O + o - 1) * C + k] < 0;
-                if (v < 0) {
+                const int v = orario[(g * O + o) * C + k];  // che cosa c'e' nella cella
+                const int buca_prima = o > 0 && orario[(g * O + o - 1) * C + k] < 0;  // nell'ora prima: un'ora buca
+                if (v < 0) {  // un'ora buca: non deve essere una delle prime ore
                     if (o < s->obbligatorie)
                         NON_RISPETTATA(&c[PRIME_ORE_PIENE], "%s %s, %s: non c'e' lezione", s->nome_giorno[g],
                                        s->nome_ora[o], s->nome_classe[k]);
                     continue;
                 }
+                // una lezione: deve essere una voce che esiste, e di questa classe
                 if (v >= s->voci || s->voce[v].classe != k) {
                     NON_RISPETTATA(&c[ORE_GIUSTE], "%s %s, %s: una lezione che non e' di questa classe",
                                    s->nome_giorno[g], s->nome_ora[o], s->nome_classe[k]);
@@ -59,11 +66,12 @@ int verifica_orario(const Scuola *s, const int *orario, Controllo c[CONTROLLI]) 
                                        s->nome_ora[o], s->nome_docente[t], s->nome_classe[dove_e[t]],
                                        s->nome_classe[k]);
                     dove_e[t] = k;
+                    // (i nomi delle ore sono quelli della scuola: l'ingresso e' un indice tra le sue ore)
                     if (o < s->ingresso[t])
                         NON_RISPETTATA(&c[DOPO_L_INGRESSO], "%s %s, %s: %s c'e', ma entra alle %s", s->nome_giorno[g],
                                        s->nome_ora[o], s->nome_classe[k], s->nome_docente[t],
                                        s->nome_ora[s->ingresso[t]]);
-                    ore[k * T + t] |= 1 << o;
+                    ore[k * T + t] |= 1 << o;  // in quest'ora c'era: si accende il bit dell'ora
                 }
             }
         }
@@ -74,6 +82,7 @@ int verifica_orario(const Scuola *s, const int *orario, Controllo c[CONTROLLI]) 
                 const int sue = ore[k * T + t];
                 if (!sue) continue;
                 classi++;
+                // quante ore, la prima e l'ultima: sono di seguito se tra la prima e l'ultima ci sono solo loro
                 int quante = 0, prima = -1, ultima = -1;
                 for (int o = 0; o < O; o++)
                     if (sue >> o & 1) quante++, prima = prima < 0 ? o : prima, ultima = o;
@@ -90,6 +99,7 @@ int verifica_orario(const Scuola *s, const int *orario, Controllo c[CONTROLLI]) 
                                s->nome_giorno[g], classi, MAX_CLASSI_AL_GIORNO);
         }
     }
+    // ogni voce: nell'orario ci sono esattamente le sue ore
     for (int v = 0; v < s->voci; v++) {
         const Voce *voce = &s->voce[v];
         if (fatte[v] != voce->ore)

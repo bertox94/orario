@@ -15,6 +15,16 @@
 //
 // Per non perdersi in rami senza uscita, a ogni passo si guardano dei LIMITI (limiti.c): conti che devono tornare
 // perche' un orario possa ancora esistere. Se uno non torna si torna indietro subito.
+//
+// Le parole che tornano in tutto il codice:
+//   cella       un posto dell'orario: una classe in un'ora di un giorno. Le celle sono numerate un'ora dopo l'altra,
+//               e dentro l'ora una classe dopo l'altra: (giorno * ore + ora) * classi + classe (cella_di).
+//   voce        una lezione di una classe: un docente da solo, o una coppia, con le sue ore (scuola.h)
+//   nodo        un punto della ricerca: un orario riempito in parte. La radice e' l'orario vuoto; ogni scelta scende
+//               di un nodo, ogni ritorno indietro risale.
+//   profondita  quante celle sono decise in un nodo
+//   resto       le ore ancora da mettere: di una voce, di una classe, di un docente
+//   t, k, v     dove non c'e' spazio per un nome: un docente, una classe, una voce (i loro indici nella Scuola)
 
 #define VUOTA (-2)  // una cella non ancora decisa
 #define BUCA (-1)   // un'ora buca
@@ -38,8 +48,16 @@ typedef enum {
 typedef struct {
     TipoMotivo tipo;
     int docente, classe, ora;  // di chi si parla (-1: non c'entra)
-    int servono, possibili;
+    int servono, possibili;    // i due numeri del conto: quello che serve e' piu' di quello che e' possibile
 } Motivo;
+
+// I segni di un conto che non torna: per ogni cella di cui il conto parla, che parte ha (per il sito).
+enum {
+    SEGNO_FATTA = 1,  // il docente del conto qui insegna gia'
+    SEGNO_PUO,        // una cella che il conto conta tra le possibili
+    SEGNO_NO,         // una cella che non conta: il docente non c'e', o non puo', o la classe ha finito
+    SEGNO_SERVE       // una cella che va riempita per forza (le prime ore)
+};
 
 // Una risposta gia' data sull'orario di una classe da sola (classe_sola.c): le due impronte dello stato della classe
 // (64 bit l'una, calcolate in due modi: la risposta vale se coincidono tutte e due) e se un orario c'e'.
@@ -97,11 +115,17 @@ struct Ricerca {
     void *di_chi;
 };
 
+// Prepara una ricerca per la scuola: l'orario vuoto e tutte le ore ancora da mettere. NULL se manca la memoria.
+// La scuola deve restare dov'e' finche' la ricerca si usa. Si libera con libera_ricerca.
 Ricerca *nuova_ricerca(const Scuola *s);
 void libera_ricerca(Ricerca *r);
 
 // Cerca un orario: alla fine r->esito e' TROVATO (l'orario e' in r->orario), IMPOSSIBILE o LIMITE_DI_NODI.
 void cerca_orario(Ricerca *r);
+
+// Mette nella cella la voce v o l'ora buca (verso = 1), oppure la toglie (verso = -1), e tiene tutti i conti. La usa
+// la ricerca; serve anche a rimettere l'orario com'era a un nodo, una scelta dopo l'altra (main.c, i segni).
+void segna(Ricerca *r, int cella, int v, int verso);
 
 // ---- le celle e le regole di un docente, per ricerca.c e limiti.c ----
 
@@ -128,6 +152,10 @@ int limiti_a_inizio_ora(Ricerca *r, int giorno, int ora, Motivo *motivo);
 int limiti_dopo_la_scelta(const Ricerca *r, int cella, Motivo *motivo);
 // le ore in cui il docente t e' a scuola dall'ora `da` di quel giorno alla fine della settimana
 int ore_libere_da(const Ricerca *r, int giorno, int da, int t);
+// Le celle di cui parla il motivo per cui dal nodo non si va avanti (limiti.c, in fondo): in `segni`, lungo r->celle,
+// per ogni cella 0 o un SEGNO_. L'orario di r deve essere quello del nodo: `profondita` celle decise, l'ultima e'
+// `cella` (-1 alla radice). Ritorna l'ora della settimana (giorno * ore + ora) a cui il conto e' stato fatto.
+int segni_del_nodo(const Ricerca *r, int profondita, int cella, const Motivo *motivo, signed char *segni);
 // La classe k, guardata da sola, ha ancora un orario per le ore che le restano (classe_sola.c): 1 se c'e' o non si
 // riesce a dirlo in poco tempo, 0 se non c'e'.
 int la_classe_ha_un_orario(const Ricerca *r, int giorno, int ora, int k);

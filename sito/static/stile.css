@@ -109,5 +109,15 @@ table.orario td.buca, table.orario .cod { color: var(--tenue); }
 table.orario td.appena { background: var(--rosa); }
 /* la classe di cui parla il conto che non torna */
 table.orario tr.in-causa th { background: var(--male-chiaro); color: var(--male); box-shadow: inset 4px 0 0 var(--male); }
+/* I segni di un conto che non torna (il tasto «Mostra nell'orario»): ben visibili, con il bordo dentro la cella e il
+   fondo chiaro dello stesso colore. Verde: gia' fatta; giallo: puo'; rosso: non puo'; lilla: va riempita. */
+.motivo button { margin-left: 8px; }
+table.orario td.segno-fatta, i.segno-fatta { background: var(--ok-chiaro); box-shadow: inset 0 0 0 2px var(--ok); }
+table.orario td.segno-puo, i.segno-puo { background: var(--avviso-chiaro); box-shadow: inset 0 0 0 2px var(--avviso); }
+table.orario td.segno-no, i.segno-no { background: var(--male-chiaro); box-shadow: inset 0 0 0 2px var(--male); }
+table.orario td.segno-serve, i.segno-serve { background: var(--lilla-chiaro); box-shadow: inset 0 0 0 2px var(--lilla); }
+.legenda { margin: 0 0 10px; font-size: 13px; max-width: 120ch; }
+.voce-legenda { display: inline-block; margin: 2px 14px 2px 0; }
+.legenda i.segno { display: inline-block; width: 14px; height: 14px; margin-right: 6px; border-radius: 3px; vertical-align: -2px; }
 canvas#profilo { display: block; width: 100%; height: 120px; background: var(--carta); border: 1px solid var(--bordo);
   border-radius: 12px; cursor: pointer; }

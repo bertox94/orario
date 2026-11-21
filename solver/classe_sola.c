@@ -15,8 +15,15 @@
 // gia' fatte da ogni docente e se c'era nell'ora prima), che torna uguale moltissime volte mentre la ricerca cambia
 // le altre classi: le risposte si ricordano (ricerca.h, Ricordo).
 
-#define TENTATIVI 2000
-#define MAI (-9)  // l'ultima ora di un docente che oggi non ha ancora insegnato
+// Come e' fatta: `riempi` decide una cella della classe alla volta (una voce, o l'ora buca) e chiama se stessa per
+// la cella dopo; `giorno_dopo` passa da un giorno al successivo. E' la stessa idea della ricerca grande, in piccolo:
+// una classe sola, e solo la domanda «c'e' o non c'e'».
+
+#define TENTATIVI 2000  // quante celle si provano al massimo per una risposta: oltre, non si sa e si lascia passare
+#define MAI (-9)        // l'ultima ora di un docente che oggi non ha ancora insegnato (lontana da ogni ora vera)
+
+// Lo stato della piccola ricerca. I docenti qui sono contati da 0 dentro la classe (il loro «posto»: r->posto), non
+// con il loro indice nella scuola: cosi' le tabelle sono lunghe quanto i docenti della classe.
 
 typedef struct {
     const Ricerca *r;
@@ -30,9 +37,10 @@ typedef struct {
 
 static int riempi(ClasseSola *c, int giorno, int ora);
 
-// passa al giorno dopo (i docenti ripartono da zero); se di li' non si riesce, il giorno torna com'era
+// Passa al giorno dopo (i docenti ripartono da zero: nessuna ora fatta); se di li' non si riesce, il giorno torna
+// com'era, perche' chi ha chiamato provera' un'altra scelta per oggi.
 static int giorno_dopo(ClasseSola *c, const int giorno) {
-    int fatte[c->n_docenti], ultima[c->n_docenti];
+    int fatte[c->n_docenti], ultima[c->n_docenti];  // la giornata di oggi, messa da parte
     memcpy(fatte, c->fatte, sizeof fatte);
     memcpy(ultima, c->ultima, sizeof ultima);
     for (int i = 0; i < c->n_docenti; i++) c->fatte[i] = 0, c->ultima[i] = MAI;
@@ -42,7 +50,9 @@ static int giorno_dopo(ClasseSola *c, const int giorno) {
     return 0;
 }
 
-// il docente al posto i puo' insegnare in quest'ora
+// Il docente al posto i puo' insegnare in quest'ora: e' entrato, non ha gia' fatto il massimo, e se oggi ha gia'
+// insegnato qui deve continuare di seguito (la sua ultima ora e' quella prima). Non si guarda se e' in un'altra
+// classe: le altre classi qui non ci sono.
 static int puo(const ClasseSola *c, const int i, const int ora) {
     const int t = c->r->docente_di[c->k * c->r->s->docenti + i];
     return c->r->s->ingresso[t] <= ora && c->fatte[i] < MAX_ORE_DI_SEGUITO && (!c->fatte[i] || c->ultima[i] == ora - 1);
@@ -51,30 +61,40 @@ static int puo(const ClasseSola *c, const int i, const int ora) {
 // Riempie le celle della classe da (giorno, ora) in poi: 1 se ci riesce, o se i tentativi sono finiti.
 static int riempi(ClasseSola *c, const int giorno, const int ora) {
     const Scuola *s = c->r->s;
-    if (giorno == s->giorni) return c->resto_classe == 0;
-    if (ora == s->ore) return giorno_dopo(c, giorno);
-    if (--c->tentativi < 0) return 1;
+    if (giorno == s->giorni) return c->resto_classe == 0;  // finita la settimana: ci si e' riusciti se non avanza niente
+    if (ora == s->ore) return giorno_dopo(c, giorno);      // finita la giornata
+    if (--c->tentativi < 0) return 1;                      // troppo lungo: non si sa, e nel dubbio si dice di si'
     const int dopo = s->giorni - 1 - giorno, obbligatoria = ora < s->obbligatorie;
+    // Una lezione (le stesse condizioni della ricerca grande: scelte_della_classe): si prova ogni voce che ha ancora
+    // ore e i cui docenti possono.
     if (obbligatoria || c->resto_classe > dopo * s->obbligatorie)
         for (int v = 0; v < c->n_voci; v++) {
-            const int a = c->posto[2 * v], b = c->posto[2 * v + 1];
+            const int a = c->posto[2 * v], b = c->posto[2 * v + 1];  // i posti dei suoi docenti (b < 0: da solo)
             if (!c->resto[v] || !puo(c, a, ora) || (b >= 0 && !puo(c, b, ora))) continue;
-            const int prima_a = c->ultima[a], prima_b = b >= 0 ? c->ultima[b] : MAI;
+            const int prima_a = c->ultima[a], prima_b = b >= 0 ? c->ultima[b] : MAI;  // per rimettere com'era
+            // si mette la voce in quest'ora...
             c->resto[v]--, c->resto_classe--, c->fatte[a]++, c->ultima[a] = ora;
             if (b >= 0) c->fatte[b]++, c->ultima[b] = ora;
+            // ...si va avanti, e se da li' si arriva in fondo un orario c'e'...
             if (riempi(c, giorno, ora + 1)) return 1;
+            // ...se no la si toglie e si prova la voce dopo
             c->resto[v]++, c->resto_classe++, c->fatte[a]--, c->ultima[a] = prima_a;
             if (b >= 0) c->fatte[b]--, c->ultima[b] = prima_b;
         }
+    // L'ora buca: non nelle prime ore, e solo se le ore che restano stanno nei giorni dopo. Dopo un'ora buca la
+    // giornata e' finita, quindi si passa direttamente al giorno dopo.
     return !obbligatoria && c->resto_classe <= dopo * s->ore && giorno_dopo(c, giorno);
 }
 
+// La domanda, per la classe k al punto in cui e' la ricerca: prepara lo stato della classe, guarda se la risposta
+// per quello stato e' gia' stata data, e se no la cerca con `riempi` e la ricorda.
 int la_classe_ha_un_orario(const Ricerca *r, const int giorno, const int ora, const int k) {
     const Scuola *s = r->s;
     const int n_voci = s->prima_voce[k + 1] - s->prima_voce[k], n_docenti = r->n_docenti_di[k];
     int resto[n_voci], fatte[n_docenti], ultima[n_docenti];
     ClasseSola c = {r, k, n_voci, n_docenti, &s->voce[s->prima_voce[k]], &r->posto[2 * s->prima_voce[k]], resto,
                     fatte, ultima, r->resto_classe[k], TENTATIVI};
+    // le ore che restano alle sue voci (una copia: `riempi` le cambia mentre prova)
     for (int v = 0; v < n_voci; v++) resto[v] = r->resto_voce[s->prima_voce[k] + v];
     // da dove riparte: oggi dalla sua prima ora non decisa, con le ore che i docenti hanno gia' fatto; oppure, se la
     // sua giornata e' finita, dal giorno dopo
@@ -86,11 +106,16 @@ int la_classe_ha_un_orario(const Ricerca *r, const int giorno, const int ora, co
         fatte[i] = finita ? 0 : r->ore_oggi[(giorno * s->classi + k) * s->docenti + t];
         ultima[i] = !finita && h > 0 && presente(r, giorno, h - 1, k, t) ? h - 1 : MAI;
     }
-    // lo stato in due impronte
+    // Lo stato in due impronte: tutto quello da cui la risposta dipende (la classe, da dove riparte, le ore che
+    // restano a ogni voce, e per ogni docente le ore fatte oggi e se c'era nell'ora prima) passa in due numeri di 64
+    // bit, calcolati in due modi diversi.
     unsigned long long a = IMPRONTA_A, b = IMPRONTA_B;
     impronta(&a, &b, k), impronta(&a, &b, g * s->ore + h);
     for (int v = 0; v < n_voci; v++) impronta(&a, &b, resto[v]);
     for (int i = 0; i < n_docenti; i++) impronta(&a, &b, fatte[i] << 1 | (ultima[i] != MAI));
+    // Il posto della risposta nella tabella lo danno gli ultimi bit della prima impronta. Se li' c'e' la risposta
+    // per questo stato (tutte e due le impronte uguali) e' quella; se no si cerca adesso e la si scrive li', al posto
+    // di quella che c'era.
     Ricordo *ricordo = &r->ricordo[a & (RICORDI - 1)];
     if (ricordo->a != a || ricordo->b != b) *ricordo = (Ricordo){a, b, riempi(&c, g, h)};
     return ricordo->ce;

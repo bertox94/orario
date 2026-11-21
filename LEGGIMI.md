@@ -60,8 +60,10 @@ Serve `gcc`: il sito compila il solver da solo. I suoi file stanno in `sito/lavo
 `SITO_LAVORO`): `prove/` per le prove in tempo reale, `notti/` per i test notturni.
 
 - **Prove in tempo reale**: si sceglie un caso e si guarda la ricerca mentre va; poi la si rivede passo per passo, con
-  l'orario a ogni passo e, dove la ricerca non va avanti, il conto che non torna. I tasti «Punto morto» saltano da un
-  punto morto all'altro; il profilo mostra tutta la ricerca, e un clic porta a quel punto.
+  l'orario a ogni passo e, dove la ricerca non va avanti, il conto che non torna. «Mostra nell'orario» colora le
+  celle che il conto ha contato (già fatte, possibili, non possibili, da riempire per forza), con la legenda sopra
+  l'orario: le calcola il solver (`orario segni`), con le stesse funzioni che fanno il conto. I tasti «Punto morto»
+  saltano da un punto morto all'altro; il profilo mostra tutta la ricerca, e un clic porta a quel punto.
 - **Test notturni**: un elenco di casi rieseguiti in un giro, con un limite di nodi unico; il giro può partire da solo
   ogni notte. «I cambiamenti» mostra, una tabella per tipo, i casi il cui risultato non è più quello di cui si è
   presa visione; «Visto» lo conferma.

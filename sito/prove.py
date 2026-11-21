@@ -8,8 +8,8 @@ import time
 
 from . import archivio, passi, solver
 
-_lock = threading.Lock()
-_in_corso = {'numero': None, 'processo': None}
+_lock = threading.Lock()                         # le richieste arrivano da piu' fili insieme: una alla volta qui
+_in_corso = {'numero': None, 'processo': None}   # la prova che sta girando e il processo del solver
 
 
 def _cartella(numero=None):
@@ -33,7 +33,7 @@ def avvia(seme, classi, ritardi, limite):
         p = _in_corso['processo']
         if p is not None and p.poll() is None:
             raise ValueError('C\'è già una prova in corso: aspetta che finisca, o fermala.')
-        numero = max(archivio.numeri(_cartella()), default=0) + 1
+        numero = max(archivio.numeri(_cartella()), default=0) + 1   # il numero dopo l'ultimo
         d = _cartella(numero)
         os.makedirs(d)
         try:
@@ -72,6 +72,14 @@ def prova(numero):
     if not gira and stato.get('in_corso', 1):   # finita senza dirlo: fermata, o il sito si e' riavviato
         stato = dict(stato, in_corso=0, esito='fermata' if info.get('fermata') else 'interrotta')
     return {'info': info, 'stato': dict(stato, gira=gira, passi=passi.quanti(file_dei_passi(numero)))}
+
+
+def segni(numero, k):
+    """Le celle di cui parla il conto per cui dal nodo k la ricerca non va avanti (solver.segni). None se la prova o
+    il nodo non ci sono, o se da li' si va avanti."""
+    p = prova(numero)
+    nodo = p and passi.nodo_per_i_segni(file_dei_passi(numero), k, p['stato'].get('celle', 0))
+    return solver.segni(os.path.join(_cartella(numero), 'caso.txt'), nodo) if nodo else None
 
 
 def tutte():

@@ -20,11 +20,12 @@ import time
 
 from . import archivio, prove, solver
 
-LIMITE = 2000000
-CONFRONTATI = ('esito', 'nodi')
-_lock = threading.Lock()
+LIMITE = 2000000                     # il limite di nodi, finche' non lo si cambia dalla pagina
+CONFRONTATI = ('esito', 'nodi')      # che cosa si confronta di un risultato
+_lock = threading.Lock()             # le richieste arrivano da piu' fili insieme: una alla volta qui
+# il giro in corso: il suo numero, il processo del solver che sta girando, e se e' stato chiesto di fermarlo
 _giro = {'numero': None, 'processo': None, 'fermare': False}
-_orologio = {'partito': False}
+_orologio = {'partito': False}       # l'orologio del giro della notte parte una volta sola
 
 
 def _file(*pezzi):
@@ -110,6 +111,8 @@ def _esegui_caso(caso, limite):
 
 
 def _esegui_giro(numero, limite, elenco):
+    """Il giro, in un filo a parte: un caso dopo l'altro, scrivendo il file del giro a ogni caso (la pagina lo legge
+    mentre va). Finisce «finito», «fermato» o con un errore."""
     g = giro(numero)
     try:
         solver.programma()
@@ -153,6 +156,7 @@ def avvia_giro(da_solo=False):
 
 
 def ferma_giro():
+    """Ferma il giro in corso: il solver che sta girando viene chiuso, e il giro finisce «fermato»."""
     with _lock:
         if _giro['numero'] is None:
             return
@@ -198,6 +202,7 @@ CAMBIAMENTI = (('allarme', 'Allarmi'), ('risolto', 'Non risolto → Risolto'),
 
 
 def _chiave(r, limite):
+    """Quello che identifica un risultato: esito, nodi e limite. Due risultati con la stessa chiave sono uguali."""
     return [r.get('esito'), r.get('nodi'), limite]
 
 
@@ -237,7 +242,7 @@ def situazione():
         elenco.append(dict(c, ultimo=ultimo, prima=storia[-2] if len(storia) > 1 else None))
         if not ultimo:
             continue
-        stesse = [x for x in storia if x['limite'] == ultimo['limite']]
+        stesse = [x for x in storia if x['limite'] == ultimo['limite']]   # le esecuzioni con il limite di adesso
         visto = visti.get(str(c['numero']))
         # il riferimento: il risultato di cui si e' presa visione, se era con questo limite; se no il primo avuto
         riferimento = next((x for x in stesse if _chiave(x, x['limite']) == visto), stesse[0])

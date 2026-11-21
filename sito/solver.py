@@ -1,6 +1,7 @@
 """Il solver (la cartella solver/): il sito lo compila da solo la prima volta e quando i sorgenti cambiano, e lo lancia.
 I comandi sono in solver/main.c."""
 import hashlib
+import json
 import os
 import subprocess
 
@@ -12,6 +13,7 @@ SORGENTI = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__
 def programma():
     """Il percorso dell'eseguibile, compilato se manca: il suo nome dipende dai sorgenti."""
     nomi = sorted(n for n in os.listdir(SORGENTI) if n.endswith(('.c', '.h')))
+    # l'impronta di tutti i sorgenti: se anche uno solo cambia, cambia il nome dell'eseguibile, e si ricompila
     impronta = hashlib.sha256()
     for n in nomi:
         with open(os.path.join(SORGENTI, n), 'rb') as f:
@@ -23,7 +25,7 @@ def programma():
                            + ['-o', exe + '.tmp'], cwd=SORGENTI, capture_output=True, text=True)
         if r.returncode:
             raise RuntimeError('il solver non compila:\n' + r.stderr[-2000:])
-        os.replace(exe + '.tmp', exe)
+        os.replace(exe + '.tmp', exe)   # compilato a parte e poi rinominato: non si lancia mai un eseguibile a meta'
     return exe
 
 
@@ -34,6 +36,19 @@ def genera(seme, classi, ritardi, file):
     with open(file, 'w') as f:
         if subprocess.run(comando, stdout=f).returncode:
             raise ValueError('Con questo seme e queste classi il caso non si riesce a generare.')
+
+
+SEGNI = (None, 'fatta', 'puo', 'no', 'serve')   # i numeri dei segni (solver/ricerca.h, SEGNO_)
+
+
+def segni(caso, nodo):
+    """Le celle di cui parla il conto che non torna in un nodo: {"giorno", "ora", "segni": [[cella, nome], ...]}.
+    `nodo` e' il testo di passi.nodo_per_i_segni. None se il solver non lo accetta."""
+    r = subprocess.run([programma(), 'segni', caso], input=nodo, capture_output=True, text=True)
+    if r.returncode:
+        return None
+    x = json.loads(r.stdout)
+    return dict(x, segni=[[cella, SEGNI[segno]] for cella, segno in x['segni']])
 
 
 def risolvi(caso, limite, stato, passi=None, cartella=None):
