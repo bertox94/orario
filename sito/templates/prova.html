@@ -37,7 +37,11 @@
   <button type="button" class="secondario salto" data-salto="100">+100</button>
   <button type="button" class="secondario salto" data-morto="dopo" title="Il ritorno indietro dopo questo passo">Ritorno ⏭</button>
 </div>
-<p id="filtro" class="nota"></p>
+<div class="rigo filtri">
+  <p id="filtro" class="nota"></p>
+  <label class="nota" title="Di quante celle la ricerca torna indietro dopo un ritorno: 1 è il caso normale, cambia solo l'ultima scelta">Solo i ritorni che tornano indietro di almeno
+    <input type="number" id="almeno" min="1" value="1"> celle</label>
+</div>
 <p id="testo-passo" class="testo-passo"></p>
 <p id="cambiate" class="nota"></p>
 <p id="motivo" class="motivo" hidden><span id="testo-motivo"></span>
@@ -54,14 +58,32 @@
   <p class="nota" id="ora-dei-controlli"></p>
   <div class="scorre"><table class="dati" id="tabella-docenti"></table></div>
 </details>
-<p class="nota">In rosa l'ultima scelta; «–» è un'ora buca. Un ritorno indietro è un passo da cui la ricerca non va
-  avanti: sopra l'orario c'è il controllo che non passa, con la sua lettera e i pezzi da cui vengono i suoi numeri, e
-  la classe di cui parla è segnata; «Mostra nell'orario» colora le celle che il controllo ha contato, e resta acceso
-  da un ritorno all'altro. Da un passo all'altro (anche da un ritorno al
-  successivo) le celle cambiate hanno il bordo lilla, e quelle tolte restano scritte sbarrate. Di ogni cella si contano i ritorni in tutto e
-  quelli dall'ultimo passo avanti, che ripartono da zero quando la ricerca arriva più lontano di sempre: dicono dov'è
-  il problema adesso. Un clic su una cella sceglie i suoi ritorni: i tasti «Ritorno» saltano solo tra quelli.
-  Mentre la prova gira lo slider si allunga e, se è in fondo, la segue.</p>
+<p class="nota">In rosa l'ultima scelta; «–» è un'ora buca. Da un passo all'altro le celle cambiate hanno il bordo
+  lilla, e quelle tolte restano scritte sbarrate. Mentre la prova gira lo slider si allunga e, se è in fondo, la segue.</p>
+<details id="come-leggere" open><summary>I numeri dei ritorni: che cosa vogliono dire</summary>
+  <dl class="spiegazione">
+    <dt>Ritorno indietro</dt>
+    <dd>Un passo da cui la ricerca non va avanti, perché un controllo (da A a G) non passa. La ricerca toglie l'ultima
+      scelta e prova quella dopo. Sopra l'orario c'è il controllo, con i pezzi da cui vengono i suoi numeri.</dd>
+    <dt>Ritorni indietro, in cima alla pagina</dt>
+    <dd>Quanti ce ne sono stati in tutta la ricerca, dal primo passo all'ultimo. Non cambia spostando lo slider.</dd>
+    <dt>I ritorni di una cella <span class="nota">(un clic sulla cella)</span></dt>
+    <dd>Quanti ritorni sono arrivati subito dopo aver messo una scelta in quella cella. Dice dove il problema si è
+      <em>visto</em>, non dove nasce: tre celle della stessa ora con numeri simili sono di solito lo stesso problema.</dd>
+    <dt>…di cui dall'ultimo passo avanti</dt>
+    <dd>Gli stessi, contati solo da quando la ricerca è arrivata più lontano di sempre (il massimo di celle decise).
+      Ogni volta che supera quel massimo ripartono tutti da zero. Una cella con tanti ritorni in tutto e zero qui è
+      stata superata: non è più il problema. Dove questo numero è alto, la ricerca è ferma adesso.</dd>
+    <dt>I ritorni, per controllo e per chi <span class="nota">(la sezione qui sopra)</span></dt>
+    <dd>Gli stessi ritorni, contati invece per il controllo che non è passato e per il docente o la classe che la
+      frase nomina. Dice <em>chi</em> è il problema, in qualunque cella sia comparso. La somma è il totale in cima.</dd>
+    <dt>«Dopo, la ricerca torna indietro di N celle»</dt>
+    <dd>Quante scelte la ricerca disfa dopo quel ritorno, prima di provarne una nuova. 1 è il caso normale: cambia
+      solo l'ultima. Un numero grande vuol dire che anche le celle prima avevano finito le loro scelte: tutto quel pezzo
+      di orario poggiava su una scelta sbagliata più indietro. Con «almeno N celle» i tasti «Ritorno» saltano solo a
+      questi.</dd>
+  </dl>
+</details>
 
 <h3>Il profilo della ricerca</h3>
 <canvas id="profilo" height="120" title="Clic: vai a quel punto della ricerca"></canvas>
@@ -94,7 +116,7 @@ function mostraStato(s) {
   e.textContent = esito;
   e.className = 'esito esito-' + esito.replace(/ /g, '-');
   document.getElementById('numeri').textContent = `${numero(s.nodi || 0)} nodi, ` +
-    (s.ritorni == null ? '' : `${numero(s.ritorni)} ritorni indietro, `) + `${(s.secondi || 0).toFixed(1)} s`;
+    (s.ritorni == null ? '' : `${numero(s.ritorni)} ritorni indietro in tutto, `) + `${(s.secondi || 0).toFixed(1)} s`;
   document.getElementById('ferma').hidden = !s.gira;
   document.getElementById('rifai').disabled = !!s.gira;
   document.getElementById('continua').hidden = !!s.gira || esito !== 'limite di nodi';
@@ -276,7 +298,7 @@ function mostraFiltro() {
   }
   const C = scuola.classi.length, quanti = ritorniPerCella ? ritorniPerCella[cellaScelta] : null;
   tabella.tBodies[0].rows[cellaScelta % C].cells[1 + Math.floor(cellaScelta / C)].classList.add('scelta');
-  box.innerHTML = `Solo i ritorni di <strong>${esc(dove(cellaScelta))}</strong>` + (quanti === null ? '' : `: sono <strong>${numero(quanti)}</strong>`) +
+  box.innerHTML = `Solo i ritorni di <strong>${esc(dove(cellaScelta))}</strong>` + (quanti === null ? '' : `: <strong>${numero(quanti)}</strong> in tutta la ricerca`) +
     (ritorniRecenti ? `, di cui <strong>${numero(ritorniRecenti[cellaScelta])}</strong> dall'ultimo passo avanti` : '') +
     ' <button type="button" class="secondario piccolo" id="tutti-i-ritorni">Tutti i ritorni</button>';
   document.getElementById('tutti-i-ritorni').addEventListener('click', () => { cellaScelta = null; mostraFiltro(); });
@@ -374,7 +396,10 @@ function disegnaPasso(p) {
     (p.profondita === celle ? 'orario completo' : `${numero(p.profondita)} celle decise su ${numero(celle)}`);
   const motivo = document.getElementById('motivo');
   motivo.hidden = !p.motivo;
-  if (p.motivo) document.getElementById('testo-motivo').innerHTML = `<strong>${esc(nomeControllo(p.motivo.tipo))}</strong> non passa. ` + esc(spiega(p.motivo));
+  // dopo un ritorno: di quante celle la ricerca torna indietro prima di provare una scelta nuova
+  const indietro = p.indietro == null ? '' : p.indietro <= 1 ? ' Dopo, la ricerca cambia solo questa scelta.'
+    : ` Dopo, la ricerca torna indietro di <strong>${p.indietro} celle</strong>.`;
+  if (p.motivo) document.getElementById('testo-motivo').innerHTML = `<strong>${esc(nomeControllo(p.motivo.tipo))}</strong> non passa. ` + esc(spiega(p.motivo)) + indietro;
   if (p.motivo || document.getElementById('controlli-docenti').open) chiediNodo(p);
   // l'ultima scelta in vista: il riquadro scorre di lato fino a quell'ora
   const td = p.cella >= 0 && righe[p.cella % C].cells[1 + Math.floor(p.cella / C)];
@@ -402,7 +427,8 @@ for (const b of document.querySelectorAll('button[data-salto]'))
   b.addEventListener('click', () => vai(Number(slider.value) + Number(b.dataset.salto)));
 for (const b of document.querySelectorAll('button[data-morto]'))
   b.addEventListener('click', async () => {
-    const r = await (await fetch(URL_RITORNO + slider.value + '/' + b.dataset.morto + (cellaScelta === null ? '' : '?cella=' + cellaScelta))).json();
+    const r = await (await fetch(URL_RITORNO + slider.value + '/' + b.dataset.morto +
+      '?almeno=' + Math.max(1, Number(document.getElementById('almeno').value) || 1) + (cellaScelta === null ? '' : '&cella=' + cellaScelta))).json();
     if (r.k) vai(r.k);
   });
 document.addEventListener('keydown', e => {

@@ -57,7 +57,10 @@ def _strada(file, k, celle):
 
 def passo(file, k, celle):
     """Il nodo k (da 1): {"k", "profondita", "cella", "voce", "motivo" (None, o tipo e numeri), "orario": per ogni
-    cella la sua voce, -1 per l'ora buca, None se non e' decisa}. None se il nodo non c'e'."""
+    cella la sua voce, -1 per l'ora buca, None se non e' decisa, "indietro"}. None se il nodo non c'e'.
+    «indietro», per un ritorno: di quante celle la ricerca torna indietro subito dopo, cioe' quante scelte disfa
+    prima di provarne una nuova. 1 e' il caso normale (cambia solo l'ultima scelta); di piu' vuol dire che anche le
+    celle prima avevano finito le loro scelte. None se non e' un ritorno, o e' l'ultimo nodo che c'e'."""
     x = _strada(file, k, celle)
     if not x:
         return None
@@ -67,7 +70,12 @@ def passo(file, k, celle):
         orario[c] = v
     motivo = tipo and {'tipo': MOTIVI[tipo], 'docente': docente, 'classe': classe, 'ora': ora, 'servono': servono,
                        'possibili': possibili}
-    return {'k': k, 'profondita': profondita, 'cella': cella, 'voce': voce, 'motivo': motivo or None, 'orario': orario}
+    indietro = None
+    if motivo and k < quanti(file):   # il nodo dopo dice dove la ricerca e' ripartita
+        with open(file, 'rb') as f:
+            indietro = profondita - _record(f, k + 1, k + 1)[0] + 1
+    return {'k': k, 'profondita': profondita, 'cella': cella, 'voce': voce, 'motivo': motivo or None, 'orario': orario,
+            'indietro': indietro}
 
 
 def nodo_per_il_solver(file, k, celle):
@@ -80,19 +88,22 @@ def nodo_per_il_solver(file, k, celle):
     return ' '.join(str(n) for n in record[3:] + [len(strada)] + [n for scelta in strada for n in scelta])
 
 
-def ritorno(file, k, avanti, cella=None):
+def ritorno(file, k, avanti, cella=None, almeno=1):
     """Il primo ritorno indietro dopo il nodo k (o prima, se non avanti): un nodo da cui la ricerca non va avanti,
-    cioe' con un motivo. Con `cella`, solo quelli arrivati subito dopo una scelta in quella cella. None se non ce ne
-    sono."""
+    cioe' con un motivo. Con `cella`, solo quelli arrivati subito dopo una scelta in quella cella. Con `almeno`
+    piu' di 1, solo quelli dopo cui la ricerca torna indietro di almeno tante celle (vedi `indietro`). None se non
+    ce ne sono."""
     n, pezzo = quanti(file), 65536   # si legge a pezzi di tanti nodi, guardando solo i campi che servono
     with open(file, 'rb') as f:
         j = k + 1 if avanti else k - 1
         while 1 <= j <= n:
             da, a = (j, min(j + pezzo - 1, n)) if avanti else (max(1, j - pezzo + 1), j)
-            r = _record(f, da, a)
-            tipi = r[3::CAMPI]
+            r = _record(f, da, min(a + 1, n))   # un nodo in piu': per sapere di quanto si torna indietro dopo l'ultimo
+            m, tipi, profondita = a - da + 1, r[3::CAMPI], r[0::CAMPI]
+            # di quante celle si torna indietro dopo il nodo al posto i (dell'ultimo nodo del file non si sa: 0)
+            indietro = lambda i: profondita[i] - profondita[i + 1] + 1 if i + 1 < len(profondita) else 0
             if cella is None:
-                buoni = [i for i in range(len(tipi)) if tipi[i]]
+                buoni = [i for i in range(m) if tipi[i] and (almeno <= 1 or indietro(i) >= almeno)]
             else:
                 # prima i nodi di quella cella (array.index li cerca in fretta), poi tra quelli chi ha un motivo
                 celle_dei_nodi, buoni, i = r[1::CAMPI], [], 0
@@ -101,7 +112,7 @@ def ritorno(file, k, avanti, cella=None):
                         i = celle_dei_nodi.index(cella, i)
                     except ValueError:
                         break
-                    if tipi[i]:
+                    if i < m and tipi[i] and (almeno <= 1 or indietro(i) >= almeno):
                         buoni.append(i)
                     i += 1
             if buoni:

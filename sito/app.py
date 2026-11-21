@@ -90,11 +90,13 @@ def crea_app():
     @app.route('/prova/<int:n>/ritorno/<int:k>/<verso>')
     def ritorno(n, k, verso):
         """Il primo ritorno indietro dopo il nodo k (verso «dopo») o prima: {"k": ...}, null se non c'e'. Con
-        ?cella=N solo i ritorni di quella cella."""
+        ?cella=N solo i ritorni di quella cella; con ?almeno=N solo quelli dopo cui la ricerca torna indietro di
+        almeno N celle."""
         if verso not in ('prima', 'dopo') or not prove.prova(n):
             abort(404)
         cella = request.args.get('cella', type=int)
-        return jsonify({'k': passi.ritorno(prove.file_dei_passi(n), k, verso == 'dopo', cella)})
+        almeno = max(1, request.args.get('almeno', default=1, type=int))
+        return jsonify({'k': passi.ritorno(prove.file_dei_passi(n), k, verso == 'dopo', cella, almeno)})
 
     @app.route('/prova/<int:n>/profilo.json')
     def profilo(n):

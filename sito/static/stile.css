@@ -123,8 +123,14 @@ table.orario td.segno-serve, i.segno-serve { background: var(--lilla-chiaro); bo
 table.orario td.cambiata:not(.segno) { box-shadow: inset 0 0 0 2px var(--lilla); }
 table.orario td.tolta { color: var(--tenue); text-decoration: line-through; }
 table.orario td.tolta:not(.segno) { box-shadow: inset 0 0 0 2px var(--lilla); background: var(--lilla-chiaro); }
+/* la spiegazione dei numeri dei ritorni: il nome di ogni numero e sotto, rientrato, che cosa vuol dire */
+dl.spiegazione { margin: 0; max-width: 100ch; }
+dl.spiegazione dt { font-weight: 600; margin-top: 10px; }
+dl.spiegazione dd { margin: 2px 0 0 18px; color: var(--tenue); }
 /* la cella di cui si guardano i ritorni, e la riga del docente di cui parla il controllo che non passa */
 #filtro { margin: 4px 0; min-height: 26px; }
+.filtri { justify-content: space-between; margin-bottom: 0; }
+.filtri input { width: 4.5em; padding: 3px 8px; }
 table.orario tbody td { cursor: pointer; }
 table.orario td.scelta { outline: 3px solid var(--accento); outline-offset: -3px; }
 table.dati tr.in-causa th { color: var(--male); }
