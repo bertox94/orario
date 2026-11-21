@@ -3,6 +3,9 @@
 Il programma dell'orario, riscritto da capo il 20 novembre 2026: il solver in C e il sito. Il programma di prima è
 nel ramo `stabile/2026-11-18`, intatto.
 
+La descrizione completa, con il dettaglio per rifare tutto da zero (regole, generatore, ricerca, controlli, comandi,
+formati dei file, ogni pagina del sito, i limiti), è in `DESCRIZIONE.md`.
+
 ## Che cosa c'è
 
 - `solver/`: il programma che cerca l'orario.
@@ -67,7 +70,8 @@ Serve `gcc`: il sito compila il solver da solo. I suoi file stanno in `sito/lavo
   i suoi ritorni, e dice quanti sono. Da un passo all'altro le celle cambiate sono segnate (bordo lilla; quelle tolte restano scritte, sbarrate). Accanto ai ritorni di una cella c'è quanti sono dall'ultimo passo avanti (si azzerano quando la ricerca arriva
   più lontano di sempre): una cella superata non è più il problema. La sezione «I ritorni, per controllo e per chi» li conta per il controllo che non è passato e per il docente o
   la classe che nomina: dice chi è il problema, non in quale cella è stato visto. Di ogni ritorno si dice di quante celle la ricerca torna indietro subito dopo, e i tasti «Ritorno» possono
-  saltare solo a quelli che tornano indietro di almeno un certo numero di celle. Ogni controllo ha una lettera (da A a G) e un nome; la sezione «I controlli,
+  saltare solo a quelli che tornano indietro di almeno un certo numero di celle. «Cambia questa scelta…», dopo un clic su una cella decisa, mostra le scelte che la ricerca aveva lì e fa
+  partire una prova nuova dall'orario di quel passo con la scelta fatta a mano (`orario risolvi --da`). Ogni controllo ha una lettera (da A a G) e un nome; la sezione «I controlli,
   docente per docente», chiusa finché non la si apre, mostra per ogni docente i numeri dei suoi controlli a quel
   passo. Una prova che si è fermata al limite di nodi si può mandare avanti di altri 100 o 1000 nodi
   («Continua per altri»): riprende dal punto esatto in cui era. Una prova può arrivare a 1000 milioni di nodi (19 MB di disco per milione: il sito controlla che bastino); il profilo mostra tutta la ricerca, e un clic porta a quel punto.

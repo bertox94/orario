@@ -10,7 +10,8 @@ from . import archivio, passi, solver
 
 BYTE_PER_NODO = 19                  # 18 il record del nodo, il resto istantanee e profilo (solver/passi.h)
 SPAZIO_DA_LASCIARE = 500 * 1000000  # i byte che sul disco devono restare liberi comunque
-_lock = threading.Lock()                         # le richieste arrivano da piu' fili insieme: una alla volta qui
+# le richieste arrivano da piu' fili insieme: una alla volta qui (rientrante: chi lo tiene puo' chiamare prova())
+_lock = threading.RLock()
 _in_corso = {'numero': None, 'processo': None}   # la prova che sta girando e il processo del solver
 
 
@@ -29,20 +30,24 @@ def in_corso():
         return _in_corso['numero'] if p is not None and p.poll() is None else None
 
 
+def _controlla_il_disco(limite):
+    """Ogni nodo si scrive su file (BYTE_PER_NODO l'uno, con istantanee e profilo): se il disco non basta per tutti i
+    nodi del limite, meglio dirlo subito che riempirlo. ValueError se non basta."""
+    os.makedirs(_cartella(), exist_ok=True)
+    servono, liberi = limite * BYTE_PER_NODO, shutil.disk_usage(_cartella()).free
+    if servono > liberi - SPAZIO_DA_LASCIARE:
+        raise ValueError('Per registrare %s nodi servono %.1f GB, e sul disco ce ne sono %.1f liberi: scegli un '
+                         'limite più basso, o elimina delle prove.'
+                         % ('{:,}'.format(limite).replace(',', '.'), servono / 1e9, liberi / 1e9))
+
+
 def avvia(seme, classi, ritardi, limite):
     """Lancia una prova e ritorna il suo numero. ValueError se un'altra sta girando o il caso non si genera."""
     with _lock:
         p = _in_corso['processo']
         if p is not None and p.poll() is None:
             raise ValueError('C\'è già una prova in corso: aspetta che finisca, o fermala.')
-        # Ogni nodo si scrive su file (BYTE_PER_NODO l'uno, con istantanee e profilo): se il disco non basta per
-        # tutti i nodi del limite, meglio dirlo subito che riempirlo.
-        os.makedirs(_cartella(), exist_ok=True)
-        servono, liberi = limite * BYTE_PER_NODO, shutil.disk_usage(_cartella()).free
-        if servono > liberi - SPAZIO_DA_LASCIARE:
-            raise ValueError('Per registrare %s nodi servono %.1f GB, e sul disco ce ne sono %.1f liberi: scegli un '
-                             'limite più basso, o elimina delle prove.'
-                             % ('{:,}'.format(limite).replace(',', '.'), servono / 1e9, liberi / 1e9))
+        _controlla_il_disco(limite)
         numero = max(archivio.numeri(_cartella()), default=0) + 1   # il numero dopo l'ultimo
         d = _cartella(numero)
         os.makedirs(d)
@@ -57,6 +62,57 @@ def avvia(seme, classi, ritardi, limite):
         processo = solver.risolvi('caso.txt', limite, 'stato.json', 'passi.bin', d)
         _in_corso.update(numero=numero, processo=processo)
         return numero
+
+
+# ---- cambiare a mano la scelta di una cella ----
+
+def _strada_fino_a(numero, k, cella):
+    """Per cambiare la scelta di una cella al passo k: (la prova, le scelte fatte PRIMA di quella cella, la voce che
+    c'e' adesso). ValueError se la prova o il passo non ci sono, o a quel passo la cella non e' decisa."""
+    p = prova(numero)
+    tutta = p and passi.strada(file_dei_passi(numero), k, p['stato'].get('celle', 0))
+    posto = next((i for i, (c, _) in enumerate(tutta or []) if c == cella), None)
+    if posto is None:
+        raise ValueError('A quel passo quella cella non è ancora decisa: non c\'è una scelta da cambiare.')
+    return p, tutta[:posto], tutta[posto][1]
+
+
+def scelte(numero, k, cella):
+    """Le scelte che la ricerca aveva per quella cella, nel punto in cui l'ha decisa lungo la strada del passo k:
+    {"scelte": [voce | -1, ...] nell'ordine in cui le prova, "adesso": quella che c'e'}. ValueError se non si puo'."""
+    _, prima, adesso = _strada_fino_a(numero, k, cella)
+    x = solver.scelte(os.path.join(_cartella(numero), 'caso.txt'), passi.strada_per_il_solver(prima))
+    if not x or x['cella'] != cella:
+        raise ValueError('Non riesco a ritrovare le scelte di quella cella.')
+    return {'scelte': x['scelte'], 'adesso': adesso}
+
+
+def cambia(numero, k, cella, voce):
+    """Una prova nuova sullo stesso caso, che parte dall'orario del passo k fino a quella cella (esclusa), con in
+    quella cella la voce scelta a mano, e da li' cerca, con lo stesso limite di nodi. Ritorna il numero della prova
+    nuova. ValueError se non si puo'."""
+    with _lock:
+        p = _in_corso['processo']
+        if p is not None and p.poll() is None:
+            raise ValueError('C\'è già una prova in corso: aspetta che finisca, o fermala.')
+        vecchia, prima, _ = _strada_fino_a(numero, k, cella)
+        if voce not in scelte(numero, k, cella)['scelte']:
+            raise ValueError('Quella non è una delle scelte possibili per quella cella.')
+        info = vecchia['info']
+        _controlla_il_disco(info['limite'])
+        nuova = max(archivio.numeri(_cartella()), default=0) + 1
+        d = _cartella(nuova)
+        os.makedirs(d)
+        shutil.copy(os.path.join(_cartella(numero), 'caso.txt'), os.path.join(d, 'caso.txt'))
+        with open(os.path.join(d, 'strada.txt'), 'w') as f:
+            f.write(passi.strada_per_il_solver(prima + [(cella, voce)]) + '\n')
+        passi.dimentica(file_dei_passi(nuova))
+        archivio.scrivi(os.path.join(d, 'info.json'),
+                        dict(info, numero=nuova, inizio=time.time(), fermata=False,
+                             a_mano={'prova': numero, 'passo': k, 'cella': cella, 'voce': voce}))
+        processo = solver.risolvi('caso.txt', info['limite'], 'stato.json', 'passi.bin', d, da='strada.txt')
+        _in_corso.update(numero=nuova, processo=processo)
+        return nuova
 
 
 def continua(numero, in_piu):

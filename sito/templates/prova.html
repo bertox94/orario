@@ -4,6 +4,11 @@
 {% block contenuto %}
 <p><a href="{{ url_for('indice') }}">← Tutte le prove</a></p>
 <h1>Prova {{ i.numero }}: seme {{ i.seme }}, {{ i.classi }} classi, {{ 'con' if i.ritardi else 'senza' }} ritardi</h1>
+{% if i.a_mano %}<p class="messaggio avviso">Questa ricerca parte da una scelta fatta a mano: l'orario della
+  <a href="{{ url_for('prova', n=i.a_mano.prova, passo=i.a_mano.passo) }}">prova {{ i.a_mano.prova }} al passo {{ i.a_mano.passo|numero }}</a>
+  fino a <span id="cella-a-mano"></span>, e lì <strong id="voce-a-mano"></strong>. Da quel punto cerca come sempre, ma non
+  prova le scelte che la ricerca avrebbe provato prima di quella: se finisce senza trovare, vuol dire solo che un
+  orario non c'è nella parte cercata.</p>{% endif %}
 <p><span id="esito" class="esito"></span> <span id="numeri"></span>
   <span class="nota">limite {{ i.limite|numero }} nodi</span></p>
 <div class="rigo">
@@ -39,6 +44,9 @@
 </div>
 <div class="rigo filtri">
   <p id="filtro" class="nota"></p>
+  <form method="post" action="{{ url_for('cambia', n=i.numero) }}" id="cambia" hidden>
+    <input type="hidden" name="passo"><input type="hidden" name="cella"><input type="hidden" name="voce">
+  </form>
   <label class="nota" title="Di quante celle la ricerca torna indietro dopo un ritorno: 1 è il caso normale, cambia solo l'ultima scelta">Solo i ritorni che tornano indietro di almeno
     <input type="number" id="almeno" min="1" value="1"> celle</label>
 </div>
@@ -77,6 +85,10 @@
     <dt>I ritorni, per controllo e per chi <span class="nota">(la sezione qui sopra)</span></dt>
     <dd>Gli stessi ritorni, contati invece per il controllo che non è passato e per il docente o la classe che la
       frase nomina. Dice <em>chi</em> è il problema, in qualunque cella sia comparso. La somma è il totale in cima.</dd>
+    <dt>«Cambia questa scelta…» <span class="nota">(dopo un clic su una cella decisa)</span></dt>
+    <dd>Mostra le scelte che la ricerca aveva per quella cella, nell'ordine in cui le prova. Scegliendone una parte una
+      prova nuova: l'orario del passo che stai guardando fino a quella cella, la scelta nuova, e da lì la ricerca
+      come sempre. Serve a provare «e se qui avesse messo un altro?» senza aspettare che ci arrivi da sola.</dd>
     <dt>«Dopo, la ricerca torna indietro di N celle»</dt>
     <dd>Quante scelte la ricerca disfa dopo quel ritorno, prima di provarne una nuova. 1 è il caso normale: cambia
       solo l'ultima. Un numero grande vuol dire che anche le celle prima avevano finito le loro scelte: tutto quel pezzo
@@ -97,6 +109,8 @@
 <script>
 const URL_STATO = '{{ url_for('stato', n=i.numero) }}', URL_PASSO = '{{ url_for('passo', n=i.numero, k=0)[:-1] }}';
 const URL_RITORNO = '{{ url_for('ritorno', n=i.numero, k=0, verso='dopo')[:-6] }}';  // + k + '/prima' o '/dopo'
+const URL_SCELTE = '{{ url_for('scelte', n=i.numero, k=0, cella=0)[:-3] }}';   // + k + '/' + cella
+const A_MANO = {{ (i.a_mano or none)|tojson }};   // se la ricerca parte da una scelta fatta a mano: da dove
 const URL_NODO = '{{ url_for('nodo', n=i.numero, k=0)[:-1] }}';
 const URL_PROFILO = '{{ url_for('profilo', n=i.numero) }}';
 const slider = document.getElementById('slider'), tabella = document.getElementById('orario'), tela = document.getElementById('profilo');
@@ -119,12 +133,17 @@ function mostraStato(s) {
     (s.ritorni == null ? '' : `${numero(s.ritorni)} ritorni indietro in tutto, `) + `${(s.secondi || 0).toFixed(1)} s`;
   document.getElementById('ferma').hidden = !s.gira;
   document.getElementById('rifai').disabled = !!s.gira;
+  staGirando = !!s.gira;
   document.getElementById('continua').hidden = !!s.gira || esito !== 'limite di nodi';
   // la prima volta che arriva la scuola: si disegnano la griglia vuota e le tabelle del caso
   if (s.scuola && !scuola) {
     scuola = s.scuola;
     disegnaGriglia();
     disegnaCaso();
+  }
+  if (A_MANO && scuola) {   // la scelta fatta a mano, con i nomi
+    document.getElementById('cella-a-mano').textContent = dove(A_MANO.cella);
+    document.getElementById('voce-a-mano').textContent = A_MANO.voce < 0 ? 'un\'ora buca' : nomi(A_MANO.voce).join(' con ');
   }
   // i conti dei ritorni (dopo la scuola: servono i nomi)
   ritorniPerCella = s.ritorni_per_cella || null;
@@ -300,8 +319,36 @@ function mostraFiltro() {
   tabella.tBodies[0].rows[cellaScelta % C].cells[1 + Math.floor(cellaScelta / C)].classList.add('scelta');
   box.innerHTML = `Solo i ritorni di <strong>${esc(dove(cellaScelta))}</strong>` + (quanti === null ? '' : `: <strong>${numero(quanti)}</strong> in tutta la ricerca`) +
     (ritorniRecenti ? `, di cui <strong>${numero(ritorniRecenti[cellaScelta])}</strong> dall'ultimo passo avanti` : '') +
-    ' <button type="button" class="secondario piccolo" id="tutti-i-ritorni">Tutti i ritorni</button>';
+    ' <button type="button" class="secondario piccolo" id="tutti-i-ritorni">Tutti i ritorni</button>' +
+    // se al passo che si guarda la cella e' decisa, la sua scelta si puo' cambiare a mano
+    (ultimoPasso && ultimoPasso.orario[cellaScelta] !== null && !staGirando
+      ? ' <button type="button" class="secondario piccolo" id="cambia-scelta">Cambia questa scelta…</button>' : '') +
+    '<span id="scelte-possibili"></span>';
   document.getElementById('tutti-i-ritorni').addEventListener('click', () => { cellaScelta = null; mostraFiltro(); });
+  const cambia = document.getElementById('cambia-scelta');
+  if (cambia) cambia.addEventListener('click', mostraScelte);
+}
+
+// ---- cambiare a mano la scelta di una cella ----
+// Per la cella scelta, al passo che si guarda: chiede le scelte che la ricerca aveva in quel punto (nell'ordine in
+// cui le prova) e le mostra come tasti. Un clic su una ne fa una prova nuova, che parte dall'orario di questo passo
+// fino a quella cella, con la scelta nuova, e da li' cerca.
+let staGirando = false;
+async function mostraScelte() {
+  const box = document.getElementById('scelte-possibili'), k = ultimoPasso.k, cella = cellaScelta;
+  const r = await fetch(URL_SCELTE + k + '/' + cella), x = await r.json();
+  if (cellaScelta !== cella || !ultimoPasso || ultimoPasso.k !== k) return;   // nel frattempo si e' cambiato
+  if (!r.ok) { box.textContent = ' ' + x.errore; return; }
+  box.innerHTML = '<br>La ricerca riparte dall\'orario di questo passo, fino a questa cella, con: ' + x.scelte.map(v =>
+    `<button type="button" class="secondario piccolo scelta-possibile" data-voce="${v}" ${v === x.adesso ? 'disabled title="È la scelta che c\'è"' : ''}>` +
+    `${v < 0 ? 'ora buca' : esc(nomi(v).join(' con '))}</button>`).join(' ') +
+    (x.scelte.length < 2 ? ' <span class="nota">(non ci sono altre scelte)</span>' : '');
+  for (const b of box.querySelectorAll('button.scelta-possibile'))
+    b.addEventListener('click', () => {
+      const modulo = document.getElementById('cambia');
+      modulo.elements.passo.value = k; modulo.elements.cella.value = cella; modulo.elements.voce.value = b.dataset.voce;
+      modulo.submit();
+    });
 }
 tabella.addEventListener('click', e => {
   const td = e.target.closest('tbody td');
@@ -401,6 +448,7 @@ function disegnaPasso(p) {
     : ` Dopo, la ricerca torna indietro di <strong>${p.indietro} celle</strong>.`;
   if (p.motivo) document.getElementById('testo-motivo').innerHTML = `<strong>${esc(nomeControllo(p.motivo.tipo))}</strong> non passa. ` + esc(spiega(p.motivo)) + indietro;
   if (p.motivo || document.getElementById('controlli-docenti').open) chiediNodo(p);
+  mostraFiltro();   // la riga della cella scelta dipende dal passo: «Cambia questa scelta…» c'e' se li' e' decisa
   // l'ultima scelta in vista: il riquadro scorre di lato fino a quell'ora
   const td = p.cella >= 0 && righe[p.cella % C].cells[1 + Math.floor(p.cella / C)];
   if (td) {

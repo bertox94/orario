@@ -32,6 +32,11 @@ di Alb). Il programma di prima (solver con le potature, sito con Postgres, test 
 - Continuare una ricerca (`orario risolvi --continua`, `riprendi_la_ricerca`) deve dare gli stessi file di una
   ricerca sola con il limite nuovo: dopo una modifica alla ricerca o ai passi, ricontrollarlo (passi, istantanee,
   profilo e stato uguali byte per byte).
+- `DESCRIZIONE.md` descrive tutto (regole, generatore, ricerca, controlli, comandi, formati dei file, ogni pagina e
+  ogni indirizzo del sito, i limiti) con il dettaglio per rifare il programma da zero (richiesta di Alb): ogni
+  modifica che cambia una di queste cose si riporta anche lì, nello stesso commit.
+- «Cambia questa scelta…» (`orario risolvi --da`, `cerca_da_una_strada`): una prova che parte da una scelta fatta
+  a mano non prova le scelte che la ricerca avrebbe provato prima, quindi lì «impossibile» non è una dimostrazione.
 - I commenti sono tanti e si tengono aggiornati (richiesta di Alb): in cima a ogni file che cosa fa, e riga per riga
   nelle parti difficili.
 - Esperimenti sulla ricerca non entrati: le ripartenze a tentativi (tolte su richiesta di Alb, commit `8af8001`) e il
@@ -50,5 +55,6 @@ Il sito non usa più il database: i suoi file stanno in `sito/lavoro/`.
 
 - `main`: il programma riscritto. Qui si lavora.
 - `riscrittura`: il ramo dove è nato, fermo al punto in cui è entrato in `main`.
+- `stabile/2026-11-21`: punto fermo del programma riscritto (richiesta di Alb).
 - `stabile/2026-11-11`, `-12`, `-13` e `-18`: punti fermi del programma di prima; `-18` è l'ultimo.
 - `sito/terza-versione` e `archivio/2026-11-04`: rami vecchi, non si toccano.

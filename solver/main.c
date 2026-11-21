@@ -9,6 +9,13 @@
 //       --continua (con --passi): riprende la ricerca che ha scritto quei passi, fermata dal limite di nodi, dal
 //       punto in cui era, e va avanti fino al limite nuovo (i nodi in tutto, non quelli in piu'). I passi nuovi si
 //       aggiungono in fondo: alla fine tutto e' come dopo una ricerca sola con il limite nuovo.
+//       --da FILE (non con --continua): la ricerca parte da una strada scelta a mano, scritta in FILE in numeri:
+//       quante scelte, e per ognuna la cella e la voce (-1: ora buca). Vedi ricerca.h, cerca_da_una_strada: se non
+//       trova, «impossibile» vuol dire solo che non c'e' un orario nella parte cercata. Nello stato c'e' "a_mano": 1.
+//   orario scelte CASO
+//       per il sito: le scelte che la ricerca ha in fondo a una strada. La strada arriva su stdin come per --da.
+//       Scrive {"cella": C, "scelte": [voce | -1, ...]} nell'ordine in cui la ricerca le proverebbe (cella -1 e
+//       nessuna scelta se da li' non si va avanti).
 //   orario nodo CASO
 //       per il sito: quello che c'e' da dire di un nodo della ricerca. Il nodo arriva su stdin, tutto in numeri: il
 //       motivo per cui da li' non si va avanti (tipo, docente, classe, ora, servono, possibili: i campi di un record
@@ -21,6 +28,7 @@
 // Lo stato:
 //   {"in_corso": 0 | 1, "esito": "in corso" | "trovato" | "impossibile" | "limite di nodi",
 //    "nodi": N, "secondi": S, "profondita_massima": P, "celle": C,
+//    "a_mano": 0 | 1                            1: la ricerca e' partita da una strada scelta a mano (--da)
 //    "ritorni": R, "ritorni_per_cella": [...]   i ritorni indietro, in tutto e per cella (ricerca.h)
 //    "ritorni_recenti_per_cella": [...]         per cella, solo quelli dall'ultimo passo avanti (ricerca.h)
 //    "ritorni_per_motivo": [[tipo, docente, classe, quanti, recenti], ...]   per controllo e per chi il motivo
@@ -71,9 +79,12 @@ static void json_nomi(FILE *f, const char *chiave, const char nomi[][MAX_NOME], 
 
 // Lo stato della ricerca (com'e' fatto e' scritto in cima al file): sempre i numeri e la scuola; a ricerca finita
 // anche il motivo, se un orario non c'era gia' in partenza, oppure l'orario trovato con la sua verifica.
+static int a_mano = 0;  // la ricerca e' partita da una strada scelta a mano (--da): si scrive nello stato
+
 static void scrivi_stato(FILE *f, const Ricerca *r, const double secondi) {
     const Scuola *s = r->s;
-    fprintf(f, "{\"in_corso\":%d,\"esito\":\"%s\",\"nodi\":%lld,\"secondi\":%.2f,\"profondita_massima\":%d,"
+    fprintf(f, "{\"a_mano\":%d,", a_mano);
+    fprintf(f, "\"in_corso\":%d,\"esito\":\"%s\",\"nodi\":%lld,\"secondi\":%.2f,\"profondita_massima\":%d,"
             "\"celle\":%d,\"ritorni\":%lld,\"ritorni_per_cella\":[", r->esito == IN_CORSO, ESITI[r->esito], r->nodi,
             secondi, r->profondita_massima, r->celle, r->ritorni);
     for (int i = 0; i < r->celle; i++) fprintf(f, "%s%lld", i ? "," : "", r->ritorni_in[i]);
@@ -219,6 +230,38 @@ static void segui(const Ricerca *r, const int profondita, const int cella, const
     stato_su_file(x, r);
 }
 
+// ---- una strada scritta in numeri ----
+
+// Legge da `f` una strada: quante scelte, e per ognuna la cella e la voce. Ritorna le coppie (da liberare) e in *n
+// quante sono; NULL se non e' scritta bene o i numeri non sono celle e voci di questa ricerca. (Che ogni scelta sia
+// davvero possibile lo controlla poi la ricerca, percorrendola.)
+static int *leggi_la_strada(FILE *f, const Ricerca *r, int *n) {
+    if (fscanf(f, "%d", n) != 1 || *n < 0 || *n > r->celle) return NULL;
+    int *strada = malloc(sizeof(int) * 2 * (*n + 1));
+    for (int i = 0; strada && i < *n; i++)
+        if (fscanf(f, "%d %d", &strada[2 * i], &strada[2 * i + 1]) != 2 || strada[2 * i] < 0
+            || strada[2 * i] >= r->celle || strada[2 * i + 1] < BUCA || strada[2 * i + 1] >= r->s->voci) {
+            free(strada);
+            return NULL;
+        }
+    return strada;
+}
+
+// «scelte»: le scelte in fondo alla strada che arriva su stdin. 0, o 2 se la strada non e' possibile.
+static int scelte_di_una_strada(const Scuola *s) {
+    Ricerca *r = nuova_ricerca(s);
+    int n = 0, cella = -1;
+    int *strada = r ? leggi_la_strada(stdin, r, &n) : NULL, *scelte = r ? malloc(sizeof(int) * r->max_scelte) : NULL;
+    const int quante = strada && scelte ? scelte_dopo_la_strada(r, strada, n, &cella, scelte) : -1;
+    if (quante < 0) return 2;
+    printf("{\"cella\":%d,\"scelte\":[", cella);
+    for (int i = 0; i < quante; i++) printf("%s%d", i ? "," : "", scelte[i]);
+    puts("]}");
+    free(strada), free(scelte);
+    libera_ricerca(r);
+    return 0;
+}
+
 // ---- un nodo, per il sito ----
 
 // Rimette l'orario com'era al nodo che arriva su stdin (una scelta dopo l'altra, con la stessa segna della ricerca)
@@ -264,7 +307,8 @@ static int nodo(const Scuola *s) {
 
 static int usa(const char *programma) {
     fprintf(stderr, "Uso:\n  %s genera SEME CLASSI RITARDI\n  %s risolvi CASO [--limite NODI] [--stato FILE] "
-            "[--passi FILE] [--continua]\n  %s nodo CASO < NODO\n", programma, programma, programma);
+            "[--passi FILE] [--continua | --da STRADA]\n  %s nodo CASO < NODO\n  %s scelte CASO < STRADA\n",
+            programma, programma, programma, programma);
     return 2;
 }
 
@@ -272,9 +316,10 @@ int main(const int argc, char **argv) {
     if (argc == 5 && !strcmp(argv[1], "genera"))
         return genera_caso(stdout, strtoull(argv[2], NULL, 10), atoi(argv[3]), atoi(argv[4])) ? 0 : 2;
     const int vuole_un_nodo = argc == 3 && !strcmp(argv[1], "nodo");
-    if (!vuole_un_nodo && (argc < 3 || strcmp(argv[1], "risolvi"))) return usa(argv[0]);
+    const int vuole_le_scelte = argc == 3 && !strcmp(argv[1], "scelte");
+    if (!vuole_un_nodo && !vuole_le_scelte && (argc < 3 || strcmp(argv[1], "risolvi"))) return usa(argv[0]);
     // le opzioni di «risolvi»: ognuna con il suo valore dopo
-    const char *file_stato = NULL, *file_passi = NULL;
+    const char *file_stato = NULL, *file_passi = NULL, *file_strada = NULL;
     long long limite = 0;
     int continua = 0;
     for (int i = 3; i < argc; i += 2) {
@@ -287,6 +332,7 @@ int main(const int argc, char **argv) {
         if (!strcmp(argv[i], "--limite")) limite = atoll(argv[i + 1]);
         else if (!strcmp(argv[i], "--stato")) file_stato = argv[i + 1];
         else if (!strcmp(argv[i], "--passi")) file_passi = argv[i + 1];
+        else if (!strcmp(argv[i], "--da")) file_strada = argv[i + 1];
         else return usa(argv[0]);
     }
     char errore[256];
@@ -295,8 +341,8 @@ int main(const int argc, char **argv) {
         fprintf(stderr, "%s\n", errore);
         return 2;
     }
-    if (vuole_un_nodo) {
-        const int uscita = nodo(s);
+    if (vuole_un_nodo || vuole_le_scelte) {
+        const int uscita = vuole_un_nodo ? nodo(s) : scelte_di_una_strada(s);
         free(s);
         return uscita;
     }
@@ -323,7 +369,18 @@ int main(const int argc, char **argv) {
     r->a_ogni_nodo = segui;
     r->di_chi = &seguito;
     if (file_stato) stato_su_file(&seguito, r);  // subito uno stato «in corso»: il sito ha gia' la scuola da mostrare
-    if (!continua) cerca_orario(r);
+    if (file_strada && !continua) {
+        // da una strada scelta a mano
+        FILE *f = fopen(file_strada, "r");
+        int n = 0, *sua = f ? leggi_la_strada(f, r, &n) : NULL;
+        if (f) fclose(f);
+        a_mano = 1;
+        if (!sua || !cerca_da_una_strada(r, sua, n)) {
+            fprintf(stderr, "non riesco a partire da quella strada: non e' una strada possibile per questo caso\n");
+            return 2;
+        }
+        free(sua);
+    } else if (!continua) cerca_orario(r);
     else if (!riprendi_la_ricerca(r, strada, profondita)) {
         fprintf(stderr, "non riesco a continuare: i passi non sono di questo caso\n");
         return 2;

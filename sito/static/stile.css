@@ -35,6 +35,7 @@ p.nota { max-width: 86ch; }
 .male { color: var(--male); font-weight: 600; }
 .messaggio { padding: 10px 14px; border-left: 3px solid var(--male); background: var(--carta);
   border-radius: 0 var(--angolo) var(--angolo) 0; max-width: 86ch; }
+.messaggio.avviso { border-left-color: var(--avviso); background: var(--avviso-chiaro); }
 details { margin: 14px 0; }
 summary { font-size: 16px; cursor: pointer; margin-bottom: 8px; }
 .testata { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px;

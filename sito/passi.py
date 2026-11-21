@@ -78,6 +78,19 @@ def passo(file, k, celle):
             'indietro': indietro}
 
 
+def strada(file, k, celle):
+    """La strada del nodo k: [(cella, voce), ...] nell'ordine in cui le celle sono state decise. None se il nodo non
+    c'e'."""
+    x = _strada(file, k, celle)
+    return x[0] if x else None
+
+
+def strada_per_il_solver(scelte):
+    """Una strada come la vogliono i comandi «scelte» e «risolvi --da» del solver: quante scelte, e per ognuna la
+    cella e la voce, tutto in numeri."""
+    return ' '.join(str(n) for n in [len(scelte)] + [n for scelta in scelte for n in scelta])
+
+
 def nodo_per_il_solver(file, k, celle):
     """Il nodo k come lo vuole il comando «nodo» del solver (solver/main.c), tutto in numeri: il motivo (tipo 0 se
     da li' si va avanti), quante celle sono decise, e le scelte in ordine. None se il nodo non c'e'."""

@@ -9,7 +9,7 @@
 //   3. le scelte di una classe      puo_adesso, scelte_della_classe, quando_provarla, ordina_le_scelte,
 //                                   scegli_la_classe
 //   4. la ricerca                   scelte_del_nodo, prova_le_scelte, nodo, cerca_orario
-//   5. riprendere una ricerca       ripercorri, riprendi_la_ricerca
+//   5. riprendere, o ripartire      ripercorri, riprendi_la_ricerca, cerca_da_una_strada, scelte_dopo_la_strada
 
 // ---- 1. creare la ricerca ----
 
@@ -320,27 +320,39 @@ void cerca_orario(Ricerca *r) {
     if (r->esito == IN_CORSO) r->esito = IMPOSSIBILE;  // arrivata in fondo senza trovare niente: un orario non c'e'
 }
 
-// ---- 5. riprendere una ricerca fermata ----
+// ---- 5. riprendere una ricerca fermata, o ripartire da una scelta fatta a mano ----
 
-// Ripercorre la strada dell'ultimo nodo visitato senza contare niente: i nodi lungo la strada sono gia' stati
-// visitati. A ogni profondita' si ritrovano le scelte del nodo (la ricerca e' sempre la stessa: sono quelle di
-// allora, nello stesso ordine) e tra quelle la scelta fatta; si scende; e quando da li' si torna si continua con le
-// scelte dopo, come avrebbe fatto la ricerca. L'ultimo nodo della strada era stato visitato ma non le sue scelte:
-// si provano tutte. Ritorna 0 se la strada non e' una strada di questa ricerca.
-static int ripercorri(Ricerca *r, const int profondita, const int *strada, const int fine) {
+// Ripercorre una strada gia' decisa. A ogni profondita' si ritrovano le scelte del nodo (la ricerca e' sempre la
+// stessa: sono quelle di allora, nello stesso ordine) e tra quelle la scelta della strada; si scende; e quando da li'
+// si torna si continua con le scelte dopo, come avrebbe fatto la ricerca. Ritorna 0 se la strada non e' una strada di
+// questa ricerca (una scelta non e' tra quelle del suo nodo).
+//
+// Due usi, che cambiano solo come si trattano i nodi lungo la strada (`a_mano`):
+// - riprendere (a_mano = 0): i nodi della strada sono gia' stati visitati e contati, quindi qui non si conta
+//   niente; l'ultimo era stato visitato ma non le sue scelte, e si provano tutte;
+// - ripartire da una scelta fatta a mano (a_mano = 1): e' una ricerca nuova che comincia percorrendo la strada. I
+//   nodi lungo la strada si contano e si raccontano a chi segue (cosi' nei passi c'e' l'orario fin li'), e l'ultimo,
+//   quello della scelta fatta a mano, si visita come un nodo qualunque.
+static int ripercorri(Ricerca *r, const int profondita, const int *strada, const int fine, const int a_mano) {
     Motivo m = {NESSUNO, -1, -1, -1, 0, 0};
     int scelte[r->max_scelte];
     int classe = -1, da = 0;
     const int cella = profondita ? strada[2 * (profondita - 1)] : -1;
     const int n_scelte = scelte_del_nodo(r, profondita, cella, &classe, scelte, &m);
+    if (a_mano && profondita < fine) {  // un nodo della strada: contato e raccontato, senza motivo (si va avanti)
+        r->nodi++;
+        r->profondita_massima = MAX(r->profondita_massima, profondita);
+        if (r->a_ogni_nodo) r->a_ogni_nodo(r, profondita, cella, profondita ? strada[2 * profondita - 1] : VUOTA, &m);
+    }
     if (profondita < fine) {
-        // la scelta fatta allora: deve essere una delle scelte di questo nodo, nella cella che questo nodo decide
+        // la scelta della strada: deve essere una delle scelte di questo nodo, nella cella che questo nodo decide
         const int qui = profondita / r->s->classi * r->s->classi + classe;
         int i = 0;
         while (i < n_scelte && scelte[i] != strada[2 * profondita + 1]) i++;
         if (i >= n_scelte || qui != strada[2 * profondita]) return 0;
         segna(r, qui, scelte[i], 1);
-        if (!ripercorri(r, profondita + 1, strada, fine)) return 0;
+        if (a_mano && profondita + 1 == fine) nodo(r, fine, qui, scelte[i]);  // la scelta fatta a mano: da qui si cerca
+        else if (!ripercorri(r, profondita + 1, strada, fine, a_mano)) return 0;
         if (r->esito != IN_CORSO) return 1;
         segna(r, qui, scelte[i], -1);
         da = i + 1;
@@ -351,7 +363,32 @@ static int ripercorri(Ricerca *r, const int profondita, const int *strada, const
 
 int riprendi_la_ricerca(Ricerca *r, const int *strada, const int profondita) {
     r->esito = IN_CORSO;
-    if (!ripercorri(r, 0, strada, profondita)) return 0;
+    if (!ripercorri(r, 0, strada, profondita, 0)) return 0;
     if (r->esito == IN_CORSO) r->esito = IMPOSSIBILE;
     return 1;
+}
+
+int cerca_da_una_strada(Ricerca *r, const int *strada, const int profondita) {
+    r->esito = IN_CORSO;
+    if (profondita < 1 || !ripercorri(r, 0, strada, profondita, 1)) return 0;
+    if (r->esito == IN_CORSO) r->esito = IMPOSSIBILE;
+    return 1;
+}
+
+int scelte_dopo_la_strada(Ricerca *r, const int *strada, const int profondita, int *cella, int *scelte) {
+    Motivo m = {NESSUNO, -1, -1, -1, 0, 0};
+    int classe = -1;
+    // la strada si rifa' un nodo alla volta, chiedendo a ognuno le sue scelte: e' cosi' che la ricerca prepara,
+    // all'inizio di ogni ora, quello che serve per scegliere (chi deve insegnare, i margini)
+    for (int p = 0; p < profondita; p++) {
+        const int n = scelte_del_nodo(r, p, p ? strada[2 * (p - 1)] : -1, &classe, scelte, &m);
+        const int qui = p / r->s->classi * r->s->classi + classe;
+        int i = 0;
+        while (i < n && scelte[i] != strada[2 * p + 1]) i++;
+        if (i >= n || qui != strada[2 * p]) return -1;
+        segna(r, qui, scelte[i], 1);
+    }
+    const int n = scelte_del_nodo(r, profondita, profondita ? strada[2 * (profondita - 1)] : -1, &classe, scelte, &m);
+    *cella = n > 0 ? profondita / r->s->classi * r->s->classi + classe : -1;
+    return MAX(n, 0);
 }

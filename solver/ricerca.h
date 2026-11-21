@@ -144,6 +144,20 @@ void cerca_orario(Ricerca *r);
 // nuovo. Ritorna 0 (senza fare niente di utile) se la strada non e' di questa ricerca.
 int riprendi_la_ricerca(Ricerca *r, const int *strada, int profondita);
 
+// Una ricerca che parte da una strada scelta a mano: `profondita` coppie (cella, voce), almeno una. Percorre la
+// strada (ogni scelta deve essere una di quelle che la ricerca avrebbe avuto in quel punto) e da li' cerca come
+// sempre; quando sotto l'ultima scelta della strada non c'e' niente, va avanti con le scelte che la ricerca avrebbe
+// provato DOPO quelle della strada, risalendo. Quelle che avrebbe provato PRIMA non le prova: per questo qui
+// IMPOSSIBILE vuol dire solo «nessun orario nella parte cercata», non che un orario non esiste. r deve essere nuova.
+// Ritorna 0 se la strada non e' una strada possibile.
+int cerca_da_una_strada(Ricerca *r, const int *strada, int profondita);
+
+// Le scelte che la ricerca ha nel nodo in fondo a una strada (`profondita` coppie, anche nessuna): in `scelte`
+// (lungo r->max_scelte) le voci, o BUCA, nell'ordine in cui le proverebbe, e in *cella la cella che quel nodo
+// decide. Ritorna quante sono (0 se da li' non si va avanti), o -1 se la strada non e' possibile. r deve essere
+// nuova, e dopo non serve piu' ad altro.
+int scelte_dopo_la_strada(Ricerca *r, const int *strada, int profondita, int *cella, int *scelte);
+
 // Perche' un docente non puo' insegnare adesso in una classe (ricerca.c, perche_non_puo).
 typedef enum {
     PUO,                // puo'

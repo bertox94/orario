@@ -104,6 +104,27 @@ def crea_app():
             abort(404)
         return jsonify(passi.profilo(prove.file_dei_passi(n)))
 
+    @app.route('/prova/<int:n>/scelte/<int:k>/<int:cella>')
+    def scelte(n, k, cella):
+        """Le scelte che la ricerca aveva per quella cella lungo la strada del passo k, e quella che c'e'."""
+        try:
+            return jsonify(prove.scelte(n, k, cella))
+        except ValueError as e:
+            return jsonify({'errore': str(e)}), 404
+
+    @app.route('/prova/<int:n>/cambia', methods=['POST'])
+    def cambia(n):
+        """Cambia a mano la scelta di una cella: una prova nuova che parte dall'orario del passo scelto fino a quella
+        cella, con la voce scelta, e da li' cerca."""
+        try:
+            passo, cella, voce = (int(request.form.get(x) or 0) for x in ('passo', 'cella', 'voce'))
+            if notturni.in_corso() is not None:
+                raise ValueError('Sta girando un giro di test notturni: aspetta che finisca, o fermalo.')
+            return redirect(url_for('prova', n=prove.cambia(n, passo, cella, voce)))
+        except (ValueError, RuntimeError) as e:
+            flash(str(e))
+            return redirect(url_for('prova', n=n))
+
     @app.route('/prova/<int:n>/continua', methods=['POST'])
     def continua(n):
         """Manda avanti una prova fermata dal limite di altri 100 o 1000 nodi, e torna alla pagina, sul passo a cui

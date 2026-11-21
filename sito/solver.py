@@ -53,11 +53,19 @@ def nodo(caso, nodo):
     return dict(x, segni=[[cella, SEGNI[segno]] for cella, segno in x['segni']])
 
 
-def risolvi(caso, limite, stato, passi=None, cartella=None, continua=False):
+def scelte(caso, strada):
+    """Le scelte che la ricerca ha in fondo a una strada (il testo di passi.strada_per_il_solver):
+    {"cella": quella che li' si decide, "scelte": [voce | -1, ...]} nell'ordine in cui le proverebbe. None se la
+    strada non e' possibile."""
+    r = subprocess.run([programma(), 'scelte', caso], input=strada, capture_output=True, text=True)
+    return None if r.returncode else json.loads(r.stdout)
+
+
+def risolvi(caso, limite, stato, passi=None, cartella=None, continua=False, da=None):
     """Lancia la ricerca sul caso e ritorna il processo: lo stato va nel file `stato`, i passi (se chiesti) in
     `passi`. Con `continua` riprende la ricerca che ha scritto quei passi, fermata dal limite di nodi, e va avanti
-    fino al limite nuovo."""
+    fino al limite nuovo. Con `da` (un file con una strada) la ricerca parte da quella strada, scelta a mano."""
     comando = [programma(), 'risolvi', caso, '--limite', str(limite), '--stato', stato]
-    return subprocess.Popen(comando + (['--passi', passi] if passi else []) + (['--continua'] if continua else []),
-                            cwd=cartella,
+    return subprocess.Popen(comando + (['--passi', passi] if passi else []) + (['--continua'] if continua else [])
+                            + (['--da', da] if da else []), cwd=cartella,
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

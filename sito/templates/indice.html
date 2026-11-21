@@ -37,7 +37,8 @@
       <td class="nota">{{ i.inizio|data }}</td>
       <td class="num">{{ i.seme }}</td><td class="num">{{ i.classi }}</td><td>{{ 'con' if i.ritardi else 'senza' }}</td>
       <td><span class="esito esito-{{ (s.esito or 'in corso')|replace(' ', '-') }}">{{ s.esito or 'in corso' }}</span>
-        {% if s.verifica and not s.verifica.ok %}<span class="nota male">non valido</span>{% endif %}</td>
+        {% if s.verifica and not s.verifica.ok %}<span class="nota male">non valido</span>{% endif %}
+        {% if i.a_mano %}<span class="nota" title="Parte da una scelta fatta a mano nella prova {{ i.a_mano.prova }}">a mano, dalla {{ i.a_mano.prova }}</span>{% endif %}</td>
       <td class="num">{{ (s.nodi or 0)|numero }}</td>
       <td class="num">{% if s.celle %}{{ s.profondita_massima }} / {{ s.celle }}{% endif %}</td>
       <td class="num">{{ '%.1f s'|format(s.secondi) if s.secondi is defined and s.secondi is not none }}</td>
