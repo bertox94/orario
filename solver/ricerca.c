@@ -7,7 +7,8 @@
 //   2. mettere e togliere una scelta  segna
 //   3. le scelte di una classe      puo_adesso, scelte_della_classe, quando_provarla, ordina_le_scelte,
 //                                   scegli_la_classe
-//   4. la ricerca                   nodo, cerca_orario
+//   4. la ricerca                   scelte_del_nodo, prova_le_scelte, nodo, cerca_orario
+//   5. riprendere una ricerca       ripercorri, riprendi_la_ricerca
 
 // ---- 1. creare la ricerca ----
 
@@ -203,6 +204,7 @@ static void ordina_le_scelte(const Ricerca *r, const int giorno, const int ora, 
 static int scegli_la_classe(Ricerca *r, const int giorno, const int ora, int *classe, int *scelte, Motivo *m) {
     const Scuola *s = r->s;
     const int ora_della_settimana = giorno * s->ore + ora;
+    r->timbro++;               // un timbro nuovo per questa volta (vedi sotto: r->visto)
     int prova[r->max_scelte];  // le scelte della classe che si sta guardando
     int meno = -1;             // quante ne ha la classe con meno scelte vista finora (-1: nessuna vista)
     for (int k = 0; k < s->classi; k++) {
@@ -212,11 +214,11 @@ static int scegli_la_classe(Ricerca *r, const int giorno, const int ora, int *cl
             *m = (Motivo){CLASSE_SENZA_SCELTE, -1, k, ora, 0, 0};
             return -1;
         }
-        // I docenti che compaiono tra le scelte di qualcuno: accanto a ognuno si scrive il numero di questo nodo.
-        // (Cosi' non c'e' da azzerare niente a ogni nodo: un numero vecchio vuol dire «in questo nodo non visto».)
+        // I docenti che compaiono tra le scelte di qualcuno: accanto a ognuno si scrive il timbro di questa volta.
+        // (Cosi' non c'e' da azzerare niente ogni volta: un timbro vecchio vuol dire «questa volta non visto».)
         for (int i = 0; i < n; i++)
             for (int j = 0; prova[i] >= 0 && j < docenti_della_voce(&s->voce[prova[i]]); j++)
-                r->visto[s->voce[prova[i]].docente[j]] = r->nodi;
+                r->visto[s->voce[prova[i]].docente[j]] = r->timbro;
         if (meno >= 0 && n >= meno) continue;  // ne ha quante un'altra o di piu': resta la prima trovata
         meno = n;
         *classe = k;
@@ -226,7 +228,7 @@ static int scegli_la_classe(Ricerca *r, const int giorno, const int ora, int *cl
     // classe non decisa lo ha tra le sue scelte: quest'ora la perde, e le sue ore non ci stanno piu'.
     for (int t = 0; t < s->docenti; t++) {
         const int qui = ora_della_settimana * s->docenti + t;
-        if (r->deve[qui] && !r->occupato[qui] && r->visto[t] != r->nodi) {
+        if (r->deve[qui] && !r->occupato[qui] && r->visto[t] != r->timbro) {
             *m = (Motivo){DOCENTE_SENZA_POSTO, t, -1, ora, r->resto_docente[t], ore_libere_da(r, giorno, ora + 1, t)};
             return -1;
         }
@@ -237,43 +239,35 @@ static int scegli_la_classe(Ricerca *r, const int giorno, const int ora, int *cl
 
 // ---- 4. la ricerca ----
 
-// Un nodo: `profondita` celle decise, l'ultima e' `cella` con dentro `voce`. Guarda i limiti, sceglie la classe da
-// decidere e ne prova le scelte una per una, scendendo. Quando la ricerca e' finita (orario trovato, o limite di
-// nodi) si esce senza togliere niente: l'orario resta com'e'.
-static void nodo(Ricerca *r, const int profondita, const int cella, const int voce) {
+static void nodo(Ricerca *r, int profondita, int cella, int voce);
+
+// Le scelte di un nodo (`profondita` celle decise, l'ultima e' `cella`): guarda i limiti e sceglie la classe da
+// decidere. Le scelte, in ordine, vanno in `scelte` e la classe in *classe; ritorna quante sono, o -1 se da qui non si
+// va avanti (con il perche' in *m) o se l'orario e' gia' pieno.
+static int scelte_del_nodo(Ricerca *r, const int profondita, const int cella, int *classe, int *scelte, Motivo *m) {
     const Scuola *s = r->s;
-    if (r->limite && r->nodi >= r->limite) {
-        r->esito = LIMITE_DI_NODI;
-        return;
-    }
-    r->nodi++;
-    r->profondita_massima = MAX(r->profondita_massima, profondita);
+    if (profondita == r->celle) return -1;
     // L'ora che si sta decidendo. Le celle si decidono un'ora alla volta, quindi con `profondita` celle decise le
     // ore gia' piene sono profondita / classi, e quella e' la prossima (quali classi di quell'ora siano gia' decise
     // lo dice l'orario).
     const int ora_della_settimana = profondita / s->classi, giorno = ora_della_settimana / s->ore;
     const int ora = ora_della_settimana % s->ore;
-    Motivo m = {NESSUNO, -1, -1, -1, 0, 0};
-    int scelte[r->max_scelte];
-    int n_scelte = -1;  // quante scelte ha questo nodo; -1: da qui non si va avanti (o l'orario e' finito)
-    int classe = -1;    // la classe che questo nodo decide
-    if (profondita == r->celle) r->esito = TROVATO;  // tutte le celle decise: l'orario c'e'
     // I conti, nell'ordine: quelli che l'ultima scelta ha cambiato (alla radice non c'e' scelta); poi, se si sta
     // cominciando un'ora nuova (nessuna classe decisa: profondita multipla delle classi), quelli di inizio ora; e
     // solo se tornano tutti si sceglie la classe.
-    else if ((cella < 0 || limiti_dopo_la_scelta(r, cella, &m))
-             && (profondita % s->classi || limiti_a_inizio_ora(r, giorno, ora, &m)))
-        n_scelte = scegli_la_classe(r, giorno, ora, &classe, scelte, &m);
-    // un conto non torna: e' un ritorno indietro, contato in tutto e per la cella dell'ultima scelta
-    if (m.tipo != NESSUNO) {
-        r->ritorni++;
-        if (cella >= 0) r->ritorni_in[cella]++;
-    }
-    // chi segue la ricerca (i passi su file, lo stato) viene avvisato a ogni nodo, anche quando non si va avanti
-    if (r->a_ogni_nodo) r->a_ogni_nodo(r, profondita, cella, voce, &m);
-    if (!profondita) r->motivo_radice = m;  // alla radice: se non si va avanti, un orario non c'e' in partenza
-    for (int i = 0; i < n_scelte; i++) {
-        const int qui = cella_di(r, giorno, ora, classe);
+    if ((cella < 0 || limiti_dopo_la_scelta(r, cella, m))
+        && (profondita % s->classi || limiti_a_inizio_ora(r, giorno, ora, m)))
+        return scegli_la_classe(r, giorno, ora, classe, scelte, m);
+    return -1;
+}
+
+// Prova le scelte di un nodo dalla numero `da` in poi, scendendo in ognuna. Quando la ricerca e' finita (orario
+// trovato, o limite di nodi) si esce senza togliere niente: l'orario resta com'e'.
+static void prova_le_scelte(Ricerca *r, const int profondita, const int classe, const int *scelte, const int da,
+                            const int n_scelte) {
+    // la cella che questo nodo decide: la classe scelta, nell'ora che si sta decidendo
+    const int qui = profondita / r->s->classi * r->s->classi + classe;
+    for (int i = da; i < n_scelte; i++) {
         segna(r, qui, scelte[i], 1);              // si mette la scelta...
         nodo(r, profondita + 1, qui, scelte[i]);  // ...si scende...
         if (r->esito != IN_CORSO) return;         // (finita: si esce da tutti i nodi lasciando l'orario com'e')
@@ -282,8 +276,70 @@ static void nodo(Ricerca *r, const int profondita, const int cella, const int vo
     // finite le scelte senza trovare niente: si torna al nodo sopra, che prova la sua scelta dopo
 }
 
+// Un nodo: `profondita` celle decise, l'ultima e' `cella` con dentro `voce`. Lo conta, ne trova le scelte, avvisa chi
+// segue la ricerca, e prova le scelte una per una.
+static void nodo(Ricerca *r, const int profondita, const int cella, const int voce) {
+    if (r->limite && r->nodi >= r->limite) {
+        r->esito = LIMITE_DI_NODI;
+        return;
+    }
+    r->nodi++;
+    r->profondita_massima = MAX(r->profondita_massima, profondita);
+    Motivo m = {NESSUNO, -1, -1, -1, 0, 0};
+    int scelte[r->max_scelte];
+    int classe = -1;  // la classe che questo nodo decide
+    if (profondita == r->celle) r->esito = TROVATO;  // tutte le celle decise: l'orario c'e'
+    // quante scelte ha questo nodo; -1: da qui non si va avanti (o l'orario e' finito)
+    const int n_scelte = scelte_del_nodo(r, profondita, cella, &classe, scelte, &m);
+    // un conto non torna: e' un ritorno indietro, contato in tutto e per la cella dell'ultima scelta
+    if (m.tipo != NESSUNO) {
+        r->ritorni++;
+        if (cella >= 0) r->ritorni_in[cella]++;
+    }
+    // chi segue la ricerca (i passi su file, lo stato) viene avvisato a ogni nodo, anche quando non si va avanti
+    if (r->a_ogni_nodo) r->a_ogni_nodo(r, profondita, cella, voce, &m);
+    if (!profondita) r->motivo_radice = m;  // alla radice: se non si va avanti, un orario non c'e' in partenza
+    prova_le_scelte(r, profondita, classe, scelte, 0, n_scelte);
+}
+
 void cerca_orario(Ricerca *r) {
     r->esito = IN_CORSO;
     nodo(r, 0, -1, VUOTA);
     if (r->esito == IN_CORSO) r->esito = IMPOSSIBILE;  // arrivata in fondo senza trovare niente: un orario non c'e'
+}
+
+// ---- 5. riprendere una ricerca fermata ----
+
+// Ripercorre la strada dell'ultimo nodo visitato senza contare niente: i nodi lungo la strada sono gia' stati
+// visitati. A ogni profondita' si ritrovano le scelte del nodo (la ricerca e' sempre la stessa: sono quelle di
+// allora, nello stesso ordine) e tra quelle la scelta fatta; si scende; e quando da li' si torna si continua con le
+// scelte dopo, come avrebbe fatto la ricerca. L'ultimo nodo della strada era stato visitato ma non le sue scelte:
+// si provano tutte. Ritorna 0 se la strada non e' una strada di questa ricerca.
+static int ripercorri(Ricerca *r, const int profondita, const int *strada, const int fine) {
+    Motivo m = {NESSUNO, -1, -1, -1, 0, 0};
+    int scelte[r->max_scelte];
+    int classe = -1, da = 0;
+    const int cella = profondita ? strada[2 * (profondita - 1)] : -1;
+    const int n_scelte = scelte_del_nodo(r, profondita, cella, &classe, scelte, &m);
+    if (profondita < fine) {
+        // la scelta fatta allora: deve essere una delle scelte di questo nodo, nella cella che questo nodo decide
+        const int qui = profondita / r->s->classi * r->s->classi + classe;
+        int i = 0;
+        while (i < n_scelte && scelte[i] != strada[2 * profondita + 1]) i++;
+        if (i >= n_scelte || qui != strada[2 * profondita]) return 0;
+        segna(r, qui, scelte[i], 1);
+        if (!ripercorri(r, profondita + 1, strada, fine)) return 0;
+        if (r->esito != IN_CORSO) return 1;
+        segna(r, qui, scelte[i], -1);
+        da = i + 1;
+    }
+    prova_le_scelte(r, profondita, classe, scelte, da, n_scelte);
+    return 1;
+}
+
+int riprendi_la_ricerca(Ricerca *r, const int *strada, const int profondita) {
+    r->esito = IN_CORSO;
+    if (!ripercorri(r, 0, strada, profondita)) return 0;
+    if (r->esito == IN_CORSO) r->esito = IMPOSSIBILE;
+    return 1;
 }

@@ -59,6 +59,29 @@ def avvia(seme, classi, ritardi, limite):
         return numero
 
 
+def continua(numero, in_piu):
+    """Manda avanti di altri `in_piu` nodi una prova che il limite di nodi ha fermato: riprende dal punto esatto in
+    cui era, e i passi nuovi si aggiungono a quelli che ci sono. Ritorna quanti nodi aveva. ValueError se non si
+    puo'."""
+    with _lock:
+        p = _in_corso['processo']
+        if p is not None and p.poll() is None:
+            raise ValueError('C\'è già una prova in corso: aspetta che finisca, o fermala.')
+        d = _cartella(numero)
+        info, stato = archivio.leggi(os.path.join(d, 'info.json')), archivio.leggi(os.path.join(d, 'stato.json'), {})
+        if not info or stato.get('esito') != 'limite di nodi' or info.get('fermata'):
+            raise ValueError('Si può continuare solo una prova che si è fermata al limite di nodi.')
+        if not os.path.exists(file_dei_passi(numero) + '.fine'):   # la scrive il solver da quando sa continuare
+            raise ValueError('Questa prova è stata fatta prima che si potesse continuare: rifalla.')
+        if in_piu * BYTE_PER_NODO > shutil.disk_usage(d).free - SPAZIO_DA_LASCIARE:
+            raise ValueError('Sul disco non c\'è abbastanza spazio per continuare.')
+        limite = stato['nodi'] + in_piu
+        archivio.scrivi(os.path.join(d, 'info.json'), dict(info, limite=limite))
+        processo = solver.risolvi('caso.txt', limite, 'stato.json', 'passi.bin', d, continua=True)
+        _in_corso.update(numero=numero, processo=processo)
+        return stato['nodi']
+
+
 def ferma():
     """Ferma la prova in corso: risulta «fermata», con lo stato dell'ultimo mezzo secondo."""
     with _lock:

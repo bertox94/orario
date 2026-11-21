@@ -9,6 +9,7 @@ from . import notturni, passi, prove
 
 MAX_MILIONI = 1000        # il limite di nodi di una prova (richiesta di Alb). Ogni nodo si registra: 19 MB per
                           # milione, quindi 19 GB per mille milioni; prove.avvia controlla che il disco basti
+CONTINUA_DI = (100, 1000)  # di quanti nodi si puo' mandare avanti una prova fermata dal limite
 MAX_MILIONI_NOTTURNI = 100
 MAX_CASI_PER_VOLTA = 2000
 
@@ -59,7 +60,7 @@ def crea_app():
         p = prove.prova(n)
         if not p:
             abort(404)
-        return render_template('prova.html', p=p)
+        return render_template('prova.html', p=p, continua_di=CONTINUA_DI)
 
     @app.route('/prova/<int:n>/stato.json')
     def stato(n):
@@ -100,6 +101,21 @@ def crea_app():
         if not prove.prova(n):
             abort(404)
         return jsonify(passi.profilo(prove.file_dei_passi(n)))
+
+    @app.route('/prova/<int:n>/continua', methods=['POST'])
+    def continua(n):
+        """Manda avanti una prova fermata dal limite di altri 100 o 1000 nodi, e torna alla pagina, sul passo a cui
+        si era fermata: da li' si guardano i passi nuovi."""
+        try:
+            in_piu = int(request.form.get('nodi') or 0)
+            if in_piu not in CONTINUA_DI:
+                raise ValueError('Si continua di 100 o di 1000 nodi.')
+            if notturni.in_corso() is not None:
+                raise ValueError('Sta girando un giro di test notturni: aspetta che finisca, o fermalo.')
+            return redirect(url_for('prova', n=n, passo=prove.continua(n, in_piu)))
+        except (ValueError, RuntimeError) as e:
+            flash(str(e))
+            return redirect(url_for('prova', n=n))
 
     @app.route('/ferma', methods=['POST'])
     def ferma():

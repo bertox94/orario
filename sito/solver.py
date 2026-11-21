@@ -53,9 +53,11 @@ def nodo(caso, nodo):
     return dict(x, segni=[[cella, SEGNI[segno]] for cella, segno in x['segni']])
 
 
-def risolvi(caso, limite, stato, passi=None, cartella=None):
+def risolvi(caso, limite, stato, passi=None, cartella=None, continua=False):
     """Lancia la ricerca sul caso e ritorna il processo: lo stato va nel file `stato`, i passi (se chiesti) in
-    `passi`."""
+    `passi`. Con `continua` riprende la ricerca che ha scritto quei passi, fermata dal limite di nodi, e va avanti
+    fino al limite nuovo."""
     comando = [programma(), 'risolvi', caso, '--limite', str(limite), '--stato', stato]
-    return subprocess.Popen(comando + (['--passi', passi] if passi else []), cwd=cartella,
+    return subprocess.Popen(comando + (['--passi', passi] if passi else []) + (['--continua'] if continua else []),
+                            cwd=cartella,
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

@@ -104,7 +104,8 @@ struct Ricerca {
     // calcolati all'inizio di ogni ora, per i nodi di quell'ora: [(giorno * ore + ora) * docenti + t]
     unsigned char *deve;  // il docente deve insegnare in quest'ora, o le sue ore non ci stanno piu'
     int *margine;         // le ore libere che ha in piu' di quelle che deve ancora fare
-    long long *visto;     // a quale nodo il docente e' comparso tra le scelte di una classe: [t]
+    long long *visto;     // l'ultima volta (il timbro) che il docente e' comparso tra le scelte di una classe: [t]
+    long long timbro;     // cresce di uno a ogni scelta della classe: distingue una volta dall'altra
 
     Esito esito;
     long long nodi, limite;  // i nodi visitati; dopo `limite` nodi la ricerca si ferma (0: mai)
@@ -127,6 +128,13 @@ void libera_ricerca(Ricerca *r);
 
 // Cerca un orario: alla fine r->esito e' TROVATO (l'orario e' in r->orario), IMPOSSIBILE o LIMITE_DI_NODI.
 void cerca_orario(Ricerca *r);
+
+// Riprende una ricerca che il limite di nodi aveva fermato, dal punto esatto in cui era, e va avanti fino al limite
+// nuovo: il risultato e' lo stesso di una ricerca sola con quel limite. `strada` e' la strada dell'ultimo nodo
+// visitato: `profondita` coppie (cella, voce) nell'ordine in cui le celle sono state decise. Prima di chiamarla r
+// deve essere nuova, con r->nodi, r->ritorni, r->ritorni_in e r->profondita_massima rimessi com'erano e r->limite
+// nuovo. Ritorna 0 (senza fare niente di utile) se la strada non e' di questa ricerca.
+int riprendi_la_ricerca(Ricerca *r, const int *strada, int profondita);
 
 // Perche' un docente non puo' insegnare adesso in una classe (ricerca.c, perche_non_puo).
 typedef enum {

@@ -2,10 +2,13 @@
 //
 //   orario genera SEME CLASSI RITARDI
 //       scrive su stdout un caso casuale (genera.h); RITARDI: 1 con i docenti che entrano tardi, 0 senza
-//   orario risolvi CASO [--limite NODI] [--stato FILE] [--passi FILE]
+//   orario risolvi CASO [--limite NODI] [--stato FILE] [--passi FILE] [--continua]
 //       cerca un orario per il caso (ricerca.h) e ne scrive lo stato, in JSON: su stdout alla fine, oppure in FILE
 //       ogni mezzo secondo e alla fine (scritto a parte e poi rinominato: chi legge trova sempre un JSON intero).
 //       --limite: dopo tanti nodi si ferma; --passi: scrive ogni nodo della ricerca (passi.h)
+//       --continua (con --passi): riprende la ricerca che ha scritto quei passi, fermata dal limite di nodi, dal
+//       punto in cui era, e va avanti fino al limite nuovo (i nodi in tutto, non quelli in piu'). I passi nuovi si
+//       aggiungono in fondo: alla fine tutto e' come dopo una ricerca sola con il limite nuovo.
 //   orario nodo CASO
 //       per il sito: quello che c'e' da dire di un nodo della ricerca. Il nodo arriva su stdin, tutto in numeri: il
 //       motivo per cui da li' non si va avanti (tipo, docente, classe, ora, servono, possibili: i campi di un record
@@ -117,10 +120,54 @@ typedef struct {
     Passi *passi;
     const char *file_stato;
     clock_t inizio, ultima_scrittura;
+    double secondi_prima;  // di una ricerca che continua: i secondi che aveva gia' fatto
 } Seguito;
 
-static double secondi_da(const clock_t inizio) {
-    return (clock() - inizio) / (double) CLOCKS_PER_SEC;
+static double secondi_da(const Seguito *x) {
+    return x->secondi_prima + (clock() - x->inizio) / (double) CLOCKS_PER_SEC;
+}
+
+// ---- continuare: i numeri della ricerca a parte, accanto ai passi ----
+//
+// Alla fine di una ricerca con i passi si scrive FILE.fine: i numeri che servono per continuarla e che nei passi non
+// ci sono (o costerebbe rileggerli tutti). Nell'ordine dei byte del computer: l'esito (int: si continua solo dopo
+// LIMITE_DI_NODI), nodi e ritorni (long long), profondita massima (int), secondi (double), e i ritorni di ogni cella
+// (long long l'uno).
+
+static void nome_della_fine(char *nome, const size_t lungo, const char *file_passi) {
+    snprintf(nome, lungo, "%s.fine", file_passi);
+}
+
+static void scrivi_la_fine(const char *file_passi, const Ricerca *r, const double secondi) {
+    char nome[1024];
+    nome_della_fine(nome, sizeof nome, file_passi);
+    FILE *f = fopen(nome, "wb");
+    if (!f) return;
+    const int esito = r->esito;
+    fwrite(&esito, sizeof esito, 1, f);
+    fwrite(&r->nodi, sizeof r->nodi, 1, f);
+    fwrite(&r->ritorni, sizeof r->ritorni, 1, f);
+    fwrite(&r->profondita_massima, sizeof r->profondita_massima, 1, f);
+    fwrite(&secondi, sizeof secondi, 1, f);
+    fwrite(r->ritorni_in, sizeof(long long), r->celle, f);
+    fclose(f);
+}
+
+// rimette in r i numeri della ricerca da continuare; 0 se il file manca, non e' quello di quei `nodi` nodi, o la
+// ricerca non era stata fermata dal limite (era finita: non c'e' niente da continuare)
+static int leggi_la_fine(const char *file_passi, Ricerca *r, const long long nodi, double *secondi) {
+    char nome[1024];
+    nome_della_fine(nome, sizeof nome, file_passi);
+    FILE *f = fopen(nome, "rb");
+    if (!f) return 0;
+    int esito = IN_CORSO;
+    const int ok = fread(&esito, sizeof esito, 1, f) == 1 && esito == LIMITE_DI_NODI
+                   && fread(&r->nodi, sizeof r->nodi, 1, f) == 1 && fread(&r->ritorni, sizeof r->ritorni, 1, f) == 1
+                   && fread(&r->profondita_massima, sizeof r->profondita_massima, 1, f) == 1
+                   && fread(secondi, sizeof *secondi, 1, f) == 1
+                   && fread(r->ritorni_in, sizeof(long long), r->celle, f) == (size_t) r->celle && r->nodi == nodi;
+    fclose(f);
+    return ok;
 }
 
 // Scrive lo stato nel suo file: prima in un file accanto, poi lo rinomina. Rinominare e' un colpo solo: chi legge
@@ -130,7 +177,7 @@ static void stato_su_file(const Seguito *x, const Ricerca *r) {
     snprintf(provvisorio, sizeof provvisorio, "%s.tmp", x->file_stato);
     FILE *f = fopen(provvisorio, "w");
     if (!f) return;
-    scrivi_stato(f, r, secondi_da(x->inizio));
+    scrivi_stato(f, r, secondi_da(x));
     fclose(f);
     rename(provvisorio, x->file_stato);
 }
@@ -191,7 +238,7 @@ static int nodo(const Scuola *s) {
 
 static int usa(const char *programma) {
     fprintf(stderr, "Uso:\n  %s genera SEME CLASSI RITARDI\n  %s risolvi CASO [--limite NODI] [--stato FILE] "
-            "[--passi FILE]\n  %s nodo CASO < NODO\n", programma, programma, programma);
+            "[--passi FILE] [--continua]\n  %s nodo CASO < NODO\n", programma, programma, programma);
     return 2;
 }
 
@@ -203,7 +250,13 @@ int main(const int argc, char **argv) {
     // le opzioni di «risolvi»: ognuna con il suo valore dopo
     const char *file_stato = NULL, *file_passi = NULL;
     long long limite = 0;
+    int continua = 0;
     for (int i = 3; i < argc; i += 2) {
+        if (!strcmp(argv[i], "--continua")) {  // l'unica senza valore: la prossima opzione e' subito dopo
+            continua = 1;
+            i--;
+            continue;
+        }
         if (i + 1 == argc) return usa(argv[0]);
         if (!strcmp(argv[i], "--limite")) limite = atoll(argv[i + 1]);
         else if (!strcmp(argv[i], "--stato")) file_stato = argv[i + 1];
@@ -223,20 +276,38 @@ int main(const int argc, char **argv) {
     }
     // «risolvi»: la ricerca, con chi la segue (i passi e lo stato su file, se chiesti)
     Ricerca *r = nuova_ricerca(s);
-    Seguito seguito = {r && file_passi ? passi_apri(file_passi, r->celle) : NULL, file_stato, clock(), clock()};
-    if (!r || (file_passi && !seguito.passi)) {
-        fprintf(stderr, "non riesco a preparare la ricerca\n");
+    Seguito seguito = {NULL, file_stato, clock(), clock(), 0};
+    // per continuare: la strada dell'ultimo nodo gia' visitato, letta dai passi
+    int *strada = r && continua ? malloc(sizeof(int) * 2 * r->celle) : NULL, profondita = 0;
+    long long gia_fatti = 0;
+    if (r && continua && file_passi && strada) {
+        seguito.passi = passi_riapri(file_passi, r->celle, &gia_fatti, strada, &profondita);
+        if (seguito.passi && !leggi_la_fine(file_passi, r, gia_fatti, &seguito.secondi_prima)) {
+            passi_chiudi(seguito.passi);
+            seguito.passi = NULL;
+        }
+    } else if (r && file_passi && !continua)
+        seguito.passi = passi_apri(file_passi, r->celle);
+    if (!r || (file_passi && !seguito.passi) || (continua && !seguito.passi)) {
+        fprintf(stderr, continua ? "non riesco a continuare: servono i passi di una ricerca fermata dal limite di nodi\n"
+                                 : "non riesco a preparare la ricerca\n");
         return 2;
     }
     r->limite = limite;
     r->a_ogni_nodo = segui;
     r->di_chi = &seguito;
     if (file_stato) stato_su_file(&seguito, r);  // subito uno stato «in corso»: il sito ha gia' la scuola da mostrare
-    cerca_orario(r);
+    if (!continua) cerca_orario(r);
+    else if (!riprendi_la_ricerca(r, strada, profondita)) {
+        fprintf(stderr, "non riesco a continuare: i passi non sono di questo caso\n");
+        return 2;
+    }
+    free(strada);
     passi_chiudi(seguito.passi);
+    if (file_passi) scrivi_la_fine(file_passi, r, secondi_da(&seguito));
     // lo stato finale: nel file se c'e', se no su stdout
     if (file_stato) stato_su_file(&seguito, r);
-    else scrivi_stato(stdout, r, secondi_da(seguito.inizio));
+    else scrivi_stato(stdout, r, secondi_da(&seguito));
     libera_ricerca(r);
     free(s);
     return 0;

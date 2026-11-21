@@ -9,6 +9,11 @@
 <div class="rigo">
   <form method="post" action="{{ url_for('ferma') }}" id="ferma" hidden>
     <input type="hidden" name="poi" value="{{ request.path }}"><button class="secondario">Ferma</button></form>
+  {# solo per una prova che il limite di nodi ha fermato: mandarla avanti ancora un po' #}
+  <form method="post" action="{{ url_for('continua', n=i.numero) }}" id="continua" class="rigo" hidden>
+    <span>Continua per altri</span>
+    {% for q in continua_di %}<button class="secondario" name="nodi" value="{{ q }}" title="La ricerca riprende da dove si è fermata, per altri {{ q|numero }} nodi">{{ q|numero }} nodi</button>{% endfor %}
+  </form>
   <form method="post" action="{{ url_for('avvia') }}">
     <input type="hidden" name="seme" value="{{ i.seme }}"><input type="hidden" name="classi" value="{{ i.classi }}">
     <input type="hidden" name="ritardi" value="{{ 'con' if i.ritardi else 'senza' }}">
@@ -85,6 +90,7 @@ function mostraStato(s) {
   mostraFiltro();
   document.getElementById('ferma').hidden = !s.gira;
   document.getElementById('rifai').disabled = !!s.gira;
+  document.getElementById('continua').hidden = !!s.gira || esito !== 'limite di nodi';
   // la prima volta che arriva la scuola: si disegnano la griglia vuota e le tabelle del caso
   if (s.scuola && !scuola) {
     scuola = s.scuola;
@@ -402,11 +408,14 @@ function disegnaCaso() {
 }
 
 // ---- mentre la prova gira: lo stato ogni secondo, il profilo ogni quattro ----
+// (dopo «Continua» la pagina si apre sul passo a cui la ricerca si era fermata: ?passo=N)
+const passoChiesto = Number(new URLSearchParams(location.search).get('passo')) || 0;
 let giri = 0;
 async function segui() {
   try {
     const s = await (await fetch(URL_STATO, {cache: 'no-store'})).json();
-    const inFondo = Number(slider.value) >= Number(slider.max);   // si stava guardando l'ultimo passo: lo si segue
+    // si stava guardando l'ultimo passo: lo si segue (non dopo «Continua»: li' si resta dove la ricerca si era fermata)
+    const inFondo = !passoChiesto && Number(slider.value) >= Number(slider.max);
     mostraStato(s);
     slider.max = Math.max(1, s.passi);
     if (inFondo) vai(s.passi);
@@ -419,7 +428,7 @@ async function segui() {
 const iniziale = {{ s|tojson }};
 mostraStato(iniziale);
 slider.max = Math.max(1, iniziale.passi || 1);
-if (iniziale.passi) vai(iniziale.passi);
+if (iniziale.passi) vai(passoChiesto >= 1 ? Math.min(passoChiesto, iniziale.passi) : iniziale.passi);
 aggiornaProfilo();
 if (iniziale.gira) setTimeout(segui, 1000);
 </script>

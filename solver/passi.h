@@ -30,6 +30,10 @@ typedef struct Passi Passi;
 // `nodo` (da 1), con quello che la ricerca dice a ogni nodo (ricerca.h, a_ogni_nodo); passi_chiudi chiude.
 Passi *passi_apri(const char *percorso, int celle);
 void passi_nodo(Passi *p, long long nodo, int profondita, int cella, int voce, const Motivo *motivo);
+// Riapre i file di una ricerca finita, per continuarla: i nodi nuovi si aggiungono in fondo. In *nodi quanti nodi
+// ci sono gia', in `strada` (lunga 2 * celle) la strada dell'ultimo, a coppie (cella, voce), e in *profondita quante
+// sono le coppie. NULL se i file non ci sono o non sono interi.
+Passi *passi_riapri(const char *percorso, int celle, long long *nodi, int *strada, int *profondita);
 void passi_chiudi(Passi *p);
 
 #endif

@@ -50,6 +50,7 @@ nav.schede a.attiva { color: var(--accento-scuro); font-weight: 600; background:
 .riquadro > :last-child { margin-bottom: 0; }
 .rigo { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-bottom: 12px; }
 .rigo form { margin: 0; }
+.rigo form.rigo { gap: 8px; }
 .rigo label { display: flex; align-items: center; gap: 8px; }
 .modulo { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; }
 .modulo label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--tenue); }

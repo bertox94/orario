@@ -29,6 +29,9 @@ di Alb). Il programma di prima (solver con le potature, sito con Postgres, test 
   modifica voluta alla ricerca, `--aggiorna`, e dirlo nel commit.
 - Si lavora in `main`. Prima di ogni commit: spiegare ad Alb le modifiche (cosa cambia, come è stato provato) e
   aspettare il suo «ok». Gli stabili si toccano solo quando lo chiede.
+- Continuare una ricerca (`orario risolvi --continua`, `riprendi_la_ricerca`) deve dare gli stessi file di una
+  ricerca sola con il limite nuovo: dopo una modifica alla ricerca o ai passi, ricontrollarlo (passi, istantanee,
+  profilo e stato uguali byte per byte).
 - I commenti sono tanti e si tengono aggiornati (richiesta di Alb): in cima a ogni file che cosa fa, e riga per riga
   nelle parti difficili.
 - Esperimenti sulla ricerca non entrati: le ripartenze a tentativi (tolte su richiesta di Alb, commit `8af8001`) e il
