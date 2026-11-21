@@ -1,7 +1,7 @@
-# Orario scolastico: la riscrittura
+# Orario scolastico
 
-Questo ramo (`riscrittura`) contiene il programma dell'orario riscritto da capo: il solver in C e il sito. Il
-programma di prima è in `main` e negli stabili, intatto.
+Il programma dell'orario, riscritto da capo il 20 novembre 2026: il solver in C e il sito. Il programma di prima è
+nel ramo `stabile/2026-11-18`, intatto.
 
 ## Che cosa c'è
 

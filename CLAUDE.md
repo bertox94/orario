@@ -3,17 +3,20 @@
 Repository di Alb (bertox94/orario). Si parla in italiano e ci si rivolge a lei al femminile. Anche commenti, nomi nel
 codice e messaggi di commit sono in italiano.
 
-## Cosa c'è in questo ramo
+## Cosa c'è
 
-Il ramo `riscrittura` è il programma riscritto da capo il 20 novembre 2026 (richiesta di Alb: «come lo faresti tu»,
-guardando solo a leggibilità e prestazioni, senza vincoli sul metodo): vedi `LEGGIMI.md`. Il programma di prima è in
-`main` e negli stabili, e lì non si tocca da qui.
+Il programma riscritto da capo il 20 novembre 2026 (richiesta di Alb: «come lo faresti tu», guardando solo a
+leggibilità e prestazioni, senza vincoli sul metodo): vedi `LEGGIMI.md`. È in `main` dal 21 novembre 2026 (richiesta
+di Alb). Il programma di prima (solver con le potature, sito con Postgres, test di non regressione) è in
+`stabile/2026-11-18` e negli altri stabili.
 
 - `solver/` (C): `scuola` (i dati e la lettura di un caso), `genera` (i casi casuali, gli stessi di prima), `ricerca`
   (un'ora alla volta, la classe con meno scelte per prima; senza ripartenze: richiesta di Alb), `limiti` e `classe_sola` (i conti che
   scartano i rami senza orario), `verifica` (l'orario ricontrollato da capo), `passi` (ogni nodo su file), `main`.
 - `sito/` (Flask, senza login né database): prove in tempo reale (`prove.py`, `passi.py`) e test notturni
-  (`notturni.py`). Mostra soltanto: casi e ricerca sono del solver.
+  (`notturni.py`). Mostra soltanto: casi e ricerca sono del solver. Nella pagina della prova «Mostra nell'orario»
+  colora le celle di cui parla un limite: le calcola il solver (`orario segni`, `solver/limiti.c` in fondo). Un
+  limite nuovo va anche lì, e nelle frasi e nella legenda di `sito/templates/prova.html` (`spiega`, `legenda`).
 - `prove/prova.py`: la prova automatica (esito, nodi e verifica su 52 casi).
 - `bf_search/`: SQL di Alb, da non toccare senza chiedere.
 
@@ -24,7 +27,13 @@ guardando solo a leggibilità e prestazioni, senza vincoli sul metodo): vedi `LE
   verifica e che nessun caso risolvibile diventi «impossibile».
 - Prima di ogni commit che tocca il solver: `python3 prove/prova.py` deve finire con «tutto come atteso»; dopo una
   modifica voluta alla ricerca, `--aggiorna`, e dirlo nel commit.
-- Prima di portare qualcosa in `main` o in uno stabile: spiegare ad Alb le modifiche e aspettare il suo «ok».
+- Si lavora in `main`. Prima di ogni commit: spiegare ad Alb le modifiche (cosa cambia, come è stato provato) e
+  aspettare il suo «ok». Gli stabili si toccano solo quando lo chiede.
+- I commenti sono tanti e si tengono aggiornati (richiesta di Alb): in cima a ogni file che cosa fa, e riga per riga
+  nelle parti difficili.
+- Esperimenti sulla ricerca non entrati: le ripartenze a tentativi (tolte su richiesta di Alb, commit `8af8001`) e il
+  «giro» (se la ricerca si incaglia in un giorno, tiene fermi i giorni in mezzo, libera il primo, poi i primi due...,
+  e riscrive: trova qualche orario in più, ma non è nei passi né nel sito).
 - Su questo repository lavora anche un'altra conversazione: prima di un push controllare che il ramo non sia cambiato.
 
 ## Raspberry
@@ -32,10 +41,11 @@ guardando solo a leggibilità e prestazioni, senza vincoli sul metodo): vedi `LE
 `raspberry@192.168.1.5`, servizio `orario-sito`, repository `~/orario`, ambiente Python `~/orario-venv`. Da qui non si
 raggiunge: i comandi li lancia Alb. Aggiornare:
 `ssh -t raspberry@192.168.1.5 'cd ~/orario && git pull && sudo systemctl restart orario-sito'`, poi Ctrl+F5.
+Il sito non usa più il database: i suoi file stanno in `sito/lavoro/`.
 
 ## Rami
 
-- `riscrittura`: questo ramo, il programma riscritto.
-- `main`: il programma di prima, con tutto il lavoro fino al 20 novembre 2026.
-- `stabile/2026-11-11`, `-12`, `-13` e `-18`: punti fermi del programma di prima.
+- `main`: il programma riscritto. Qui si lavora.
+- `riscrittura`: il ramo dove è nato, fermo al punto in cui è entrato in `main`.
+- `stabile/2026-11-11`, `-12`, `-13` e `-18`: punti fermi del programma di prima; `-18` è l'ultimo.
 - `sito/terza-versione` e `archivio/2026-11-04`: rami vecchi, non si toccano.
