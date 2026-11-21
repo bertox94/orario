@@ -113,6 +113,10 @@ struct Ricerca {
     // I ritorni indietro: i nodi da cui non si va avanti perche' un conto non torna. Quanti in tutto, e quanti per
     // cella: [cella] conta quelli arrivati subito dopo una scelta messa in quella cella. Solo numeri da mostrare.
     long long ritorni, *ritorni_in;
+    // Gli stessi, ma solo dall'ultimo passo avanti: si azzerano tutti ogni volta che la ricerca arriva piu' avanti
+    // di quanto sia mai arrivata (una profondita massima nuova). Una cella che ha fatto tanti ritorni e poi e' stata
+    // superata non e' piu' il problema: qui torna a zero, e restano i ritorni del punto in cui si e' fermi adesso.
+    long long *ritorni_recenti_in;
     Motivo motivo_radice;    // se non c'e' nessun orario gia' in partenza: il conto che non torna
 
     // se c'e', si chiama a ogni nodo: `profondita` celle decise, l'ultima e' `cella` con dentro `voce` (alla radice
@@ -132,8 +136,8 @@ void cerca_orario(Ricerca *r);
 // Riprende una ricerca che il limite di nodi aveva fermato, dal punto esatto in cui era, e va avanti fino al limite
 // nuovo: il risultato e' lo stesso di una ricerca sola con quel limite. `strada` e' la strada dell'ultimo nodo
 // visitato: `profondita` coppie (cella, voce) nell'ordine in cui le celle sono state decise. Prima di chiamarla r
-// deve essere nuova, con r->nodi, r->ritorni, r->ritorni_in e r->profondita_massima rimessi com'erano e r->limite
-// nuovo. Ritorna 0 (senza fare niente di utile) se la strada non e' di questa ricerca.
+// deve essere nuova, con r->nodi, r->ritorni, r->ritorni_in, r->ritorni_recenti_in e r->profondita_massima rimessi
+// com'erano e r->limite nuovo. Ritorna 0 (senza fare niente di utile) se la strada non e' di questa ricerca.
 int riprendi_la_ricerca(Ricerca *r, const int *strada, int profondita);
 
 // Perche' un docente non puo' insegnare adesso in una classe (ricerca.c, perche_non_puo).

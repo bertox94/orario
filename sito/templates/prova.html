@@ -53,7 +53,9 @@
   avanti: sopra l'orario c'è il controllo che non passa, con la sua lettera e i pezzi da cui vengono i suoi numeri, e
   la classe di cui parla è segnata; «Mostra nell'orario» colora le celle che il controllo ha contato, e resta acceso
   da un ritorno all'altro. Da un passo all'altro (anche da un ritorno al
-  successivo) le celle cambiate hanno il bordo lilla, e quelle tolte restano scritte sbarrate. Un clic su una cella sceglie i suoi ritorni: i tasti «Ritorno» saltano solo tra quelli.
+  successivo) le celle cambiate hanno il bordo lilla, e quelle tolte restano scritte sbarrate. Di ogni cella si contano i ritorni in tutto e
+  quelli dall'ultimo passo avanti, che ripartono da zero quando la ricerca arriva più lontano di sempre: dicono dov'è
+  il problema adesso. Un clic su una cella sceglie i suoi ritorni: i tasti «Ritorno» saltano solo tra quelli.
   Mentre la prova gira lo slider si allunga e, se è in fondo, la segue.</p>
 
 <h3>Il profilo della ricerca</h3>
@@ -89,6 +91,7 @@ function mostraStato(s) {
   document.getElementById('numeri').textContent = `${numero(s.nodi || 0)} nodi, ` +
     (s.ritorni == null ? '' : `${numero(s.ritorni)} ritorni indietro, `) + `${(s.secondi || 0).toFixed(1)} s`;
   ritorniPerCella = s.ritorni_per_cella || null;
+  ritorniRecenti = s.ritorni_recenti_per_cella || null;
   mostraFiltro();
   document.getElementById('ferma').hidden = !s.gira;
   document.getElementById('rifai').disabled = !!s.gira;
@@ -233,18 +236,25 @@ document.getElementById('controlli-docenti').addEventListener('toggle', e => {
 // Un clic su una cella dell'orario la sceglie (un altro clic la lascia): i tasti «Ritorno» saltano solo ai ritorni
 // indietro arrivati subito dopo una scelta in quella cella, e sopra l'orario c'e' scritto quanti sono. I numeri per
 // cella li conta il solver (nello stato: ritorni_per_cella).
-let cellaScelta = null, ritorniPerCella = null;
+// Di ogni cella ci sono due numeri: i ritorni in tutto, e quelli dall'ultimo passo avanti, che si azzerano ogni volta
+// che la ricerca arriva piu' lontano di sempre. I primi dicono dove sono andati i nodi; i secondi dov'e' il problema
+// adesso: una cella con tanti ritorni che poi e' stata superata non lo e' piu'.
+let cellaScelta = null, ritorniPerCella = null, ritorniRecenti = null;
 function mostraFiltro() {
   const box = document.getElementById('filtro');
   if (!scuola) return;
   for (const td of tabella.querySelectorAll('td.scelta')) td.classList.remove('scelta');
   if (cellaScelta === null) {
-    box.textContent = ritorniPerCella ? 'Clic su una cella dell\'orario: i tasti «Ritorno» saltano solo ai suoi ritorni indietro.' : '';
+    // senza una cella scelta: dov'e' il problema adesso, cioe' la cella con piu' ritorni dall'ultimo passo avanti
+    const peggiore = ritorniRecenti ? ritorniRecenti.indexOf(Math.max(...ritorniRecenti)) : -1;
+    box.innerHTML = (peggiore >= 0 && ritorniRecenti[peggiore] ? `Dall'ultimo passo avanti i ritorni sono soprattutto in <strong>${esc(dove(peggiore))}</strong>: ${numero(ritorniRecenti[peggiore])}. ` : '') +
+      (ritorniPerCella ? 'Clic su una cella: i tasti «Ritorno» saltano solo ai suoi ritorni.' : '');
     return;
   }
   const C = scuola.classi.length, quanti = ritorniPerCella ? ritorniPerCella[cellaScelta] : null;
   tabella.tBodies[0].rows[cellaScelta % C].cells[1 + Math.floor(cellaScelta / C)].classList.add('scelta');
   box.innerHTML = `Solo i ritorni di <strong>${esc(dove(cellaScelta))}</strong>` + (quanti === null ? '' : `: sono <strong>${numero(quanti)}</strong>`) +
+    (ritorniRecenti ? `, di cui <strong>${numero(ritorniRecenti[cellaScelta])}</strong> dall'ultimo passo avanti` : '') +
     ' <button type="button" class="secondario piccolo" id="tutti-i-ritorni">Tutti i ritorni</button>';
   document.getElementById('tutti-i-ritorni').addEventListener('click', () => { cellaScelta = null; mostraFiltro(); });
 }

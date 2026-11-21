@@ -22,6 +22,7 @@
 //   {"in_corso": 0 | 1, "esito": "in corso" | "trovato" | "impossibile" | "limite di nodi",
 //    "nodi": N, "secondi": S, "profondita_massima": P, "celle": C,
 //    "ritorni": R, "ritorni_per_cella": [...]   i ritorni indietro, in tutto e per cella (ricerca.h)
+//    "ritorni_recenti_per_cella": [...]         per cella, solo quelli dall'ultimo passo avanti (ricerca.h)
 //    "scuola": {"giorni": [...], "ore": [...], "classi": [...], "obbligatorie": M, "ore_di_seguito": N, "classi_al_giorno": N,
 //               "docenti": [[nome, ingresso], ...], "voci": [[classe, docente, codocente | -1, ore], ...]},
 //    "motivo": {...}              con «impossibile» gia' in partenza: il conto che non torna (ricerca.h, Motivo)
@@ -74,6 +75,8 @@ static void scrivi_stato(FILE *f, const Ricerca *r, const double secondi) {
             "\"celle\":%d,\"ritorni\":%lld,\"ritorni_per_cella\":[", r->esito == IN_CORSO, ESITI[r->esito], r->nodi,
             secondi, r->profondita_massima, r->celle, r->ritorni);
     for (int i = 0; i < r->celle; i++) fprintf(f, "%s%lld", i ? "," : "", r->ritorni_in[i]);
+    fputs("],\"ritorni_recenti_per_cella\":[", f);
+    for (int i = 0; i < r->celle; i++) fprintf(f, "%s%lld", i ? "," : "", r->ritorni_recenti_in[i]);
     fputs("],\"scuola\":{", f);
     json_nomi(f, "giorni", s->nome_giorno, s->giorni);
     json_nomi(f, "ore", s->nome_ora, s->ore);
@@ -131,8 +134,9 @@ static double secondi_da(const Seguito *x) {
 //
 // Alla fine di una ricerca con i passi si scrive FILE.fine: i numeri che servono per continuarla e che nei passi non
 // ci sono (o costerebbe rileggerli tutti). Nell'ordine dei byte del computer: l'esito (int: si continua solo dopo
-// LIMITE_DI_NODI), nodi e ritorni (long long), profondita massima (int), secondi (double), e i ritorni di ogni cella
-// (long long l'uno).
+// LIMITE_DI_NODI), nodi e ritorni (long long), profondita massima (int), secondi (double), i ritorni di ogni cella
+// (long long l'uno) e, dopo, quelli recenti di ogni cella (in un file scritto prima che esistessero mancano: si
+// riparte da zero).
 
 static void nome_della_fine(char *nome, const size_t lungo, const char *file_passi) {
     snprintf(nome, lungo, "%s.fine", file_passi);
@@ -150,6 +154,7 @@ static void scrivi_la_fine(const char *file_passi, const Ricerca *r, const doubl
     fwrite(&r->profondita_massima, sizeof r->profondita_massima, 1, f);
     fwrite(&secondi, sizeof secondi, 1, f);
     fwrite(r->ritorni_in, sizeof(long long), r->celle, f);
+    fwrite(r->ritorni_recenti_in, sizeof(long long), r->celle, f);
     fclose(f);
 }
 
@@ -166,6 +171,8 @@ static int leggi_la_fine(const char *file_passi, Ricerca *r, const long long nod
                    && fread(&r->profondita_massima, sizeof r->profondita_massima, 1, f) == 1
                    && fread(secondi, sizeof *secondi, 1, f) == 1
                    && fread(r->ritorni_in, sizeof(long long), r->celle, f) == (size_t) r->celle && r->nodi == nodi;
+    if (ok && fread(r->ritorni_recenti_in, sizeof(long long), r->celle, f) != (size_t) r->celle)
+        memset(r->ritorni_recenti_in, 0, sizeof(long long) * r->celle);
     fclose(f);
     return ok;
 }
