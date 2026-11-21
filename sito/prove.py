@@ -75,7 +75,8 @@ def prova(numero):
 
 
 def segni(numero, k):
-    """Le celle di cui parla il conto per cui dal nodo k la ricerca non va avanti (solver.segni). None se la prova o
+    """Le celle di cui parla il conto per cui dal nodo k la ricerca non va avanti, e il conto in dettaglio
+    (solver.segni). None se la prova o
     il nodo non ci sono, o se da li' si va avanti."""
     p = prova(numero)
     nodo = p and passi.nodo_per_i_segni(file_dei_passi(numero), k, p['stato'].get('celle', 0))

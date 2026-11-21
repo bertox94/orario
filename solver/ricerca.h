@@ -1,6 +1,8 @@
 #ifndef RICERCA_H
 #define RICERCA_H
 
+#include <stdio.h>
+
 #include "scuola.h"
 
 // La ricerca dell'orario.
@@ -123,6 +125,17 @@ void libera_ricerca(Ricerca *r);
 // Cerca un orario: alla fine r->esito e' TROVATO (l'orario e' in r->orario), IMPOSSIBILE o LIMITE_DI_NODI.
 void cerca_orario(Ricerca *r);
 
+// Perche' un docente non puo' insegnare adesso in una classe (ricerca.c, perche_non_puo).
+typedef enum {
+    PUO,                // puo'
+    NON_ENTRATO,        // la sua ora di ingresso e' dopo
+    ALTROVE,            // in quest'ora e' gia' in un'altra classe
+    TROPPE_CLASSI,      // oggi qui non ha ancora insegnato, ed e' gia' nel massimo di classi al giorno
+    MASSIMO_RAGGIUNTO,  // oggi qui ha gia' fatto il massimo di ore
+    INTERROTTO          // oggi qui ha gia' insegnato, ma nell'ora prima non c'era: le ore devono essere di seguito
+} PercheNo;
+PercheNo perche_non_puo(const Ricerca *r, int giorno, int ora, int k, int t);
+
 // Mette nella cella la voce v o l'ora buca (verso = 1), oppure la toglie (verso = -1), e tiene tutti i conti. La usa
 // la ricerca; serve anche a rimettere l'orario com'era a un nodo, una scelta dopo l'altra (main.c, i segni).
 void segna(Ricerca *r, int cella, int v, int verso);
@@ -156,6 +169,9 @@ int ore_libere_da(const Ricerca *r, int giorno, int da, int t);
 // per ogni cella 0 o un SEGNO_. L'orario di r deve essere quello del nodo: `profondita` celle decise, l'ultima e'
 // `cella` (-1 alla radice). Ritorna l'ora della settimana (giorno * ore + ora) a cui il conto e' stato fatto.
 int segni_del_nodo(const Ricerca *r, int profondita, int cella, const Motivo *motivo, signed char *segni);
+// Il conto del motivo in dettaglio, in JSON su `f` (limiti.c, in fondo): i pezzi da cui vengono i suoi due numeri.
+// Come per i segni, l'orario di r deve essere quello del nodo, e l'ora e' quella che segni_del_nodo ritorna.
+void scrivi_il_conto(FILE *f, const Ricerca *r, int ora_della_settimana, const Motivo *motivo);
 // La classe k, guardata da sola, ha ancora un orario per le ore che le restano (classe_sola.c): 1 se c'e' o non si
 // riesce a dirlo in poco tempo, 0 se non c'e'.
 int la_classe_ha_un_orario(const Ricerca *r, int giorno, int ora, int k);

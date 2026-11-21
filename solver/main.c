@@ -10,13 +10,14 @@
 //       per il sito: le celle di cui parla il conto per cui da un nodo la ricerca non va avanti. Il nodo arriva su
 //       stdin, tutto in numeri: il motivo (tipo, docente, classe, ora, servono, possibili: i campi di un record dei
 //       passi), quante celle sono decise, e per ognuna, nell'ordine in cui sono state decise, la cella e la voce
-//       (-1: ora buca). Scrive su stdout {"giorno": G, "ora": O, "segni": [[cella, segno], ...]}: l'ora a cui il
-//       conto e' stato fatto, e per ogni cella segnata 1 fatta, 2 puo', 3 no, 4 serve (ricerca.h, SEGNO_).
+//       (-1: ora buca). Scrive su stdout {"giorno": G, "ora": O, "segni": [[cella, segno], ...], "conto": {...}}:
+//       l'ora a cui il conto e' stato fatto, per ogni cella segnata 1 fatta, 2 puo', 3 no, 4 serve (ricerca.h,
+//       SEGNO_), e il conto in dettaglio (limiti.c, in fondo).
 //
 // Lo stato:
 //   {"in_corso": 0 | 1, "esito": "in corso" | "trovato" | "impossibile" | "limite di nodi",
 //    "nodi": N, "secondi": S, "profondita_massima": P, "celle": C,
-//    "scuola": {"giorni": [...], "ore": [...], "classi": [...], "obbligatorie": M, "ore_di_seguito": N,
+//    "scuola": {"giorni": [...], "ore": [...], "classi": [...], "obbligatorie": M, "ore_di_seguito": N, "classi_al_giorno": N,
 //               "docenti": [[nome, ingresso], ...], "voci": [[classe, docente, codocente | -1, ore], ...]},
 //    "motivo": {...}              con «impossibile» gia' in partenza: il conto che non torna (ricerca.h, Motivo)
 //    "orario": [voce | -1, ...]   con «trovato»: una voce per cella (-1: ora buca); la cella di (giorno, ora, classe)
@@ -70,7 +71,8 @@ static void scrivi_stato(FILE *f, const Ricerca *r, const double secondi) {
     json_nomi(f, "giorni", s->nome_giorno, s->giorni);
     json_nomi(f, "ore", s->nome_ora, s->ore);
     json_nomi(f, "classi", s->nome_classe, s->classi);
-    fprintf(f, "\"obbligatorie\":%d,\"ore_di_seguito\":%d,\"docenti\":[", s->obbligatorie, MAX_ORE_DI_SEGUITO);
+    fprintf(f, "\"obbligatorie\":%d,\"ore_di_seguito\":%d,\"classi_al_giorno\":%d,\"docenti\":[", s->obbligatorie,
+            MAX_ORE_DI_SEGUITO, MAX_CLASSI_AL_GIORNO);
     for (int t = 0; t < s->docenti; t++) {
         fputs(t ? ",[" : "[", f);
         json_testo(f, s->nome_docente[t]);
@@ -172,7 +174,9 @@ static int segni(const Scuola *s) {
     printf("{\"giorno\":%d,\"ora\":%d,\"segni\":[", ora_della_settimana / s->ore, ora_della_settimana % s->ore);
     for (int i = 0, primo = 1; i < r->celle; i++)
         if (segno[i]) printf("%s[%d,%d]", primo ? "" : ",", i, segno[i]), primo = 0;
-    puts("]}");
+    fputs("],\"conto\":", stdout);  // e i pezzi da cui vengono i due numeri del conto
+    scrivi_il_conto(stdout, r, ora_della_settimana, &m);
+    puts("}");
     free(segno);
     libera_ricerca(r);
     return 0;

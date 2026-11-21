@@ -35,11 +35,12 @@
 <p id="testo-passo" class="testo-passo"></p>
 <p id="motivo" class="motivo" hidden><span id="testo-motivo"></span>
   <button type="button" class="secondario piccolo" id="mostra-segni" aria-pressed="false">Mostra nell'orario</button></p>
+<p id="conto" class="conto" hidden></p>
 <p id="legenda" class="legenda" hidden></p>
 <div class="scorre"><table class="orario" id="orario"></table></div>
 <p class="nota">In rosa l'ultima scelta; «–» è un'ora buca. Quando da un passo la ricerca non va avanti, sopra l'orario
-  c'è il conto che non torna, e la classe di cui parla è segnata; «Mostra nell'orario» colora le celle che il conto ha
-  contato, e resta acceso da un punto morto all'altro. Mentre la prova gira lo slider si allunga e, se è in fondo, la
+  c'è il conto che non torna, con i pezzi da cui vengono i suoi numeri, e la classe di cui parla è segnata; «Mostra
+  nell'orario» colora le celle che il conto ha contato, e resta acceso da un punto morto all'altro. Mentre la prova gira lo slider si allunga e, se è in fondo, la
   segue.</p>
 
 <h3>Il profilo della ricerca</h3>
@@ -135,32 +136,81 @@ function legenda(m) {
   }[m.tipo] || {};
 }
 
-let segniAccesi = false;   // il tasto resta acceso da un passo all'altro
+// ---- il conto in dettaglio: da dove vengono i suoi due numeri ----
+// Anche questo lo calcola il solver (solver/limiti.c, in fondo: li' c'e' scritto che cosa c'e' in `c` per ogni
+// conto); qui si scrive in parole. Le liste (le voci, le classi) sono etichette una accanto all'altra.
+function conto(m, c) {
+  const docente = m.docente >= 0 ? esc(scuola.docenti[m.docente][0]) : '', classe = m.classe >= 0 ? esc(scuola.classi[m.classe]) : '';
+  const N = scuola.ore_di_seguito || 3, K = scuola.classi_al_giorno || 3, giorni = n => `${n} giorn${n === 1 ? 'o' : 'i'}`;
+  const voce = v => esc(nomi(v).join(' con ')), pillola = x => `<span class="voce">${x}</span>`;
+  // «oggi 2, poi 3 giorni × 3 = 11»
+  const somma = c => `oggi ${c.oggi}` + (c.dopo ? `, poi ${giorni(c.dopo)} × ${c.al_giorno}` : '') + ` = <strong>${c.oggi + c.dopo * c.al_giorno}</strong>`;
+  // perche' un docente non puo', o una classe non lo prende
+  const perche = (codice, chi) => {
+    const x = chi >= 0 ? esc(scuola.docenti[chi][0]) : '';
+    return {decisa: 'ha già la sua lezione', finite: 'lì non ha più ore', senza_lezione: 'adesso non può avere lezione',
+      finita: 'la classe oggi ha finito', non_entrato: `${x} non è ancora entrato`, altrove: `${x} è in un'altra classe`,
+      troppe_classi: `${x} oggi è già in ${K} classi`, massimo: `${x} oggi lì ha già fatto ${ore(N)}`,
+      interrotto: `${x} oggi lì ha smesso, e non può tornare`}[codice] || codice;
+  };
+  return {
+    ore_docente: () => `Servono <strong>${m.servono}</strong> ore. ${docente} ` +
+      (c.ingresso ? `entra alle ${esc(scuola.ore[c.ingresso])}` : 'c\'è dalla prima ora') + `: le ore in cui è a scuola sono ${somma(c)}.`,
+    ore_docente_in_classe: () => `Servono <strong>${m.servono}</strong> ore. In ${classe} ne può fare: ${somma(c)}` +
+      (c.perche_oggi ? ` (oggi: ${perche(c.perche_oggi, m.docente)})` : '') + `. In un giorno al massimo ${N} di seguito` +
+      (c.ingresso ? `, ed entra alle ${esc(scuola.ore[c.ingresso])}.` : '.'),
+    ore_classe: () => `Servono <strong>${m.servono}</strong> ore. Le celle che restano: ${somma(c)}` +
+      (c.chiusa ? ' (oggi ha già avuto un\'ora buca).' : '.'),
+    prime_ore: () => `Le celle da riempire fino alle ${esc(scuola.ore[m.ora])}: ${somma(c)}. Le lezioni che ogni voce può farci (tra parentesi le ore che le restano): ` +
+      c.voci.map(([v, resto, , , lezioni]) => pillola(`${voce(v)} <strong>${lezioni}</strong> <span class="nota">(${resto})</span>`)).join(' ') +
+      ` = <strong>${m.possibili}</strong>. Chi ha 0 a quelle ore non c'è, o oggi qui non può più.`,
+    orario_della_classe: () => `Restano <strong>${m.servono}</strong> ore da mettere in ${c.celle} celle: ` +
+      c.voci.map(([v, resto]) => pillola(`${voce(v)} <strong>${resto}</strong>`)).join(' ') +
+      `. Provando tutti i modi (ognuno dal suo ingresso, al massimo ${N} ore di seguito, lezione nelle prime ore) non ce n'è uno che le mette tutte.`,
+    docente_senza_posto: () => 'Le sue classi, in quest\'ora: ' +
+      c.classi.map(([k, codice, voci]) => pillola(`<strong>${esc(scuola.classi[k])}</strong> ` + (codice ? perche(codice, -1)
+        : voci.map(([v, cod, chi]) => (nomi(v).length > 1 ? `con ${esc(nomi(v).filter(n => n !== scuola.docenti[m.docente][0]).join(''))}: ` : 'da solo: ') + perche(cod, chi)).join('; ')))).join(' '),
+    classe_senza_scelte: () => 'Le sue voci che hanno ancora ore: ' +
+      c.voci.map(([v, codice, chi]) => pillola(`<strong>${voce(v)}</strong> ${perche(codice, chi)}`)).join(' ') +
+      (c.buca === 'obbligatoria' ? ' L\'ora buca no: è una delle prime ore.' : ' L\'ora buca no: le ore che restano non stanno nei giorni dopo.'),
+  }[m.tipo]?.() || '';
+}
+
+let segniAccesi = false;    // il tasto resta acceso da un passo all'altro
+let ultimiSegni = null;     // quello che il solver ha detto del passo che si sta guardando: {k, giorno, ora, segni, conto}
 const tastoSegni = document.getElementById('mostra-segni');
 function togliSegni() {
   for (const td of tabella.querySelectorAll('td.segno')) td.classList.remove('segno', 'segno-fatta', 'segno-puo', 'segno-no', 'segno-serve');
   document.getElementById('legenda').hidden = true;
 }
-// colora le celle del passo p (che ha un motivo) e scrive la legenda
-async function mostraSegni(p) {
-  const r = await fetch(URL_SEGNI + p.k);
-  if (!r.ok || richiesto !== p.k || !segniAccesi) return;   // nel frattempo si e' cambiato passo, o spento il tasto
-  const s = await r.json(), C = scuola.classi.length, righe = tabella.tBodies[0].rows, testi = legenda(p.motivo), visti = new Set();
+// colora le celle del passo p, di cui sono arrivati i segni, e scrive la legenda
+function coloraSegni(p, s) {
+  const C = scuola.classi.length, righe = tabella.tBodies[0].rows, testi = legenda(p.motivo), visti = new Set();
   togliSegni();
   for (const [cella, segno] of s.segni) {
     righe[cella % C].cells[1 + Math.floor(cella / C)].classList.add('segno', 'segno-' + segno);
     visti.add(segno);
   }
   const box = document.getElementById('legenda');
-  box.innerHTML = `Il conto è fatto a ${esc(scuola.giorni[s.giorno])} alle ${esc(scuola.ore[s.ora])}. ` +
-    ['fatta', 'puo', 'serve', 'no'].filter(x => visti.has(x) && testi[x]).map(x => `<span class="voce-legenda"><i class="segno segno-${x}"></i>${testi[x]}</span>`).join(' ');
+  box.innerHTML = ['fatta', 'puo', 'serve', 'no'].filter(x => visti.has(x) && testi[x]).map(x => `<span class="voce-legenda"><i class="segno segno-${x}"></i>${testi[x]}</span>`).join(' ');
   box.hidden = false;
+}
+// Per un passo con un motivo: chiede al solver il conto in dettaglio e i segni. Il conto si mostra sempre; le celle
+// si colorano se il tasto e' acceso.
+async function mostraConto(p) {
+  const r = await fetch(URL_SEGNI + p.k);
+  if (!r.ok || richiesto !== p.k) return;   // nel frattempo si e' cambiato passo
+  ultimiSegni = Object.assign(await r.json(), {k: p.k});
+  const box = document.getElementById('conto');
+  box.innerHTML = `<span class="nota">Il conto, fatto a ${esc(scuola.giorni[ultimiSegni.giorno])} alle ${esc(scuola.ore[ultimiSegni.ora])}.</span> ` + conto(p.motivo, ultimiSegni.conto);
+  box.hidden = false;
+  if (segniAccesi) coloraSegni(p, ultimiSegni);
 }
 tastoSegni.addEventListener('click', () => {
   segniAccesi = !segniAccesi;
   tastoSegni.textContent = segniAccesi ? 'Togli i segni' : 'Mostra nell\'orario';
   tastoSegni.setAttribute('aria-pressed', segniAccesi);
-  if (segniAccesi && ultimoPasso && ultimoPasso.motivo) mostraSegni(ultimoPasso); else togliSegni();
+  if (segniAccesi && ultimoPasso && ultimiSegni && ultimiSegni.k === ultimoPasso.k) coloraSegni(ultimoPasso, ultimiSegni); else togliSegni();
 });
 
 // ---- l'orario ----
@@ -177,7 +227,9 @@ function disegnaGriglia() {
 let ultimoPasso = null;
 function disegnaPasso(p) {
   ultimoPasso = p;
+  ultimiSegni = null;
   togliSegni();
+  document.getElementById('conto').hidden = true;
   const {giorni, ore: O, classi} = scuola, C = classi.length, celle = giorni.length * O.length * C, righe = tabella.tBodies[0].rows;
   // ogni cella: la riga e' la sua classe, la colonna la sua ora nella settimana (piu' uno: la prima e' il nome)
   p.orario.forEach((v, cella) => {
@@ -194,7 +246,7 @@ function disegnaPasso(p) {
   const motivo = document.getElementById('motivo');
   motivo.hidden = !p.motivo;
   if (p.motivo) document.getElementById('testo-motivo').textContent = 'Da qui la ricerca non va avanti. ' + spiega(p.motivo);
-  if (p.motivo && segniAccesi) mostraSegni(p);
+  if (p.motivo) mostraConto(p);
   // l'ultima scelta in vista: il riquadro scorre di lato fino a quell'ora
   const td = p.cella >= 0 && righe[p.cella % C].cells[1 + Math.floor(p.cella / C)];
   if (td) {

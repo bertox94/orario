@@ -42,7 +42,8 @@ SEGNI = (None, 'fatta', 'puo', 'no', 'serve')   # i numeri dei segni (solver/ric
 
 
 def segni(caso, nodo):
-    """Le celle di cui parla il conto che non torna in un nodo: {"giorno", "ora", "segni": [[cella, nome], ...]}.
+    """Le celle di cui parla il conto che non torna in un nodo, e il conto in dettaglio:
+    {"giorno", "ora", "segni": [[cella, nome], ...], "conto": {...}} (solver/main.c, il comando «segni»).
     `nodo` e' il testo di passi.nodo_per_i_segni. None se il solver non lo accetta."""
     r = subprocess.run([programma(), 'segni', caso], input=nodo, capture_output=True, text=True)
     if r.returncode:

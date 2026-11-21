@@ -115,16 +115,23 @@ void segna(Ricerca *r, const int cella, const int v, const int verso) {
 
 // ---- 3. le scelte di una classe in un'ora ----
 
-// Il docente t puo' insegnare adesso nella classe k: e' entrato, e' libero, e rispetta le regole della giornata.
-static int puo_adesso(const Ricerca *r, const int giorno, const int ora, const int k, const int t) {
+// Perche' il docente t non puo' insegnare adesso nella classe k (PUO, cioe' 0, se puo'): deve essere entrato, essere
+// libero, e rispettare le regole della giornata. La ricerca guarda solo se e' PUO; il perche' serve al sito.
+PercheNo perche_non_puo(const Ricerca *r, const int giorno, const int ora, const int k, const int t) {
     const Scuola *s = r->s;
-    // non e' ancora entrato, oppure in quest'ora e' gia' in un'altra classe
-    if (s->ingresso[t] > ora || r->occupato[(giorno * s->ore + ora) * s->docenti + t]) return 0;
+    if (s->ingresso[t] > ora) return NON_ENTRATO;
+    // in quest'ora e' gia' in un'altra classe
+    if (r->occupato[(giorno * s->ore + ora) * s->docenti + t]) return ALTROVE;
     const int fatte = r->ore_oggi[(giorno * s->classi + k) * s->docenti + t];
     // oggi qui non ha ancora insegnato: sarebbe una classe in piu' nella sua giornata
-    if (!fatte) return r->classi_oggi[giorno * s->docenti + t] < MAX_CLASSI_AL_GIORNO;
-    // oggi qui ha gia' insegnato: solo di seguito (c'era nell'ora prima) e non oltre il massimo
-    return fatte < MAX_ORE_DI_SEGUITO && presente(r, giorno, ora - 1, k, t);
+    if (!fatte) return r->classi_oggi[giorno * s->docenti + t] < MAX_CLASSI_AL_GIORNO ? PUO : TROPPE_CLASSI;
+    // oggi qui ha gia' insegnato: non oltre il massimo, e solo di seguito (c'era nell'ora prima)
+    if (fatte >= MAX_ORE_DI_SEGUITO) return MASSIMO_RAGGIUNTO;
+    return presente(r, giorno, ora - 1, k, t) ? PUO : INTERROTTO;
+}
+
+static int puo_adesso(const Ricerca *r, const int giorno, const int ora, const int k, const int t) {
+    return perche_non_puo(r, giorno, ora, k, t) == PUO;
 }
 
 // Le scelte della classe k in quest'ora, in `scelte`; ritorna quante sono.

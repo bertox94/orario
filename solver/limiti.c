@@ -99,6 +99,23 @@ static int docente_in_classe(const Ricerca *r, const int giorno, const int ora, 
 // E' il conto che si accorge dei docenti che entrano tardi: alle prime ore non ci sono, e se la classe ha quasi solo
 // loro le prime ore restano scoperte. Si guarda ogni h, e non solo l'ultima, perche' la fascia stretta (solo la
 // prima ora, per esempio) puo' non tornare anche quando quella larga torna.
+// Le lezioni che la voce v puo' fare nella fascia fino all'ora h (compresa), con la prima ora libera della sua classe
+// in `da`: oggi (*oggi) piu' quelle di ognuno dei giorni dopo (*al_giorno), ma non piu' delle ore che le restano.
+static int lezioni_nella_fascia(const Ricerca *r, const int giorno, const int da, const int h, const int v, int *oggi,
+                                int *al_giorno) {
+    const Scuola *s = r->s;
+    const int dopo = s->giorni - 1 - giorno, k = s->voce[v].classe;
+    int entra = 0;
+    *oggi = s->ore;
+    for (int i = 0; i < docenti_della_voce(&s->voce[v]); i++) {
+        const int t = s->voce[v].docente[i];
+        *oggi = MIN(*oggi, ancora_oggi(r, giorno, da, h, k, t));  // oggi: chi dei due puo' meno
+        entra = MAX(entra, s->ingresso[t]);                       // nei giorni dopo: chi entra dopo
+    }
+    *al_giorno = MIN(MAX_ORE_DI_SEGUITO, MAX(0, h + 1 - entra));
+    return MIN(r->resto_voce[v], *oggi + dopo * *al_giorno);
+}
+
 static int classe(const Ricerca *r, const int giorno, const int ora, const int k, Motivo *m) {
     const Scuola *s = r->s;
     const int dopo = s->giorni - 1 - giorno, da = prima_ora_libera(r, giorno, ora, k);
@@ -113,14 +130,8 @@ static int classe(const Ricerca *r, const int giorno, const int ora, const int k
         // (ci si ferma appena le lezioni bastano: non serve contarle tutte)
         for (int v = s->prima_voce[k]; v < s->prima_voce[k + 1] && lezioni < celle; v++) {
             if (!r->resto_voce[v]) continue;  // voce finita
-            int oggi_voce = s->ore, entra = 0;
-            for (int i = 0; i < docenti_della_voce(&s->voce[v]); i++) {
-                const int t = s->voce[v].docente[i];
-                oggi_voce = MIN(oggi_voce, ancora_oggi(r, giorno, da, h, k, t));  // oggi: chi dei due puo' meno
-                entra = MAX(entra, s->ingresso[t]);                               // nei giorni dopo: chi entra dopo
-            }
-            const int al_giorno = MIN(MAX_ORE_DI_SEGUITO, MAX(0, h + 1 - entra));
-            lezioni += MIN(r->resto_voce[v], oggi_voce + dopo * al_giorno);
+            int oggi_voce, al_giorno;
+            lezioni += lezioni_nella_fascia(r, giorno, da, h, v, &oggi_voce, &al_giorno);
         }
         if (lezioni < celle) return non_torna(m, PRIME_ORE, -1, k, h, celle, lezioni);
     }
@@ -266,4 +277,131 @@ int segni_del_nodo(const Ricerca *r, const int profondita, const int cella, cons
         ora_della_settimana = cella / s->classi;
     segni_del_limite(r, ora_della_settimana / s->ore, ora_della_settimana % s->ore, m, segni);
     return ora_della_settimana;
+}
+
+// ---- il conto in dettaglio ----
+//
+// Anche questo solo per il sito: i pezzi da cui vengono i due numeri del motivo, in JSON. Ogni conto ha i suoi:
+//   ORE_DOCENTE            {"ingresso", "oggi", "dopo", "al_giorno"}: le ore di oggi, e i giorni dopo per le ore di
+//                          ognuno
+//   ORE_DOCENTE_IN_CLASSE  lo stesso, piu' "perche_oggi": perche' oggi sono cosi' poche ("" se non c'e' un perche')
+//   ORE_CLASSE             {"oggi", "dopo", "al_giorno", "chiusa"}
+//   PRIME_ORE              {"oggi", "dopo", "al_giorno"} per le celle, e "voci": [[voce, ore che restano, lezioni
+//                          possibili oggi, in ognuno dei giorni dopo, in tutto], ...]
+//   ORARIO_DELLA_CLASSE    {"celle", "voci": [[voce, ore che restano], ...]}
+//   DOCENTE_SENZA_POSTO    {"classi": [[classe, perche' non lo prende, [[voce, perche', docente], ...]], ...]}: un
+//                          perche' per tutta la classe, oppure ("") uno per ogni sua voce li' che ha ancora ore
+//   CLASSE_SENZA_SCELTE    {"voci": [[voce, perche' non si puo' mettere, il docente di cui si parla], ...],
+//                           "buca": perche' non si puo' mettere l'ora buca}
+// I perche' sono parole: quelle di PercheNo (ricerca.h) in minuscolo, piu' "decisa" (la classe in quest'ora ha gia' la
+// sua scelta), "finite" (non ha piu' ore da fare li'), "senza_lezione" (la classe adesso non puo' avere lezione),
+// "obbligatoria" (e' una delle prime ore) e "restano_ore" (le ore che restano non stanno nei giorni dopo).
+
+static const char *const PERCHE_NO[] = {"", "non_entrato", "altrove", "troppe_classi", "massimo", "interrotto"};
+
+// Perche' la voce v non si puo' mettere adesso nella sua classe: "" se si puo'; in *chi il docente che non puo'.
+static const char *perche_la_voce_no(const Ricerca *r, const int giorno, const int ora, const int v, int *chi) {
+    const Voce *voce = &r->s->voce[v];
+    *chi = -1;
+    if (!r->resto_voce[v]) return "finite";
+    for (int i = 0; i < docenti_della_voce(voce); i++) {
+        const PercheNo perche = perche_non_puo(r, giorno, ora, voce->classe, voce->docente[i]);
+        if (perche != PUO) {
+            *chi = voce->docente[i];
+            return PERCHE_NO[perche];
+        }
+    }
+    return "";
+}
+
+void scrivi_il_conto(FILE *f, const Ricerca *r, const int ora_della_settimana, const Motivo *m) {
+    const Scuola *s = r->s;
+    const int giorno = ora_della_settimana / s->ore, ora = ora_della_settimana % s->ore;
+    const int dopo = s->giorni - 1 - giorno, t = m->docente, k = m->classe;
+    const int da = k >= 0 ? prima_ora_libera(r, giorno, ora, k) : ora;
+    int primo = 1, chi;
+    switch (m->tipo) {
+        case ORE_DOCENTE:
+            fprintf(f, "{\"ingresso\":%d,\"oggi\":%d,\"dopo\":%d,\"al_giorno\":%d}", s->ingresso[t],
+                    MAX(0, s->ore - MAX(ora, s->ingresso[t])), dopo, s->ore - s->ingresso[t]);
+            break;
+        case ORE_DOCENTE_IN_CLASSE: {
+            // perche' oggi puo' cosi' poco: le stesse strade di ancora_oggi
+            const int fatte = da < s->ore ? r->ore_oggi[(giorno * s->classi + k) * s->docenti + t] : 0;
+            const char *perche = "";
+            if (da >= s->ore || r->chiusa[giorno * s->classi + k]) perche = "finita";
+            else if (fatte >= MAX_ORE_DI_SEGUITO) perche = "massimo";
+            else if (fatte && r->occupato[(giorno * s->ore + da) * s->docenti + t]) perche = "altrove";
+            else if (fatte && !presente(r, giorno, da - 1, k, t)) perche = "interrotto";
+            else if (!fatte && r->classi_oggi[giorno * s->docenti + t] >= MAX_CLASSI_AL_GIORNO) perche = "troppe_classi";
+            fprintf(f, "{\"ingresso\":%d,\"oggi\":%d,\"dopo\":%d,\"al_giorno\":%d,\"perche_oggi\":\"%s\"}",
+                    s->ingresso[t], ancora_oggi(r, giorno, da, s->ore - 1, k, t), dopo,
+                    MIN(MAX_ORE_DI_SEGUITO, s->ore - s->ingresso[t]), perche);
+            break;
+        }
+        case ORE_CLASSE: {
+            const int chiusa = r->chiusa[giorno * s->classi + k];
+            fprintf(f, "{\"oggi\":%d,\"dopo\":%d,\"al_giorno\":%d,\"chiusa\":%d}", chiusa ? 0 : s->ore - da, dopo,
+                    s->ore, chiusa);
+            break;
+        }
+        case PRIME_ORE:
+            fprintf(f, "{\"oggi\":%d,\"dopo\":%d,\"al_giorno\":%d,\"voci\":[", MAX(0, m->ora - da + 1), dopo,
+                    m->ora + 1);
+            for (int v = s->prima_voce[k]; v < s->prima_voce[k + 1]; v++) {
+                if (!r->resto_voce[v]) continue;
+                int oggi, al_giorno;
+                const int lezioni = lezioni_nella_fascia(r, giorno, da, m->ora, v, &oggi, &al_giorno);
+                fprintf(f, "%s[%d,%d,%d,%d,%d]", primo ? "" : ",", v, r->resto_voce[v], oggi, al_giorno, lezioni);
+                primo = 0;
+            }
+            fputs("]}", f);
+            break;
+        case ORARIO_DELLA_CLASSE:
+            fprintf(f, "{\"celle\":%d,\"voci\":[",
+                    dopo * s->ore + (r->chiusa[giorno * s->classi + k] ? 0 : s->ore - da));
+            for (int v = s->prima_voce[k]; v < s->prima_voce[k + 1]; v++) {
+                if (!r->resto_voce[v]) continue;
+                fprintf(f, "%s[%d,%d]", primo ? "" : ",", v, r->resto_voce[v]);
+                primo = 0;
+            }
+            fputs("]}", f);
+            break;
+        case DOCENTE_SENZA_POSTO:
+            // ogni sua classe: perche' in quest'ora non lo prende
+            fputs("{\"classi\":[", f);
+            for (int j = 0; j < r->n_classi_di[t]; j++) {
+                const int sua = r->classe_di[t * s->classi + j];
+                // prima i perche' che valgono per tutta la classe; se non ce ne sono, voce per voce
+                const char *perche = "";
+                if (r->orario[cella_di(r, giorno, ora, sua)] != VUOTA) perche = "decisa";
+                else if (!r->resto_in_classe[sua * s->docenti + t]) perche = "finite";
+                else if (ora >= s->obbligatorie && (r->chiusa[giorno * s->classi + sua]
+                                                    || r->resto_classe[sua] <= dopo * s->obbligatorie))
+                    perche = "senza_lezione";
+                fprintf(f, "%s[%d,\"%s\",[", j ? "," : "", sua, perche);
+                primo = 1;
+                for (int v = s->prima_voce[sua]; !*perche && v < s->prima_voce[sua + 1]; v++)
+                    if (r->resto_voce[v] && nella_voce(&s->voce[v], t)) {
+                        const char *della_voce = perche_la_voce_no(r, giorno, ora, v, &chi);
+                        fprintf(f, "%s[%d,\"%s\",%d]", primo ? "" : ",", v, della_voce, chi);
+                        primo = 0;
+                    }
+                fputs("]]", f);
+            }
+            fputs("]}", f);
+            break;
+        case CLASSE_SENZA_SCELTE:
+            fputs("{\"voci\":[", f);
+            for (int v = s->prima_voce[k]; v < s->prima_voce[k + 1]; v++) {
+                if (!r->resto_voce[v]) continue;  // le voci finite non si elencano
+                const char *perche = perche_la_voce_no(r, giorno, ora, v, &chi);
+                fprintf(f, "%s[%d,\"%s\",%d]", primo ? "" : ",", v, perche, chi);
+                primo = 0;
+            }
+            fprintf(f, "],\"buca\":\"%s\"}", ora < s->obbligatorie ? "obbligatoria" : "restano_ore");
+            break;
+        default:
+            fputs("{}", f);
+    }
 }

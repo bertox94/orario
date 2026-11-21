@@ -60,7 +60,8 @@ Serve `gcc`: il sito compila il solver da solo. I suoi file stanno in `sito/lavo
 `SITO_LAVORO`): `prove/` per le prove in tempo reale, `notti/` per i test notturni.
 
 - **Prove in tempo reale**: si sceglie un caso e si guarda la ricerca mentre va; poi la si rivede passo per passo, con
-  l'orario a ogni passo e, dove la ricerca non va avanti, il conto che non torna. «Mostra nell'orario» colora le
+  l'orario a ogni passo e, dove la ricerca non va avanti, il conto che non torna con i pezzi da cui vengono i suoi
+  numeri (quante ore oggi e nei giorni dopo, voce per voce, o perché ogni classe non prende un docente). «Mostra nell'orario» colora le
   celle che il conto ha contato (già fatte, possibili, non possibili, da riempire per forza), con la legenda sopra
   l'orario: le calcola il solver (`orario segni`), con le stesse funzioni che fanno il conto. I tasti «Punto morto»
   saltano da un punto morto all'altro; il profilo mostra tutta la ricerca, e un clic porta a quel punto.
