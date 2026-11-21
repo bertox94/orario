@@ -405,3 +405,33 @@ void scrivi_il_conto(FILE *f, const Ricerca *r, const int ora_della_settimana, c
             fputs("{}", f);
     }
 }
+
+// ---- i conti docente per docente ----
+//
+// Ancora per il sito: a un nodo qualunque, per ogni docente, gli stessi due conti che i limiti fanno su di lui, con
+// i loro numeri, che tornino o no:
+//   [[docente, ore che gli restano, ore in cui e' ancora a scuola e libero,
+//     [[classe, ore che gli restano li', ore che ci puo' ancora fare], ...]], ...]
+// (le classi sono quelle dove ha ancora ore). Un conto non torna quando il primo numero e' piu' grande del secondo.
+void scrivi_i_docenti(FILE *f, const Ricerca *r, const int ora_della_settimana) {
+    const Scuola *s = r->s;
+    const int giorno = ora_della_settimana / s->ore, ora = ora_della_settimana % s->ore;
+    const int dopo = s->giorni - 1 - giorno;
+    fputc('[', f);
+    for (int t = 0; t < s->docenti; t++) {
+        // se in quest'ora e' gia' stato messo in una classe, quest'ora non e' piu' libera: si conta da quella dopo
+        const int occupato = r->occupato[ora_della_settimana * s->docenti + t];
+        fprintf(f, "%s[%d,%d,%d,[", t ? "," : "", t, r->resto_docente[t], ore_libere_da(r, giorno, ora + occupato, t));
+        for (int j = 0, primo = 1; j < r->n_classi_di[t]; j++) {
+            const int k = r->classe_di[t * s->classi + j], restano = r->resto_in_classe[k * s->docenti + t];
+            if (!restano) continue;
+            // lo stesso conto di docente_in_classe
+            const int possibili = dopo * MIN(MAX_ORE_DI_SEGUITO, s->ore - s->ingresso[t])
+                                  + ancora_oggi(r, giorno, prima_ora_libera(r, giorno, ora, k), s->ore - 1, k, t);
+            fprintf(f, "%s[%d,%d,%d]", primo ? "" : ",", k, restano, possibili);
+            primo = 0;
+        }
+        fputs("]]", f);
+    }
+    fputc(']', f);
+}

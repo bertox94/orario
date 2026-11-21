@@ -22,7 +22,7 @@
 
 <h2>La ricerca, passo per passo</h2>
 <div class="passi">
-  <button type="button" class="secondario salto" data-morto="prima" title="Il passo prima di questo da cui la ricerca non va avanti">⏮ Punto morto</button>
+  <button type="button" class="secondario salto" data-morto="prima" title="Il ritorno indietro prima di questo passo">⏮ Ritorno</button>
   <button type="button" class="secondario salto" data-salto="-100">−100</button>
   <button type="button" class="secondario salto" data-salto="-10">−10</button>
   <button type="button" class="secondario" data-salto="-1" title="Il passo prima (←)">◀ Prec.</button>
@@ -30,18 +30,24 @@
   <button type="button" class="secondario" data-salto="1" title="Il passo dopo (→)">Succ. ▶</button>
   <button type="button" class="secondario salto" data-salto="10">+10</button>
   <button type="button" class="secondario salto" data-salto="100">+100</button>
-  <button type="button" class="secondario salto" data-morto="dopo" title="Il passo dopo questo da cui la ricerca non va avanti">Punto morto ⏭</button>
+  <button type="button" class="secondario salto" data-morto="dopo" title="Il ritorno indietro dopo questo passo">Ritorno ⏭</button>
 </div>
+<p id="filtro" class="nota"></p>
 <p id="testo-passo" class="testo-passo"></p>
 <p id="motivo" class="motivo" hidden><span id="testo-motivo"></span>
   <button type="button" class="secondario piccolo" id="mostra-segni" aria-pressed="false">Mostra nell'orario</button></p>
 <p id="conto" class="conto" hidden></p>
 <p id="legenda" class="legenda" hidden></p>
 <div class="scorre"><table class="orario" id="orario"></table></div>
-<p class="nota">In rosa l'ultima scelta; «–» è un'ora buca. Quando da un passo la ricerca non va avanti, sopra l'orario
-  c'è il conto che non torna, con i pezzi da cui vengono i suoi numeri, e la classe di cui parla è segnata; «Mostra
-  nell'orario» colora le celle che il conto ha contato, e resta acceso da un punto morto all'altro. Mentre la prova gira lo slider si allunga e, se è in fondo, la
-  segue.</p>
+<details id="controlli-docenti"><summary>I controlli, docente per docente</summary>
+  <p class="nota" id="ora-dei-controlli"></p>
+  <div class="scorre"><table class="dati" id="tabella-docenti"></table></div>
+</details>
+<p class="nota">In rosa l'ultima scelta; «–» è un'ora buca. Un ritorno indietro è un passo da cui la ricerca non va
+  avanti: sopra l'orario c'è il controllo che non passa, con la sua lettera e i pezzi da cui vengono i suoi numeri, e
+  la classe di cui parla è segnata; «Mostra nell'orario» colora le celle che il controllo ha contato, e resta acceso
+  da un ritorno all'altro. Un clic su una cella sceglie i suoi ritorni: i tasti «Ritorno» saltano solo tra quelli.
+  Mentre la prova gira lo slider si allunga e, se è in fondo, la segue.</p>
 
 <h3>Il profilo della ricerca</h3>
 <canvas id="profilo" height="120" title="Clic: vai a quel punto della ricerca"></canvas>
@@ -54,8 +60,8 @@
 {% block script %}
 <script>
 const URL_STATO = '{{ url_for('stato', n=i.numero) }}', URL_PASSO = '{{ url_for('passo', n=i.numero, k=0)[:-1] }}';
-const URL_MORTO = '{{ url_for('punto_morto', n=i.numero, k=0, verso='dopo')[:-6] }}';  // + k + '/prima' o '/dopo'
-const URL_SEGNI = '{{ url_for('segni', n=i.numero, k=0)[:-1] }}';
+const URL_RITORNO = '{{ url_for('ritorno', n=i.numero, k=0, verso='dopo')[:-6] }}';  // + k + '/prima' o '/dopo'
+const URL_NODO = '{{ url_for('nodo', n=i.numero, k=0)[:-1] }}';
 const URL_PROFILO = '{{ url_for('profilo', n=i.numero) }}';
 const slider = document.getElementById('slider'), tabella = document.getElementById('orario'), tela = document.getElementById('profilo');
 let scuola = null;   // giorni, ore, classi, docenti [nome, ingresso], voci [classe, docente, codocente, ore]
@@ -73,7 +79,10 @@ function mostraStato(s) {
   const esito = s.esito || 'in corso', e = document.getElementById('esito');
   e.textContent = esito;
   e.className = 'esito esito-' + esito.replace(/ /g, '-');
-  document.getElementById('numeri').textContent = `${numero(s.nodi || 0)} nodi, ${(s.secondi || 0).toFixed(1)} s`;
+  document.getElementById('numeri').textContent = `${numero(s.nodi || 0)} nodi, ` +
+    (s.ritorni == null ? '' : `${numero(s.ritorni)} ritorni indietro, `) + `${(s.secondi || 0).toFixed(1)} s`;
+  ritorniPerCella = s.ritorni_per_cella || null;
+  mostraFiltro();
   document.getElementById('ferma').hidden = !s.gira;
   document.getElementById('rifai').disabled = !!s.gira;
   // la prima volta che arriva la scuola: si disegnano la griglia vuota e le tabelle del caso
@@ -85,7 +94,7 @@ function mostraStato(s) {
   // impossibile gia' in partenza: il conto che non torna
   const partenza = document.getElementById('in-partenza');
   partenza.hidden = !s.motivo;
-  if (s.motivo) partenza.textContent = 'Un orario non può esserci, e si vede prima ancora di cercare. ' + spiega(s.motivo);
+  if (s.motivo) partenza.textContent = `Un orario non può esserci, e si vede prima ancora di cercare. ${nomeControllo(s.motivo.tipo)}. ` + spiega(s.motivo);
   if (s.verifica && document.getElementById('verifica').hidden) mostraVerifica(s.verifica);
 }
 
@@ -98,6 +107,19 @@ function mostraVerifica(v) {
     v.controlli.map(([regola, ok, dove]) => `<tr><td class="${ok ? 'si' : 'no'}">${ok ? '✓' : '✗'}</td><td>${esc(regola)}</td>` +
       `<td class="nota">${esc(dove)}</td></tr>`).join('') + '</tbody></table>';
 }
+
+// I controlli, ognuno con la sua lettera e il suo nome. Le lettere seguono l'ordine in cui la ricerca li guarda:
+// A-E sono i conti di solver/limiti.c e classe_sola.c, F e G li trova la ricerca mentre sceglie (solver/ricerca.c).
+const CONTROLLI = {
+  ore_docente: ['A', 'le ore di un docente in tutto'],
+  ore_docente_in_classe: ['B', 'le ore di un docente in una classe'],
+  ore_classe: ['C', 'le celle di una classe'],
+  prime_ore: ['D', 'le lezioni per le prime ore'],
+  orario_della_classe: ['E', 'l\'orario della classe, da sola'],
+  docente_senza_posto: ['F', 'un docente che deve insegnare adesso'],
+  classe_senza_scelte: ['G', 'una classe senza scelte'],
+};
+const nomeControllo = tipo => CONTROLLI[tipo] ? `Controllo ${CONTROLLI[tipo][0]} · ${CONTROLLI[tipo][1]}` : tipo;
 
 // Perche' da un nodo non si va avanti: una frase dal motivo che il solver scrive (solver/ricerca.h, Motivo).
 function spiega(m) {
@@ -176,8 +198,58 @@ function conto(m, c) {
   }[m.tipo]?.() || '';
 }
 
+// ---- i controlli docente per docente (la sezione chiusa sotto l'orario) ----
+// Per ogni docente i due controlli che lo riguardano, con i loro numeri, che passino o no: A, le ore in tutto, e B,
+// le ore in ogni classe dove ne ha ancora. Li calcola il solver (solver/limiti.c, scrivi_i_docenti).
+function mostraDocenti(p) {
+  const sezione = document.getElementById('controlli-docenti');
+  if (!sezione.open || !ultimiSegni || ultimiSegni.k !== p.k) return;
+  const esito = ok => `<span class="${ok ? 'si' : 'no'}">${ok ? '✓' : '✗'}</span>`;
+  document.getElementById('ora-dei-controlli').textContent =
+    `Al passo ${numero(p.k)}, con i conti fatti a ${scuola.giorni[ultimiSegni.giorno]} alle ${scuola.ore[ultimiSegni.ora]}. ` +
+    'Un controllo passa (✓) se le ore che restano non sono più di quelle possibili.';
+  document.getElementById('tabella-docenti').innerHTML = '<thead><tr><th>Docente</th><th>A · le ore in tutto</th>' +
+    '<th>B · le ore in ogni classe (restano / può ancora farne)</th></tr></thead><tbody>' +
+    ultimiSegni.docenti.map(([t, restano, libere, classi]) =>
+      `<tr class="${p.motivo && p.motivo.docente === t ? 'in-causa' : ''}"><th>${esc(scuola.docenti[t][0])}</th>` +
+      `<td>${esito(restano <= libere)} restano ${restano}, a scuola e libero per ${libere}</td><td>` +
+      (classi.map(([k, r, puo]) => `<span class="voce">${esito(r <= puo)} ${esc(scuola.classi[k])} ${r} / ${puo}</span>`).join(' ') ||
+        '<span class="nota">ha finito</span>') + '</td></tr>').join('') + '</tbody>';
+}
+document.getElementById('controlli-docenti').addEventListener('toggle', e => {
+  if (!e.target.open || !ultimoPasso) return;
+  if (ultimiSegni && ultimiSegni.k === ultimoPasso.k) mostraDocenti(ultimoPasso); else chiediNodo(ultimoPasso);
+});
+
+// ---- i ritorni di una cella ----
+// Un clic su una cella dell'orario la sceglie (un altro clic la lascia): i tasti «Ritorno» saltano solo ai ritorni
+// indietro arrivati subito dopo una scelta in quella cella, e sopra l'orario c'e' scritto quanti sono. I numeri per
+// cella li conta il solver (nello stato: ritorni_per_cella).
+let cellaScelta = null, ritorniPerCella = null;
+function mostraFiltro() {
+  const box = document.getElementById('filtro');
+  if (!scuola) return;
+  for (const td of tabella.querySelectorAll('td.scelta')) td.classList.remove('scelta');
+  if (cellaScelta === null) {
+    box.textContent = ritorniPerCella ? 'Clic su una cella dell\'orario: i tasti «Ritorno» saltano solo ai suoi ritorni indietro.' : '';
+    return;
+  }
+  const C = scuola.classi.length, quanti = ritorniPerCella ? ritorniPerCella[cellaScelta] : null;
+  tabella.tBodies[0].rows[cellaScelta % C].cells[1 + Math.floor(cellaScelta / C)].classList.add('scelta');
+  box.innerHTML = `Solo i ritorni di <strong>${esc(dove(cellaScelta))}</strong>` + (quanti === null ? '' : `: sono <strong>${numero(quanti)}</strong>`) +
+    ' <button type="button" class="secondario piccolo" id="tutti-i-ritorni">Tutti i ritorni</button>';
+  document.getElementById('tutti-i-ritorni').addEventListener('click', () => { cellaScelta = null; mostraFiltro(); });
+}
+tabella.addEventListener('click', e => {
+  const td = e.target.closest('tbody td');
+  if (!td) return;
+  const cella = (td.cellIndex - 1) * scuola.classi.length + td.parentElement.sectionRowIndex;
+  cellaScelta = cellaScelta === cella ? null : cella;
+  mostraFiltro();
+});
+
 let segniAccesi = false;    // il tasto resta acceso da un passo all'altro
-let ultimiSegni = null;     // quello che il solver ha detto del passo che si sta guardando: {k, giorno, ora, segni, conto}
+let ultimiSegni = null;     // quello che il solver ha detto del passo che si sta guardando: {k, giorno, ora, segni, conto, docenti}
 const tastoSegni = document.getElementById('mostra-segni');
 function togliSegni() {
   for (const td of tabella.querySelectorAll('td.segno')) td.classList.remove('segno', 'segno-fatta', 'segno-puo', 'segno-no', 'segno-serve');
@@ -195,12 +267,15 @@ function coloraSegni(p, s) {
   box.innerHTML = ['fatta', 'puo', 'serve', 'no'].filter(x => visti.has(x) && testi[x]).map(x => `<span class="voce-legenda"><i class="segno segno-${x}"></i>${testi[x]}</span>`).join(' ');
   box.hidden = false;
 }
-// Per un passo con un motivo: chiede al solver il conto in dettaglio e i segni. Il conto si mostra sempre; le celle
-// si colorano se il tasto e' acceso.
-async function mostraConto(p) {
-  const r = await fetch(URL_SEGNI + p.k);
+// Chiede al solver quello che c'e' da dire del passo p: i controlli di ogni docente e, se c'e' un motivo, il conto
+// in dettaglio e i segni. Il conto si mostra sempre; le celle si colorano se il tasto e' acceso; la tabella dei
+// docenti si riempie se la sua sezione e' aperta.
+async function chiediNodo(p) {
+  const r = await fetch(URL_NODO + p.k);
   if (!r.ok || richiesto !== p.k) return;   // nel frattempo si e' cambiato passo
   ultimiSegni = Object.assign(await r.json(), {k: p.k});
+  mostraDocenti(p);
+  if (!p.motivo) return;
   const box = document.getElementById('conto');
   box.innerHTML = `<span class="nota">Il conto, fatto a ${esc(scuola.giorni[ultimiSegni.giorno])} alle ${esc(scuola.ore[ultimiSegni.ora])}.</span> ` + conto(p.motivo, ultimiSegni.conto);
   box.hidden = false;
@@ -245,8 +320,8 @@ function disegnaPasso(p) {
     (p.profondita === celle ? 'orario completo' : `${numero(p.profondita)} celle decise su ${numero(celle)}`);
   const motivo = document.getElementById('motivo');
   motivo.hidden = !p.motivo;
-  if (p.motivo) document.getElementById('testo-motivo').textContent = 'Da qui la ricerca non va avanti. ' + spiega(p.motivo);
-  if (p.motivo) mostraConto(p);
+  if (p.motivo) document.getElementById('testo-motivo').innerHTML = `<strong>${esc(nomeControllo(p.motivo.tipo))}</strong> non passa. ` + esc(spiega(p.motivo));
+  if (p.motivo || document.getElementById('controlli-docenti').open) chiediNodo(p);
   // l'ultima scelta in vista: il riquadro scorre di lato fino a quell'ora
   const td = p.cella >= 0 && righe[p.cella % C].cells[1 + Math.floor(p.cella / C)];
   if (td) {
@@ -273,7 +348,7 @@ for (const b of document.querySelectorAll('button[data-salto]'))
   b.addEventListener('click', () => vai(Number(slider.value) + Number(b.dataset.salto)));
 for (const b of document.querySelectorAll('button[data-morto]'))
   b.addEventListener('click', async () => {
-    const r = await (await fetch(URL_MORTO + slider.value + '/' + b.dataset.morto)).json();
+    const r = await (await fetch(URL_RITORNO + slider.value + '/' + b.dataset.morto + (cellaScelta === null ? '' : '?cella=' + cellaScelta))).json();
     if (r.k) vai(r.k);
   });
 document.addEventListener('keydown', e => {

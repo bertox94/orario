@@ -15,7 +15,7 @@ di Alb). Il programma di prima (solver con le potature, sito con Postgres, test 
   scartano i rami senza orario), `verifica` (l'orario ricontrollato da capo), `passi` (ogni nodo su file), `main`.
 - `sito/` (Flask, senza login né database): prove in tempo reale (`prove.py`, `passi.py`) e test notturni
   (`notturni.py`). Mostra soltanto: casi e ricerca sono del solver. Nella pagina della prova «Mostra nell'orario»
-  colora le celle di cui parla un limite: le calcola il solver (`orario segni`, `solver/limiti.c` in fondo). Un
+  colora le celle di cui parla un limite: le calcola il solver (`orario nodo`, `solver/limiti.c` in fondo). Un
   limite nuovo va anche lì, e nelle frasi e nella legenda di `sito/templates/prova.html` (`spiega`, `legenda`).
 - `prove/prova.py`: la prova automatica (esito, nodi e verifica su 52 casi).
 - `bf_search/`: SQL di Alb, da non toccare senza chiedere.

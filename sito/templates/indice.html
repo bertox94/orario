@@ -16,7 +16,8 @@
 </form>
 <p class="nota">Il seme decide il caso: stesso seme, stesse classi e stessa scelta sui ritardi danno sempre la stessa scuola.
   Con i ritardi alcuni docenti entrano dopo la prima ora, e un orario può non esserci. La ricerca si ferma all'orario
-  completo, quando dimostra che non c'è, o dopo il numero di nodi scelto. Una prova alla volta.
+  completo, quando dimostra che non c'è, o dopo il numero di nodi scelto (al massimo {{ max_milioni|numero }} milioni). Ogni nodo si
+  registra, per rivederlo: 19 MB sul disco per ogni milione di nodi. Una prova alla volta.
   {% if in_corso %}Adesso gira la <a href="{{ url_for('prova', n=in_corso) }}">prova {{ in_corso }}</a>.{% endif %}</p>
 
 <h2>Le prove fatte</h2>

@@ -7,7 +7,8 @@ from flask import Flask, abort, flash, jsonify, redirect, render_template, reque
 
 from . import notturni, passi, prove
 
-MAX_MILIONI = 10          # il limite di nodi di una prova: ogni nodo si registra
+MAX_MILIONI = 1000        # il limite di nodi di una prova (richiesta di Alb). Ogni nodo si registra: 19 MB per
+                          # milione, quindi 19 GB per mille milioni; prove.avvia controlla che il disco basti
 MAX_MILIONI_NOTTURNI = 100
 MAX_CASI_PER_VOLTA = 2000
 
@@ -76,22 +77,23 @@ def crea_app():
             abort(404)
         return jsonify(x)
 
-    @app.route('/prova/<int:n>/segni/<int:k>')
-    def segni(n, k):
-        """Il conto per cui dal nodo k non si va avanti, in dettaglio, e le celle di cui parla (il tasto «Mostra
-        nell'orario»)."""
-        x = prove.segni(n, k)
+    @app.route('/prova/<int:n>/nodo/<int:k>')
+    def nodo(n, k):
+        """Quello che il solver dice del nodo k: i conti di ogni docente e, se da li' non si va avanti, il conto
+        che non torna in dettaglio e le celle di cui parla (il tasto «Mostra nell'orario»)."""
+        x = prove.nodo(n, k)
         if not x:
             abort(404)
         return jsonify(x)
 
-    @app.route('/prova/<int:n>/punto-morto/<int:k>/<verso>')
-    def punto_morto(n, k, verso):
-        """Il primo nodo dopo k (verso «dopo») o prima da cui la ricerca non va avanti: {"k": ...}, null se non
-        c'e'."""
+    @app.route('/prova/<int:n>/ritorno/<int:k>/<verso>')
+    def ritorno(n, k, verso):
+        """Il primo ritorno indietro dopo il nodo k (verso «dopo») o prima: {"k": ...}, null se non c'e'. Con
+        ?cella=N solo i ritorni di quella cella."""
         if verso not in ('prima', 'dopo') or not prove.prova(n):
             abort(404)
-        return jsonify({'k': passi.punto_morto(prove.file_dei_passi(n), k, verso == 'dopo')})
+        cella = request.args.get('cella', type=int)
+        return jsonify({'k': passi.ritorno(prove.file_dei_passi(n), k, verso == 'dopo', cella)})
 
     @app.route('/prova/<int:n>/profilo.json')
     def profilo(n):

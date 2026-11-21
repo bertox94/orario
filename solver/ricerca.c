@@ -37,10 +37,11 @@ Ricerca *nuova_ricerca(const Scuola *s) {
     r->visto = calloc(T, sizeof(long long));
     r->posto = malloc(sizeof(int) * 2 * s->voci);
     r->ricordo = calloc(RICORDI, sizeof(Ricordo));
+    r->ritorni_in = calloc(r->celle, sizeof(long long));
     // se anche una sola manca si libera tutto (libera_ricerca accetta i puntatori vuoti)
     if (!r->orario || !r->resto_voce || !r->resto_classe || !r->resto_docente || !r->resto_in_classe || !r->occupato
         || !r->ore_oggi || !r->classi_oggi || !r->chiusa || !r->docente_di || !r->n_docenti_di || !r->classe_di
-        || !r->n_classi_di || !r->deve || !r->margine || !r->visto || !r->posto || !r->ricordo) {
+        || !r->n_classi_di || !r->deve || !r->margine || !r->visto || !r->posto || !r->ricordo || !r->ritorni_in) {
         libera_ricerca(r);
         return NULL;
     }
@@ -80,6 +81,7 @@ void libera_ricerca(Ricerca *r) {
     free(r->occupato), free(r->ore_oggi), free(r->classi_oggi), free(r->chiusa);
     free(r->docente_di), free(r->n_docenti_di), free(r->classe_di), free(r->n_classi_di);
     free(r->deve), free(r->margine), free(r->visto), free(r->posto), free(r->ricordo);
+    free(r->ritorni_in);
     free(r);
 }
 
@@ -262,6 +264,11 @@ static void nodo(Ricerca *r, const int profondita, const int cella, const int vo
     else if ((cella < 0 || limiti_dopo_la_scelta(r, cella, &m))
              && (profondita % s->classi || limiti_a_inizio_ora(r, giorno, ora, &m)))
         n_scelte = scegli_la_classe(r, giorno, ora, &classe, scelte, &m);
+    // un conto non torna: e' un ritorno indietro, contato in tutto e per la cella dell'ultima scelta
+    if (m.tipo != NESSUNO) {
+        r->ritorni++;
+        if (cella >= 0) r->ritorni_in[cella]++;
+    }
     // chi segue la ricerca (i passi su file, lo stato) viene avvisato a ogni nodo, anche quando non si va avanti
     if (r->a_ogni_nodo) r->a_ogni_nodo(r, profondita, cella, voce, &m);
     if (!profondita) r->motivo_radice = m;  // alla radice: se non si va avanti, un orario non c'e' in partenza

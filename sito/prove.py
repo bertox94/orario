@@ -8,6 +8,8 @@ import time
 
 from . import archivio, passi, solver
 
+BYTE_PER_NODO = 19                  # 18 il record del nodo, il resto istantanee e profilo (solver/passi.h)
+SPAZIO_DA_LASCIARE = 500 * 1000000  # i byte che sul disco devono restare liberi comunque
 _lock = threading.Lock()                         # le richieste arrivano da piu' fili insieme: una alla volta qui
 _in_corso = {'numero': None, 'processo': None}   # la prova che sta girando e il processo del solver
 
@@ -33,6 +35,14 @@ def avvia(seme, classi, ritardi, limite):
         p = _in_corso['processo']
         if p is not None and p.poll() is None:
             raise ValueError('C\'è già una prova in corso: aspetta che finisca, o fermala.')
+        # Ogni nodo si scrive su file (BYTE_PER_NODO l'uno, con istantanee e profilo): se il disco non basta per
+        # tutti i nodi del limite, meglio dirlo subito che riempirlo.
+        os.makedirs(_cartella(), exist_ok=True)
+        servono, liberi = limite * BYTE_PER_NODO, shutil.disk_usage(_cartella()).free
+        if servono > liberi - SPAZIO_DA_LASCIARE:
+            raise ValueError('Per registrare %s nodi servono %.1f GB, e sul disco ce ne sono %.1f liberi: scegli un '
+                             'limite più basso, o elimina delle prove.'
+                             % ('{:,}'.format(limite).replace(',', '.'), servono / 1e9, liberi / 1e9))
         numero = max(archivio.numeri(_cartella()), default=0) + 1   # il numero dopo l'ultimo
         d = _cartella(numero)
         os.makedirs(d)
@@ -74,13 +84,12 @@ def prova(numero):
     return {'info': info, 'stato': dict(stato, gira=gira, passi=passi.quanti(file_dei_passi(numero)))}
 
 
-def segni(numero, k):
-    """Le celle di cui parla il conto per cui dal nodo k la ricerca non va avanti, e il conto in dettaglio
-    (solver.segni). None se la prova o
-    il nodo non ci sono, o se da li' si va avanti."""
+def nodo(numero, k):
+    """Quello che il solver dice del nodo k (solver.nodo): i conti di ogni docente e, se da li' la ricerca non va
+    avanti, il conto che non torna in dettaglio e le sue celle. None se la prova o il nodo non ci sono."""
     p = prova(numero)
-    nodo = p and passi.nodo_per_i_segni(file_dei_passi(numero), k, p['stato'].get('celle', 0))
-    return solver.segni(os.path.join(_cartella(numero), 'caso.txt'), nodo) if nodo else None
+    x = p and passi.nodo_per_il_solver(file_dei_passi(numero), k, p['stato'].get('celle', 0))
+    return solver.nodo(os.path.join(_cartella(numero), 'caso.txt'), x) if x else None
 
 
 def tutte():

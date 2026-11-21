@@ -6,17 +6,19 @@
 //       cerca un orario per il caso (ricerca.h) e ne scrive lo stato, in JSON: su stdout alla fine, oppure in FILE
 //       ogni mezzo secondo e alla fine (scritto a parte e poi rinominato: chi legge trova sempre un JSON intero).
 //       --limite: dopo tanti nodi si ferma; --passi: scrive ogni nodo della ricerca (passi.h)
-//   orario segni CASO
-//       per il sito: le celle di cui parla il conto per cui da un nodo la ricerca non va avanti. Il nodo arriva su
-//       stdin, tutto in numeri: il motivo (tipo, docente, classe, ora, servono, possibili: i campi di un record dei
-//       passi), quante celle sono decise, e per ognuna, nell'ordine in cui sono state decise, la cella e la voce
-//       (-1: ora buca). Scrive su stdout {"giorno": G, "ora": O, "segni": [[cella, segno], ...], "conto": {...}}:
-//       l'ora a cui il conto e' stato fatto, per ogni cella segnata 1 fatta, 2 puo', 3 no, 4 serve (ricerca.h,
-//       SEGNO_), e il conto in dettaglio (limiti.c, in fondo).
+//   orario nodo CASO
+//       per il sito: quello che c'e' da dire di un nodo della ricerca. Il nodo arriva su stdin, tutto in numeri: il
+//       motivo per cui da li' non si va avanti (tipo, docente, classe, ora, servono, possibili: i campi di un record
+//       dei passi; tipo 0 se si va avanti), quante celle sono decise, e per ognuna, nell'ordine in cui sono state
+//       decise, la cella e la voce (-1: ora buca). Scrive su stdout
+//       {"giorno": G, "ora": O, "segni": [[cella, segno], ...], "conto": {...}, "docenti": [...]}:
+//       l'ora a cui i conti sono fatti; per ogni cella di cui il motivo parla 1 fatta, 2 puo', 3 no, 4 serve
+//       (ricerca.h, SEGNO_); il conto del motivo in dettaglio; e i conti di ogni docente (limiti.c, in fondo).
 //
 // Lo stato:
 //   {"in_corso": 0 | 1, "esito": "in corso" | "trovato" | "impossibile" | "limite di nodi",
 //    "nodi": N, "secondi": S, "profondita_massima": P, "celle": C,
+//    "ritorni": R, "ritorni_per_cella": [...]   i ritorni indietro, in tutto e per cella (ricerca.h)
 //    "scuola": {"giorni": [...], "ore": [...], "classi": [...], "obbligatorie": M, "ore_di_seguito": N, "classi_al_giorno": N,
 //               "docenti": [[nome, ingresso], ...], "voci": [[classe, docente, codocente | -1, ore], ...]},
 //    "motivo": {...}              con «impossibile» gia' in partenza: il conto che non torna (ricerca.h, Motivo)
@@ -66,8 +68,10 @@ static void json_nomi(FILE *f, const char *chiave, const char nomi[][MAX_NOME], 
 static void scrivi_stato(FILE *f, const Ricerca *r, const double secondi) {
     const Scuola *s = r->s;
     fprintf(f, "{\"in_corso\":%d,\"esito\":\"%s\",\"nodi\":%lld,\"secondi\":%.2f,\"profondita_massima\":%d,"
-            "\"celle\":%d,\"scuola\":{", r->esito == IN_CORSO, ESITI[r->esito], r->nodi, secondi,
-            r->profondita_massima, r->celle);
+            "\"celle\":%d,\"ritorni\":%lld,\"ritorni_per_cella\":[", r->esito == IN_CORSO, ESITI[r->esito], r->nodi,
+            secondi, r->profondita_massima, r->celle, r->ritorni);
+    for (int i = 0; i < r->celle; i++) fprintf(f, "%s%lld", i ? "," : "", r->ritorni_in[i]);
+    fputs("],\"scuola\":{", f);
     json_nomi(f, "giorni", s->nome_giorno, s->giorni);
     json_nomi(f, "ore", s->nome_ora, s->ore);
     json_nomi(f, "classi", s->nome_classe, s->classi);
@@ -142,11 +146,12 @@ static void segui(const Ricerca *r, const int profondita, const int cella, const
     stato_su_file(x, r);
 }
 
-// ---- i segni di un nodo, per il sito ----
+// ---- un nodo, per il sito ----
 
 // Rimette l'orario com'era al nodo che arriva su stdin (una scelta dopo l'altra, con la stessa segna della ricerca)
-// e scrive le celle di cui parla il suo motivo. 0, o 2 se quello che arriva non e' un nodo di questo caso.
-static int segni(const Scuola *s) {
+// e scrive le celle di cui parla il suo motivo, il conto in dettaglio e i conti di ogni docente. 0, o 2 se quello
+// che arriva non e' un nodo di questo caso.
+static int nodo(const Scuola *s) {
     Ricerca *r = nuova_ricerca(s);
     signed char *segno = r ? malloc(r->celle) : NULL;
     int tipo, profondita, cella = -1;
@@ -174,8 +179,10 @@ static int segni(const Scuola *s) {
     printf("{\"giorno\":%d,\"ora\":%d,\"segni\":[", ora_della_settimana / s->ore, ora_della_settimana % s->ore);
     for (int i = 0, primo = 1; i < r->celle; i++)
         if (segno[i]) printf("%s[%d,%d]", primo ? "" : ",", i, segno[i]), primo = 0;
-    fputs("],\"conto\":", stdout);  // e i pezzi da cui vengono i due numeri del conto
+    fputs("],\"conto\":", stdout);  // i pezzi da cui vengono i due numeri del conto
     scrivi_il_conto(stdout, r, ora_della_settimana, &m);
+    fputs(",\"docenti\":", stdout);  // e i conti di ogni docente
+    scrivi_i_docenti(stdout, r, ora_della_settimana);
     puts("}");
     free(segno);
     libera_ricerca(r);
@@ -184,15 +191,15 @@ static int segni(const Scuola *s) {
 
 static int usa(const char *programma) {
     fprintf(stderr, "Uso:\n  %s genera SEME CLASSI RITARDI\n  %s risolvi CASO [--limite NODI] [--stato FILE] "
-            "[--passi FILE]\n  %s segni CASO < NODO\n", programma, programma, programma);
+            "[--passi FILE]\n  %s nodo CASO < NODO\n", programma, programma, programma);
     return 2;
 }
 
 int main(const int argc, char **argv) {
     if (argc == 5 && !strcmp(argv[1], "genera"))
         return genera_caso(stdout, strtoull(argv[2], NULL, 10), atoi(argv[3]), atoi(argv[4])) ? 0 : 2;
-    const int vuole_i_segni = argc == 3 && !strcmp(argv[1], "segni");
-    if (!vuole_i_segni && (argc < 3 || strcmp(argv[1], "risolvi"))) return usa(argv[0]);
+    const int vuole_un_nodo = argc == 3 && !strcmp(argv[1], "nodo");
+    if (!vuole_un_nodo && (argc < 3 || strcmp(argv[1], "risolvi"))) return usa(argv[0]);
     // le opzioni di «risolvi»: ognuna con il suo valore dopo
     const char *file_stato = NULL, *file_passi = NULL;
     long long limite = 0;
@@ -209,8 +216,8 @@ int main(const int argc, char **argv) {
         fprintf(stderr, "%s\n", errore);
         return 2;
     }
-    if (vuole_i_segni) {
-        const int uscita = segni(s);
+    if (vuole_un_nodo) {
+        const int uscita = nodo(s);
         free(s);
         return uscita;
     }

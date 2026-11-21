@@ -16,13 +16,17 @@
 // FILE.ist: ogni PASSI_ISTANTANEA nodi, tutta la strada di quel nodo: la profondita, poi per ogni cella dell'orario
 // una coppia (cella, voce), le prime `profondita` nell'ordine in cui sono state decise (le altre non contano). Da li'
 // un nodo qualunque si ricostruisce applicando al massimo PASSI_ISTANTANEA record.
+//
+// FILE.prof: il profilo della ricerca, per disegnarla tutta senza rileggere ogni nodo: ogni PASSI_BLOCCO nodi una
+// coppia di interi a 16 bit, la profondita piu' bassa e la piu' alta di quei nodi.
 
 #define PASSI_CAMPI 9
 #define PASSI_ISTANTANEA 16384
+#define PASSI_BLOCCO 256  // un divisore di PASSI_ISTANTANEA: a ogni istantanea anche il profilo e' scritto fin li'
 
 typedef struct Passi Passi;
 
-// Apre i due file per un orario di `celle` celle (NULL se non ci riesce); passi_nodo aggiunge il nodo numero
+// Apre i tre file per un orario di `celle` celle (NULL se non ci riesce); passi_nodo aggiunge il nodo numero
 // `nodo` (da 1), con quello che la ricerca dice a ogni nodo (ricerca.h, a_ogni_nodo); passi_chiudi chiude.
 Passi *passi_apri(const char *percorso, int celle);
 void passi_nodo(Passi *p, long long nodo, int profondita, int cella, int voce, const Motivo *motivo);

@@ -109,6 +109,9 @@ struct Ricerca {
     Esito esito;
     long long nodi, limite;  // i nodi visitati; dopo `limite` nodi la ricerca si ferma (0: mai)
     int profondita_massima;  // il massimo di celle decise insieme
+    // I ritorni indietro: i nodi da cui non si va avanti perche' un conto non torna. Quanti in tutto, e quanti per
+    // cella: [cella] conta quelli arrivati subito dopo una scelta messa in quella cella. Solo numeri da mostrare.
+    long long ritorni, *ritorni_in;
     Motivo motivo_radice;    // se non c'e' nessun orario gia' in partenza: il conto che non torna
 
     // se c'e', si chiama a ogni nodo: `profondita` celle decise, l'ultima e' `cella` con dentro `voce` (alla radice
@@ -169,6 +172,9 @@ int ore_libere_da(const Ricerca *r, int giorno, int da, int t);
 // per ogni cella 0 o un SEGNO_. L'orario di r deve essere quello del nodo: `profondita` celle decise, l'ultima e'
 // `cella` (-1 alla radice). Ritorna l'ora della settimana (giorno * ore + ora) a cui il conto e' stato fatto.
 int segni_del_nodo(const Ricerca *r, int profondita, int cella, const Motivo *motivo, signed char *segni);
+// I conti di ogni docente a un nodo, in JSON su `f` (limiti.c, in fondo): le ore in tutto e in ogni sua classe, che
+// tornino o no. Per il sito, che li mostra docente per docente.
+void scrivi_i_docenti(FILE *f, const Ricerca *r, int ora_della_settimana);
 // Il conto del motivo in dettaglio, in JSON su `f` (limiti.c, in fondo): i pezzi da cui vengono i suoi due numeri.
 // Come per i segni, l'orario di r deve essere quello del nodo, e l'ora e' quella che segni_del_nodo ritorna.
 void scrivi_il_conto(FILE *f, const Ricerca *r, int ora_della_settimana, const Motivo *motivo);

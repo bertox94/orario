@@ -41,11 +41,12 @@ def genera(seme, classi, ritardi, file):
 SEGNI = (None, 'fatta', 'puo', 'no', 'serve')   # i numeri dei segni (solver/ricerca.h, SEGNO_)
 
 
-def segni(caso, nodo):
-    """Le celle di cui parla il conto che non torna in un nodo, e il conto in dettaglio:
-    {"giorno", "ora", "segni": [[cella, nome], ...], "conto": {...}} (solver/main.c, il comando «segni»).
-    `nodo` e' il testo di passi.nodo_per_i_segni. None se il solver non lo accetta."""
-    r = subprocess.run([programma(), 'segni', caso], input=nodo, capture_output=True, text=True)
+def nodo(caso, nodo):
+    """Quello che il solver dice di un nodo (solver/main.c, il comando «nodo»): le celle di cui parla il conto che
+    non torna, il conto in dettaglio, e i conti di ogni docente:
+    {"giorno", "ora", "segni": [[cella, nome], ...], "conto": {...}, "docenti": [...]}.
+    `nodo` e' il testo di passi.nodo_per_il_solver. None se il solver non lo accetta."""
+    r = subprocess.run([programma(), 'nodo', caso], input=nodo, capture_output=True, text=True)
     if r.returncode:
         return None
     x = json.loads(r.stdout)

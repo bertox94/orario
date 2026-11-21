@@ -5,7 +5,8 @@
 #include <stdlib.h>
 
 struct Passi {
-    FILE *passi, *istantanee;
+    FILE *passi, *istantanee, *profilo;
+    int16_t bassa, alta;  // la profondita piu' bassa e la piu' alta del blocco di nodi che si sta riempiendo
     int16_t *strada;  // la strada del nodo dove si e': strada[0] la profondita, poi le coppie (cella, voce)
     int celle;
 };
@@ -21,23 +22,34 @@ void passi_nodo(Passi *p, const long long nodo, const int profondita, const int 
     fwrite(record, sizeof record, 1, p->passi);
     p->strada[0] = (int16_t) profondita;
     if (profondita) p->strada[2 * profondita - 1] = (int16_t) cella, p->strada[2 * profondita] = (int16_t) voce;
+    // il profilo: il primo nodo di un blocco comincia il conto, l'ultimo lo scrive
+    if (nodo % PASSI_BLOCCO == 1 || profondita < p->bassa) p->bassa = (int16_t) profondita;
+    if (nodo % PASSI_BLOCCO == 1 || profondita > p->alta) p->alta = (int16_t) profondita;
+    if (nodo % PASSI_BLOCCO == 0) {
+        const int16_t blocco[2] = {p->bassa, p->alta};
+        fwrite(blocco, sizeof blocco, 1, p->profilo);
+    }
     if (nodo % PASSI_ISTANTANEA) return;  // non e' il momento dell'istantanea
     fwrite(p->strada, sizeof(int16_t), 1 + 2 * p->celle, p->istantanee);
     fflush(p->passi);  // il sito legge mentre la ricerca va avanti: fino a qui tutto scritto
     fflush(p->istantanee);
+    fflush(p->profilo);
 }
 
-// Apre il file dei passi e, accanto, quello delle istantanee (lo stesso nome con .ist in fondo).
+// Apre il file dei passi e, accanto, quelli delle istantanee e del profilo (lo stesso nome con .ist e .prof in
+// fondo).
 Passi *passi_apri(const char *percorso, const int celle) {
-    char istantanee[1024];
+    char istantanee[1024], profilo[1024];
     snprintf(istantanee, sizeof istantanee, "%s.ist", percorso);
+    snprintf(profilo, sizeof profilo, "%s.prof", percorso);
     Passi *p = calloc(1, sizeof(Passi));
     if (!p) return NULL;
     p->passi = fopen(percorso, "wb");
     p->istantanee = fopen(istantanee, "wb");
+    p->profilo = fopen(profilo, "wb");
     p->strada = calloc(1 + 2 * celle, sizeof(int16_t));
     p->celle = celle;
-    if (!p->passi || !p->istantanee || !p->strada) {
+    if (!p->passi || !p->istantanee || !p->profilo || !p->strada) {
         passi_chiudi(p);
         return NULL;
     }
@@ -48,6 +60,7 @@ void passi_chiudi(Passi *p) {
     if (!p) return;
     if (p->passi) fclose(p->passi);
     if (p->istantanee) fclose(p->istantanee);
+    if (p->profilo) fclose(p->profilo);
     free(p->strada);
     free(p);
 }

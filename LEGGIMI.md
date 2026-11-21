@@ -63,8 +63,10 @@ Serve `gcc`: il sito compila il solver da solo. I suoi file stanno in `sito/lavo
   l'orario a ogni passo e, dove la ricerca non va avanti, il conto che non torna con i pezzi da cui vengono i suoi
   numeri (quante ore oggi e nei giorni dopo, voce per voce, o perché ogni classe non prende un docente). «Mostra nell'orario» colora le
   celle che il conto ha contato (già fatte, possibili, non possibili, da riempire per forza), con la legenda sopra
-  l'orario: le calcola il solver (`orario segni`), con le stesse funzioni che fanno il conto. I tasti «Punto morto»
-  saltano da un punto morto all'altro; il profilo mostra tutta la ricerca, e un clic porta a quel punto.
+  l'orario: le calcola il solver (`orario nodo`), con le stesse funzioni che fanno il conto. I tasti «Ritorno» saltano da un ritorno indietro all'altro; un clic su una cella dell'orario sceglie solo
+  i suoi ritorni, e dice quanti sono. Ogni controllo ha una lettera (da A a G) e un nome; la sezione «I controlli,
+  docente per docente», chiusa finché non la si apre, mostra per ogni docente i numeri dei suoi controlli a quel
+  passo. Una prova può arrivare a 1000 milioni di nodi (19 MB di disco per milione: il sito controlla che bastino); il profilo mostra tutta la ricerca, e un clic porta a quel punto.
 - **Test notturni**: un elenco di casi rieseguiti in un giro, con un limite di nodi unico; il giro può partire da solo
   ogni notte. «I cambiamenti» mostra, una tabella per tipo, i casi il cui risultato non è più quello di cui si è
   presa visione; «Visto» lo conferma.

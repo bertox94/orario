@@ -70,59 +70,85 @@ def passo(file, k, celle):
     return {'k': k, 'profondita': profondita, 'cella': cella, 'voce': voce, 'motivo': motivo or None, 'orario': orario}
 
 
-def nodo_per_i_segni(file, k, celle):
-    """Il nodo k come lo vuole il comando «segni» del solver (solver/main.c), tutto in numeri: il motivo, quante
-    celle sono decise, e le scelte in ordine. None se il nodo non c'e' o da li' la ricerca va avanti (nessun
-    motivo)."""
+def nodo_per_il_solver(file, k, celle):
+    """Il nodo k come lo vuole il comando «nodo» del solver (solver/main.c), tutto in numeri: il motivo (tipo 0 se
+    da li' si va avanti), quante celle sono decise, e le scelte in ordine. None se il nodo non c'e'."""
     x = _strada(file, k, celle)
-    if not x or not x[1][3]:
+    if not x:
         return None
     strada, record = x
     return ' '.join(str(n) for n in record[3:] + [len(strada)] + [n for scelta in strada for n in scelta])
 
 
-def punto_morto(file, k, avanti):
-    """Il primo nodo dopo k (o prima, se non avanti) da cui la ricerca non va avanti, cioe' con un motivo. None se
-    non ce ne sono."""
-    n, pezzo = quanti(file), 65536   # si legge a pezzi di tanti nodi, guardando solo il campo «tipo» di ognuno
+def ritorno(file, k, avanti, cella=None):
+    """Il primo ritorno indietro dopo il nodo k (o prima, se non avanti): un nodo da cui la ricerca non va avanti,
+    cioe' con un motivo. Con `cella`, solo quelli arrivati subito dopo una scelta in quella cella. None se non ce ne
+    sono."""
+    n, pezzo = quanti(file), 65536   # si legge a pezzi di tanti nodi, guardando solo i campi che servono
     with open(file, 'rb') as f:
         j = k + 1 if avanti else k - 1
         while 1 <= j <= n:
             da, a = (j, min(j + pezzo - 1, n)) if avanti else (max(1, j - pezzo + 1), j)
-            tipi = _record(f, da, a)[3::CAMPI]
-            for i in (range(len(tipi)) if avanti else range(len(tipi) - 1, -1, -1)):
-                if tipi[i]:
-                    return da + i
+            r = _record(f, da, a)
+            tipi = r[3::CAMPI]
+            if cella is None:
+                buoni = [i for i in range(len(tipi)) if tipi[i]]
+            else:
+                # prima i nodi di quella cella (array.index li cerca in fretta), poi tra quelli chi ha un motivo
+                celle_dei_nodi, buoni, i = r[1::CAMPI], [], 0
+                while True:
+                    try:
+                        i = celle_dei_nodi.index(cella, i)
+                    except ValueError:
+                        break
+                    if tipi[i]:
+                        buoni.append(i)
+                    i += 1
+            if buoni:
+                return da + (buoni[0] if avanti else buoni[-1])
             j = a + 1 if avanti else da - 1
     return None
 
 
-_BLOCCO = 256    # il profilo si tiene a blocchi di tanti nodi: (profondita minima, massima) di ogni blocco intero
-_profili, _lock = {}, threading.Lock()
+_BLOCCO = 256    # come PASSI_BLOCCO in solver/passi.h: il profilo e' a blocchi di tanti nodi
+_profili, _lock = {}, threading.Lock()   # per ogni file, i blocchi gia' letti: (le piu' basse, le piu' alte)
 
 
 def profilo(file, fasce=400):
     """Come e' andata la ricerca, in al massimo `fasce` tratti uguali: per ognuno la profondita piu' bassa e la piu'
-    alta. {"nodi": quanti, "fasce": [[bassa, alta], ...]}. I blocchi gia' guardati si ricordano: mentre la ricerca va
-    avanti si leggono solo i nodi nuovi."""
+    alta. {"nodi": quanti, "fasce": [[bassa, alta], ...]}.
+    I blocchi vengono dal file del profilo che il solver scrive (FILE.prof); se non c'e' (una prova fatta prima che
+    esistesse) si ricavano dai nodi. Quelli gia' letti si ricordano: mentre la ricerca va avanti si legge solo il
+    nuovo."""
     n = quanti(file)
     with _lock:
-        blocchi = _profili.setdefault(file, [])
-        if len(blocchi) * _BLOCCO > n:   # il file e' stato rifatto
-            blocchi.clear()
+        basse, alte = _profili.setdefault(file, (array.array('h'), array.array('h')))
+        if len(basse) * _BLOCCO > n:   # il file e' stato rifatto
+            del basse[:], alte[:]
         resto = []
         if n:
+            try:
+                with open(file + '.prof', 'rb') as g:
+                    g.seek(len(basse) * 4)
+                    nuovi = array.array('h', g.read((n // _BLOCCO - len(basse)) * 4))
+                    nuovi = nuovi[:len(nuovi) // 2 * 2]
+                    basse.extend(nuovi[0::2])
+                    alte.extend(nuovi[1::2])
+                dal_profilo = True
+            except OSError:
+                dal_profilo = False
             with open(file, 'rb') as f:
-                while (len(blocchi) + 1) * _BLOCCO <= n:
-                    p = _record(f, len(blocchi) * _BLOCCO + 1, (len(blocchi) + 1) * _BLOCCO)[0::CAMPI]
-                    blocchi.append((min(p), max(p)))
-                if len(blocchi) * _BLOCCO < n:   # l'ultimo blocco, non ancora intero
-                    p = _record(f, len(blocchi) * _BLOCCO + 1, n)[0::CAMPI]
-                    resto = [(min(p), max(p))]
-        tutti = blocchi + resto
-    per_fascia = max(1, -(-len(tutti) // fasce))   # quanti blocchi in una fascia (arrotondato in su)
-    return {'nodi': n, 'fasce': [[min(b for b, _ in t), max(a for _, a in t)]
-                                 for t in (tutti[i:i + per_fascia] for i in range(0, len(tutti), per_fascia))]}
+                while not dal_profilo and (len(basse) + 1) * _BLOCCO <= n:
+                    p = _record(f, len(basse) * _BLOCCO + 1, (len(basse) + 1) * _BLOCCO)[0::CAMPI]
+                    basse.append(min(p))
+                    alte.append(max(p))
+                if len(basse) * _BLOCCO < n:   # i nodi dopo l'ultimo blocco scritto
+                    p = _record(f, len(basse) * _BLOCCO + 1, n)[0::CAMPI]
+                    resto = [[min(p), max(p)]]
+        # le fasce: tanti blocchi per fascia (arrotondato in su), e di ogni fascia la piu' bassa e la piu' alta
+        per_fascia = max(1, -(-(len(basse) + len(resto)) // fasce))
+        tratti = [[min(basse[i:i + per_fascia]), max(alte[i:i + per_fascia])] for i in range(0, len(basse), per_fascia)]
+    return {'nodi': n, 'fasce': tratti + resto}
 
 
 def dimentica(file):
