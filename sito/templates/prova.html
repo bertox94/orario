@@ -45,6 +45,11 @@
 <p id="conto" class="conto" hidden></p>
 <p id="legenda" class="legenda" hidden></p>
 <div class="scorre"><table class="orario" id="orario"></table></div>
+<details id="colpe"><summary>I ritorni, per controllo e per chi <span class="nota" id="colpa-maggiore"></span></summary>
+  <p class="nota">Un ritorno è contato sulla cella dell'ultima scelta, che spesso non è il problema: qui sono contati
+    per il controllo che non è passato e per il docente o la classe che nomina. In cima chi ne ha causati di più.</p>
+  <div class="scorre"><table class="dati" id="tabella-colpe"></table></div>
+</details>
 <details id="controlli-docenti"><summary>I controlli, docente per docente</summary>
   <p class="nota" id="ora-dei-controlli"></p>
   <div class="scorre"><table class="dati" id="tabella-docenti"></table></div>
@@ -90,9 +95,6 @@ function mostraStato(s) {
   e.className = 'esito esito-' + esito.replace(/ /g, '-');
   document.getElementById('numeri').textContent = `${numero(s.nodi || 0)} nodi, ` +
     (s.ritorni == null ? '' : `${numero(s.ritorni)} ritorni indietro, `) + `${(s.secondi || 0).toFixed(1)} s`;
-  ritorniPerCella = s.ritorni_per_cella || null;
-  ritorniRecenti = s.ritorni_recenti_per_cella || null;
-  mostraFiltro();
   document.getElementById('ferma').hidden = !s.gira;
   document.getElementById('rifai').disabled = !!s.gira;
   document.getElementById('continua').hidden = !!s.gira || esito !== 'limite di nodi';
@@ -102,6 +104,11 @@ function mostraStato(s) {
     disegnaGriglia();
     disegnaCaso();
   }
+  // i conti dei ritorni (dopo la scuola: servono i nomi)
+  ritorniPerCella = s.ritorni_per_cella || null;
+  ritorniRecenti = s.ritorni_recenti_per_cella || null;
+  mostraColpe(s.ritorni_per_motivo);
+  mostraFiltro();
   // impossibile gia' in partenza: il conto che non torna
   const partenza = document.getElementById('in-partenza');
   partenza.hidden = !s.motivo;
@@ -231,6 +238,22 @@ document.getElementById('controlli-docenti').addEventListener('toggle', e => {
   if (!e.target.open || !ultimoPasso) return;
   if (ultimiSegni && ultimiSegni.k === ultimoPasso.k) mostraDocenti(ultimoPasso); else chiediNodo(ultimoPasso);
 });
+
+// ---- i ritorni per controllo e per chi ----
+// Dallo stato (ritorni_per_motivo, contati dal solver): per ogni controllo e per ogni docente o classe che il motivo
+// nomina, quanti ritorni in tutto e quanti dall'ultimo passo avanti. Dal piu' grande; al massimo 40 righe.
+function mostraColpe(righe) {
+  document.getElementById('colpe').hidden = !righe || !scuola;
+  if (!righe || !scuola) return;
+  const chi = ([, docente, classe]) => esc(docente >= 0 ? scuola.docenti[docente][0] : scuola.classi[classe]);
+  const ordinate = [...righe].sort((a, b) => b[3] - a[3]), prima = ordinate[0];
+  document.getElementById('colpa-maggiore').innerHTML = prima ? `· soprattutto ${esc(CONTROLLI[prima[0]][0])} · ${chi(prima)} (${numero(prima[3])})` : '';
+  document.getElementById('tabella-colpe').innerHTML = '<thead><tr><th>Controllo</th><th>Per chi</th><th class="num">Ritorni</th>' +
+    '<th class="num">Dall\'ultimo passo avanti</th></tr></thead><tbody>' + ordinate.slice(0, 40).map(r =>
+      `<tr><td>${esc(CONTROLLI[r[0]][0])} · ${esc(CONTROLLI[r[0]][1])}</td><th>${chi(r)}</th><td class="num">${numero(r[3])}</td>` +
+      `<td class="num">${numero(r[4])}</td></tr>`).join('') + '</tbody>' +
+    (ordinate.length > 40 ? `<tfoot><tr><td colspan="4" class="nota">e altre ${ordinate.length - 40} righe più piccole</td></tr></tfoot>` : '');
+}
 
 // ---- i ritorni di una cella ----
 // Un clic su una cella dell'orario la sceglie (un altro clic la lascia): i tasti «Ritorno» saltano solo ai ritorni

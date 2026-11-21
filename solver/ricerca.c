@@ -41,10 +41,12 @@ Ricerca *nuova_ricerca(const Scuola *s) {
     r->ricordo = calloc(RICORDI, sizeof(Ricordo));
     r->ritorni_in = calloc(r->celle, sizeof(long long));
     r->ritorni_recenti_in = calloc(r->celle, sizeof(long long));
+    r->ritorni_per = calloc(posti_dei_motivi(s), sizeof(long long));
+    r->ritorni_recenti_per = calloc(posti_dei_motivi(s), sizeof(long long));
     // se anche una sola manca si libera tutto (libera_ricerca accetta i puntatori vuoti)
     if (!r->orario || !r->resto_voce || !r->resto_classe || !r->resto_docente || !r->resto_in_classe || !r->occupato
         || !r->ore_oggi || !r->classi_oggi || !r->chiusa || !r->docente_di || !r->n_docenti_di || !r->classe_di
-        || !r->n_classi_di || !r->deve || !r->margine || !r->visto || !r->posto || !r->ricordo || !r->ritorni_in || !r->ritorni_recenti_in) {
+        || !r->n_classi_di || !r->deve || !r->margine || !r->visto || !r->posto || !r->ricordo || !r->ritorni_in || !r->ritorni_recenti_in || !r->ritorni_per || !r->ritorni_recenti_per) {
         libera_ricerca(r);
         return NULL;
     }
@@ -84,7 +86,7 @@ void libera_ricerca(Ricerca *r) {
     free(r->occupato), free(r->ore_oggi), free(r->classi_oggi), free(r->chiusa);
     free(r->docente_di), free(r->n_docenti_di), free(r->classe_di), free(r->n_classi_di);
     free(r->deve), free(r->margine), free(r->visto), free(r->posto), free(r->ricordo);
-    free(r->ritorni_in), free(r->ritorni_recenti_in);
+    free(r->ritorni_in), free(r->ritorni_recenti_in), free(r->ritorni_per), free(r->ritorni_recenti_per);
     free(r);
 }
 
@@ -290,6 +292,7 @@ static void nodo(Ricerca *r, const int profondita, const int cella, const int vo
         // un passo avanti: mai arrivati cosi' lontano. I ritorni «recenti» ripartono da zero per tutte le celle.
         r->profondita_massima = profondita;
         memset(r->ritorni_recenti_in, 0, sizeof(long long) * r->celle);
+        memset(r->ritorni_recenti_per, 0, sizeof(long long) * posti_dei_motivi(r->s));
     }
     Motivo m = {NESSUNO, -1, -1, -1, 0, 0};
     int scelte[r->max_scelte];
@@ -297,9 +300,12 @@ static void nodo(Ricerca *r, const int profondita, const int cella, const int vo
     if (profondita == r->celle) r->esito = TROVATO;  // tutte le celle decise: l'orario c'e'
     // quante scelte ha questo nodo; -1: da qui non si va avanti (o l'orario e' finito)
     const int n_scelte = scelte_del_nodo(r, profondita, cella, &classe, scelte, &m);
-    // un conto non torna: e' un ritorno indietro, contato in tutto e per la cella dell'ultima scelta
+    // un conto non torna: e' un ritorno indietro, contato in tutto, per la cella dell'ultima scelta, e per chi il
+    // motivo nomina
     if (m.tipo != NESSUNO) {
+        const int posto = posto_del_motivo(r->s, &m);
         r->ritorni++;
+        r->ritorni_per[posto]++, r->ritorni_recenti_per[posto]++;
         if (cella >= 0) r->ritorni_in[cella]++, r->ritorni_recenti_in[cella]++;
     }
     // chi segue la ricerca (i passi su file, lo stato) viene avvisato a ogni nodo, anche quando non si va avanti

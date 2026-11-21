@@ -117,6 +117,10 @@ struct Ricerca {
     // di quanto sia mai arrivata (una profondita massima nuova). Una cella che ha fatto tanti ritorni e poi e' stata
     // superata non e' piu' il problema: qui torna a zero, e restano i ritorni del punto in cui si e' fermi adesso.
     long long *ritorni_recenti_in;
+    // E per colpa di chi: i ritorni contati per controllo e per il docente (o, se il controllo non parla di un
+    // docente, la classe) che il motivo nomina, in tutto e dall'ultimo passo avanti. Il posto e' posto_del_motivo().
+    // Un ritorno si conta sulla cella dell'ultima scelta, che spesso non e' il problema: il motivo dice chi lo e'.
+    long long *ritorni_per, *ritorni_recenti_per;
     Motivo motivo_radice;    // se non c'e' nessun orario gia' in partenza: il conto che non torna
 
     // se c'e', si chiama a ogni nodo: `profondita` celle decise, l'ultima e' `cella` con dentro `voce` (alla radice
@@ -136,8 +140,8 @@ void cerca_orario(Ricerca *r);
 // Riprende una ricerca che il limite di nodi aveva fermato, dal punto esatto in cui era, e va avanti fino al limite
 // nuovo: il risultato e' lo stesso di una ricerca sola con quel limite. `strada` e' la strada dell'ultimo nodo
 // visitato: `profondita` coppie (cella, voce) nell'ordine in cui le celle sono state decise. Prima di chiamarla r
-// deve essere nuova, con r->nodi, r->ritorni, r->ritorni_in, r->ritorni_recenti_in e r->profondita_massima rimessi
-// com'erano e r->limite nuovo. Ritorna 0 (senza fare niente di utile) se la strada non e' di questa ricerca.
+// deve essere nuova, con r->nodi, r->profondita_massima e tutti i conti dei ritorni rimessi com'erano, e r->limite
+// nuovo. Ritorna 0 (senza fare niente di utile) se la strada non e' di questa ricerca.
 int riprendi_la_ricerca(Ricerca *r, const int *strada, int profondita);
 
 // Perche' un docente non puo' insegnare adesso in una classe (ricerca.c, perche_non_puo).
@@ -150,6 +154,13 @@ typedef enum {
     INTERROTTO          // oggi qui ha gia' insegnato, ma nell'ora prima non c'era: le ore devono essere di seguito
 } PercheNo;
 PercheNo perche_non_puo(const Ricerca *r, int giorno, int ora, int k, int t);
+
+// Quanti posti hanno le tabelle dei ritorni per motivo, e il posto di un motivo: una riga per tipo, e in ogni riga
+// prima i docenti e poi le classi.
+static inline int posti_dei_motivi(const Scuola *s) { return (ORARIO_DELLA_CLASSE + 1) * (s->docenti + s->classi); }
+static inline int posto_del_motivo(const Scuola *s, const Motivo *m) {
+    return m->tipo * (s->docenti + s->classi) + (m->docente >= 0 ? m->docente : s->docenti + MAX(m->classe, 0));
+}
 
 // Mette nella cella la voce v o l'ora buca (verso = 1), oppure la toglie (verso = -1), e tiene tutti i conti. La usa
 // la ricerca; serve anche a rimettere l'orario com'era a un nodo, una scelta dopo l'altra (main.c, i segni).
