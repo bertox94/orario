@@ -39,6 +39,7 @@
 </div>
 <p id="filtro" class="nota"></p>
 <p id="testo-passo" class="testo-passo"></p>
+<p id="cambiate" class="nota"></p>
 <p id="motivo" class="motivo" hidden><span id="testo-motivo"></span>
   <button type="button" class="secondario piccolo" id="mostra-segni" aria-pressed="false">Mostra nell'orario</button></p>
 <p id="conto" class="conto" hidden></p>
@@ -51,7 +52,8 @@
 <p class="nota">In rosa l'ultima scelta; «–» è un'ora buca. Un ritorno indietro è un passo da cui la ricerca non va
   avanti: sopra l'orario c'è il controllo che non passa, con la sua lettera e i pezzi da cui vengono i suoi numeri, e
   la classe di cui parla è segnata; «Mostra nell'orario» colora le celle che il controllo ha contato, e resta acceso
-  da un ritorno all'altro. Un clic su una cella sceglie i suoi ritorni: i tasti «Ritorno» saltano solo tra quelli.
+  da un ritorno all'altro. Da un passo all'altro (anche da un ritorno al
+  successivo) le celle cambiate hanno il bordo lilla, e quelle tolte restano scritte sbarrate. Un clic su una cella sceglie i suoi ritorni: i tasti «Ritorno» saltano solo tra quelli.
   Mentre la prova gira lo slider si allunga e, se è in fondo, la segue.</p>
 
 <h3>Il profilo della ricerca</h3>
@@ -307,6 +309,9 @@ function disegnaGriglia() {
 // un passo: l'ultima scelta, l'orario fin li', e il motivo se da li' non si va avanti
 let ultimoPasso = null;
 function disegnaPasso(p) {
+  let cambiate = 0;
+  // l'orario del passo che si guardava prima: le celle diverse da allora si segnano (vedi sotto)
+  const prima = ultimoPasso && ultimoPasso.k !== p.k ? ultimoPasso : null;
   ultimoPasso = p;
   ultimiSegni = null;
   togliSegni();
@@ -315,10 +320,20 @@ function disegnaPasso(p) {
   // ogni cella: la riga e' la sua classe, la colonna la sua ora nella settimana (piu' uno: la prima e' il nome)
   p.orario.forEach((v, cella) => {
     const td = righe[cella % C].cells[1 + Math.floor(cella / C)];
-    td.innerHTML = v === null ? '' : v < 0 ? '–' : nomi(v).map((n, i) => `<span class="${i ? 'cod' : ''}">${esc(n)}</span>`).join('');
+    const scritta = x => x < 0 ? '–' : nomi(x).map((n, i) => `<span class="${i ? 'cod' : ''}">${esc(n)}</span>`).join('');
+    // Che cosa e' cambiato rispetto al passo guardato prima: la cella ha un contenuto diverso (o prima era vuota),
+    // oppure adesso e' vuota e prima no; in questo caso resta scritto, sbarrato, quello che c'era.
+    const era = prima ? prima.orario[cella] : v, cambiata = v !== null && era !== v, tolta = v === null && era !== null;
+    td.innerHTML = v === null ? (tolta ? scritta(era) : '') : scritta(v);
     td.classList.toggle('buca', v !== null && v < 0);
     td.classList.toggle('appena', cella === p.cella);
+    td.classList.toggle('cambiata', cambiata);
+    td.classList.toggle('tolta', tolta);
+    if (cambiata || tolta) cambiate++;
   });
+  document.getElementById('cambiate').textContent = !prima ? '' : cambiate
+    ? `Dal passo ${numero(prima.k)}: ${cambiate === 1 ? '1 cella cambiata' : cambiate + ' celle cambiate'} (bordo lilla; sbarrate quelle tolte).`
+    : `Dal passo ${numero(prima.k)} l'orario è lo stesso.`;
   for (const tr of righe) tr.classList.toggle('in-causa', !!p.motivo && p.motivo.classe >= 0 && tr.rowIndex - 2 === p.motivo.classe);
   const scelta = p.cella < 0 ? 'si comincia: l\'orario è vuoto'
     : `${p.voce < 0 ? 'ora buca' : esc(nomi(p.voce).join(' con '))} in ${esc(dove(p.cella))}`;
