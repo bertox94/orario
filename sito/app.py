@@ -1,5 +1,5 @@
 """Il sito dell'orario: le prove in tempo reale e i test notturni. Mostra soltanto: i casi e la ricerca sono del
-solver (solver/), che il sito compila e lancia."""
+solver, che il sito compila e lancia."""
 import datetime
 import os
 

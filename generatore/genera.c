@@ -1,6 +1,6 @@
 #include "genera.h"
 #include "nomi.h"
-#include "scuola.h"
+#include "../scuola/scuola.h"
 
 #include <stdint.h>
 #include <stdlib.h>

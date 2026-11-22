@@ -130,7 +130,7 @@ rigenerano i casi dai semi, quindi cambiare qualunque cosa qui sotto (anche l'or
 casuali) cambia tutti i casi e tutti i risultati di riferimento.
 
 La scuola generata: 6 giorni (Lun … Sab), 6 ore (08 … 13), 5 ore obbligatorie. Le classi si chiamano C01, C02, …
-I docenti prendono i nomi, nell'ordine, da un elenco fisso di personaggi di fantasia (`solver/nomi.h`, circa 430
+I docenti prendono i nomi, nell'ordine, da un elenco fisso di personaggi di fantasia (`generatore/nomi.h`, circa 430
 nomi, tutti diversi); oltre la fine dell'elenco il docente numero d si chiama `D` seguito da d + 1 su tre cifre.
 
 **I numeri casuali.** Generatore xorshift64*: lo stato è un intero a 64 bit; per il prossimo numero
@@ -456,7 +456,8 @@ Spazio: **19 MB per milione di nodi** (18 del record, il resto istantanee e prof
 - Python con Flask; server waitress (4 fili) se c'è, altrimenti quello di Flask. Niente login, niente database.
 - Tutti i dati stanno in file dentro la **cartella di lavoro**: `sito/lavoro/`, o quella della variabile
   `SITO_LAVORO`. I file JSON si scrivono a parte e poi si rinominano.
-- Il sito **compila il solver da solo** (`gcc -O2 -std=gnu11 -w` su tutti i `.c` di `solver/`): l'eseguibile sta in
+- Il sito **compila il solver da solo** (`gcc -O2 -std=gnu11 -w` su tutti i `.c` delle cartelle del programma in C,
+  capitolo 21): l'eseguibile sta in
   `lavoro/bin/orario-<impronta>`, dove l'impronta è calcolata su tutti i sorgenti; se un sorgente cambia, cambia il
   nome e si ricompila.
 - Gira **una cosa alla volta**: una prova in tempo reale oppure un giro di test notturni, mai insieme.
@@ -704,15 +705,18 @@ browser.
 ## 21. I file del repository
 
 ```
-solver/scuola.h, scuola.c        i dati di una scuola, i limiti di grandezza, la lettura di un caso
-solver/genera.h, genera.c        il generatore dei casi casuali
-solver/nomi.h                    i nomi dei docenti dei casi casuali
+scuola/scuola.h, scuola.c        i dati di una scuola, i limiti di grandezza, la lettura di un caso
+generatore/genera.h, genera.c    il generatore dei casi casuali
+generatore/nomi.h                i nomi dei docenti dei casi casuali
 solver/ricerca.h, ricerca.c      la ricerca: lo stato, le scelte, il nodo, riprendere, partire da una strada
-solver/limiti.c                  i controlli A, B, C, D; e, per il sito, i segni, il conto in dettaglio, i docenti
+solver/limiti.h, limiti.c        i controlli A, B, C, D, e i conti piu' piccoli che usano
 solver/classe_sola.c             il controllo E
-solver/verifica.h, verifica.c    la verifica dell'orario trovato
-solver/passi.h, passi.c          i passi su file
-solver/main.c                    i comandi, lo stato in JSON, il file .fine
+verifica/verifica.h, verifica.c  la verifica dell'orario trovato
+passi/passi.h, passi.c           i passi su file
+spiegazioni/spiega.h, spiega.c   per il sito: i segni, il conto in dettaglio, i conti docente per docente
+programma/main.c                 i comandi
+programma/stato.h, stato.c       lo stato in JSON
+programma/fine.h, fine.c         il file .fine, per continuare una ricerca
 sito/__main__.py                 l'avvio
 sito/app.py                      le pagine e gli indirizzi
 sito/prove.py                    le prove in tempo reale

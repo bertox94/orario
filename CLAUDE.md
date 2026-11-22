@@ -10,12 +10,15 @@ leggibilità e prestazioni, senza vincoli sul metodo): vedi `LEGGIMI.md`. È in 
 di Alb). Il programma di prima (solver con le potature, sito con Postgres, test di non regressione) è in
 `stabile/2026-11-18` e negli altri stabili.
 
-- `solver/` (C): `scuola` (i dati e la lettura di un caso), `genera` (i casi casuali, gli stessi di prima), `ricerca`
-  (un'ora alla volta, la classe con meno scelte per prima; senza ripartenze: richiesta di Alb), `limiti` e `classe_sola` (i conti che
-  scartano i rami senza orario), `verifica` (l'orario ricontrollato da capo), `passi` (ogni nodo su file), `main`.
+- Il programma in C, una cartella per cosa (dal 22 novembre 2026, richiesta di Alb: «generatore non in solver»):
+  `scuola/` (i dati e la lettura di un caso), `generatore/` (i casi casuali, gli stessi di prima), `solver/`
+  (`ricerca`: un'ora alla volta, la classe con meno scelte per prima, senza ripartenze; `limiti` e `classe_sola`: i
+  conti che scartano i rami senza orario), `verifica/` (l'orario ricontrollato da capo), `passi/` (ogni nodo su
+  file), `spiegazioni/` (quello che il sito mostra di un nodo), `programma/` (`main`: i comandi; `stato`; `fine`).
+  Si compilano tutte insieme: l'elenco delle cartelle è nel `Makefile`, in `sito/solver.py` e in `prove/prova.py`.
 - `sito/` (Flask, senza login né database): prove in tempo reale (`prove.py`, `passi.py`) e test notturni
   (`notturni.py`). Mostra soltanto: casi e ricerca sono del solver. Nella pagina della prova «Mostra nell'orario»
-  colora le celle di cui parla un limite: le calcola il solver (`orario nodo`, `solver/limiti.c` in fondo). Un
+  colora le celle di cui parla un limite: le calcola il solver (`orario nodo`, `spiegazioni/spiega.c`). Un
   limite nuovo va anche lì, e nelle frasi e nella legenda di `sito/templates/prova.html` (`spiega`, `legenda`).
 - `prove/prova.py`: la prova automatica (esito, nodi e verifica su 52 casi).
 - `bf_search/`: SQL di Alb, da non toccare senza chiedere.

@@ -1,7 +1,7 @@
 #ifndef VERIFICA_H
 #define VERIFICA_H
 
-#include "scuola.h"
+#include "../scuola/scuola.h"
 
 // La verifica di un orario finito, indipendente dalla ricerca: legge solo la scuola e le celle (per ogni cella una
 // voce, o un numero negativo per l'ora buca) e ricontrolla da capo ogni regola. Se la ricerca sbagliasse, qui si

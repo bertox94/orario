@@ -1,5 +1,5 @@
-"""Il solver (la cartella solver/): il sito lo compila da solo la prima volta e quando i sorgenti cambiano, e lo lancia.
-I comandi sono in solver/main.c."""
+"""Il programma in C (le cartelle scuola, generatore, solver, verifica, passi, spiegazioni, programma): il sito lo
+compila da solo la prima volta e quando i sorgenti cambiano, e lo lancia. I comandi sono in programma/main.c."""
 import hashlib
 import json
 import os
@@ -7,23 +7,27 @@ import subprocess
 
 from . import archivio
 
-SORGENTI = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'solver')
+RADICE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# le cartelle del programma in C (come nel Makefile): la scuola, il generatore, la ricerca, la verifica, i passi, le
+# spiegazioni per il sito, e i comandi
+CARTELLE = ('scuola', 'generatore', 'solver', 'verifica', 'passi', 'spiegazioni', 'programma')
 
 
 def programma():
     """Il percorso dell'eseguibile, compilato se manca: il suo nome dipende dai sorgenti."""
-    nomi = sorted(n for n in os.listdir(SORGENTI) if n.endswith(('.c', '.h')))
+    nomi = sorted(os.path.join(c, n) for c in CARTELLE for n in os.listdir(os.path.join(RADICE, c))
+                  if n.endswith(('.c', '.h')))
     # l'impronta di tutti i sorgenti: se anche uno solo cambia, cambia il nome dell'eseguibile, e si ricompila
     impronta = hashlib.sha256()
     for n in nomi:
-        with open(os.path.join(SORGENTI, n), 'rb') as f:
+        with open(os.path.join(RADICE, n), 'rb') as f:
             impronta.update(n.encode() + f.read())
     exe = archivio.percorso('bin', 'orario-' + impronta.hexdigest()[:12])
     if not os.path.exists(exe):
         os.makedirs(os.path.dirname(exe), exist_ok=True)
         # tutti i .c insieme, senza avvisi: quelli si guardano con make, che li mostra
         r = subprocess.run(['gcc', '-O2', '-std=gnu11', '-w'] + [n for n in nomi if n.endswith('.c')]
-                           + ['-o', exe + '.tmp'], cwd=SORGENTI, capture_output=True, text=True)
+                           + ['-o', exe + '.tmp'], cwd=RADICE, capture_output=True, text=True)
         if r.returncode:
             raise RuntimeError('il solver non compila:\n' + r.stderr[-2000:])
         os.replace(exe + '.tmp', exe)   # compilato a parte e poi rinominato: non si lancia mai un eseguibile a meta'
@@ -40,11 +44,11 @@ def genera(seme, classi, ritardi, file):
             raise ValueError('Con questo seme e queste classi il caso non si riesce a generare.')
 
 
-SEGNI = (None, 'fatta', 'puo', 'no', 'serve')   # i numeri dei segni (solver/ricerca.h, SEGNO_)
+SEGNI = (None, 'fatta', 'puo', 'no', 'serve')   # i numeri dei segni (spiegazioni/spiega.h, SEGNO_)
 
 
 def nodo(caso, nodo):
-    """Quello che il solver dice di un nodo (solver/main.c, il comando «nodo»): le celle di cui parla il conto che
+    """Quello che il solver dice di un nodo (programma/main.c, il comando «nodo»): le celle di cui parla il conto che
     non torna, il conto in dettaglio, e i conti di ogni docente:
     {"giorno", "ora", "segni": [[cella, nome], ...], "conto": {...}, "docenti": [...]}.
     `nodo` e' il testo di passi.nodo_per_il_solver. None se il solver non lo accetta."""

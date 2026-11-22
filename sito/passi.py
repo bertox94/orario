@@ -1,11 +1,11 @@
-"""I passi di una ricerca, letti dal file che scrive il solver (solver/passi.h): un record di 9 interi a 16 bit per
+"""I passi di una ricerca, letti dal file che scrive il solver (passi/passi.h): un record di 9 interi a 16 bit per
 nodo (profondita, cella, voce, e il motivo per cui da li' non si va avanti: tipo, docente, classe, ora, servono,
 possibili), piu' un file di istantanee per ricostruire in fretta l'orario di un nodo qualunque."""
 import array
 import os
 import threading
 
-CAMPI, ISTANTANEA = 9, 16384   # come in solver/passi.h: i campi di un record, e ogni quanti nodi c'e' un'istantanea
+CAMPI, ISTANTANEA = 9, 16384   # come in passi/passi.h: i campi di un record, e ogni quanti nodi c'e' un'istantanea
 RECORD = CAMPI * 2             # i byte di un record
 # i nomi dei motivi, nell'ordine dei numeri che scrive il solver (solver/ricerca.h, TipoMotivo): 0 e' «si va avanti»
 MOTIVI = ('', 'ore_docente', 'ore_docente_in_classe', 'ore_classe', 'prime_ore', 'docente_senza_posto',
@@ -94,7 +94,7 @@ def strada_per_il_solver(scelte):
 
 
 def nodo_per_il_solver(file, k, celle):
-    """Il nodo k come lo vuole il comando «nodo» del solver (solver/main.c), tutto in numeri: il motivo (tipo 0 se
+    """Il nodo k come lo vuole il comando «nodo» del solver (programma/main.c), tutto in numeri: il motivo (tipo 0 se
     da li' si va avanti), quante celle sono decise, e le scelte in ordine. None se il nodo non c'e'."""
     x = _strada(file, k, celle)
     if not x:
@@ -136,7 +136,7 @@ def ritorno(file, k, avanti, cella=None, almeno=1):
     return None
 
 
-_BLOCCO = 256    # come PASSI_BLOCCO in solver/passi.h: il profilo e' a blocchi di tanti nodi
+_BLOCCO = 256    # come PASSI_BLOCCO in passi/passi.h: il profilo e' a blocchi di tanti nodi
 _profili, _lock = {}, threading.Lock()   # per ogni file, i blocchi gia' letti: (le piu' basse, le piu' alte)
 
 

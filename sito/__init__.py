@@ -1,4 +1,4 @@
-"""Il sito dell'orario: mostra il lavoro del solver di questo repository (la cartella solver/).
+"""Il sito dell'orario: mostra il lavoro del solver di questo repository (le cartelle del programma in C: sito/solver.py).
 
 Due parti. Le prove in tempo reale: si sceglie un caso (seme, classi, ritardi, limite di nodi), si guarda la ricerca
 mentre va e la si rivede passo per passo. I test notturni: un elenco di casi rieseguiti tutti insieme, per vedere che

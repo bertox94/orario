@@ -8,7 +8,7 @@ import time
 
 from . import archivio, passi, solver
 
-BYTE_PER_NODO = 19                  # 18 il record del nodo, il resto istantanee e profilo (solver/passi.h)
+BYTE_PER_NODO = 19                  # 18 il record del nodo, il resto istantanee e profilo (passi/passi.h)
 SPAZIO_DA_LASCIARE = 500 * 1000000  # i byte che sul disco devono restare liberi comunque
 # le richieste arrivano da piu' fili insieme: una alla volta qui (rientrante: chi lo tiene puo' chiamare prova())
 _lock = threading.RLock()

@@ -8,13 +8,17 @@ formati dei file, ogni pagina del sito, i limiti), è in `DESCRIZIONE.md`.
 
 ## Che cosa c'è
 
-- `solver/`: il programma che cerca l'orario.
-  - `scuola`: i dati (giorni, ore, classi, docenti, voci) e la lettura di un caso da file;
-  - `genera`: i casi casuali, riproducibili da un seme;
-  - `ricerca`: la ricerca; `limiti` e `classe_sola`: i conti che la tengono lontana dai rami senza uscita;
-  - `verifica`: l'orario trovato, ricontrollato da capo senza usare la ricerca;
-  - `passi`: ogni nodo della ricerca su file, per rivederla dal sito;
-  - `main`: i comandi.
+Il programma in C, una cartella per cosa:
+- `scuola/`: i dati (giorni, ore, classi, docenti, voci) e la lettura di un caso da file;
+- `generatore/`: i casi casuali, riproducibili da un seme;
+- `solver/`: la ricerca (`ricerca`) e i conti che la tengono lontana dai rami senza uscita (`limiti`, `classe_sola`);
+- `verifica/`: l'orario trovato, ricontrollato da capo senza usare la ricerca;
+- `passi/`: ogni nodo della ricerca su file, per rivederla dal sito;
+- `spiegazioni/`: quello che il sito mostra di un nodo (le celle di cui parla un controllo, i pezzi del suo conto,
+  i conti di ogni docente);
+- `programma/`: i comandi (`main`), lo stato in JSON (`stato`), il file per continuare una ricerca (`fine`).
+
+E poi:
 - `sito/`: il sito (Flask), con le prove in tempo reale e i test notturni.
 - `prove/prova.py`: la prova automatica del solver.
 

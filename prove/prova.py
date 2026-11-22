@@ -17,6 +17,8 @@ import tempfile
 RADICE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ATTESI = os.path.join(RADICE, 'prove', 'attesi.json')
 # il limite di nodi di ogni caso: basso, perche' la prova deve durare poco
+# le cartelle del programma in C (come nel Makefile)
+CARTELLE = ('scuola', 'generatore', 'solver', 'verifica', 'passi', 'spiegazioni', 'programma')
 LIMITE = 200000
 # i casi: una griglia piccola (semi, classi, con e senza ritardi) e quattro casi scelti, tra cui i piu' grandi
 CASI = [(seme, classi, ritardi) for seme in range(6) for classi in (3, 5, 8, 12) for ritardi in (0, 1)] + \
@@ -28,7 +30,7 @@ def esegui():
     # tutto in una cartella provvisoria: l'eseguibile e il file del caso
     with tempfile.TemporaryDirectory() as d:
         exe, caso = os.path.join(d, 'orario'), os.path.join(d, 'caso.txt')
-        subprocess.run(['gcc', '-O2', '-std=gnu11', '-Wall', '-Wextra'] + sorted(glob.glob(RADICE + '/solver/*.c'))
+        subprocess.run(['gcc', '-O2', '-std=gnu11', '-Wall', '-Wextra'] + sorted(f for c in CARTELLE for f in glob.glob('%s/%s/*.c' % (RADICE, c)))
                        + ['-o', exe], check=True)
         for seme, classi, ritardi in CASI:
             with open(caso, 'w') as f:

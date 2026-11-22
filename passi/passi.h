@@ -1,7 +1,7 @@
 #ifndef PASSI_H
 #define PASSI_H
 
-#include "ricerca.h"
+#include "../solver/ricerca.h"
 
 // I passi della ricerca su file, per rivederla dal sito un nodo alla volta. Solo uscita: la ricerca non cambia.
 //

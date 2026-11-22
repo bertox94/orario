@@ -1,4 +1,5 @@
-// Il programma dell'orario.
+// Il programma dell'orario: i comandi. Ognuno mette insieme i pezzi delle altre cartelle (scuola, generatore,
+// solver, verifica, passi, spiegazioni); lo stato in JSON e' in stato.c, il file per continuare in fine.c.
 //
 //   orario genera SEME CLASSI RITARDI
 //       scrive su stdout un caso casuale (genera.h); RITARDI: 1 con i docenti che entrano tardi, 0 senza
@@ -23,22 +24,9 @@
 //       decise, la cella e la voce (-1: ora buca). Scrive su stdout
 //       {"giorno": G, "ora": O, "segni": [[cella, segno], ...], "conto": {...}, "docenti": [...]}:
 //       l'ora a cui i conti sono fatti; per ogni cella di cui il motivo parla 1 fatta, 2 puo', 3 no, 4 serve
-//       (ricerca.h, SEGNO_); il conto del motivo in dettaglio; e i conti di ogni docente (limiti.c, in fondo).
+//       (SEGNO_); il conto del motivo in dettaglio; e i conti di ogni docente (tutto in spiegazioni/spiega.h).
 //
-// Lo stato:
-//   {"in_corso": 0 | 1, "esito": "in corso" | "trovato" | "impossibile" | "limite di nodi",
-//    "nodi": N, "secondi": S, "profondita_massima": P, "celle": C,
-//    "a_mano": 0 | 1                            1: la ricerca e' partita da una strada scelta a mano (--da)
-//    "ritorni": R, "ritorni_per_cella": [...]   i ritorni indietro, in tutto e per cella (ricerca.h)
-//    "ritorni_recenti_per_cella": [...]         per cella, solo quelli dall'ultimo passo avanti (ricerca.h)
-//    "ritorni_per_motivo": [[tipo, docente, classe, quanti, recenti], ...]   per controllo e per chi il motivo
-//                                               nomina (un docente, o -1 e una classe): solo quelli che ne hanno
-//    "scuola": {"giorni": [...], "ore": [...], "classi": [...], "obbligatorie": M, "ore_di_seguito": N, "classi_al_giorno": N,
-//               "docenti": [[nome, ingresso], ...], "voci": [[classe, docente, codocente | -1, ore], ...]},
-//    "motivo": {...}              con «impossibile» gia' in partenza: il conto che non torna (ricerca.h, Motivo)
-//    "orario": [voce | -1, ...]   con «trovato»: una voce per cella (-1: ora buca); la cella di (giorno, ora, classe)
-//                                 e' (giorno * ore + ora) * classi + classe
-//    "verifica": {"ok": 0 | 1, "controlli": [[regola, 0 | 1, dove], ...]}   con «trovato» (verifica.h)}
+// Lo stato che «risolvi» scrive e' descritto in stato.h.
 // Esce con 0, o con 2 se il comando non va o il caso non si legge.
 
 #include <stdio.h>
@@ -46,106 +34,16 @@
 #include <string.h>
 #include <time.h>
 
-#include "genera.h"
-#include "passi.h"
-#include "ricerca.h"
-#include "verifica.h"
-
-// I nomi degli esiti e dei motivi, nell'ordine dei numeri di ricerca.h (Esito, TipoMotivo): nello stato si scrivono
-// in parole, e il sito li usa cosi'.
-static const char *const ESITI[] = {"in corso", "trovato", "impossibile", "limite di nodi"};
-static const char *const MOTIVI[] = {"", "ore_docente", "ore_docente_in_classe", "ore_classe", "prime_ore",
-                                     "docente_senza_posto", "classe_senza_scelte", "orario_della_classe"};
-
-// ---- scrivere lo stato, in JSON ----
-
-// un testo tra virgolette, con la barra davanti alle virgolette e alle barre che contiene
-static void json_testo(FILE *f, const char *testo) {
-    fputc('"', f);
-    for (; *testo; testo++) {
-        if (*testo == '"' || *testo == '\\') fputc('\\', f);
-        fputc(*testo, f);
-    }
-    fputc('"', f);
-}
-
-// "chiave": ["nome", "nome", ...], con la virgola in fondo
-static void json_nomi(FILE *f, const char *chiave, const char nomi[][MAX_NOME], const int n) {
-    fprintf(f, "\"%s\":[", chiave);
-    for (int i = 0; i < n; i++) {
-        if (i) fputc(',', f);
-        json_testo(f, nomi[i]);
-    }
-    fputs("],", f);
-}
-
-// Lo stato della ricerca (com'e' fatto e' scritto in cima al file): sempre i numeri e la scuola; a ricerca finita
-// anche il motivo, se un orario non c'era gia' in partenza, oppure l'orario trovato con la sua verifica.
-static int a_mano = 0;  // la ricerca e' partita da una strada scelta a mano (--da): si scrive nello stato
-
-static void scrivi_stato(FILE *f, const Ricerca *r, const double secondi) {
-    const Scuola *s = r->s;
-    // i numeri della ricerca
-    fprintf(f, "{\"a_mano\":%d,", a_mano);
-    fprintf(f, "\"in_corso\":%d,\"esito\":\"%s\",\"nodi\":%lld,\"secondi\":%.2f,\"profondita_massima\":%d,"
-            "\"celle\":%d,\"ritorni\":%lld,\"ritorni_per_cella\":[", r->esito == IN_CORSO, ESITI[r->esito], r->nodi,
-            secondi, r->profondita_massima, r->celle, r->ritorni);
-    // i ritorni: per cella, per cella dall'ultimo passo avanti, e per motivo (qui solo i posti che ne hanno)
-    for (int i = 0; i < r->celle; i++) fprintf(f, "%s%lld", i ? "," : "", r->ritorni_in[i]);
-    fputs("],\"ritorni_recenti_per_cella\":[", f);
-    for (int i = 0; i < r->celle; i++) fprintf(f, "%s%lld", i ? "," : "", r->ritorni_recenti_in[i]);
-    fputs("],\"ritorni_per_motivo\":[", f);
-    for (int i = 0, primo = 1; i < posti_dei_motivi(s); i++) {
-        if (!r->ritorni_per[i]) continue;
-        const int chi = i % (s->docenti + s->classi);  // prima i docenti, poi le classi
-        fprintf(f, "%s[\"%s\",%d,%d,%lld,%lld]", primo ? "" : ",", MOTIVI[i / (s->docenti + s->classi)],
-                chi < s->docenti ? chi : -1, chi < s->docenti ? -1 : chi - s->docenti, r->ritorni_per[i],
-                r->ritorni_recenti_per[i]);
-        primo = 0;
-    }
-    fputs("],\"scuola\":{", f);
-    // la scuola: i nomi, le due regole della giornata (servono ai testi del sito), i docenti con l'ingresso, le voci
-    json_nomi(f, "giorni", s->nome_giorno, s->giorni);
-    json_nomi(f, "ore", s->nome_ora, s->ore);
-    json_nomi(f, "classi", s->nome_classe, s->classi);
-    fprintf(f, "\"obbligatorie\":%d,\"ore_di_seguito\":%d,\"classi_al_giorno\":%d,\"docenti\":[", s->obbligatorie,
-            MAX_ORE_DI_SEGUITO, MAX_CLASSI_AL_GIORNO);
-    for (int t = 0; t < s->docenti; t++) {
-        fputs(t ? ",[" : "[", f);
-        json_testo(f, s->nome_docente[t]);
-        fprintf(f, ",%d]", s->ingresso[t]);
-    }
-    fputs("],\"voci\":[", f);
-    for (int v = 0; v < s->voci; v++)
-        fprintf(f, "%s[%d,%d,%d,%d]", v ? "," : "", s->voce[v].classe, s->voce[v].docente[0], s->voce[v].docente[1],
-                s->voce[v].ore);
-    fputs("]}", f);
-    // impossibile gia' al primo nodo: il conto che non torna
-    if (r->esito == IMPOSSIBILE && r->motivo_radice.tipo != NESSUNO) {
-        const Motivo *m = &r->motivo_radice;
-        fprintf(f, ",\"motivo\":{\"tipo\":\"%s\",\"docente\":%d,\"classe\":%d,\"ora\":%d,\"servono\":%d,"
-                "\"possibili\":%d}", MOTIVI[m->tipo], m->docente, m->classe, m->ora, m->servono, m->possibili);
-    }
-    if (r->esito == TROVATO) {
-        Controllo controllo[CONTROLLI];
-        // trovato: l'orario, e la sua verifica fatta adesso, regola per regola
-        const int ok = verifica_orario(s, r->orario, controllo);
-        fputs(",\"orario\":[", f);
-        for (int i = 0; i < r->celle; i++) fprintf(f, "%s%d", i ? "," : "", r->orario[i]);
-        fprintf(f, "],\"verifica\":{\"ok\":%d,\"controlli\":[", ok);
-        for (int i = 0; i < CONTROLLI; i++) {
-            fputs(i ? ",[" : "[", f);
-            json_testo(f, controllo[i].regola);
-            fprintf(f, ",%d,", controllo[i].rispettata);
-            json_testo(f, controllo[i].dove);
-            fputc(']', f);
-        }
-        fputs("]}", f);
-    }
-    fputs("}\n", f);
-}
+#include "../generatore/genera.h"
+#include "../passi/passi.h"
+#include "../solver/ricerca.h"
+#include "../spiegazioni/spiega.h"
+#include "fine.h"
+#include "stato.h"
 
 // ---- seguire la ricerca: lo stato su file ogni mezzo secondo ----
+
+static int a_mano = 0;  // la ricerca e' partita da una strada scelta a mano (--da): si scrive nello stato
 
 // Chi segue la ricerca: i passi su file (se chiesti) e lo stato su file ogni mezzo secondo (se chiesto).
 typedef struct {
@@ -159,61 +57,6 @@ static double secondi_da(const Seguito *x) {
     return x->secondi_prima + (clock() - x->inizio) / (double) CLOCKS_PER_SEC;
 }
 
-// ---- continuare: i numeri della ricerca a parte, accanto ai passi ----
-//
-// Alla fine di una ricerca con i passi si scrive FILE.fine: i numeri che servono per continuarla e che nei passi non
-// ci sono (o costerebbe rileggerli tutti). Nell'ordine dei byte del computer: l'esito (int: si continua solo dopo
-// LIMITE_DI_NODI), nodi e ritorni (long long), profondita massima (int), secondi (double), i ritorni di ogni cella
-// (long long l'uno) e, dopo, quelli recenti di ogni cella e i due conti per motivo (in un file scritto prima che
-// esistessero mancano: si riparte da zero).
-
-static void nome_della_fine(char *nome, const size_t lungo, const char *file_passi) {
-    snprintf(nome, lungo, "%s.fine", file_passi);
-}
-
-static void scrivi_la_fine(const char *file_passi, const Ricerca *r, const double secondi) {
-    char nome[1024];
-    nome_della_fine(nome, sizeof nome, file_passi);
-    FILE *f = fopen(nome, "wb");
-    if (!f) return;
-    const int esito = r->esito;
-    fwrite(&esito, sizeof esito, 1, f);
-    fwrite(&r->nodi, sizeof r->nodi, 1, f);
-    fwrite(&r->ritorni, sizeof r->ritorni, 1, f);
-    fwrite(&r->profondita_massima, sizeof r->profondita_massima, 1, f);
-    fwrite(&secondi, sizeof secondi, 1, f);
-    fwrite(r->ritorni_in, sizeof(long long), r->celle, f);
-    fwrite(r->ritorni_recenti_in, sizeof(long long), r->celle, f);
-    fwrite(r->ritorni_per, sizeof(long long), posti_dei_motivi(r->s), f);
-    fwrite(r->ritorni_recenti_per, sizeof(long long), posti_dei_motivi(r->s), f);
-    fclose(f);
-}
-
-// rimette in r i numeri della ricerca da continuare; 0 se il file manca, non e' quello di quei `nodi` nodi, o la
-// ricerca non era stata fermata dal limite (era finita: non c'e' niente da continuare)
-static int leggi_la_fine(const char *file_passi, Ricerca *r, const long long nodi, double *secondi) {
-    char nome[1024];
-    nome_della_fine(nome, sizeof nome, file_passi);
-    FILE *f = fopen(nome, "rb");
-    if (!f) return 0;
-    int esito = IN_CORSO;
-    const int ok = fread(&esito, sizeof esito, 1, f) == 1 && esito == LIMITE_DI_NODI
-                   && fread(&r->nodi, sizeof r->nodi, 1, f) == 1 && fread(&r->ritorni, sizeof r->ritorni, 1, f) == 1
-                   && fread(&r->profondita_massima, sizeof r->profondita_massima, 1, f) == 1
-                   && fread(secondi, sizeof *secondi, 1, f) == 1
-                   && fread(r->ritorni_in, sizeof(long long), r->celle, f) == (size_t) r->celle && r->nodi == nodi;
-    if (ok && fread(r->ritorni_recenti_in, sizeof(long long), r->celle, f) != (size_t) r->celle)
-        memset(r->ritorni_recenti_in, 0, sizeof(long long) * r->celle);
-    const size_t posti = (size_t) posti_dei_motivi(r->s);
-    if (ok && (fread(r->ritorni_per, sizeof(long long), posti, f) != posti
-               || fread(r->ritorni_recenti_per, sizeof(long long), posti, f) != posti)) {
-        memset(r->ritorni_per, 0, sizeof(long long) * posti);
-        memset(r->ritorni_recenti_per, 0, sizeof(long long) * posti);
-    }
-    fclose(f);
-    return ok;
-}
-
 // Scrive lo stato nel suo file: prima in un file accanto, poi lo rinomina. Rinominare e' un colpo solo: chi legge
 // (il sito) trova o il file vecchio o quello nuovo, mai uno scritto a meta'.
 static void stato_su_file(const Seguito *x, const Ricerca *r) {
@@ -221,7 +64,7 @@ static void stato_su_file(const Seguito *x, const Ricerca *r) {
     snprintf(provvisorio, sizeof provvisorio, "%s.tmp", x->file_stato);
     FILE *f = fopen(provvisorio, "w");
     if (!f) return;
-    scrivi_stato(f, r, secondi_da(x));
+    scrivi_stato(f, r, secondi_da(x), a_mano);
     fclose(f);
     rename(provvisorio, x->file_stato);
 }
@@ -403,7 +246,7 @@ int main(const int argc, char **argv) {
     if (file_passi) scrivi_la_fine(file_passi, r, secondi_da(&seguito));
     // lo stato finale: nel file se c'e', se no su stdout
     if (file_stato) stato_su_file(&seguito, r);
-    else scrivi_stato(stdout, r, secondi_da(&seguito));
+    else scrivi_stato(stdout, r, secondi_da(&seguito), a_mano);
     libera_ricerca(r);
     free(s);
     return 0;

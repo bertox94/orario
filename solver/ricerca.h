@@ -1,9 +1,7 @@
 #ifndef RICERCA_H
 #define RICERCA_H
 
-#include <stdio.h>
-
-#include "scuola.h"
+#include "../scuola/scuola.h"
 
 // La ricerca dell'orario.
 //
@@ -15,7 +13,7 @@
 // devono ancora fare), poi chi sta continuando le sue ore, poi le voci quasi finite. Se da un punto non esce nessun
 // orario si torna indietro e si prova la scelta dopo.
 //
-// Per non perdersi in rami senza uscita, a ogni passo si guardano dei LIMITI (limiti.c): conti che devono tornare
+// Per non perdersi in rami senza uscita, a ogni passo si guardano dei LIMITI (limiti.h): conti che devono tornare
 // perche' un orario possa ancora esistere. Se uno non torna si torna indietro subito.
 //
 // Le parole che tornano in tutto il codice:
@@ -52,14 +50,6 @@ typedef struct {
     int docente, classe, ora;  // di chi si parla (-1: non c'entra)
     int servono, possibili;    // i due numeri del conto: quello che serve e' piu' di quello che e' possibile
 } Motivo;
-
-// I segni di un conto che non torna: per ogni cella di cui il conto parla, che parte ha (per il sito).
-enum {
-    SEGNO_FATTA = 1,  // il docente del conto qui insegna gia'
-    SEGNO_PUO,        // una cella che il conto conta tra le possibili
-    SEGNO_NO,         // una cella che non conta: il docente non c'e', o non puo', o la classe ha finito
-    SEGNO_SERVE       // una cella che va riempita per forza (le prime ore)
-};
 
 // Una risposta gia' data sull'orario di una classe da sola (classe_sola.c): le due impronte dello stato della classe
 // (64 bit l'una, calcolate in due modi: la risposta vale se coincidono tutte e due) e se un orario c'e'.
@@ -180,7 +170,7 @@ static inline int posto_del_motivo(const Scuola *s, const Motivo *m) {
 // la ricerca; serve anche a rimettere l'orario com'era a un nodo, una scelta dopo l'altra (main.c, i segni).
 void segna(Ricerca *r, int cella, int v, int verso);
 
-// ---- le celle e le regole di un docente, per ricerca.c e limiti.c ----
+// ---- le celle e le regole di un docente, per la ricerca, i limiti e le spiegazioni ----
 
 static inline int cella_di(const Ricerca *r, const int giorno, const int ora, const int classe) {
     return (giorno * r->s->ore + ora) * r->s->classi + classe;
@@ -191,32 +181,5 @@ static inline int presente(const Ricerca *r, const int giorno, const int ora, co
     const int v = r->orario[cella_di(r, giorno, ora, k)];
     return v >= 0 && nella_voce(&r->s->voce[v], t);
 }
-
-// Quante ore il docente t puo' ancora fare oggi nella classe k tra l'ora `da` (la prima della classe non ancora
-// decisa) e l'ora `fino_a`, comprese. Niente se la classe ha gia' avuto un'ora buca. Se oggi ci ha gia' insegnato,
-// solo continuando subito (c'era nell'ora prima, e adesso non e' altrove) fino al massimo di ore di seguito. Se no,
-// dal suo ingresso (dall'ora dopo, se adesso e' in un'altra classe), e solo se oggi non e' gia' in troppe classi.
-int ancora_oggi(const Ricerca *r, int giorno, int da, int fino_a, int k, int t);
-
-// I limiti (limiti.c): 1 se i conti tornano; se no 0, con il perche' in *motivo.
-// All'inizio di un'ora, per tutti i docenti e tutte le classi; prepara anche r->deve e r->margine per quell'ora.
-int limiti_a_inizio_ora(Ricerca *r, int giorno, int ora, Motivo *motivo);
-// Dopo una scelta, per quello che la scelta ha cambiato: la classe della cella e le altre classi dei docenti messi.
-int limiti_dopo_la_scelta(const Ricerca *r, int cella, Motivo *motivo);
-// le ore in cui il docente t e' a scuola dall'ora `da` di quel giorno alla fine della settimana
-int ore_libere_da(const Ricerca *r, int giorno, int da, int t);
-// Le celle di cui parla il motivo per cui dal nodo non si va avanti (limiti.c, in fondo): in `segni`, lungo r->celle,
-// per ogni cella 0 o un SEGNO_. L'orario di r deve essere quello del nodo: `profondita` celle decise, l'ultima e'
-// `cella` (-1 alla radice). Ritorna l'ora della settimana (giorno * ore + ora) a cui il conto e' stato fatto.
-int segni_del_nodo(const Ricerca *r, int profondita, int cella, const Motivo *motivo, signed char *segni);
-// I conti di ogni docente a un nodo, in JSON su `f` (limiti.c, in fondo): le ore in tutto e in ogni sua classe, che
-// tornino o no. Per il sito, che li mostra docente per docente.
-void scrivi_i_docenti(FILE *f, const Ricerca *r, int ora_della_settimana);
-// Il conto del motivo in dettaglio, in JSON su `f` (limiti.c, in fondo): i pezzi da cui vengono i suoi due numeri.
-// Come per i segni, l'orario di r deve essere quello del nodo, e l'ora e' quella che segni_del_nodo ritorna.
-void scrivi_il_conto(FILE *f, const Ricerca *r, int ora_della_settimana, const Motivo *motivo);
-// La classe k, guardata da sola, ha ancora un orario per le ore che le restano (classe_sola.c): 1 se c'e' o non si
-// riesce a dirlo in poco tempo, 0 se non c'e'.
-int la_classe_ha_un_orario(const Ricerca *r, int giorno, int ora, int k);
 
 #endif

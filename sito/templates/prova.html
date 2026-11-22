@@ -124,7 +124,7 @@ const dove = cella => {
 };
 
 // ---- lo stato: l'esito, i numeri, e quello che si sa a ricerca finita ----
-// (lo stato e' quello che scrive il solver, solver/main.c, piu' «gira» e «passi» aggiunti dal sito)
+// (lo stato e' quello che scrive il solver, programma/main.c, piu' «gira» e «passi» aggiunti dal sito)
 function mostraStato(s) {
   const esito = s.esito || 'in corso', e = document.getElementById('esito');
   e.textContent = esito;
@@ -158,7 +158,7 @@ function mostraStato(s) {
   if (s.verifica && document.getElementById('verifica').hidden) mostraVerifica(s.verifica);
 }
 
-// l'orario trovato, ricontrollato dal solver regola per regola (solver/verifica.h)
+// l'orario trovato, ricontrollato dal solver regola per regola (verifica/verifica.h)
 function mostraVerifica(v) {
   const box = document.getElementById('verifica');
   box.hidden = false;
@@ -197,7 +197,7 @@ function spiega(m) {
 }
 
 // ---- i segni: le celle che il conto ha contato, colorate nell'orario ----
-// Che cosa vuol dire ogni colore, conto per conto. I segni li calcola il solver (solver/limiti.c, in fondo), con le
+// Che cosa vuol dire ogni colore, conto per conto. I segni li calcola il solver (spiegazioni/spiega.c), con le
 // stesse funzioni che fanno il conto; qui c'e' solo la spiegazione. Si mostrano le righe dei segni che ci sono.
 function legenda(m) {
   const docente = m.docente >= 0 ? esc(scuola.docenti[m.docente][0]) : '', classe = m.classe >= 0 ? esc(scuola.classi[m.classe]) : '';
@@ -219,7 +219,7 @@ function legenda(m) {
 }
 
 // ---- il conto in dettaglio: da dove vengono i suoi due numeri ----
-// Anche questo lo calcola il solver (solver/limiti.c, in fondo: li' c'e' scritto che cosa c'e' in `c` per ogni
+// Anche questo lo calcola il solver (spiegazioni/spiega.c: li' c'e' scritto che cosa c'e' in `c` per ogni
 // conto); qui si scrive in parole. Le liste (le voci, le classi) sono etichette una accanto all'altra.
 function conto(m, c) {
   const docente = m.docente >= 0 ? esc(scuola.docenti[m.docente][0]) : '', classe = m.classe >= 0 ? esc(scuola.classi[m.classe]) : '';
@@ -260,7 +260,7 @@ function conto(m, c) {
 
 // ---- i controlli docente per docente (la sezione chiusa sotto l'orario) ----
 // Per ogni docente i due controlli che lo riguardano, con i loro numeri, che passino o no: A, le ore in tutto, e B,
-// le ore in ogni classe dove ne ha ancora. Li calcola il solver (solver/limiti.c, scrivi_i_docenti).
+// le ore in ogni classe dove ne ha ancora. Li calcola il solver (spiegazioni/spiega.c, scrivi_i_docenti).
 function mostraDocenti(p) {
   const sezione = document.getElementById('controlli-docenti');
   if (!sezione.open || !ultimiSegni || ultimiSegni.k !== p.k) return;
