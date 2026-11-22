@@ -26,7 +26,9 @@ def _interi(campo):
 
 def crea_app():
     app = Flask(__name__)
+    # la chiave serve solo ai messaggi che passano da una pagina all'altra (flash)
     app.secret_key = os.environ.get('SITO_SEGRETO') or os.urandom(16)
+    # due filtri per le pagine: i numeri con i punti, e una data da un tempo in secondi
     app.jinja_env.filters['numero'] = numero
     app.jinja_env.filters['data'] = lambda t: datetime.datetime.fromtimestamp(t).strftime('%d/%m/%Y %H:%M')
 
@@ -43,12 +45,14 @@ def crea_app():
     def avvia():
         f = request.form
         try:
+            # i numeri del modulo; il limite arriva in milioni, anche con la virgola
             seme, classi = int(f.get('seme') or 0), int(f.get('classi') or 0)
             milioni = float((f.get('milioni') or '1').replace(',', '.'))
             if seme < 0 or not 1 <= classi <= 120 or not 0 < milioni <= MAX_MILIONI:
                 raise ValueError('Seme da 0 in su, classi da 1 a 120, limite di nodi fino a %d milioni.' % MAX_MILIONI)
             if notturni.in_corso() is not None:
                 raise ValueError('Sta girando un giro di test notturni: aspetta che finisca, o fermalo.')
+            # parte: da qui in poi la pagina della prova la segue
             n = prove.avvia(seme, classi, f.get('ritardi') == 'con', int(round(milioni * 1000000)))
         except (ValueError, RuntimeError) as e:
             flash(str(e))
@@ -183,9 +187,11 @@ def crea_app():
             f = request.form
             semi_da, semi_a, classi_da, classi_a = (int(f.get(k) or 0)
                                                     for k in ('semi_da', 'semi_a', 'classi_da', 'classi_a'))
+            # senza, con, o tutti e due (ogni caso due volte)
             ritardi = {'senza': (False,), 'con': (True,)}.get(f.get('ritardi'), (False, True))
             if not (0 <= semi_da <= semi_a and 1 <= classi_da <= classi_a <= 120):
                 raise ValueError('Semi da 0 in su e classi da 1 a 120, il primo numero non più grande del secondo.')
+            # tutte le combinazioni: per ogni numero di classi, ogni seme, con e senza
             nuovi = [(s, c, r) for c in range(classi_da, classi_a + 1) for s in range(semi_da, semi_a + 1)
                      for r in ritardi]
             if len(nuovi) > MAX_CASI_PER_VOLTA:
@@ -216,6 +222,7 @@ def crea_app():
         def imposta():
             f = request.form
             milioni = float((f.get('milioni') or '').replace(',', '.'))
+            # l'ora deve essere scritta HH:MM (se no ValueError, e il messaggio)
             ora = datetime.datetime.strptime(f.get('ora') or '', '%H:%M').strftime('%H:%M')
             if not 0 < milioni <= MAX_MILIONI_NOTTURNI:
                 raise ValueError('Il limite di nodi va fino a %d milioni.' % MAX_MILIONI_NOTTURNI)
@@ -236,5 +243,6 @@ def crea_app():
         notturni.visto(_interi('numeri'))
         return redirect(url_for('pagina_notturni'))
 
+    # all'avvio del sito: i giri rimasti a meta' risultano interrotti, e parte l'orologio del giro della notte
     notturni.all_avvio()
     return app

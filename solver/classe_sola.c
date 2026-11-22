@@ -92,6 +92,7 @@ int la_classe_ha_un_orario(const Ricerca *r, const int giorno, const int ora, co
     const Scuola *s = r->s;
     const int n_voci = s->prima_voce[k + 1] - s->prima_voce[k], n_docenti = r->n_docenti_di[k];
     int resto[n_voci], fatte[n_docenti], ultima[n_docenti];
+    // lo stato della piccola ricerca: le sue tabelle sono qui sopra, sullo stack, lunghe quanto serve a questa classe
     ClasseSola c = {r, k, n_voci, n_docenti, &s->voce[s->prima_voce[k]], &r->posto[2 * s->prima_voce[k]], resto,
                     fatte, ultima, r->resto_classe[k], TENTATIVI};
     // le ore che restano alle sue voci (una copia: `riempi` le cambia mentre prova)
@@ -99,10 +100,12 @@ int la_classe_ha_un_orario(const Ricerca *r, const int giorno, const int ora, co
     // da dove riparte: oggi dalla sua prima ora non decisa, con le ore che i docenti hanno gia' fatto; oppure, se la
     // sua giornata e' finita, dal giorno dopo
     int g = giorno, h = ora + (r->orario[cella_di(r, giorno, ora, k)] != VUOTA);
+    // la classe oggi ha finito se non ha piu' ore libere, o se ha gia' avuto un'ora buca
     const int finita = h >= s->ore || r->chiusa[giorno * s->classi + k];
     if (finita) g++, h = 0;
     for (int i = 0; i < n_docenti; i++) {
         const int t = r->docente_di[k * s->docenti + i];
+        // per ogni suo docente: le ore fatte oggi qui, e se c'era nell'ora prima della prima libera
         fatte[i] = finita ? 0 : r->ore_oggi[(giorno * s->classi + k) * s->docenti + t];
         ultima[i] = !finita && h > 0 && presente(r, giorno, h - 1, k, t) ? h - 1 : MAI;
     }

@@ -49,6 +49,7 @@ static const char *const NOMI_DOCENTI[] = {
     "Theoden", "Morgoth", "Gothmog", "Feanor", "Fingolfin"
 };
 
+// quanti sono (lo conta il compilatore: aggiungere un nome basta)
 #define N_NOMI_DOCENTI ((int) (sizeof NOMI_DOCENTI / sizeof NOMI_DOCENTI[0]))
 
 #endif

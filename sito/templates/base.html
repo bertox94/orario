@@ -22,6 +22,7 @@
 // quello che serve a tutte le pagine
 const numero = n => Number(n).toLocaleString('it-IT');
 const esc = x => String(x).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+// una data e un'ora brevi, da un tempo in secondi
 const quando = t => new Date(t * 1000).toLocaleString('it-IT', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'});
 // l'etichetta colorata di un esito
 const etichetta = esito => `<span class="esito esito-${esc(esito.replace(/ /g, '-'))}">${esc(esito)}</span>`;

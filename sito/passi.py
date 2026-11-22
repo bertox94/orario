@@ -64,8 +64,10 @@ def passo(file, k, celle):
     x = _strada(file, k, celle)
     if not x:
         return None
+    # (i nove campi dell'ultimo record: quelli del nodo k)
     strada, (profondita, cella, voce, tipo, docente, classe, ora, servono, possibili) = x
     orario = [None] * celle
+    # dalla strada all'orario: ogni scelta nella sua cella, le altre restano non decise
     for c, v in strada:
         orario[c] = v
     motivo = tipo and {'tipo': MOTIVI[tipo], 'docente': docente, 'classe': classe, 'ora': ora, 'servono': servono,
@@ -155,6 +157,7 @@ def profilo(file, fasce=400):
                 with open(file + '.prof', 'rb') as g:
                     g.seek(len(basse) * 4)
                     nuovi = array.array('h', g.read((n // _BLOCCO - len(basse)) * 4))
+                    # (solo coppie intere: il file puo' essere stato letto mentre il solver scriveva)
                     nuovi = nuovi[:len(nuovi) // 2 * 2]
                     basse.extend(nuovi[0::2])
                     alte.extend(nuovi[1::2])

@@ -151,6 +151,7 @@ function mostraStato(s) {
   mostraColpe(s.ritorni_per_motivo);
   mostraFiltro();
   // impossibile gia' in partenza: il conto che non torna
+  // (questo messaggio c'e' solo se la ricerca e' finita al primo nodo)
   const partenza = document.getElementById('in-partenza');
   partenza.hidden = !s.motivo;
   if (s.motivo) partenza.textContent = `Un orario non può esserci, e si vede prima ancora di cercare. ${nomeControllo(s.motivo.tipo)}. ` + spiega(s.motivo);
@@ -436,7 +437,9 @@ function disegnaPasso(p) {
   document.getElementById('cambiate').textContent = !prima ? '' : cambiate
     ? `Dal passo ${numero(prima.k)}: ${cambiate === 1 ? '1 cella cambiata' : cambiate + ' celle cambiate'} (bordo lilla; sbarrate quelle tolte).`
     : `Dal passo ${numero(prima.k)} l'orario è lo stesso.`;
+  // la riga della classe di cui parla il controllo che non passa
   for (const tr of righe) tr.classList.toggle('in-causa', !!p.motivo && p.motivo.classe >= 0 && tr.rowIndex - 2 === p.motivo.classe);
+  // la riga del passo: chi e' stato messo dove, e quante celle sono decise
   const scelta = p.cella < 0 ? 'si comincia: l\'orario è vuoto'
     : `${p.voce < 0 ? 'ora buca' : esc(nomi(p.voce).join(' con '))} in ${esc(dove(p.cella))}`;
   document.getElementById('testo-passo').innerHTML = `Passo ${numero(p.k)} di ${numero(Number(slider.max))} · ${scelta} · ` +
@@ -470,6 +473,7 @@ async function vai(k) {
   disegnaPasso(await r.json());
   disegnaProfilo();
 }
+// lo slider: mentre si trascina si aspetta 60 millesimi, poi si chiede il passo su cui si e' fermato
 slider.addEventListener('input', () => { clearTimeout(attesa); attesa = setTimeout(() => vai(Number(slider.value)), 60); });
 for (const b of document.querySelectorAll('button[data-salto]'))
   b.addEventListener('click', () => vai(Number(slider.value) + Number(b.dataset.salto)));
@@ -479,6 +483,7 @@ for (const b of document.querySelectorAll('button[data-morto]'))
       '?almeno=' + Math.max(1, Number(document.getElementById('almeno').value) || 1) + (cellaScelta === null ? '' : '&cella=' + cellaScelta))).json();
     if (r.k) vai(r.k);
   });
+// le frecce della tastiera: un passo indietro o avanti (non mentre si scrive in un campo)
 document.addEventListener('keydown', e => {
   if (e.target.closest('input:not([type=range]), select, textarea')) return;
   if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); vai(Number(slider.value) + (e.key === 'ArrowLeft' ? -1 : 1)); }
@@ -509,6 +514,7 @@ function disegnaProfilo() {
 async function aggiornaProfilo() {
   try { ultimoProfilo = await (await fetch(URL_PROFILO, {cache: 'no-store'})).json(); disegnaProfilo(); } catch (e) { /* alla prossima */ }
 }
+// un clic sul profilo porta al passo che sta in quel punto
 tela.addEventListener('click', e => { if (ultimoProfilo) vai(Math.round(e.offsetX / tela.clientWidth * ultimoProfilo.nodi) + 1); });
 window.addEventListener('resize', disegnaProfilo);
 
@@ -517,6 +523,7 @@ function disegnaCaso() {
   const {classi, docenti, voci, ore: O} = scuola;
   document.getElementById('classi').innerHTML = '<thead><tr><th>Classe</th><th class="num">Ore</th><th>Lezioni</th></tr></thead><tbody>' +
     classi.map((k, i) => {
+      // le voci di questa classe, con il loro numero
       const sue = voci.map((v, j) => [v, j]).filter(([v]) => v[0] === i);
       return `<tr><th>${esc(k)}</th><td class="num">${sue.reduce((a, [v]) => a + v[3], 0)}</td><td>` +
         sue.map(([v, j]) => `<span class="voce">${esc(nomi(j).join(' con '))} <strong>${v[3]}</strong></span>`).join(' ') + '</td></tr>';

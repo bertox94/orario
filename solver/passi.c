@@ -18,10 +18,12 @@ struct Passi {
 // `profondita`, e quelle dopo non contano piu' (si e' tornati indietro, o non sono ancora state fatte).
 void passi_nodo(Passi *p, const long long nodo, const int profondita, const int cella, const int voce,
                 const Motivo *m) {
+    // il record del nodo: i nove numeri, nell'ordine scritto in passi.h
     const int16_t record[PASSI_CAMPI] = {(int16_t) profondita, (int16_t) cella, (int16_t) voce, (int16_t) m->tipo,
                                          (int16_t) m->docente, (int16_t) m->classe, (int16_t) m->ora,
                                          (int16_t) m->servono, (int16_t) m->possibili};
     fwrite(record, sizeof record, 1, p->passi);
+    // la strada: quante scelte, e la scelta di questo nodo al suo posto
     p->strada[0] = (int16_t) profondita;
     if (profondita) p->strada[2 * profondita - 1] = (int16_t) cella, p->strada[2 * profondita] = (int16_t) voce;
     // il profilo: il primo nodo di un blocco comincia il conto, l'ultimo lo scrive
@@ -32,6 +34,7 @@ void passi_nodo(Passi *p, const long long nodo, const int profondita, const int 
         fwrite(blocco, sizeof blocco, 1, p->profilo);
     }
     if (nodo % PASSI_ISTANTANEA) return;  // non e' il momento dell'istantanea
+    // l'istantanea: tutta la strada, sempre lunga uguale (cosi' la numero j si trova con un salto)
     fwrite(p->strada, sizeof(int16_t), 1 + 2 * p->celle, p->istantanee);
     fflush(p->passi);  // il sito legge mentre la ricerca va avanti: fino a qui tutto scritto
     fflush(p->istantanee);

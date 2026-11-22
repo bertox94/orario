@@ -65,6 +65,7 @@ for (const c of caselle) c.addEventListener('change', aggiorna);
 tutte.addEventListener('change', () => { for (const c of caselle) c.checked = tutte.checked; aggiorna(); });
 modulo.addEventListener('submit', e => {
   const n = scelte().length;
+  // prima di eliminare si chiede conferma; i numeri scelti vanno nel campo nascosto del modulo
   if (!confirm(n === 1 ? 'Eliminare la prova scelta?' : `Eliminare le ${n} prove scelte?`)) return e.preventDefault();
   modulo.elements.numeri.value = scelte().map(c => c.value).join(',');
 });

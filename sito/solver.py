@@ -21,6 +21,7 @@ def programma():
     exe = archivio.percorso('bin', 'orario-' + impronta.hexdigest()[:12])
     if not os.path.exists(exe):
         os.makedirs(os.path.dirname(exe), exist_ok=True)
+        # tutti i .c insieme, senza avvisi: quelli si guardano con make, che li mostra
         r = subprocess.run(['gcc', '-O2', '-std=gnu11', '-w'] + [n for n in nomi if n.endswith('.c')]
                            + ['-o', exe + '.tmp'], cwd=SORGENTI, capture_output=True, text=True)
         if r.returncode:
@@ -33,6 +34,7 @@ def genera(seme, classi, ritardi, file):
     """Scrive in `file` il caso casuale (seme, classi, con o senza ritardi). ValueError se non si riesce a
     generarlo."""
     comando = [programma(), 'genera', str(seme), str(classi), '1' if ritardi else '0']
+    # il caso esce su stdout: va dritto nel file
     with open(file, 'w') as f:
         if subprocess.run(comando, stdout=f).returncode:
             raise ValueError('Con questo seme e queste classi il caso non si riesce a generare.')

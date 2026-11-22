@@ -36,6 +36,7 @@ typedef struct {
 
 // il prossimo numero casuale: tre spostamenti di bit sullo stato, e una moltiplicazione
 static uint64_t casuale(Caso *c) {
+    // (i tre spostamenti rimescolano i bit; la moltiplicazione finale li sparge)
     uint64_t x = c->stato;
     x ^= x >> 12;
     x ^= x << 25;
@@ -63,6 +64,7 @@ static void semina(Caso *c, const unsigned long long seme) {
 static int il_meno_carico(Caso *c, const int ore, const int escluso) {
     int scelto = -1;
     for (int i = 0; i < 3; i++) {
+        // uno a caso: scartato se e' l'escluso (il docente della stessa lezione) o se andrebbe oltre il massimo
         const int d = tra(c, 0, c->docenti - 1);
         if (d == escluso || c->carico[d] + ore > ORE_DOCENTE_MAX) continue;
         if (scelto < 0 || c->carico[d] < c->carico[scelto]) scelto = d;
@@ -90,6 +92,7 @@ static int tenta(Caso *c, const int classi) {
             ore_in_tutto += ore + l->insieme;
         }
     // i docenti: tanti da avere in media tra 10 e 20 ore, e comunque tra il minimo e il massimo
+    // pochi: il minimo perche' nessuno superi il massimo di ore; tanti: il massimo perche' tutti arrivino al minimo
     const int pochi = (ore_in_tutto + ORE_DOCENTE_MAX - 1) / ORE_DOCENTE_MAX, tanti = ore_in_tutto / ORE_DOCENTE_MIN;
     int da = MAX((ore_in_tutto + 19) / 20, pochi), a = MIN(ore_in_tutto / 10, tanti);
     if (da > a) da = pochi, a = tanti;
@@ -97,6 +100,7 @@ static int tenta(Caso *c, const int classi) {
     c->docenti = tra(c, da, a);
     for (int d = 0; d < c->docenti; d++) c->carico[d] = 0;
     for (int i = 0; i < c->lezioni; i++) {  // le lezioni in ordine casuale
+        // (la lezione al posto i si scambia con una a caso tra lei e l'ultima)
         const int j = tra(c, i, c->lezioni - 1);
         const Lezione l = c->lezione[i];
         c->lezione[i] = c->lezione[j];
@@ -108,6 +112,7 @@ static int tenta(Caso *c, const int classi) {
         Lezione *l = &c->lezione[i];
         if ((l->docente = il_meno_carico(c, l->ore, -1)) < 0) return 0;
         c->carico[l->docente] += l->ore;
+        // da solo: finito qui
         if (!l->insieme) {
             da_soli = 1;
             continue;
@@ -137,6 +142,7 @@ static void ritardi(Caso *c, int ingresso[]) {
     }
     for (int d = 0; d < c->docenti; d++) {
         if (!tardi[d]) continue;
+        // alla seconda, terza o quarta ora; poi piu' presto, finche' le sue ore stanno nella settimana
         ingresso[d] = tra(c, 1, INGRESSO_MAX);
         while (ingresso[d] > 0 && c->carico[d] > (ORE - ingresso[d]) * GIORNI) ingresso[d]--;
     }
@@ -159,6 +165,7 @@ int genera_caso(FILE *f, const unsigned long long seme, const int classi, const 
     if (riuscito) {
         int ingresso[MAX_DOCENTI] = {0};
         if (con_ritardi) ritardi(c, ingresso);
+        // il caso, nel formato di leggi_scuola: prima un commento che dice quale caso e'
         fprintf(f, "# seme %llu, %d classi, %s ritardi\n", seme, classi, con_ritardi ? "con" : "senza");
         fputs("giorni\tLun\tMar\tMer\tGio\tVen\tSab\nore\t08\t09\t10\t11\t12\t13\n", f);
         fprintf(f, "obbligatorie\t%d\n", OBBLIGATORIE);
@@ -172,11 +179,13 @@ int genera_caso(FILE *f, const unsigned long long seme, const int classi, const 
             for (int i = 0; i < c->lezioni; i++) {
                 const Lezione *l = &c->lezione[i];
                 if (l->classe != k) continue;
+                // le ore in cui il docente e' da solo (se ce ne sono)
                 if (l->ore > l->insieme) {
                     fprintf(f, "lezione\tC%02d\t%d\t", k + 1, l->ore - l->insieme);
                     nome_docente(f, l->docente);
                     fputc('\n', f);
                 }
+                // le ore in coppia con il codocente (se ce ne sono)
                 if (l->insieme) {
                     fprintf(f, "lezione\tC%02d\t%d\t", k + 1, l->insieme);
                     nome_docente(f, l->docente);

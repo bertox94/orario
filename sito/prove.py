@@ -103,6 +103,7 @@ def cambia(numero, k, cella, voce):
         nuova = max(archivio.numeri(_cartella()), default=0) + 1
         d = _cartella(nuova)
         os.makedirs(d)
+        # lo stesso caso della prova di partenza, e la strada: le scelte fino a quella cella, poi quella fatta a mano
         shutil.copy(os.path.join(_cartella(numero), 'caso.txt'), os.path.join(d, 'caso.txt'))
         with open(os.path.join(d, 'strada.txt'), 'w') as f:
             f.write(passi.strada_per_il_solver(prima + [(cella, voce)]) + '\n')
@@ -131,6 +132,7 @@ def continua(numero, in_piu):
             raise ValueError('Questa prova è stata fatta prima che si potesse continuare: rifalla.')
         if in_piu * BYTE_PER_NODO > shutil.disk_usage(d).free - SPAZIO_DA_LASCIARE:
             raise ValueError('Sul disco non c\'è abbastanza spazio per continuare.')
+        # il limite nuovo: i nodi fatti piu' quelli chiesti (il solver vuole il totale)
         limite = stato['nodi'] + in_piu
         archivio.scrivi(os.path.join(d, 'info.json'), dict(info, limite=limite))
         processo = solver.risolvi('caso.txt', limite, 'stato.json', 'passi.bin', d, continua=True)
@@ -145,6 +147,7 @@ def ferma():
         if p is None or p.poll() is not None:
             return
         info = archivio.leggi(os.path.join(_cartella(numero), 'info.json'), {})
+        # si segna che e' stata fermata a mano: senza, risulterebbe «interrotta»
         archivio.scrivi(os.path.join(_cartella(numero), 'info.json'), dict(info, fermata=True))
         p.terminate()
 
@@ -156,6 +159,7 @@ def prova(numero):
     info = archivio.leggi(os.path.join(d, 'info.json'))
     if not info:
         return None
+    # lo stato lo scrive il solver; se non c'e' ancora, vuoto
     stato = archivio.leggi(os.path.join(d, 'stato.json'), {})
     gira = in_corso() == numero
     if not gira and stato.get('in_corso', 1):   # finita senza dirlo: fermata, o il sito si e' riavviato

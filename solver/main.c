@@ -51,6 +51,8 @@
 #include "ricerca.h"
 #include "verifica.h"
 
+// I nomi degli esiti e dei motivi, nell'ordine dei numeri di ricerca.h (Esito, TipoMotivo): nello stato si scrivono
+// in parole, e il sito li usa cosi'.
 static const char *const ESITI[] = {"in corso", "trovato", "impossibile", "limite di nodi"};
 static const char *const MOTIVI[] = {"", "ore_docente", "ore_docente_in_classe", "ore_classe", "prime_ore",
                                      "docente_senza_posto", "classe_senza_scelte", "orario_della_classe"};
@@ -83,10 +85,12 @@ static int a_mano = 0;  // la ricerca e' partita da una strada scelta a mano (--
 
 static void scrivi_stato(FILE *f, const Ricerca *r, const double secondi) {
     const Scuola *s = r->s;
+    // i numeri della ricerca
     fprintf(f, "{\"a_mano\":%d,", a_mano);
     fprintf(f, "\"in_corso\":%d,\"esito\":\"%s\",\"nodi\":%lld,\"secondi\":%.2f,\"profondita_massima\":%d,"
             "\"celle\":%d,\"ritorni\":%lld,\"ritorni_per_cella\":[", r->esito == IN_CORSO, ESITI[r->esito], r->nodi,
             secondi, r->profondita_massima, r->celle, r->ritorni);
+    // i ritorni: per cella, per cella dall'ultimo passo avanti, e per motivo (qui solo i posti che ne hanno)
     for (int i = 0; i < r->celle; i++) fprintf(f, "%s%lld", i ? "," : "", r->ritorni_in[i]);
     fputs("],\"ritorni_recenti_per_cella\":[", f);
     for (int i = 0; i < r->celle; i++) fprintf(f, "%s%lld", i ? "," : "", r->ritorni_recenti_in[i]);
@@ -100,6 +104,7 @@ static void scrivi_stato(FILE *f, const Ricerca *r, const double secondi) {
         primo = 0;
     }
     fputs("],\"scuola\":{", f);
+    // la scuola: i nomi, le due regole della giornata (servono ai testi del sito), i docenti con l'ingresso, le voci
     json_nomi(f, "giorni", s->nome_giorno, s->giorni);
     json_nomi(f, "ore", s->nome_ora, s->ore);
     json_nomi(f, "classi", s->nome_classe, s->classi);
@@ -115,6 +120,7 @@ static void scrivi_stato(FILE *f, const Ricerca *r, const double secondi) {
         fprintf(f, "%s[%d,%d,%d,%d]", v ? "," : "", s->voce[v].classe, s->voce[v].docente[0], s->voce[v].docente[1],
                 s->voce[v].ore);
     fputs("]}", f);
+    // impossibile gia' al primo nodo: il conto che non torna
     if (r->esito == IMPOSSIBILE && r->motivo_radice.tipo != NESSUNO) {
         const Motivo *m = &r->motivo_radice;
         fprintf(f, ",\"motivo\":{\"tipo\":\"%s\",\"docente\":%d,\"classe\":%d,\"ora\":%d,\"servono\":%d,"
@@ -122,6 +128,7 @@ static void scrivi_stato(FILE *f, const Ricerca *r, const double secondi) {
     }
     if (r->esito == TROVATO) {
         Controllo controllo[CONTROLLI];
+        // trovato: l'orario, e la sua verifica fatta adesso, regola per regola
         const int ok = verifica_orario(s, r->orario, controllo);
         fputs(",\"orario\":[", f);
         for (int i = 0; i < r->celle; i++) fprintf(f, "%s%d", i ? "," : "", r->orario[i]);
@@ -224,6 +231,7 @@ static void segui(const Ricerca *r, const int profondita, const int cella, const
     Seguito *x = r->di_chi;
     if (x->passi) passi_nodo(x->passi, r->nodi, profondita, cella, voce, m);
     if (!x->file_stato || r->nodi & 4095) return;  // l'orologio si guarda ogni 4096 nodi
+    // e' passato mezzo secondo dall'ultima scrittura?
     const clock_t adesso = clock();
     if (adesso - x->ultima_scrittura < CLOCKS_PER_SEC / 2) return;
     x->ultima_scrittura = adesso;
@@ -275,6 +283,7 @@ static int nodo(const Scuola *s) {
     if (!segno || scanf("%d %d %d %d %d %d %d", &tipo, &m.docente, &m.classe, &m.ora, &m.servono, &m.possibili,
                         &profondita) != 7)
         return 2;
+    // (il tipo arriva come numero: lo stesso che c'e' nei passi)
     m.tipo = (TipoMotivo) tipo;
     // chi e' nominato nel motivo deve esistere: i segni si scrivono nelle sue celle
     if (tipo < NESSUNO || tipo > ORARIO_DELLA_CLASSE || m.docente >= s->docenti || m.classe >= s->classi
@@ -294,6 +303,7 @@ static int nodo(const Scuola *s) {
     const int ora_della_settimana = segni_del_nodo(r, profondita, cella, &m, segno);
     printf("{\"giorno\":%d,\"ora\":%d,\"segni\":[", ora_della_settimana / s->ore, ora_della_settimana % s->ore);
     for (int i = 0, primo = 1; i < r->celle; i++)
+        // solo le celle che hanno un segno
         if (segno[i]) printf("%s[%d,%d]", primo ? "" : ",", i, segno[i]), primo = 0;
     fputs("],\"conto\":", stdout);  // i pezzi da cui vengono i due numeri del conto
     scrivi_il_conto(stdout, r, ora_della_settimana, &m);
@@ -313,6 +323,7 @@ static int usa(const char *programma) {
 }
 
 int main(const int argc, char **argv) {
+    // «genera» non legge nessun caso: si fa subito
     if (argc == 5 && !strcmp(argv[1], "genera"))
         return genera_caso(stdout, strtoull(argv[2], NULL, 10), atoi(argv[3]), atoi(argv[4])) ? 0 : 2;
     const int vuole_un_nodo = argc == 3 && !strcmp(argv[1], "nodo");
@@ -335,6 +346,7 @@ int main(const int argc, char **argv) {
         else if (!strcmp(argv[i], "--da")) file_strada = argv[i + 1];
         else return usa(argv[0]);
     }
+    // tutti gli altri comandi cominciano leggendo il caso
     char errore[256];
     Scuola *s = leggi_scuola(argv[2], errore, sizeof errore);
     if (!s) {
@@ -365,6 +377,7 @@ int main(const int argc, char **argv) {
                                  : "non riesco a preparare la ricerca\n");
         return 2;
     }
+    // la ricerca chiama `segui` a ogni nodo: e' li' che si scrivono i passi e, ogni tanto, lo stato
     r->limite = limite;
     r->a_ogni_nodo = segui;
     r->di_chi = &seguito;

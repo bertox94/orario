@@ -16,13 +16,16 @@ import tempfile
 
 RADICE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ATTESI = os.path.join(RADICE, 'prove', 'attesi.json')
+# il limite di nodi di ogni caso: basso, perche' la prova deve durare poco
 LIMITE = 200000
+# i casi: una griglia piccola (semi, classi, con e senza ritardi) e quattro casi scelti, tra cui i piu' grandi
 CASI = [(seme, classi, ritardi) for seme in range(6) for classi in (3, 5, 8, 12) for ritardi in (0, 1)] + \
        [(10, 3, 1), (1, 14, 1), (2, 20, 0), (3, 30, 1)]
 
 
 def esegui():
     trovati = {}
+    # tutto in una cartella provvisoria: l'eseguibile e il file del caso
     with tempfile.TemporaryDirectory() as d:
         exe, caso = os.path.join(d, 'orario'), os.path.join(d, 'caso.txt')
         subprocess.run(['gcc', '-O2', '-std=gnu11', '-Wall', '-Wextra'] + sorted(glob.glob(RADICE + '/solver/*.c'))
@@ -32,6 +35,7 @@ def esegui():
                 subprocess.run([exe, 'genera', str(seme), str(classi), str(ritardi)], stdout=f, check=True)
             r = subprocess.run([exe, 'risolvi', caso, '--limite', str(LIMITE)], capture_output=True, text=True)
             s = json.loads(r.stdout)
+            # il nome del caso e' la chiave in attesi.json
             nome = 'seme %d, %d classi, %s ritardi' % (seme, classi, 'con' if ritardi else 'senza')
             trovati[nome] = {'esito': s['esito'], 'nodi': s['nodi']}
             if s['esito'] == 'trovato':
@@ -52,6 +56,7 @@ def main():
         return 1 if non_validi else 0
     with open(ATTESI) as f:
         attesi = json.load(f)
+    # diverso: un caso in piu' o in meno, o con esito, nodi o verifica cambiati
     diversi = [k for k in sorted(set(attesi) | set(trovati)) if attesi.get(k) != trovati.get(k)]
     for k in diversi:
         print('DIVERSO  %s\n  atteso:  %s\n  trovato: %s' % (k, attesi.get(k), trovati.get(k)))

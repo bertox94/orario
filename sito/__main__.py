@@ -13,11 +13,13 @@ from .app import crea_app
 def main():
     ap = argparse.ArgumentParser(prog='python3 -m sito',
                                  description='Il sito dell\'orario: prove in tempo reale e test notturni.')
+    # un solo comando, «avvia», con l'indirizzo e la porta
     sotto = ap.add_subparsers(dest='comando', required=True)
     a = sotto.add_parser('avvia', help='avvia il sito')
     a.add_argument('--host', default='127.0.0.1', help='indirizzo su cui ascoltare (0.0.0.0 = tutta la rete locale)')
     a.add_argument('--porta', type=int, default=8000)
     args = ap.parse_args()
+    # il sito (app.py); poi il server: waitress se e' installato
     app = crea_app()
     try:
         from waitress import serve

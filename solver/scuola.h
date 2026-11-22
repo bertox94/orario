@@ -13,6 +13,8 @@
 // - in un giorno un docente insegna in al massimo MAX_CLASSI_AL_GIORNO classi;
 // - ogni classe ha lezione nelle prime `obbligatorie` ore di ogni giorno, e dopo un'ora buca quel giorno ha finito.
 
+// Quanto puo' essere grande una scuola: le tabelle della Scuola hanno queste misure, fisse. Un caso che le supera
+// viene rifiutato da leggi_scuola.
 #define MAX_GIORNI 7
 #define MAX_ORE 10
 #define MAX_CLASSI 120
@@ -20,15 +22,20 @@
 #define MAX_VOCI 4000
 #define MAX_NOME 48
 
+// Le due regole della giornata di un docente (vedi sopra). Cambiarle cambia la ricerca e i risultati di riferimento.
 #define MAX_ORE_DI_SEGUITO 3
 #define MAX_CLASSI_AL_GIORNO 3
 
+// Il piu' piccolo e il piu' grande di due numeri. Sono macro: ogni argomento e' scritto due volte, quindi dentro
+// non ci va mai una chiamata che fa qualcosa (per esempio che estrae un numero casuale).
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 typedef struct {
+    // la classe della lezione (indice)
     int classe;
     int docente[2];  // docente[1] < 0: da solo
+    // le ore in una settimana
     int ore;
 } Voce;
 

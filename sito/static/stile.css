@@ -16,6 +16,7 @@
 }
 
 /* ---- la pagina e i titoli ---- */
+/* le misure di ogni cosa comprendono bordo e margine interno; quello che ha «hidden» non si vede mai */
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 body { margin: 0; background: linear-gradient(160deg, var(--sfondo) 30%, var(--lilla-chiaro)) fixed; color: var(--testo);
@@ -38,6 +39,7 @@ p.nota { max-width: 86ch; }
 .messaggio.avviso { border-left-color: var(--avviso); background: var(--avviso-chiaro); }
 details { margin: 14px 0; }
 summary { font-size: 16px; cursor: pointer; margin-bottom: 8px; }
+/* la testata: il nome del sito a sinistra, le due schede a destra */
 .testata { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px;
   margin-bottom: 30px; padding-bottom: 16px; border-bottom: 2px solid var(--bordo); }
 .testata .nome { font-family: var(--corsivo); font-size: 40px; line-height: 1.1; color: var(--accento); text-decoration: none; }
@@ -46,6 +48,7 @@ nav.schede a { padding: 7px 20px; text-decoration: none; color: var(--tenue); bo
 nav.schede a.attiva { color: var(--accento-scuro); font-weight: 600; background: var(--carta); box-shadow: 0 1px 4px var(--ombra); }
 
 /* ---- campi e tasti ---- */
+/* un riquadro bianco con l'ombra, largo quanto il suo contenuto: i moduli */
 .riquadro { background: var(--carta); border: 1px solid var(--bordo); border-radius: var(--angolo); padding: 16px 20px;
   box-shadow: 0 6px 22px var(--ombra); width: max-content; max-width: 100%; margin: 0 0 10px; }
 .riquadro > :last-child { margin-bottom: 0; }
@@ -61,6 +64,7 @@ input, select { font: inherit; padding: 7px 10px; border: 1px solid var(--bordo)
 input:focus, select:focus { border-color: var(--accento); outline: 0; box-shadow: 0 0 0 3px var(--rosa); }
 input[type=number] { width: 7em; }
 input[type=checkbox], input[type=range] { accent-color: var(--accento); }
+/* i tasti: a pillola, pieni e sfumati quelli principali, bianchi con il bordo i secondari */
 button { font: inherit; font-weight: 500; padding: 8px 20px; border: 1px solid transparent; border-radius: var(--pillola);
   background: var(--sfumato) border-box; color: #fff; cursor: pointer; white-space: nowrap; box-shadow: 0 3px 10px var(--ombra); }
 button:hover:not(:disabled) { background: var(--accento-scuro); }
@@ -71,6 +75,7 @@ button.piccolo { padding: 3px 12px; font-size: 13px; }
 button.salto { padding-left: 12px; padding-right: 12px; }
 
 /* ---- le etichette degli esiti ---- */
+/* un'etichetta a pillola; il colore dipende dall'esito (verde va bene, giallo attenzione, rosso non va) */
 .esito, .tardi { display: inline-block; padding: 2px 12px; border-radius: var(--pillola); font-weight: 600; white-space: nowrap;
   margin-right: 6px; background: var(--riga); }
 .esito-trovato, .esito-verificato { color: var(--ok); background: var(--ok-chiaro); }
@@ -83,6 +88,7 @@ summary .esito { font-family: var(--scritto); font-size: 13px; padding: 1px 10px
 
 /* ---- le tabelle ---- */
 .scorre { overflow-x: auto; max-width: 100%; }
+/* le tabelle di dati: righe sottili, intestazioni piccole, i numeri allineati a destra */
 table.dati { border-collapse: collapse; }
 table.dati th, table.dati td { padding: 7px 12px; text-align: left; border-bottom: 1px solid var(--riga); vertical-align: top; }
 table.dati thead th { font-size: 13px; color: var(--tenue); font-weight: 600; white-space: nowrap; }
@@ -104,6 +110,7 @@ table.orario th, table.orario td { border: 1px solid var(--riga); padding: 3px 5
   max-width: 88px; }
 table.orario thead th { color: var(--tenue); font-weight: 600; background: var(--sfondo); }
 table.orario th.giorno, table.orario .inizio-giorno { border-left: 2px solid var(--bordo); }
+/* il nome della classe resta fermo a sinistra mentre l'orario scorre di lato */
 table.orario tbody th { position: sticky; left: 0; min-width: 64px; max-width: 64px; background: var(--sfondo); color: var(--tenue); }
 table.orario td { height: 40px; line-height: 16px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 table.orario td span { display: block; }

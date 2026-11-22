@@ -20,6 +20,7 @@ enum { ORE_GIUSTE, UNA_CLASSE_PER_VOLTA, DOPO_L_INGRESSO, ORE_AL_GIORNO, DI_SEGU
     } while (0)
 
 int verifica_orario(const Scuola *s, const int *orario, Controllo c[CONTROLLI]) {
+    // nomi corti per le quattro misure
     const int G = s->giorni, O = s->ore, C = s->classi, T = s->docenti;
     const char *regole[CONTROLLI] = {
         "ogni docente e ogni coppia fanno in ogni classe le loro ore",
@@ -31,14 +32,18 @@ int verifica_orario(const Scuola *s, const int *orario, Controllo c[CONTROLLI]) 
         "le prime ore di ogni giorno hanno lezione in ogni classe",
         "dopo un'ora buca la classe quel giorno non ha piu' lezione",
     };
+    // si parte con tutte le regole rispettate: ogni controllo qui sotto puo' solo dire di no
     for (int i = 0; i < CONTROLLI; i++) c[i] = (Controllo){regole[i], 1, ""};
     int *fatte = calloc(s->voci, sizeof(int));  // le ore di ogni voce nell'orario
     int *dove_e = malloc(sizeof(int) * T);      // in un'ora: la classe dove il docente insegna (-1: nessuna)
     int *ore = malloc(sizeof(int) * C * T);     // in un giorno, per classe e docente: in quali ore c'e' (un bit l'una)
+    // (senza memoria non si puo' verificare: si dice che l'orario non va)
     if (!fatte || !dove_e || !ore) return 0;
     for (int g = 0; g < G; g++) {
+        // un giorno nuovo: nessuno ha ancora insegnato da nessuna parte
         for (int i = 0; i < C * T; i++) ore[i] = 0;
         for (int o = 0; o < O; o++) {
+            // un'ora nuova: nessun docente e' ancora in una classe
             for (int t = 0; t < T; t++) dove_e[t] = -1;
             for (int k = 0; k < C; k++) {
                 const int v = orario[(g * O + o) * C + k];  // che cosa c'e' nella cella
@@ -55,6 +60,7 @@ int verifica_orario(const Scuola *s, const int *orario, Controllo c[CONTROLLI]) 
                                    s->nome_giorno[g], s->nome_ora[o], s->nome_classe[k]);
                     continue;
                 }
+                // un'ora in piu' per questa voce
                 fatte[v]++;
                 if (buca_prima)
                     NON_RISPETTATA(&c[DOPO_LA_BUCA], "%s %s, %s: c'e' lezione dopo un'ora buca", s->nome_giorno[g],
@@ -94,6 +100,7 @@ int verifica_orario(const Scuola *s, const int *orario, Controllo c[CONTROLLI]) 
                                    s->nome_docente[t], s->nome_classe[k], s->nome_giorno[g], quante,
                                    s->nome_ora[prima], s->nome_ora[ultima]);
             }
+            // e in quante classi ha insegnato oggi
             if (classi > MAX_CLASSI_AL_GIORNO)
                 NON_RISPETTATA(&c[CLASSI_AL_GIORNO], "%s, %s: %d classi, il massimo e' %d", s->nome_docente[t],
                                s->nome_giorno[g], classi, MAX_CLASSI_AL_GIORNO);
@@ -109,6 +116,7 @@ int verifica_orario(const Scuola *s, const int *orario, Controllo c[CONTROLLI]) 
                            fatte[v], voce->ore);
     }
     free(fatte), free(dove_e), free(ore);
+    // l'orario e' valido se tutte le regole sono rispettate
     int tutte = 1;
     for (int i = 0; i < CONTROLLI; i++) tutte = tutte && c[i].rispettata;
     return tutte;

@@ -16,6 +16,7 @@ static int indice(char nomi[][MAX_NOME], int *quanti, const int massimo, const c
 // Aggiunge ore alla voce (classe, docenti); se non c'e' la crea. I due docenti di una coppia stanno in ordine di
 // indice, cosi' la stessa coppia e' sempre la stessa voce.
 static int aggiungi_voce(Scuola *s, const int classe, int a, int b, const int ore) {
+    // la coppia in ordine di indice
     if (b >= 0 && b < a) {
         const int t = a;
         a = b, b = t;
@@ -25,6 +26,7 @@ static int aggiungi_voce(Scuola *s, const int classe, int a, int b, const int or
             s->voce[v].ore += ore;
             return 1;
         }
+    // una voce nuova, se c'e' ancora posto
     if (s->voci == MAX_VOCI) return 0;
     s->voce[s->voci++] = (Voce){classe, {a, b}, ore};
     return 1;
@@ -41,6 +43,7 @@ static int per_classe(const void *a, const void *b) {
 // Legge un caso riga per riga (il formato e' in LEGGIMI.md), poi controlla che ci sia tutto e mette le voci in
 // ordine di classe.
 Scuola *leggi_scuola(const char *percorso, char *errore, const int lunga) {
+    // la scuola nasce tutta a zero: nessun giorno, nessuna ora, nessuna voce
     FILE *f = fopen(percorso, "r");
     Scuola *s = calloc(1, sizeof(Scuola));
     if (!f || !s) {
@@ -59,6 +62,7 @@ Scuola *leggi_scuola(const char *percorso, char *errore, const int lunga) {
         for (char *c = strtok(riga, "\t\r\n"); c && n < 64; c = strtok(NULL, "\t\r\n")) campo[n++] = c;
         if (!n || campo[0][0] == '#') continue;  // riga vuota, o commento
         // il primo campo dice che cosa c'e' nella riga
+        // giorni e ore: i nomi, uno per campo, nell'ordine in cui sono scritti
         if (!strcmp(campo[0], "giorni")) {
             for (int i = 1; i < n && ok; i++) ok = indice(s->nome_giorno, &s->giorni, MAX_GIORNI, campo[i], 1) >= 0;
         } else if (!strcmp(campo[0], "ore")) {
@@ -66,6 +70,7 @@ Scuola *leggi_scuola(const char *percorso, char *errore, const int lunga) {
         } else if (!strcmp(campo[0], "obbligatorie") && n == 2) {
             s->obbligatorie = atoi(campo[1]);
         } else if (!strcmp(campo[0], "docente") && n == 3) {
+            // un docente: il nome e l'ora da cui e' a scuola
             const int t = indice(s->nome_docente, &s->docenti, MAX_DOCENTI, campo[1], 1);
             if ((ok = t >= 0)) s->ingresso[t] = atoi(campo[2]);
         } else if (!strcmp(campo[0], "lezione") && (n == 4 || n == 5)) {
@@ -76,14 +81,16 @@ Scuola *leggi_scuola(const char *percorso, char *errore, const int lunga) {
             const int b = n == 5 ? indice(s->nome_docente, &s->docenti, MAX_DOCENTI, campo[4], 0) : -1;
             ok = k >= 0 && a >= 0 && (n == 4 || (b >= 0 && b != a)) && atoi(campo[2]) > 0
                  && aggiungi_voce(s, k, a, b, atoi(campo[2]));
-        } else ok = 0;
+        } else ok = 0;  // una parola che non si conosce, o il numero sbagliato di campi
     }
     fclose(f);
+    // letto tutto: ci deve essere almeno un giorno, un'ora, una classe e una lezione
     if (ok && (!s->giorni || !s->ore || !s->classi || !s->voci)) {
         snprintf(errore, lunga, "%s: mancano giorni, ore o lezioni", percorso);
         ok = 0;
     } else if (!ok)
         snprintf(errore, lunga, "%s, riga %d: non la capisco, o supera i limiti di scuola.h", percorso, numero);
+    // l'ingresso di ogni docente deve essere una delle ore della giornata
     for (int t = 0; ok && t < s->docenti; t++)
         if (s->ingresso[t] < 0 || s->ingresso[t] >= s->ore) {
             snprintf(errore, lunga, "%s: l'ingresso di %s non e' un'ora della giornata", percorso, s->nome_docente[t]);

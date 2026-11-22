@@ -86,6 +86,7 @@ function rispetto(c) {
 }
 
 function mostra(n) {
+  // n e' la situazione (notturni.situazione): impostazioni, giro, casi, cambiamenti
   const g = n.giro, gira = n.in_corso !== null;
   document.querySelector('#casi tbody').innerHTML = n.casi.map(c => {
     const r = c.ultimo, adesso = gira && g && g.adesso === c.numero;
@@ -98,10 +99,12 @@ function mostra(n) {
           `<td class="num">${r.celle ? r.profondita_massima + ' / ' + r.celle : ''}</td>` +
           `<td class="num">${r.secondi == null ? '' : r.secondi.toFixed(1) + ' s'}</td><td class="${colore}">${esc(parola)}</td>`) + '</tr>';
   }).join('');
+  // quanti casi per esito, in alto accanto al tasto
   const esiti = {};
   for (const c of n.casi) { const e = c.ultimo ? c.ultimo.esito : 'mai eseguito'; esiti[e] = (esiti[e] || 0) + 1; }
   document.getElementById('conto').innerHTML = `${numero(n.casi.length)} casi: ` +
     Object.entries(esiti).map(([e, q]) => `<span class="esito esito-${esc(e.replace(/ /g, '-'))}">${numero(q)} ${esc(e)}</span>`).join('');
+  // la frase sul giro: quello in corso, o l'ultimo
   let t = 'Nessun giro ancora.';
   if (g) {
     const fatti = Object.keys(g.risultati).length;
@@ -111,6 +114,7 @@ function mostra(n) {
   }
   if (n.prova !== null && !gira) t += ' Sta girando una prova in tempo reale: il giro si può avviare quando finisce.';
   document.getElementById('stato-giro').textContent = t;
+  // i tasti: «Avvia» solo se c'e' qualcosa da fare e niente gira; «Ferma» solo mentre gira
   document.getElementById('avvia').disabled = gira || !n.casi.length || n.prova !== null;
   document.getElementById('ferma').hidden = !gira;
   aggiornaScelti();
@@ -120,6 +124,7 @@ function mostra(n) {
 const tutti = document.getElementById('tutti'), togli = document.getElementById('togli');
 function aggiornaScelti() {
   const ci_sono = new Set(ultima.casi.map(c => c.numero)), tasto = togli.querySelector('button');
+  // un caso scelto che nel frattempo e' stato tolto non conta piu'
   for (const x of [...scelti]) if (!ci_sono.has(x)) scelti.delete(x);
   tutti.checked = ci_sono.size > 0 && scelti.size === ci_sono.size;
   tutti.indeterminate = scelti.size > 0 && scelti.size < ci_sono.size;

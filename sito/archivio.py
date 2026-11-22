@@ -2,6 +2,7 @@
 import json
 import os
 
+# la cartella di lavoro: quella della variabile SITO_LAVORO, se c'e'; se no «lavoro», accanto a questo file
 LAVORO = os.environ.get('SITO_LAVORO') or os.path.join(os.path.dirname(os.path.abspath(__file__)), 'lavoro')
 
 
@@ -32,4 +33,5 @@ def numeri(cartella):
         nomi = os.listdir(cartella)
     except OSError:
         return []
+    # il numero e' quello che c'e' prima del punto; i file provvisori (.tmp) non contano
     return sorted(int(n.split('.')[0]) for n in nomi if n.split('.')[0].isdigit() and not n.endswith('.tmp'))
