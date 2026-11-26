@@ -1,9 +1,11 @@
 """Il programma in C (le cartelle scuola, generatore, solver, verifica, passi, spiegazioni, programma): il sito lo
 compila da solo la prima volta e quando i sorgenti cambiano, e lo lancia. I comandi sono in programma/main.c."""
 import hashlib
+import importlib.util
 import json
 import os
 import subprocess
+import sys
 
 from . import archivio
 
@@ -65,6 +67,20 @@ def scelte(caso, strada):
     strada non e' possibile."""
     r = subprocess.run([programma(), 'scelte', caso], input=strada, capture_output=True, text=True)
     return None if r.returncode else json.loads(r.stdout)
+
+
+def esatto_disponibile():
+    """Il metodo esatto (la cartella esatto/) ha bisogno di scipy: c'e'?"""
+    return importlib.util.find_spec('scipy') is not None
+
+
+def esatto(caso, stato, tempo, cartella):
+    """Lancia il metodo esatto sul caso (esatto/, un altro modo di fare l'orario: tutte le regole insieme, come un
+    sistema di conti) e ritorna il processo. Scrive lo stato nel file `stato`, nello stesso formato della ricerca,
+    con "metodo": "esatto"; niente passi. `caso` e `stato` sono nomi di file dentro `cartella`."""
+    comando = [sys.executable, '-m', 'esatto', os.path.join(cartella, caso), '--programma', programma(),
+               '--stato', os.path.join(cartella, stato), '--tempo', str(tempo)]
+    return subprocess.Popen(comando, cwd=RADICE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def risolvi(caso, limite, stato, passi=None, cartella=None, continua=False, da=None):

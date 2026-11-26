@@ -17,6 +17,14 @@
 //       per il sito: le scelte che la ricerca ha in fondo a una strada. La strada arriva su stdin come per --da.
 //       Scrive {"cella": C, "scelte": [voce | -1, ...]} nell'ordine in cui la ricerca le proverebbe (cella -1 e
 //       nessuna scelta se da li' non si va avanti).
+//   orario scuola CASO
+//       scrive {"celle": N, "scuola": {...}}: il caso come lo vede il programma (stato.h), con i docenti e le voci
+//       numerati come li numera lui. Serve a chi fa l'orario con un altro metodo (esatto/) e deve parlarne con gli
+//       stessi numeri.
+//   orario verifica CASO
+//       ricontrolla un orario fatto da altri: su stdin una voce per cella (-1: ora buca), nell'ordine delle celle.
+//       Scrive {"orario": [...], "verifica": {...}} (verifica.h). Esce con 2 se quello che arriva non e' un orario
+//       di questo caso (numeri mancanti, o voci che non esistono).
 //   orario nodo CASO
 //       per il sito: quello che c'e' da dire di un nodo della ricerca. Il nodo arriva su stdin, tutto in numeri: il
 //       motivo per cui da li' non si va avanti (tipo, docente, classe, ora, servono, possibili: i campi di un record
@@ -160,10 +168,30 @@ static int nodo(const Scuola *s) {
     return 0;
 }
 
+// ---- la scuola e la verifica di un orario fatto da altri ----
+
+// «verifica»: legge un orario da stdin e lo ricontrolla. 0, o 2 se non e' un orario di questo caso.
+static int verifica_un_orario(const Scuola *s) {
+    const int celle = s->giorni * s->ore * s->classi;
+    int *orario = malloc(sizeof(int) * celle);
+    for (int i = 0; orario && i < celle; i++)
+        if (scanf("%d", &orario[i]) != 1 || orario[i] >= s->voci) {
+            free(orario);
+            orario = NULL;
+        }
+    if (!orario) return 2;
+    fputc('{', stdout);
+    scrivi_orario_e_verifica(stdout, s, orario);
+    puts("}");
+    free(orario);
+    return 0;
+}
+
 static int usa(const char *programma) {
     fprintf(stderr, "Uso:\n  %s genera SEME CLASSI RITARDI\n  %s risolvi CASO [--limite NODI] [--stato FILE] "
-            "[--passi FILE] [--continua | --da STRADA]\n  %s nodo CASO < NODO\n  %s scelte CASO < STRADA\n",
-            programma, programma, programma, programma);
+            "[--passi FILE] [--continua | --da STRADA]\n  %s nodo CASO < NODO\n  %s scelte CASO < STRADA\n"
+            "  %s scuola CASO\n  %s verifica CASO < ORARIO\n", programma, programma, programma, programma, programma,
+            programma);
     return 2;
 }
 
@@ -173,7 +201,10 @@ int main(const int argc, char **argv) {
         return genera_caso(stdout, strtoull(argv[2], NULL, 10), atoi(argv[3]), atoi(argv[4])) ? 0 : 2;
     const int vuole_un_nodo = argc == 3 && !strcmp(argv[1], "nodo");
     const int vuole_le_scelte = argc == 3 && !strcmp(argv[1], "scelte");
-    if (!vuole_un_nodo && !vuole_le_scelte && (argc < 3 || strcmp(argv[1], "risolvi"))) return usa(argv[0]);
+    const int vuole_la_scuola = argc == 3 && !strcmp(argv[1], "scuola");
+    const int vuole_la_verifica = argc == 3 && !strcmp(argv[1], "verifica");
+    const int altro_comando = vuole_un_nodo || vuole_le_scelte || vuole_la_scuola || vuole_la_verifica;
+    if (!altro_comando && (argc < 3 || strcmp(argv[1], "risolvi"))) return usa(argv[0]);
     // le opzioni di «risolvi»: ognuna con il suo valore dopo
     const char *file_stato = NULL, *file_passi = NULL, *file_strada = NULL;
     long long limite = 0;
@@ -198,8 +229,16 @@ int main(const int argc, char **argv) {
         fprintf(stderr, "%s\n", errore);
         return 2;
     }
-    if (vuole_un_nodo || vuole_le_scelte) {
-        const int uscita = vuole_un_nodo ? nodo(s) : scelte_di_una_strada(s);
+    if (altro_comando) {
+        int uscita = 0;
+        if (vuole_un_nodo) uscita = nodo(s);
+        else if (vuole_le_scelte) uscita = scelte_di_una_strada(s);
+        else if (vuole_la_verifica) uscita = verifica_un_orario(s);
+        else {  // la scuola
+            printf("{\"celle\":%d,", s->giorni * s->ore * s->classi);
+            scrivi_la_scuola(stdout, s);
+            puts("}");
+        }
         free(s);
         return uscita;
     }

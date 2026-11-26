@@ -79,7 +79,7 @@ button.salto { padding-left: 12px; padding-right: 12px; }
 .esito, .tardi { display: inline-block; padding: 2px 12px; border-radius: var(--pillola); font-weight: 600; white-space: nowrap;
   margin-right: 6px; background: var(--riga); }
 .esito-trovato, .esito-verificato { color: var(--ok); background: var(--ok-chiaro); }
-.esito-limite-di-nodi, .esito-in-corso, .tardi { color: var(--avviso); background: var(--avviso-chiaro); }
+.esito-limite-di-nodi, .esito-limite-di-tempo, .esito-in-corso, .tardi { color: var(--avviso); background: var(--avviso-chiaro); }
 .esito-impossibile, .esito-non-valido, .esito-non-riuscito, .esito-non-generato, .esito-fermata, .esito-interrotta {
   color: var(--male); background: var(--male-chiaro); }
 .esito-mai-eseguito { color: var(--tenue); }
@@ -131,6 +131,8 @@ table.orario td.segno-serve, i.segno-serve { background: var(--lilla-chiaro); bo
 table.orario td.cambiata:not(.segno) { box-shadow: inset 0 0 0 2px var(--lilla); }
 table.orario td.tolta { color: var(--tenue); text-decoration: line-through; }
 table.orario td.tolta:not(.segno) { box-shadow: inset 0 0 0 2px var(--lilla); background: var(--lilla-chiaro); }
+/* una prova fatta con il metodo esatto non ha passi: si nasconde tutto quello che serve a rivederli */
+body.esatto #parte-passi, body.esatto #parte-dopo { display: none; }
 /* la spiegazione dei numeri dei ritorni: il nome di ogni numero e sotto, rientrato, che cosa vuol dire */
 dl.spiegazione { margin: 0; max-width: 100ch; }
 dl.spiegazione dt { font-weight: 600; margin-top: 10px; }

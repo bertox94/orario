@@ -6,7 +6,7 @@
   <title>{% block titolo %}Orario{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='stile.css') }}">
 </head>
-<body>
+<body class="{% block classe_pagina %}{% endblock %}">
 <main>
   <header class="testata">
     <a class="nome" href="{{ url_for('indice') }}">Orario scolastico</a>

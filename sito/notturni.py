@@ -20,6 +20,7 @@ import time
 
 from . import archivio, prove, solver
 
+TEMPO_DEL_GIUDICE = 120              # i secondi che il metodo esatto ha per dire se un caso ha un orario
 LIMITE = 2000000                     # il limite di nodi, finche' non lo si cambia dalla pagina
 CONFRONTATI = ('esito', 'nodi')      # che cosa si confronta di un risultato
 _lock = threading.Lock()             # le richieste arrivano da piu' fili insieme: una alla volta qui
@@ -110,6 +111,20 @@ def _esegui_caso(caso, limite):
         r = {k: s.get(k) for k in ('esito', 'nodi', 'secondi', 'profondita_massima', 'celle')}
         if 'verifica' in s:
             r['verificato'] = bool(s['verifica']['ok'])
+        # Il giudice: lo stesso caso con il metodo esatto (esatto/), che dice se un orario c'e' davvero. Non cambia il
+        # risultato della ricerca: gli sta accanto, per sapere se «limite di nodi» e' un caso difficile o impossibile.
+        if solver.esatto_disponibile():
+            p = solver.esatto('caso.txt', 'esatto.json', TEMPO_DEL_GIUDICE, d)
+            with _lock:
+                _giro['processo'] = p
+            p.wait()
+            with _lock:
+                _giro['processo'] = None
+                if _giro['fermare']:
+                    return None
+            e = archivio.leggi(os.path.join(d, 'esatto.json'), {})
+            if not e.get('in_corso', 1):
+                r['esatto'] = e.get('esito')
         return r
     finally:
         shutil.rmtree(d, ignore_errors=True)
@@ -218,9 +233,12 @@ def _chiave(r, limite):
 
 def cambiamento(prima, adesso):
     """Che cosa e' cambiato tra due risultati dello stesso caso con lo stesso limite: una chiave di CAMBIAMENTI.
-    Allarme: un orario che non passa la verifica, un caso non riuscito, o trovato dove prima era impossibile (o il
-    contrario): una delle due risposte e' sbagliata."""
+    Allarme: un orario che non passa la verifica, un caso non riuscito, trovato dove prima era impossibile (o il
+    contrario), o la ricerca e il metodo esatto che dicono il contrario: una delle due risposte e' sbagliata."""
     a, b = prima.get('esito'), adesso.get('esito')
+    # la ricerca e il metodo esatto dicono il contrario sullo stesso caso: uno dei due sbaglia
+    if {b, adesso.get('esatto')} == {TROVATO, IMPOSSIBILE}:
+        return 'allarme'
     # gli allarmi vengono prima di tutto
     if adesso.get('verificato') is False or b in ('non riuscito', 'non generato') or {a, b} == {TROVATO, IMPOSSIBILE}:
         return 'allarme'
@@ -263,7 +281,8 @@ def situazione():
         suo = _chiave(ultimo, ultimo['limite'])
         # cambiato rispetto al riferimento; un orario che non passa la verifica si mostra anche se e' il primo
         nuovo = _chiave(riferimento, riferimento['limite']) != suo
-        if nuovo or (ultimo.get('verificato') is False and visto != suo):
+        contraddizione = {ultimo.get('esito'), ultimo.get('esatto')} == {TROVATO, IMPOSSIBILE}
+        if nuovo or ((ultimo.get('verificato') is False or contraddizione) and visto != suo):
             tabelle[cambiamento(riferimento, ultimo)].append(dict(c, ultimo=ultimo, prima=riferimento))
     return {'impostazioni': impostazioni(), 'giro': giro(giri[-1]) if giri else None, 'in_corso': in_corso(),
             'prova': prove.in_corso(), 'casi': elenco,

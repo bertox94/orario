@@ -3,7 +3,8 @@
 {% block contenuto %}
 <h1>Test notturni</h1>
 <p class="nota">Un elenco di casi che si rieseguono tutti insieme, in un giro, per vedere se i risultati cambiano quando
-  cambia il solver. Di ogni caso si tengono solo i numeri, non i passi.</p>
+  cambia il solver. Di ogni caso si tengono solo i numeri, non i passi. Accanto al risultato della ricerca c'è la
+  risposta del metodo esatto sullo stesso caso: dice se un orario c'è davvero.</p>
 
 <h2>Il giro</h2>
 <div class="riquadro">
@@ -65,7 +66,8 @@
 </form>
 <div class="scorre"><table class="dati" id="casi">
   <thead><tr><th><input type="checkbox" id="tutti" aria-label="Scegli tutti i casi"></th><th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th>
-    <th>Esito</th><th class="num">Nodi</th><th class="num">Celle decise</th><th class="num">Tempo</th><th>Rispetto al giro prima</th></tr></thead>
+    <th>Esito</th><th class="num">Nodi</th><th class="num">Celle decise</th><th class="num">Tempo</th><th>Rispetto al giro prima</th>
+    <th title="Lo stesso caso con il metodo esatto: dice se un orario c'è davvero">Un orario c'è?</th></tr></thead>
   <tbody></tbody>
 </table></div>
 {% endblock %}
@@ -85,6 +87,17 @@ function rispetto(c) {
   return [`${p > 0 ? '+' : '−'}${Math.abs(p)}% di nodi`, b.nodi < a.nodi ? 'si' : 'no'];
 }
 
+// Che cosa dice il metodo esatto dello stesso caso, accanto al risultato della ricerca: se un orario c'e' davvero.
+// In rosso quando contraddice la ricerca; in evidenza quando la ricerca si e' fermata al limite ma un orario c'e'.
+function giudice(r) {
+  if (!r.esatto) return '';
+  const parola = {trovato: 'sì', impossibile: 'no, è impossibile', 'limite di tempo': 'non si sa'}[r.esatto] || r.esatto;
+  const contrario = (r.esito === 'trovato' && r.esatto === 'impossibile') || (r.esito === 'impossibile' && r.esatto === 'trovato');
+  if (contrario) return `<span class="male">${parola}: il contrario della ricerca</span>`;
+  if (r.esito === 'limite di nodi' && r.esatto === 'trovato') return `<strong>${parola}</strong> <span class="nota">la ricerca non ci arriva</span>`;
+  return `<span class="nota">${parola}</span>`;
+}
+
 function mostra(n) {
   // n e' la situazione (notturni.situazione): impostazioni, giro, casi, cambiamenti
   const g = n.giro, gira = n.in_corso !== null;
@@ -93,11 +106,12 @@ function mostra(n) {
     const [parola, colore] = r ? rispetto(c) : ['', ''];
     return `<tr><td><input type="checkbox" class="scegli" value="${c.numero}" ${scelti.has(c.numero) ? 'checked' : ''} ${gira ? 'disabled' : ''} aria-label="Scegli il caso"></td>` +
       `<td class="num">${c.seme}</td><td class="num">${c.classi}</td><td>${c.ritardi ? 'con' : 'senza'}</td>` +
-      (adesso ? '<td colspan="5" class="nota">sta girando…</td>' : !r ? '<td colspan="5" class="nota">mai eseguito</td>'
+      (adesso ? '<td colspan="6" class="nota">sta girando…</td>' : !r ? '<td colspan="6" class="nota">mai eseguito</td>'
         : `<td>${etichetta(r.esito)}${r.verificato === false ? '<span class="male">non valido</span>' : ''}</td>` +
           `<td class="num">${r.nodi == null ? '' : numero(r.nodi)}</td>` +
           `<td class="num">${r.celle ? r.profondita_massima + ' / ' + r.celle : ''}</td>` +
-          `<td class="num">${r.secondi == null ? '' : r.secondi.toFixed(1) + ' s'}</td><td class="${colore}">${esc(parola)}</td>`) + '</tr>';
+          `<td class="num">${r.secondi == null ? '' : r.secondi.toFixed(1) + ' s'}</td><td class="${colore}">${esc(parola)}</td>` +
+          `<td>${giudice(r)}</td>`) + '</tr>';
   }).join('');
   // quanti casi per esito, in alto accanto al tasto
   const esiti = {};

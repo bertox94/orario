@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% set i, s = p.info, p.stato %}
 {% block titolo %}Orario · prova {{ i.numero }}{% endblock %}
+{% block classe_pagina %}{{ 'esatto' if p.info.metodo == 'esatto' }}{% endblock %}
 {% block contenuto %}
 <p><a href="{{ url_for('indice') }}">← Tutte le prove</a></p>
 <h1>Prova {{ i.numero }}: seme {{ i.seme }}, {{ i.classi }} classi, {{ 'con' if i.ritardi else 'senza' }} ritardi</h1>
@@ -10,7 +11,7 @@
   prova le scelte che la ricerca avrebbe provato prima di quella: se finisce senza trovare, vuol dire solo che un
   orario non c'è nella parte cercata.</p>{% endif %}
 <p><span id="esito" class="esito"></span> <span id="numeri"></span>
-  <span class="nota">limite {{ i.limite|numero }} nodi</span></p>
+  <span class="nota">{% if i.metodo == 'esatto' %}metodo esatto, al massimo {{ tempo_esatto }} secondi{% else %}limite {{ i.limite|numero }} nodi{% endif %}</span></p>
 <div class="rigo">
   <form method="post" action="{{ url_for('ferma') }}" id="ferma" hidden>
     <input type="hidden" name="poi" value="{{ request.path }}"><button class="secondario">Ferma</button></form>
@@ -30,7 +31,15 @@
 <p id="in-partenza" class="messaggio" hidden></p>
 <div id="verifica" class="riquadro" hidden></div>
 
+{% if i.metodo == 'esatto' %}
+<h2>L'orario</h2>
+<p class="nota" id="nota-esatto">Fatto con il metodo esatto: tutte le regole di tutta la settimana insieme, scritte come conti
+  con risposte sì/no. Dà l'orario, oppure dimostra che non esiste. Non riempie le celle una alla volta, quindi non ci
+  sono passi né ritorni indietro da rivedere: per quelli, rifai la prova con «la ricerca».</p>
+{% else %}
 <h2>La ricerca, passo per passo</h2>
+{% endif %}
+<div id="parte-passi">
 <div class="passi">
   <button type="button" class="secondario salto" data-morto="prima" title="Il ritorno indietro prima di questo passo">⏮ Ritorno</button>
   <button type="button" class="secondario salto" data-salto="-100">−100</button>
@@ -56,7 +65,9 @@
   <button type="button" class="secondario piccolo" id="mostra-segni" aria-pressed="false">Mostra nell'orario</button></p>
 <p id="conto" class="conto" hidden></p>
 <p id="legenda" class="legenda" hidden></p>
+</div>
 <div class="scorre"><table class="orario" id="orario"></table></div>
+<div id="parte-dopo">
 <details id="colpe"><summary>I ritorni, per controllo e per chi <span class="nota" id="colpa-maggiore"></span></summary>
   <p class="nota">Un ritorno è contato sulla cella dell'ultima scelta, che spesso non è il problema: qui sono contati
     per il controllo che non è passato e per il docente o la classe che nomina. In cima chi ne ha causati di più.</p>
@@ -103,6 +114,7 @@
 <h3>Il profilo della ricerca</h3>
 <canvas id="profilo" height="120" title="Clic: vai a quel punto della ricerca"></canvas>
 <p class="nota">Da sinistra a destra tutti i passi; in altezza quante celle sono decise, in alto l'orario completo. Il filo scuro è il passo che stai guardando.</p>
+</div>
 
 <h2>Il caso</h2>
 <details><summary>Le classi e le loro lezioni</summary><div class="scorre"><table class="dati" id="classi"></table></div></details>
@@ -113,6 +125,7 @@
 const URL_STATO = '{{ url_for('stato', n=i.numero) }}', URL_PASSO = '{{ url_for('passo', n=i.numero, k=0)[:-1] }}';
 const URL_RITORNO = '{{ url_for('ritorno', n=i.numero, k=0, verso='dopo')[:-6] }}';  // + k + '/prima' o '/dopo'
 const URL_SCELTE = '{{ url_for('scelte', n=i.numero, k=0, cella=0)[:-3] }}';   // + k + '/' + cella
+const ESATTO = {{ (i.metodo == 'esatto')|tojson }};   // la prova e' fatta con il metodo esatto: niente passi
 const A_MANO = {{ (i.a_mano or none)|tojson }};   // se la ricerca parte da una scelta fatta a mano: da dove
 const URL_NODO = '{{ url_for('nodo', n=i.numero, k=0)[:-1] }}';
 const URL_PROFILO = '{{ url_for('profilo', n=i.numero) }}';
@@ -132,7 +145,8 @@ function mostraStato(s) {
   const esito = s.esito || 'in corso', e = document.getElementById('esito');
   e.textContent = esito;
   e.className = 'esito esito-' + esito.replace(/ /g, '-');
-  document.getElementById('numeri').textContent = `${numero(s.nodi || 0)} nodi, ` +
+  if (ESATTO) document.getElementById('numeri').textContent = `${(s.secondi || 0).toFixed(1)} s`;
+  else document.getElementById('numeri').textContent = `${numero(s.nodi || 0)} nodi, ` +
     (s.ritorni == null ? '' : `${numero(s.ritorni)} ritorni indietro in tutto, `) + `${(s.secondi || 0).toFixed(1)} s`;
   document.getElementById('ferma').hidden = !s.gira;
   document.getElementById('rifai').disabled = !!s.gira;
@@ -159,14 +173,22 @@ function mostraStato(s) {
   partenza.hidden = !s.motivo;
   if (s.motivo) partenza.textContent = `Un orario non può esserci, e si vede prima ancora di cercare. ${nomeControllo(s.motivo.tipo)}. ` + spiega(s.motivo);
   if (s.verifica && document.getElementById('verifica').hidden) mostraVerifica(s.verifica);
+  // con il metodo esatto non ci sono passi: quando l'orario arriva lo si mostra com'e'
+  if (ESATTO && s.orario && scuola && !ultimoPasso)
+    disegnaPasso({k: 0, profondita: s.orario.length, cella: -1, voce: -2, motivo: null, indietro: null, orario: s.orario});
+  if (ESATTO && (esito === 'impossibile' || esito === 'limite di tempo')) {
+    partenza.hidden = false;
+    partenza.textContent = esito === 'impossibile' ? 'Un orario non esiste: il metodo esatto lo dimostra, senza provare gli orari uno per uno.'
+      : 'Il metodo esatto non ha finito nel tempo che aveva: non si sa se un orario c\'è.';
+  }
 }
 
 // l'orario trovato, ricontrollato dal solver regola per regola (verifica/verifica.h)
 function mostraVerifica(v) {
   const box = document.getElementById('verifica');
   box.hidden = false;
-  box.innerHTML = `<p>${etichetta(v.ok ? 'verificato' : 'non valido')} L'orario trovato, ricontrollato da capo senza usare la ricerca, ` +
-    `${v.ok ? 'rispetta' : 'non rispetta'} tutte le regole. È l'ultimo passo.</p><table class="dati"><tbody>` +
+  box.innerHTML = `<p>${etichetta(v.ok ? 'verificato' : 'non valido')} L'orario trovato, ricontrollato da capo dal programma di verifica, ` +
+    `${v.ok ? 'rispetta' : 'non rispetta'} tutte le regole.${ESATTO ? '' : ' È l\'ultimo passo.'}</p><table class="dati"><tbody>` +
     v.controlli.map(([regola, ok, dove]) => `<tr><td class="${ok ? 'si' : 'no'}">${ok ? '✓' : '✗'}</td><td>${esc(regola)}</td>` +
       `<td class="nota">${esc(dove)}</td></tr>`).join('') + '</tbody></table>';
 }
@@ -479,7 +501,7 @@ function disegnaPasso(p) {
 let richiesto = 0;   // l'ultimo passo chiesto: se nel frattempo ne arriva un altro, la risposta vecchia si butta
 let attesa = null;   // mentre lo slider si trascina si aspetta un attimo prima di chiedere
 async function vai(k) {
-  if (!scuola || Number(slider.max) < 1) return;
+  if (ESATTO || !scuola || Number(slider.max) < 1) return;   // (con il metodo esatto non ci sono passi)
   k = Math.max(1, Math.min(Number(slider.max), k));
   slider.value = richiesto = k;
   const r = await fetch(URL_PASSO + k);

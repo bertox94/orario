@@ -18,6 +18,10 @@ Il programma in C, una cartella per cosa:
   i conti di ogni docente);
 - `programma/`: i comandi (`main`), lo stato in JSON (`stato`), il file per continuare una ricerca (`fine`).
 
+- `esatto/` (Python): un secondo modo di fare l'orario, il **metodo esatto**: tutto il caso scritto come conti con
+  risposte sì/no e dato a un risolutore generico (scipy). Dà l'orario o dimostra che non esiste, di solito in meno
+  di un secondo; decide anche i casi in cui la ricerca si ferma al limite. Vedi `DESCRIZIONE.md`, capitolo 22.
+
 E poi:
 - `sito/`: il sito (Flask), con le prove in tempo reale e i test notturni.
 - `prove/prova.py`: la prova automatica del solver.
@@ -45,6 +49,8 @@ lezione	C01	2	Sirius	Zelda
 `obbligatorie`: le prime ore di ogni giorno, che hanno sempre lezione. `docente`: il nome e l'ora (da 0) da cui è a
 scuola. `lezione`: la classe, le ore in una settimana, il docente e, se sono in due, il codocente. Più righe con la
 stessa classe e gli stessi docenti si sommano.
+
+Con il metodo esatto (serve `pip install scipy`): `python3 -m esatto caso.txt --programma ./orario`.
 
 ## Come cerca
 

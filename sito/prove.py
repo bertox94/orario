@@ -8,6 +8,7 @@ import time
 
 from . import archivio, passi, solver
 
+TEMPO_ESATTO = 300                  # i secondi che il metodo esatto ha per un caso
 BYTE_PER_NODO = 19                  # 18 il record del nodo, il resto istantanee e profilo (passi/passi.h)
 SPAZIO_DA_LASCIARE = 500 * 1000000  # i byte che sul disco devono restare liberi comunque
 # le richieste arrivano da piu' fili insieme: una alla volta qui (rientrante: chi lo tiene puo' chiamare prova())
@@ -41,13 +42,18 @@ def _controlla_il_disco(limite):
                          % ('{:,}'.format(limite).replace(',', '.'), servono / 1e9, liberi / 1e9))
 
 
-def avvia(seme, classi, ritardi, limite):
-    """Lancia una prova e ritorna il suo numero. ValueError se un'altra sta girando o il caso non si genera."""
+def avvia(seme, classi, ritardi, limite, metodo='ricerca'):
+    """Lancia una prova e ritorna il suo numero. `metodo`: 'ricerca' (la ricerca del solver, che si rivede passo
+    per passo, fino a `limite` nodi) o 'esatto' (il metodo esatto: solo il risultato, in al massimo TEMPO_ESATTO
+    secondi). ValueError se un'altra sta girando o il caso non si genera."""
     with _lock:
         p = _in_corso['processo']
         if p is not None and p.poll() is None:
             raise ValueError('C\'è già una prova in corso: aspetta che finisca, o fermala.')
-        _controlla_il_disco(limite)
+        if metodo == 'esatto' and not solver.esatto_disponibile():
+            raise ValueError('Per il metodo esatto serve scipy: pip install -r sito/requirements.txt')
+        if metodo != 'esatto':   # il metodo esatto non registra passi: non occupa disco
+            _controlla_il_disco(limite)
         numero = max(archivio.numeri(_cartella()), default=0) + 1   # il numero dopo l'ultimo
         d = _cartella(numero)
         os.makedirs(d)
@@ -58,8 +64,12 @@ def avvia(seme, classi, ritardi, limite):
             raise
         passi.dimentica(file_dei_passi(numero))   # il numero di una prova eliminata si riusa
         archivio.scrivi(os.path.join(d, 'info.json'), {'numero': numero, 'seme': seme, 'classi': classi,
-                                                      'ritardi': ritardi, 'limite': limite, 'inizio': time.time()})
-        processo = solver.risolvi('caso.txt', limite, 'stato.json', 'passi.bin', d)
+                                                      'ritardi': ritardi, 'limite': limite, 'inizio': time.time(),
+                                                      'metodo': metodo})
+        if metodo == 'esatto':
+            processo = solver.esatto('caso.txt', 'stato.json', TEMPO_ESATTO, d)
+        else:
+            processo = solver.risolvi('caso.txt', limite, 'stato.json', 'passi.bin', d)
         _in_corso.update(numero=numero, processo=processo)
         return numero
 

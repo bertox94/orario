@@ -39,7 +39,7 @@ def crea_app():
         tutte = prove.tutte()
         ultima = tutte[0]['info'] if tutte else {'seme': 0, 'classi': 8, 'ritardi': False, 'limite': 1000000}
         return render_template('indice.html', prove=tutte, ultima=ultima, in_corso=prove.in_corso(),
-                               max_milioni=MAX_MILIONI)
+                               max_milioni=MAX_MILIONI, tempo_esatto=prove.TEMPO_ESATTO)
 
     @app.route('/avvia', methods=['POST'])
     def avvia():
@@ -53,7 +53,8 @@ def crea_app():
             if notturni.in_corso() is not None:
                 raise ValueError('Sta girando un giro di test notturni: aspetta che finisca, o fermalo.')
             # parte: da qui in poi la pagina della prova la segue
-            n = prove.avvia(seme, classi, f.get('ritardi') == 'con', int(round(milioni * 1000000)))
+            metodo = 'ricerca' if f.get('metodo') == 'ricerca' else 'esatto'
+            n = prove.avvia(seme, classi, f.get('ritardi') == 'con', int(round(milioni * 1000000)), metodo)
         except (ValueError, RuntimeError) as e:
             flash(str(e))
             return redirect(url_for('indice'))
@@ -64,7 +65,7 @@ def crea_app():
         p = prove.prova(n)
         if not p:
             abort(404)
-        return render_template('prova.html', p=p, continua_di=CONTINUA_DI)
+        return render_template('prova.html', p=p, continua_di=CONTINUA_DI, tempo_esatto=prove.TEMPO_ESATTO)
 
     @app.route('/prova/<int:n>/stato.json')
     def stato(n):

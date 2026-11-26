@@ -28,6 +28,43 @@ static void json_nomi(FILE *f, const char *chiave, const char nomi[][MAX_NOME], 
     fputs("],", f);
 }
 
+// "scuola": {...}: i nomi, le due regole della giornata (servono ai testi del sito), i docenti con l'ingresso, le voci
+void scrivi_la_scuola(FILE *f, const Scuola *s) {
+    fputs("\"scuola\":{", f);
+    json_nomi(f, "giorni", s->nome_giorno, s->giorni);
+    json_nomi(f, "ore", s->nome_ora, s->ore);
+    json_nomi(f, "classi", s->nome_classe, s->classi);
+    fprintf(f, "\"obbligatorie\":%d,\"ore_di_seguito\":%d,\"classi_al_giorno\":%d,\"docenti\":[", s->obbligatorie,
+            MAX_ORE_DI_SEGUITO, MAX_CLASSI_AL_GIORNO);
+    for (int t = 0; t < s->docenti; t++) {
+        fputs(t ? ",[" : "[", f);
+        json_testo(f, s->nome_docente[t]);
+        fprintf(f, ",%d]", s->ingresso[t]);
+    }
+    fputs("],\"voci\":[", f);
+    for (int v = 0; v < s->voci; v++)
+        fprintf(f, "%s[%d,%d,%d,%d]", v ? "," : "", s->voce[v].classe, s->voce[v].docente[0], s->voce[v].docente[1],
+                s->voce[v].ore);
+    fputs("]}", f);
+}
+
+// "orario": [...], "verifica": {...}: un orario completo e la sua verifica, fatta adesso, regola per regola
+void scrivi_orario_e_verifica(FILE *f, const Scuola *s, const int *orario) {
+    Controllo controllo[CONTROLLI];
+    const int ok = verifica_orario(s, orario, controllo), celle = s->giorni * s->ore * s->classi;
+    fputs("\"orario\":[", f);
+    for (int i = 0; i < celle; i++) fprintf(f, "%s%d", i ? "," : "", orario[i]);
+    fprintf(f, "],\"verifica\":{\"ok\":%d,\"controlli\":[", ok);
+    for (int i = 0; i < CONTROLLI; i++) {
+        fputs(i ? ",[" : "[", f);
+        json_testo(f, controllo[i].regola);
+        fprintf(f, ",%d,", controllo[i].rispettata);
+        json_testo(f, controllo[i].dove);
+        fputc(']', f);
+    }
+    fputs("]}", f);
+}
+
 // Lo stato della ricerca (com'e' fatto e' scritto in stato.h): sempre i numeri e la scuola; a ricerca finita
 // anche il motivo, se un orario non c'era gia' in partenza, oppure l'orario trovato con la sua verifica.
 void scrivi_stato(FILE *f, const Ricerca *r, const double secondi, const int a_mano) {
@@ -50,44 +87,18 @@ void scrivi_stato(FILE *f, const Ricerca *r, const double secondi, const int a_m
                 r->ritorni_recenti_per[i]);
         primo = 0;
     }
-    fputs("],\"scuola\":{", f);
-    // la scuola: i nomi, le due regole della giornata (servono ai testi del sito), i docenti con l'ingresso, le voci
-    json_nomi(f, "giorni", s->nome_giorno, s->giorni);
-    json_nomi(f, "ore", s->nome_ora, s->ore);
-    json_nomi(f, "classi", s->nome_classe, s->classi);
-    fprintf(f, "\"obbligatorie\":%d,\"ore_di_seguito\":%d,\"classi_al_giorno\":%d,\"docenti\":[", s->obbligatorie,
-            MAX_ORE_DI_SEGUITO, MAX_CLASSI_AL_GIORNO);
-    for (int t = 0; t < s->docenti; t++) {
-        fputs(t ? ",[" : "[", f);
-        json_testo(f, s->nome_docente[t]);
-        fprintf(f, ",%d]", s->ingresso[t]);
-    }
-    fputs("],\"voci\":[", f);
-    for (int v = 0; v < s->voci; v++)
-        fprintf(f, "%s[%d,%d,%d,%d]", v ? "," : "", s->voce[v].classe, s->voce[v].docente[0], s->voce[v].docente[1],
-                s->voce[v].ore);
-    fputs("]}", f);
+    fputs("],", f);
+    scrivi_la_scuola(f, s);
     // impossibile gia' al primo nodo: il conto che non torna
     if (r->esito == IMPOSSIBILE && r->motivo_radice.tipo != NESSUNO) {
         const Motivo *m = &r->motivo_radice;
         fprintf(f, ",\"motivo\":{\"tipo\":\"%s\",\"docente\":%d,\"classe\":%d,\"ora\":%d,\"servono\":%d,"
                 "\"possibili\":%d}", MOTIVI[m->tipo], m->docente, m->classe, m->ora, m->servono, m->possibili);
     }
+    // trovato: l'orario, e la sua verifica fatta adesso, regola per regola
     if (r->esito == TROVATO) {
-        Controllo controllo[CONTROLLI];
-        // trovato: l'orario, e la sua verifica fatta adesso, regola per regola
-        const int ok = verifica_orario(s, r->orario, controllo);
-        fputs(",\"orario\":[", f);
-        for (int i = 0; i < r->celle; i++) fprintf(f, "%s%d", i ? "," : "", r->orario[i]);
-        fprintf(f, "],\"verifica\":{\"ok\":%d,\"controlli\":[", ok);
-        for (int i = 0; i < CONTROLLI; i++) {
-            fputs(i ? ",[" : "[", f);
-            json_testo(f, controllo[i].regola);
-            fprintf(f, ",%d,", controllo[i].rispettata);
-            json_testo(f, controllo[i].dove);
-            fputc(']', f);
-        }
-        fputs("]}", f);
+        fputc(',', f);
+        scrivi_orario_e_verifica(f, s, r->orario);
     }
     fputs("}\n", f);
 }

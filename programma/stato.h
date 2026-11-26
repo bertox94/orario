@@ -21,6 +21,11 @@
 //                                 e' (giorno * ore + ora) * classi + classe
 //    "verifica": {"ok": 0 | 1, "controlli": [[regola, 0 | 1, dove], ...]}   con «trovato» (verifica.h)}
 
+// Due pezzi dello stato, che servono anche da soli (i comandi «scuola» e «verifica» di main.c): la scuola, come
+// "scuola": {...}, e un orario completo con la sua verifica, come "orario": [...], "verifica": {...}.
+void scrivi_la_scuola(FILE *f, const Scuola *s);
+void scrivi_orario_e_verifica(FILE *f, const Scuola *s, const int *orario);
+
 // Scrive lo stato su `f`. `secondi`: da quanto la ricerca va; `a_mano`: 1 se e' partita da una strada scelta a mano.
 void scrivi_stato(FILE *f, const Ricerca *r, double secondi, int a_mano);
 

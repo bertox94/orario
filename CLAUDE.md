@@ -20,6 +20,11 @@ di Alb). Il programma di prima (solver con le potature, sito con Postgres, test 
   (`notturni.py`). Mostra soltanto: casi e ricerca sono del solver. Nella pagina della prova «Mostra nell'orario»
   colora le celle di cui parla un limite: le calcola il solver (`orario nodo`, `spiegazioni/spiega.c`). Un
   limite nuovo va anche lì, e nelle frasi e nella legenda di `sito/templates/prova.html` (`spiega`, `legenda`).
+- `esatto/` (Python, dal 26 novembre 2026, richiesta di Alb: «usa la nuova»): il metodo esatto, cioè il caso come
+  programma lineare intero risolto con scipy (HiGHS). Dà l'orario o dimostra che non esiste; nel sito è il metodo di
+  partenza di una prova, e nei test notturni fa da giudice accanto alla ricerca. La ricerca resta: è quella che si
+  guarda passo per passo. Chiede scuola e verifica al programma in C (`orario scuola`, `orario verifica`). Sul
+  Raspberry serve scipy (`pip install -r sito/requirements.txt`): senza, il sito va solo con la ricerca.
 - `prove/prova.py`: la prova automatica (esito, nodi e verifica su 52 casi).
 - `bf_search/`: SQL di Alb, da non toccare senza chiedere.
 
