@@ -32,6 +32,10 @@ scelta…») non è più in `main`: l'ultima versione è in `stabile/2026-11-26`
 - Dopo una modifica a `esatto.py`: ogni orario trovato deve passare la verifica, e nessun caso deve passare da
   «trovato» a «impossibile» o il contrario (sono risposte certe). Va rifatto su tanti casi, non solo sui 54.
 - `verifica.py` non deve usare niente di `esatto.py`: è il controllo indipendente.
+- Una regola nuova dell'orario va in tre posti: l'elenco in `scuola.py`, i conti in `esatto.py`, il controllo in
+  `verifica.py` (e in `DESCRIZIONE.md`). Dal 26 novembre 2026 (richiesta di Alb) c'è la regola 9: un docente ha al
+  massimo 2 ore buche al giorno, tra la sua prima e la sua ultima lezione. Con lei dimostrare un caso impossibile
+  diventava lentissimo: per questo `esatto.risolvi` chiede prima senza la regola 9 e poi, se serve, con tutte.
 - `DESCRIZIONE.md` descrive tutto (regole, generatore, metodo, verifica, comandi, ogni pagina e ogni indirizzo del
   sito, i limiti) con il dettaglio per rifare il programma da zero (richiesta di Alb): ogni modifica che cambia una
   di queste cose si riporta anche lì, nello stesso commit.

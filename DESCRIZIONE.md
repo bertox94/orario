@@ -75,6 +75,9 @@ Le regole di un orario valido:
 6. In un giorno un docente insegna in al massimo **3** classi (`CLASSI_AL_GIORNO`).
 7. In ogni classe le prime ore di ogni giorno (le obbligatorie) hanno lezione.
 8. Dopo un'ora buca, la classe quel giorno non ha più lezione.
+9. In un giorno un docente ha al massimo 2 ore buche (`BUCHE_AL_GIORNO`): ore senza lezione tra la sua prima e la
+   sua ultima lezione di quel giorno. Le ore prima della prima e dopo l'ultima non contano. (Dal 26 novembre 2026,
+   richiesta di Alb.)
 
 Le regole 4 e 5 contano le ore di un docente in una classe sommando tutte le sue voci lì (da solo e in coppia).
 
@@ -82,7 +85,7 @@ Una scuola, nel programma e nello stato, è scritta così:
 
 ```
 {"giorni": [nomi], "ore": [nomi], "classi": [nomi], "obbligatorie": N,
- "ore_di_seguito": 3, "classi_al_giorno": 3,
+ "ore_di_seguito": 3, "classi_al_giorno": 3, "buche_al_giorno": 2,
  "docenti": [[nome, ingresso], ...],
  "voci": [[classe, docente, codocente o -1, ore], ...]}
 ```
@@ -175,9 +178,13 @@ dimostra che non esiste.
 - `x[v, g, h]`: la voce v è nell'ora h del giorno g (nella sua classe);
 - `b[k, g, h]`: la classe k in quell'ora ha l'ora buca;
 - `c[t, k, g, h]`: il docente t comincia a insegnare nella classe k in quell'ora (nell'ora prima non c'era). Ce n'è
-  una serie per ogni coppia (docente, classe) in cui il docente ha almeno una voce.
+  una serie per ogni coppia (docente, classe) in cui il docente ha almeno una voce;
+- `p[t, g, h]`: il docente t quel giorno ha già cominciato (ha lezione in quell'ora o in una prima);
+- `d[t, g, h]`: il docente t quel giorno deve ancora finire (ha lezione in quell'ora o in una dopo). Un'ora è
+  «dentro la giornata» del docente quando p e d valgono 1 tutti e due: le ore buche sono quelle dentro la giornata
+  senza lezione.
 
-**Le regole** (le otto del capitolo 2), ognuna come una somma che deve stare tra due numeri:
+**Le regole** (le nove del capitolo 2), ognuna come una somma che deve stare tra due numeri:
 
 | Regola | Come conto |
 |---|---|
@@ -190,13 +197,21 @@ dimostra che non esiste.
 | 6. Al massimo 3 classi al giorno | per ogni docente e giorno: la somma delle c in tutte le classi è al massimo 3 (in ogni classe comincia al più una volta, quindi gli inizi sono le classi). Si scrive solo per i docenti che hanno più di 3 classi. |
 | 7. Le prime ore hanno lezione | b ha massimo 0 nelle ore obbligatorie |
 | 8. Dopo la buca solo buche | `b[h + 1] ≥ b[h]` |
+| 9. Al massimo 2 ore buche al giorno per un docente | `p[h] ≥ lezione in h`, `p[h] ≥ p[h − 1]`; `d[h] ≥ lezione in h`, `d[h] ≥ d[h + 1]`; in un giorno la somma di `p[h] + d[h] − 1 − lezione in h` è al massimo 2 (e almeno −ore, per i giorni senza lezioni). «Lezione in h» è la somma delle x delle voci del docente in quell'ora. |
 
 Non c'è niente da rendere massimo o minimo: si cerca una risposta qualunque che rispetti tutto. Dalla risposta
 all'orario: in ogni cella la voce la cui x vale 1, altrimenti l'ora buca.
 
 **I passaggi**, nell'ordine (`orario/esatto.py`, uno per funzione): si dà un posto a ogni incognita (prima le x, poi
-le b, poi le c); si scrive una riga per ogni regola; si segnano le incognite che devono valere 0 (regole 3 e 7); si dà
+le b, le c, le p e le d); si scrive una riga per ogni regola; si segnano le incognite che devono valere 0 (regole 3 e 7); si dà
 tutto al risolutore; dalla sua risposta si legge l'orario.
+
+**In due tempi.** La regola 9 rende molto più lento dimostrare che un caso è impossibile (con tutte le regole insieme
+alcuni casi impossibili passavano da pochi secondi a più di 200). Per questo il programma chiede due volte:
+prima **senza la regola 9**: se già così un orario non esiste, non esiste nemmeno con una regola in più, ed è la
+risposta; se l'orario trovato rispetta per caso anche la regola 9, è la risposta. Altrimenti chiede da capo **con
+tutte le regole**, nel tempo che resta. Sui 1.032 casi: tutti i 740 che avevano un orario ne hanno uno anche con la
+regola 9 (solo in 20 lo rispettava già quello trovato senza); mediana 0,5 secondi, massimo 14.
 
 **Come ragiona il risolutore**, in breve. Prima tira tutte le conseguenze obbligate delle regole (chi ha tante ore
 quanti posti è fisso; e così via, a catena). Poi fa finta che le risposte possano essere «a metà»: così il problema
@@ -220,7 +235,7 @@ l'ordine in cui sono scritti i conti.
 ## 6. La verifica dell'orario trovato
 
 Quando il programma trova un orario lo ricontrolla subito una parte che **non usa niente del metodo**: legge solo la
-scuola e le celle, e controlla da capo le otto regole del capitolo 2. Per ogni regola dice se è rispettata e, se no,
+scuola e le celle, e controlla da capo le nove regole del capitolo 2. Per ogni regola dice se è rispettata e, se no,
 il primo punto in cui non lo è (per esempio «Ven 10: Zelda e' in C01 e in C03»). Nello stato finisce sotto
 `verifica`; il sito la mostra in un riquadro. Un orario che non passa la verifica è un errore del programma, e nei
 test notturni è un allarme.
@@ -231,7 +246,8 @@ lì; quelle sulla giornata di un docente (ore al giorno, di seguito, classi al g
 ore di ogni voce alla fine.
 
 Le regole, nell'ordine in cui compaiono nel risultato: le ore di ogni voce; una classe per volta; l'ingresso; il
-massimo di ore al giorno in una classe; di seguito; il massimo di classi al giorno; le prime ore; dopo la buca.
+massimo di ore al giorno in una classe; di seguito; il massimo di classi al giorno; le prime ore; dopo la buca;
+le ore buche di un docente.
 
 La verifica è la stessa che c'era nel programma in C: le due sono state confrontate su 372 orari, 10 validi e 362
 rovinati apposta in vari modi, e danno lo stesso risultato regola per regola, con le stesse frasi.
@@ -317,7 +333,7 @@ Dall'alto in basso.
   caso entra tra i test notturni).
 - Un messaggio quando un orario non c'è: «Un orario non esiste: il programma lo dimostra…» per «impossibile»; che
   non si sa, per «limite di tempo»; che cosa è successo, per «fermata» e «interrotta».
-- Il riquadro della **verifica**, quando l'orario c'è: «verificato» o «non valido», e le otto regole con ✓ o ✗ e, per
+- Il riquadro della **verifica**, quando l'orario c'è: «verificato» o «non valido», e le nove regole con ✓ o ✗ e, per
   quelle non rispettate, dove.
 - **L'orario**, con due tasti per scegliere come guardarlo (lo stesso orario; si parte da «Per classe»):
   - **Per classe**: una riga per classe. In una cella il docente e, sotto e più chiaro, il codocente; «–» per l'ora
@@ -388,6 +404,7 @@ I tempi non si confrontano: cambiano da una volta all'altra.
 | Lunghezza di un nome | al massimo 47 byte |
 | Ore di un docente in una classe in un giorno | al massimo 3, di seguito |
 | Classi di un docente in un giorno | al massimo 3 |
+| Ore buche di un docente in un giorno | al massimo 2 |
 | Casi casuali | 6 giorni × 6 ore, 5 obbligatorie; 30–36 ore per classe; lezioni da 1 a 6 ore; 5–24 ore per docente; ingresso al più alla quarta ora |
 | Tentativi del generatore | 20.000 |
 | Classi di un caso casuale | in pratica fino a circa 70; da 84 in su mai |

@@ -3,13 +3,13 @@ ricontrolla da capo ogni regola di scuola.py. Se il metodo sbagliasse, qui si ve
 
 Come guarda: un giorno alla volta, e dentro il giorno un'ora alla volta e una classe alla volta. Le regole che
 riguardano una cella (prime ore, ora buca, ingresso, una classe per volta) si controllano li'; quelle sulla giornata
-di un docente (ore al giorno, di seguito, classi al giorno) alla fine di ogni giorno; le ore di ogni voce alla fine.
+di un docente (ore al giorno, di seguito, classi al giorno, ore buche) alla fine di ogni giorno; le ore di ogni voce alla fine.
 """
 from .scuola import docenti_della_voce
 
 # le regole, nell'ordine in cui compaiono nel risultato
 (ORE_GIUSTE, UNA_CLASSE_PER_VOLTA, DOPO_L_INGRESSO, ORE_AL_GIORNO, DI_SEGUITO, CLASSI_AL_GIORNO, PRIME_ORE_PIENE,
- DOPO_LA_BUCA) = range(8)
+ DOPO_LA_BUCA, BUCHE_DEL_DOCENTE) = range(9)
 REGOLE = ('ogni docente e ogni coppia fanno in ogni classe le loro ore',
           'un docente e\' in una sola classe per volta',
           'nessuna lezione prima dell\'ingresso del docente',
@@ -17,7 +17,8 @@ REGOLE = ('ogni docente e ogni coppia fanno in ogni classe le loro ore',
           'le ore di un docente in una classe, in un giorno, sono di seguito',
           'un docente insegna in al massimo le classi consentite al giorno',
           'le prime ore di ogni giorno hanno lezione in ogni classe',
-          'dopo un\'ora buca la classe quel giorno non ha piu\' lezione')
+          'dopo un\'ora buca la classe quel giorno non ha piu\' lezione',
+          'un docente ha al massimo le ore buche consentite al giorno')
 
 
 def verifica(scuola, orario):
@@ -68,14 +69,16 @@ def verifica(scuola, orario):
                             qui, docenti[t][0], ore[docenti[t][1]]))
                     in_classe.setdefault((t, k), []).append(o)
         # PASSO 1b: a giorno finito, la giornata di ogni docente: classe per classe quante ore e se sono di seguito,
-        # poi quante classi
+        # poi quante classi e quante ore buche
         for t in range(T):
             quante_classi = 0
+            sue_ore = set()   # le ore del giorno in cui insegna, in qualunque classe
             for k in range(C):
                 sue = sorted(set(in_classe.get((t, k), ())))
                 if not sue:
                     continue
                 quante_classi += 1
+                sue_ore.update(sue)
                 if len(sue) > scuola['ore_di_seguito']:
                     non_rispettata(ORE_AL_GIORNO, '%s in %s, %s: %d ore, il massimo e\' %d' % (
                         docenti[t][0], classi[k], giorni[g], len(sue), scuola['ore_di_seguito']))
@@ -86,6 +89,11 @@ def verifica(scuola, orario):
             if quante_classi > scuola['classi_al_giorno']:
                 non_rispettata(CLASSI_AL_GIORNO, '%s, %s: %d classi, il massimo e\' %d' % (
                     docenti[t][0], giorni[g], quante_classi, scuola['classi_al_giorno']))
+            # le ore buche: tra la prima e l'ultima lezione del giorno, le ore in cui non insegna
+            buche = max(sue_ore) - min(sue_ore) + 1 - len(sue_ore) if sue_ore else 0
+            if buche > scuola['buche_al_giorno']:
+                non_rispettata(BUCHE_DEL_DOCENTE, '%s, %s: %d ore buche, il massimo e\' %d' % (
+                    docenti[t][0], giorni[g], buche, scuola['buche_al_giorno']))
     # PASSO 2: a settimana finita, ogni voce: nell'orario ci sono esattamente le sue ore
     for v, (k, a, b, quante) in enumerate(voci):
         if fatte[v] != quante:

@@ -52,6 +52,7 @@ stessa classe e gli stessi docenti si sommano.
 6. Un docente va al massimo in 3 classi al giorno.
 7. Le prime ore di ogni giorno hanno lezione.
 8. Dopo un'ora buca, quel giorno, la classe ha solo ore buche.
+9. Un docente ha al massimo 2 ore buche al giorno (tra la sua prima e la sua ultima lezione).
 
 ## Il sito
 

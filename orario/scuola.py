@@ -16,12 +16,14 @@ LE REGOLE DI UN ORARIO (le controlla verifica.py; esatto.py le scrive come conti
 5. e le fa di seguito, senza buchi;
 6. in un giorno un docente insegna in al massimo CLASSI_AL_GIORNO classi;
 7. in ogni classe le prime ore di ogni giorno (le obbligatorie) hanno lezione;
-8. dopo un'ora buca la classe quel giorno non ha piu' lezione.
+8. dopo un'ora buca la classe quel giorno non ha piu' lezione;
+9. in un giorno un docente ha al massimo BUCHE_AL_GIORNO ore buche: ore senza lezione tra la sua prima e la sua ultima
+   lezione di quel giorno (le ore prima della prima e dopo l'ultima non contano).
 (Le regole 4 e 5 contano le ore di un docente in una classe sommando tutte le sue voci li', da solo e in coppia.)
 
 LA SCUOLA e' un dizionario:
     {"giorni": [nomi], "ore": [nomi], "classi": [nomi], "obbligatorie": N,
-     "ore_di_seguito": 3, "classi_al_giorno": 3,
+     "ore_di_seguito": 3, "classi_al_giorno": 3, "buche_al_giorno": 2,
      "docenti": [[nome, ingresso], ...],
      "voci": [[classe, docente, codocente o -1, ore], ...]}
 Classi e docenti sono numerati nell'ordine in cui compaiono nel file. Le voci sono in ordine di classe, poi di
@@ -41,8 +43,8 @@ dichiarati; piu' righe con la stessa classe e gli stessi docenti si sommano in u
 
 # quanto puo' essere grande una scuola: un caso che supera questi numeri viene rifiutato
 MAX_GIORNI, MAX_ORE, MAX_CLASSI, MAX_DOCENTI, MAX_VOCI, MAX_NOME = 7, 10, 120, 250, 4000, 47
-# le due regole della giornata di un docente
-ORE_DI_SEGUITO, CLASSI_AL_GIORNO = 3, 3
+# le regole della giornata di un docente: ore di seguito in una classe, classi, ore buche
+ORE_DI_SEGUITO, CLASSI_AL_GIORNO, BUCHE_AL_GIORNO = 3, 3, 2
 BUCA = -1   # in una cella dell'orario: l'ora buca
 
 
@@ -132,6 +134,6 @@ def leggi_testo(testo, nome='il caso'):
 
     # PASSO 3: la scuola, con le voci in ordine di classe, docente, codocente
     return {'giorni': giorni, 'ore': ore, 'classi': classi, 'obbligatorie': max(0, min(obbligatorie, len(ore))),
-            'ore_di_seguito': ORE_DI_SEGUITO, 'classi_al_giorno': CLASSI_AL_GIORNO,
+            'ore_di_seguito': ORE_DI_SEGUITO, 'classi_al_giorno': CLASSI_AL_GIORNO, 'buche_al_giorno': BUCHE_AL_GIORNO,
             'docenti': [[docente, ingresso[t]] for t, docente in enumerate(docenti)],
             'voci': [[k, a, b, quante] for (k, a, b), quante in sorted(voci.items())]}
