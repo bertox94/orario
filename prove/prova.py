@@ -14,7 +14,6 @@ import hashlib
 import json
 import os
 import sys
-import tempfile
 
 RADICE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, RADICE)
@@ -29,24 +28,22 @@ CASI = [(seme, classi, ritardi) for seme in range(6) for classi in (3, 5, 8, 12)
 
 
 def esegui():
+    """Per ogni caso: lo genera, lo legge, ne cerca l'orario e lo verifica. Ritorna {nome del caso: risultato}."""
     trovati = {}
-    with tempfile.TemporaryDirectory() as d:
-        file = os.path.join(d, 'caso.txt')
-        for seme, classi, ritardi in CASI:
-            testo = genera.genera(seme, classi, ritardi)
-            with open(file, 'w', encoding='utf-8') as f:
-                f.write(testo)
-            s = scuola.leggi(file)
-            esito, orario, _ = esatto.risolvi(s, TEMPO)
-            # il nome del caso e' la chiave in attesi.json
-            nome = 'seme %d, %d classi, %s ritardi' % (seme, classi, 'con' if ritardi else 'senza')
-            trovati[nome] = {'caso': hashlib.sha256(testo.encode()).hexdigest()[:12], 'esito': esito}
-            if orario:
-                trovati[nome]['verificato'] = bool(verifica.verifica(s, orario)['ok'])
+    for seme, classi, ritardi in CASI:
+        testo = genera.genera(seme, classi, ritardi)             # 1. il caso
+        s = scuola.leggi_testo(testo)                            # 2. la scuola
+        esito, orario, _ = esatto.risolvi(s, TEMPO)              # 3. l'orario
+        # il nome del caso e' la chiave in attesi.json
+        nome = 'seme %d, %d classi, %s ritardi' % (seme, classi, 'con' if ritardi else 'senza')
+        trovati[nome] = {'caso': hashlib.sha256(testo.encode()).hexdigest()[:12], 'esito': esito}
+        if orario:                                               # 4. la verifica
+            trovati[nome]['verificato'] = bool(verifica.verifica(s, orario)['ok'])
     return trovati
 
 
 def main():
+    # i risultati di adesso; un orario che non passa la verifica si dice comunque
     trovati = esegui()
     non_validi = [k for k, v in trovati.items() if v.get('verificato') is False]
     for k in non_validi:
@@ -57,6 +54,7 @@ def main():
             f.write('\n')
         print('Scritto %s (%d casi).' % (ATTESI, len(trovati)))
         return 1 if non_validi else 0
+    # il confronto con i risultati attesi
     with open(ATTESI) as f:
         attesi = json.load(f)
     # diverso: un caso in piu' o in meno, o con impronta, esito o verifica cambiati

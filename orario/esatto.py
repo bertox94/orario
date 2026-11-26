@@ -22,6 +22,16 @@ LE REGOLE (le otto di scuola.py), ognuna come una somma che deve stare tra due n
 8. dopo un'ora buca solo ore buche: b dell'ora dopo >= b di quest'ora.
 
 Non c'e' niente da rendere massimo o minimo: si cerca solo una risposta che rispetti tutto.
+
+I PASSAGGI (uno per funzione, nell'ordine in cui risolvi() li fa):
+1. _Conti.__init__    si da' un posto a ogni incognita;
+2. _Conti.regole      si scrive una riga per ogni regola;
+3. _Conti.vietate     si segnano le incognite che devono valere 0 (regole 3 e 7);
+4. risolvi            si da' tutto al risolutore;
+5. _Conti.orario      dalla sua risposta si legge l'orario.
+
+ATTENZIONE: l'ordine delle incognite e delle righe non cambia la risposta (trovato o impossibile), ma cambia quanto
+il risolutore ci mette, anche di molto.
 """
 import time
 
@@ -29,95 +39,133 @@ import numpy as np
 from scipy.optimize import Bounds, LinearConstraint, milp
 from scipy.sparse import coo_matrix
 
+from .scuola import BUCA, docenti_della_voce
+
 TROVATO, IMPOSSIBILE, LIMITE_DI_TEMPO = 'trovato', 'impossibile', 'limite di tempo'
+
+
+class _Conti:
+    """Il caso scritto come conti: il posto di ogni incognita, le righe delle regole, le incognite vietate."""
+
+    def __init__(self, scuola):
+        """PASSO 1: un posto (un numero, da 0) per ogni incognita. Prima tutte le x, poi le b, poi le c."""
+        self.scuola = scuola
+        self.G, self.O, self.C = len(scuola['giorni']), len(scuola['ore']), len(scuola['classi'])
+        self.H = self.G * self.O                       # le ore della settimana
+        self.voci = scuola['voci']
+        self.V = len(self.voci)
+        # le voci di ogni classe, e i docenti di ogni voce
+        self.voci_della_classe = [[v for v in range(self.V) if self.voci[v][0] == k] for k in range(self.C)]
+        self.docenti_di = [docenti_della_voce(voce) for voce in self.voci]
+        # per ogni coppia (docente, classe) in cui il docente insegna: le sue voci li' (da solo e in coppia)
+        self.in_classe = {}
+        for v, voce in enumerate(self.voci):
+            for t in self.docenti_di[v]:
+                self.in_classe.setdefault((t, voce[0]), []).append(v)
+        self.coppie = sorted(self.in_classe)
+        # dove cominciano le c di ogni coppia (docente, classe), e quante incognite ci sono in tutto
+        self.inizio_c = {coppia: (self.V + self.C + i) * self.H for i, coppia in enumerate(self.coppie)}
+        self.incognite = (self.V + self.C + len(self.coppie)) * self.H
+
+    # il posto di un'incognita
+    def x(self, v, g, h): return v * self.H + g * self.O + h                  # la voce v in quell'ora
+    def b(self, k, g, h): return (self.V + k) * self.H + g * self.O + h       # l'ora buca della classe k
+    def c(self, coppia, g, h): return self.inizio_c[coppia] + g * self.O + h  # il docente comincia nella classe
+
+    def regole(self):
+        """PASSO 2: le regole. Ogni regola e' una riga: una somma di incognite (ognuna con il suo coefficiente) che
+        deve stare tra un minimo e un massimo. Ritorna (la tabella dei coefficienti, i minimi, i massimi)."""
+        G, O, C, x, b, c = self.G, self.O, self.C, self.x, self.b, self.c
+        righe, colonne, valori, minimi, massimi = [], [], [], [], []
+
+        def regola(termini, minimo, massimo):
+            # una riga in piu': i suoi termini sono (incognita, coefficiente)
+            for incognita, coefficiente in termini:
+                righe.append(len(minimi)), colonne.append(incognita), valori.append(coefficiente)
+            minimi.append(minimo), massimi.append(massimo)
+
+        T = len(self.scuola['docenti'])
+        voci_del_docente = [[v for v in range(self.V) if t in self.docenti_di[v]] for t in range(T)]
+        # ora per ora
+        for g in range(G):
+            for h in range(O):
+                for k in range(C):
+                    # ogni cella ha una cosa sola: una voce della classe, oppure l'ora buca
+                    regola([(x(v, g, h), 1) for v in self.voci_della_classe[k]] + [(b(k, g, h), 1)], 1, 1)
+                    # regola 8: se quest'ora e' buca lo e' anche la prossima
+                    if h + 1 < O:
+                        regola([(b(k, g, h + 1), 1), (b(k, g, h), -1)], 0, 1)
+                for t in range(T):
+                    # regola 2: il docente e' in una classe per volta
+                    regola([(x(v, g, h), 1) for v in voci_del_docente[t]], 0, 1)
+        # regola 1: ogni voce fa le sue ore nella settimana
+        for v in range(self.V):
+            regola([(x(v, g, h), 1) for g in range(G) for h in range(O)], self.voci[v][3], self.voci[v][3])
+        # la giornata di un docente in una classe
+        for coppia in self.coppie:
+            sue = self.in_classe[coppia]
+            for g in range(G):
+                # regola 4: al massimo tante ore al giorno
+                regola([(x(v, g, h), 1) for v in sue for h in range(O)], 0, self.scuola['ore_di_seguito'])
+                # regola 5: comincia al massimo una volta al giorno...
+                regola([(c(coppia, g, h), 1) for h in range(O)], 0, 1)
+                # ...e «comincia» vuol dire: c'e' adesso e non c'era nell'ora prima (c >= adesso - prima)
+                for h in range(O):
+                    regola([(c(coppia, g, h), 1)] + [(x(v, g, h), -1) for v in sue]
+                           + ([(x(v, g, h - 1), 1) for v in sue] if h else []), 0, 1)
+        # regola 6: in un giorno il docente comincia, in tutte le sue classi, al massimo tante volte
+        for t in range(T):
+            sue = [coppia for coppia in self.coppie if coppia[0] == t]
+            if len(sue) > self.scuola['classi_al_giorno']:   # (con poche classi in tutto non puo' superarle)
+                for g in range(G):
+                    regola([(c(coppia, g, h), 1) for coppia in sue for h in range(O)],
+                           0, self.scuola['classi_al_giorno'])
+        tabella = coo_matrix((valori, (righe, colonne)), shape=(len(minimi), self.incognite)).tocsr()
+        return tabella, minimi, massimi
+
+    def vietate(self):
+        """PASSO 3: il massimo di ogni incognita. Di solito 1; 0 dove una regola dice «qui no»."""
+        massimo = np.ones(self.incognite)
+        # regola 3: nessuna voce prima dell'ingresso dei suoi docenti (per una coppia, di chi entra dopo)
+        for v in range(self.V):
+            ingresso = max(self.scuola['docenti'][t][1] for t in self.docenti_di[v])
+            for g in range(self.G):
+                for h in range(min(ingresso, self.O)):
+                    massimo[self.x(v, g, h)] = 0
+        # regola 7: niente ora buca nelle prime ore
+        for k in range(self.C):
+            for g in range(self.G):
+                for h in range(min(self.scuola['obbligatorie'], self.O)):
+                    massimo[self.b(k, g, h)] = 0
+        return massimo
+
+    def orario(self, risposta):
+        """PASSO 5: dalla risposta del risolutore all'orario: in ogni cella la voce la cui x vale 1, o l'ora buca."""
+        risposta = np.round(risposta)   # (il risolutore puo' dare 0,9999999 al posto di 1)
+        orario = []
+        for g in range(self.G):
+            for h in range(self.O):
+                for k in range(self.C):
+                    messa = [v for v in self.voci_della_classe[k] if risposta[self.x(v, g, h)] == 1]
+                    orario.append(messa[0] if messa else BUCA)
+        return orario
 
 
 def risolvi(scuola, tempo=300):
     """Cerca un orario per la scuola (scuola.py), in al massimo `tempo` secondi. Ritorna (esito, orario, secondi):
     l'esito e' TROVATO, IMPOSSIBILE (dimostrato: un orario non esiste) o LIMITE_DI_TEMPO; l'orario, se c'e', ha una
     voce per cella (-1: ora buca); i secondi sono quelli del risolutore."""
-    G, O, C = len(scuola['giorni']), len(scuola['ore']), len(scuola['classi'])
-    voci, docenti, obbligatorie = scuola['voci'], scuola['docenti'], scuola['obbligatorie']
-    di_seguito, classi_al_giorno = scuola['ore_di_seguito'], scuola['classi_al_giorno']
-    V, T, H = len(voci), len(docenti), G * O   # H: le ore della settimana
-
-    # i docenti di ogni voce, e per ogni coppia (docente, classe) le voci del docente in quella classe
-    docenti_di = [[t for t in v[1:3] if t >= 0] for v in voci]
-    in_classe = {}
-    for v, voce in enumerate(voci):
-        for t in docenti_di[v]:
-            in_classe.setdefault((t, voce[0]), []).append(v)
-    coppie = sorted(in_classe)
-
-    # il posto di ogni incognita: prima le x, poi le b, poi le c
-    def x(v, g, h): return v * H + g * O + h
-    def b(k, g, h): return V * H + k * H + g * O + h
-    inizio = {coppia: V * H + C * H + i * H for i, coppia in enumerate(coppie)}
-    def c(coppia, g, h): return inizio[coppia] + g * O + h
-    incognite = V * H + C * H + len(coppie) * H
-
-    # le regole: una riga per regola, come elenco di (incognita, coefficiente), con il minimo e il massimo della somma
-    righe, colonne, valori, minimi, massimi = [], [], [], [], []
-
-    def regola(termini, minimo, massimo):
-        riga = len(minimi)
-        for incognita, coefficiente in termini:
-            righe.append(riga), colonne.append(incognita), valori.append(coefficiente)
-        minimi.append(minimo), massimi.append(massimo)
-
-    voci_della_classe = [[v for v in range(V) if voci[v][0] == k] for k in range(C)]
-    voci_del_docente = [[v for v in range(V) if t in docenti_di[v]] for t in range(T)]
-    for g in range(G):
-        for h in range(O):
-            for k in range(C):
-                regola([(x(v, g, h), 1) for v in voci_della_classe[k]] + [(b(k, g, h), 1)], 1, 1)       # 1
-                if h + 1 < O:
-                    regola([(b(k, g, h + 1), 1), (b(k, g, h), -1)], 0, 1)                               # 8
-            for t in range(T):
-                regola([(x(v, g, h), 1) for v in voci_del_docente[t]], 0, 1)                            # 2
-    for v in range(V):
-        regola([(x(v, g, h), 1) for g in range(G) for h in range(O)], voci[v][3], voci[v][3])           # 1
-    for coppia in coppie:
-        sue = in_classe[coppia]
-        for g in range(G):
-            regola([(x(v, g, h), 1) for v in sue for h in range(O)], 0, di_seguito)                     # 4
-            regola([(c(coppia, g, h), 1) for h in range(O)], 0, 1)                                      # 5
-            for h in range(O):
-                regola([(c(coppia, g, h), 1)] + [(x(v, g, h), -1) for v in sue]
-                       + ([(x(v, g, h - 1), 1) for v in sue] if h else []), 0, 1)                       # 5
-    for t in range(T):
-        sue = [coppia for coppia in coppie if coppia[0] == t]
-        if len(sue) > classi_al_giorno:   # (se ha poche classi in tutto la regola non puo' essere violata)
-            for g in range(G):
-                regola([(c(coppia, g, h), 1) for coppia in sue for h in range(O)], 0, classi_al_giorno)  # 6
-
-    # i massimi delle incognite: 1, oppure 0 dove la regola dice «qui no»
-    massimo = np.ones(incognite)
-    for v in range(V):
-        ingresso = max(docenti[t][1] for t in docenti_di[v])
-        for g in range(G):
-            for h in range(min(ingresso, O)):
-                massimo[x(v, g, h)] = 0                                                                 # 3
-    for k in range(C):
-        for g in range(G):
-            for h in range(min(obbligatorie, O)):
-                massimo[b(k, g, h)] = 0                                                                 # 7
-
-    regole = coo_matrix((valori, (righe, colonne)), shape=(len(minimi), incognite)).tocsr()
+    conti = _Conti(scuola)                    # passo 1
+    tabella, minimi, massimi = conti.regole()   # passo 2
+    massimo = conti.vietate()                 # passo 3
+    # PASSO 4: il risolutore. Niente da rendere minimo (tutti zeri), tutte le incognite intere, tra 0 e il loro massimo
+    n = conti.incognite
     partenza = time.time()
-    r = milp(np.zeros(incognite), constraints=LinearConstraint(regole, minimi, massimi),
-             integrality=np.ones(incognite), bounds=Bounds(np.zeros(incognite), massimo), options={'time_limit': tempo})
+    r = milp(np.zeros(n), constraints=LinearConstraint(tabella, minimi, massimi), integrality=np.ones(n),
+             bounds=Bounds(np.zeros(n), massimo), options={'time_limit': tempo})
     secondi = time.time() - partenza
-    if r.status == 2:        # HiGHS: nessuna risposta rispetta tutte le regole
+    if r.status == 2:                  # nessuna risposta rispetta tutte le regole: e' dimostrato
         return IMPOSSIBILE, None, secondi
-    if r.status != 0 or r.x is None:
+    if r.status != 0 or r.x is None:   # non ha finito in tempo
         return LIMITE_DI_TEMPO, None, secondi
-    # dalla risposta all'orario: in ogni cella la voce la cui x vale 1, o l'ora buca
-    risposta = np.round(r.x)
-    orario = []
-    for g in range(G):
-        for h in range(O):
-            for k in range(C):
-                messa = [v for v in voci_della_classe[k] if risposta[x(v, g, h)] == 1]
-                orario.append(messa[0] if messa else -1)
-    return TROVATO, orario, secondi
+    return TROVATO, conti.orario(r.x), secondi   # passo 5

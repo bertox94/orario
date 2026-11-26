@@ -4,7 +4,7 @@
 <h1>Prove</h1>
 <form method="post" action="{{ url_for('avvia') }}" class="modulo riquadro">
   <label>Seme <input type="number" name="seme" min="0" value="{{ ultima.seme }}"></label>
-  <label>Classi <input type="number" name="classi" min="1" max="120" value="{{ ultima.classi }}"></label>
+  <label>Classi <input type="number" name="classi" min="1" max="{{ max_classi }}" value="{{ ultima.classi }}"></label>
   <label>Ritardi
     <select name="ritardi">
       <option value="senza">senza</option>

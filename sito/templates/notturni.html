@@ -49,8 +49,8 @@
 <form method="post" action="{{ url_for('aggiungi_notturni') }}" class="modulo riquadro">
   <label>Semi da <input type="number" name="semi_da" min="0" value="0"></label>
   <label>a <input type="number" name="semi_a" min="0" value="9"></label>
-  <label>Classi da <input type="number" name="classi_da" min="1" max="120" value="3"></label>
-  <label>a <input type="number" name="classi_a" min="1" max="120" value="14"></label>
+  <label>Classi da <input type="number" name="classi_da" min="1" max="{{ max_classi }}" value="3"></label>
+  <label>a <input type="number" name="classi_a" min="1" max="{{ max_classi }}" value="14"></label>
   <label>Ritardi <select name="ritardi"><option value="tutti">senza e con</option><option value="senza">senza</option><option value="con">con</option></select></label>
   <button class="secondario">Aggiungi i casi</button>
 </form>

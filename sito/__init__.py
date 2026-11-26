@@ -11,7 +11,7 @@ I file:
 - app.py        le pagine e i loro indirizzi
 - prove.py      le prove
 - notturni.py   i test notturni
-- solver.py     generare un caso e lanciare il programma
+- programma.py  generare un caso e lanciare il programma
 - archivio.py   la cartella di lavoro e i file JSON
 - templates/    le pagine (HTML, con il loro JavaScript in fondo); static/stile.css lo stile
 """

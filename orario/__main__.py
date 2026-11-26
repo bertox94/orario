@@ -17,6 +17,7 @@ Lo stato:
 
 Esce con 0, o con 2 se il comando non va o il caso non si legge o non si genera.
 """
+import argparse
 import json
 import os
 import sys
@@ -24,65 +25,73 @@ import time
 
 from . import genera, scuola, verifica
 
-USO = 'Uso:\n  python3 -m orario genera SEME CLASSI RITARDI\n  python3 -m orario risolvi CASO [--stato FILE] ' \
-      '[--tempo SECONDI]\n  python3 -m orario verifica CASO < ORARIO\n'
 
-
-def _scrivi(stato, file):
-    """Lo stato su stdout, o nel file: a parte e poi rinominato."""
+def _scrivi(stato, file=None):
+    """Lo stato su stdout, o nel file: scritto a parte e poi rinominato."""
     if not file:
-        json.dump(stato, sys.stdout)
-        print()
+        print(json.dumps(stato))
         return
     with open(file + '.tmp', 'w') as f:
         json.dump(stato, f)
     os.replace(file + '.tmp', file)
 
 
-def _risolvi(argomenti):
+def _risolvi(caso, file_stato, tempo):
+    """Il comando «risolvi»: legge il caso, cerca l'orario, lo verifica, scrive lo stato."""
     from . import esatto   # (qui, non in cima: carica scipy, che agli altri comandi non serve)
-    file_stato, tempo = None, 300.0
-    # le opzioni: ognuna con il suo valore dopo
-    for i in range(1, len(argomenti), 2):
-        if i + 1 == len(argomenti) or argomenti[i] not in ('--stato', '--tempo'):
-            raise ValueError(USO)
-        if argomenti[i] == '--stato':
-            file_stato = argomenti[i + 1]
-        else:
-            tempo = float(argomenti[i + 1])
-    s = scuola.leggi(argomenti[0])
+    # 1. il caso
+    s = scuola.leggi(caso)
     partenza = time.time()
     stato = {'in_corso': 1, 'esito': 'in corso', 'secondi': 0, 'celle': scuola.celle(s), 'scuola': s}
+    # 2. subito uno stato «in corso»: chi guarda il file (il sito) ha gia' la scuola da mostrare
     if file_stato:
-        _scrivi(stato, file_stato)   # subito uno stato «in corso»: il sito ha gia' la scuola da mostrare
+        _scrivi(stato, file_stato)
+    # 3. l'orario
     esito, orario, _ = esatto.risolvi(s, tempo)
     stato.update(in_corso=0, esito=esito, secondi=round(time.time() - partenza, 2))
+    # 4. l'orario trovato si ricontrolla subito, regola per regola
     if orario:
-        # l'orario trovato si ricontrolla subito, regola per regola
         stato.update(orario=orario, verifica=verifica.verifica(s, orario))
+    # 5. lo stato finale
     _scrivi(stato, file_stato)
 
 
-def main(argomenti):
+def _verifica(caso):
+    """Il comando «verifica»: l'orario arriva su stdin, un numero per cella."""
+    s = scuola.leggi(caso)
+    orario = [int(x) for x in sys.stdin.read().split()]
+    if len(orario) != scuola.celle(s) or max(orario) >= len(s['voci']):
+        raise ValueError('quello che arriva non e\' un orario di questo caso')
+    _scrivi({'orario': orario, 'verifica': verifica.verifica(s, orario)})
+
+
+def main(argomenti=None):
+    # i tre comandi e i loro argomenti (un comando scritto male: argparse lo dice ed esce con 2)
+    ap = argparse.ArgumentParser(prog='python3 -m orario', description='Il programma dell\'orario scolastico.')
+    comandi = ap.add_subparsers(dest='comando', required=True)
+    g = comandi.add_parser('genera', help='scrive un caso casuale')
+    g.add_argument('seme', type=int)
+    g.add_argument('classi', type=int)
+    g.add_argument('ritardi', type=int, help='1: con i docenti che entrano tardi; 0: senza')
+    r = comandi.add_parser('risolvi', help='cerca un orario per un caso')
+    r.add_argument('caso')
+    r.add_argument('--stato', help='il file dove scrivere lo stato (senza: su stdout, alla fine)')
+    r.add_argument('--tempo', type=float, default=300, help='i secondi a disposizione')
+    v = comandi.add_parser('verifica', help='ricontrolla un orario, letto da stdin')
+    v.add_argument('caso')
+    a = ap.parse_args(argomenti)
     try:
-        if len(argomenti) == 4 and argomenti[0] == 'genera':
-            sys.stdout.write(genera.genera(int(argomenti[1]), int(argomenti[2]), argomenti[3] not in ('0', '')))
-        elif len(argomenti) >= 2 and argomenti[0] == 'risolvi':
-            _risolvi(argomenti[1:])
-        elif len(argomenti) == 2 and argomenti[0] == 'verifica':
-            s = scuola.leggi(argomenti[1])
-            orario = [int(x) for x in sys.stdin.read().split()]
-            if len(orario) != scuola.celle(s) or max(orario) >= len(s['voci']):
-                raise ValueError('quello che arriva non e\' un orario di questo caso')
-            json.dump({'orario': orario, 'verifica': verifica.verifica(s, orario)}, sys.stdout)
-            print()
+        if a.comando == 'genera':
+            sys.stdout.write(genera.genera(a.seme, a.classi, bool(a.ritardi)))
+        elif a.comando == 'risolvi':
+            _risolvi(a.caso, a.stato, a.tempo)
         else:
-            raise ValueError(USO)
-    except ValueError as e:
-        sys.stderr.write(str(e).rstrip('\n') + '\n')
+            _verifica(a.caso)
+    except ValueError as e:   # il caso non si legge o non si genera, o l'orario non e' di quel caso
+        sys.stderr.write('%s\n' % e)
         return 2
     return 0
 
 
 if __name__ == '__main__':
-    sys.exit(main(sys.argv[1:]))
+    sys.exit(main())

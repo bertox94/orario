@@ -116,7 +116,7 @@ ore o lezioni.
 
 ## 4. Il generatore dei casi casuali
 
-`python3 -m orario genera SEME CLASSI RITARDI` scrive un caso nel formato del capitolo 4. Lo stesso seme, lo stesso numero di
+`python3 -m orario genera SEME CLASSI RITARDI` scrive un caso nel formato del capitolo 3. Lo stesso seme, lo stesso numero di
 classi e la stessa scelta sui ritardi danno **sempre lo stesso caso**: i test notturni e la prova automatica
 rigenerano i casi dai semi, quindi cambiare qualunque cosa qui sotto (anche l'ordine in cui si chiedono i numeri
 casuali) cambia tutti i casi e tutti i risultati di riferimento.
@@ -193,6 +193,10 @@ dimostra che non esiste.
 
 Non c'è niente da rendere massimo o minimo: si cerca una risposta qualunque che rispetti tutto. Dalla risposta
 all'orario: in ogni cella la voce la cui x vale 1, altrimenti l'ora buca.
+
+**I passaggi**, nell'ordine (`orario/esatto.py`, uno per funzione): si dà un posto a ogni incognita (prima le x, poi
+le b, poi le c); si scrive una riga per ogni regola; si segnano le incognite che devono valere 0 (regole 3 e 7); si dà
+tutto al risolutore; dalla sua risposta si legge l'orario.
 
 **Come ragiona il risolutore**, in breve. Prima tira tutte le conseguenze obbligate delle regole (chi ha tante ore
 quanti posti è fisso; e così via, a catena). Poi fa finta che le risposte possano essere «a metà»: così il problema
@@ -438,7 +442,7 @@ sito/__main__.py                 l'avvio del sito
 sito/app.py                      le pagine e gli indirizzi
 sito/prove.py                    le prove
 sito/notturni.py                 i test notturni
-sito/solver.py                   generare un caso e lanciare il programma
+sito/programma.py                generare un caso e lanciare il programma
 sito/archivio.py                 la cartella di lavoro e i file JSON
 sito/templates/                  base, indice, prova, notturni (HTML, con il loro JavaScript)
 sito/static/stile.css            lo stile

@@ -35,8 +35,10 @@ def verifica(scuola, orario):
         controlli[regola][1] = 0
 
     fatte = [0] * len(voci)   # le ore di ogni voce nell'orario
+    # PASSO 1: un giorno alla volta
     for g in range(G):
         in_classe = {}        # nel giorno, per (docente, classe): le ore in cui c'e'
+        # PASSO 1a: cella per cella, le regole che si vedono guardando una cella
         for o in range(O):
             dove_e = {}       # in quest'ora: la classe dove ogni docente insegna
             for k in range(C):
@@ -54,6 +56,8 @@ def verifica(scuola, orario):
                 fatte[v] += 1
                 if buca_prima:
                     non_rispettata(DOPO_LA_BUCA, '%s: c\'e\' lezione dopo un\'ora buca' % qui)
+                # i docenti della lezione: uno alla volta in una classe sola, non prima dell'ingresso; e si segna
+                # l'ora per i conti di fine giornata
                 for t in docenti_della_voce(voci[v]):
                     if t in dove_e:
                         non_rispettata(UNA_CLASSE_PER_VOLTA, '%s %s: %s e\' in %s e in %s' % (
@@ -63,7 +67,8 @@ def verifica(scuola, orario):
                         non_rispettata(DOPO_L_INGRESSO, '%s: %s c\'e\', ma entra alle %s' % (
                             qui, docenti[t][0], ore[docenti[t][1]]))
                     in_classe.setdefault((t, k), []).append(o)
-        # la giornata di ogni docente: classe per classe quante ore e se sono di seguito, poi quante classi
+        # PASSO 1b: a giorno finito, la giornata di ogni docente: classe per classe quante ore e se sono di seguito,
+        # poi quante classi
         for t in range(T):
             quante_classi = 0
             for k in range(C):
@@ -81,7 +86,7 @@ def verifica(scuola, orario):
             if quante_classi > scuola['classi_al_giorno']:
                 non_rispettata(CLASSI_AL_GIORNO, '%s, %s: %d classi, il massimo e\' %d' % (
                     docenti[t][0], giorni[g], quante_classi, scuola['classi_al_giorno']))
-    # ogni voce: nell'orario ci sono esattamente le sue ore
+    # PASSO 2: a settimana finita, ogni voce: nell'orario ci sono esattamente le sue ore
     for v, (k, a, b, quante) in enumerate(voci):
         if fatte[v] != quante:
             chi = docenti[a][0] + (' con ' + docenti[b][0] if b >= 0 else '')

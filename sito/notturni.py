@@ -7,7 +7,14 @@ Tutto sta in lavoro/notti/:
 - giri/<n>.json: un giro, con il tempo usato e il risultato di ogni caso;
 - visti.json: per ogni caso, il risultato di cui si e' gia' presa visione.
 
-Un giro esegue i casi uno dopo l'altro. Un giro alla volta, e mai insieme a una prova. Il giro della notte, se e' acceso, parte da solo una volta al giorno all'ora scelta.
+Un giro esegue i casi uno dopo l'altro. Un giro alla volta, e mai insieme a una prova. Il giro della notte, se e'
+acceso, parte da solo una volta al giorno all'ora scelta.
+
+Il percorso di un giro:
+1. avvia_giro(): nasce il file del giro, «in corso», e parte un filo a parte (_esegui_giro);
+2. per ogni caso _esegui_caso(): si genera il caso, si lancia il programma (lo stesso delle prove) e lo si aspetta;
+3. dopo ogni caso il file del giro si riscrive: la pagina lo legge ogni due secondi;
+4. alla fine il giro e' «finito», «fermato» (ferma_giro) o in errore; poi situazione() dice che cosa e' cambiato.
 
 I cambiamenti: il risultato di un caso si confronta con quello di cui si e' presa visione (la prima volta, il primo
 che ha avuto con quel tempo). Se e' diverso il caso resta tra i cambiamenti finche' non lo si conferma."""
@@ -17,7 +24,7 @@ import shutil
 import threading
 import time
 
-from . import archivio, prove, solver
+from . import archivio, programma, prove
 
 TEMPO = 120                          # i secondi che ogni caso ha, finche' non lo si cambia dalla pagina
 _lock = threading.Lock()             # le richieste arrivano da piu' fili insieme: una alla volta qui
@@ -70,8 +77,12 @@ def togli(numeri):
 
 # ---- i giri ----
 
+def _file_giro(numero):
+    return _file('giri', '%d.json' % numero)
+
+
 def giro(numero):
-    return archivio.leggi(_file('giri', '%d.json' % numero))
+    return archivio.leggi(_file_giro(numero))
 
 
 def in_corso():
@@ -86,19 +97,21 @@ def _esegui_caso(caso, tempo):
     shutil.rmtree(d, ignore_errors=True)
     os.makedirs(d)
     try:
+        # 1. il caso
         try:
-            solver.genera(caso['seme'], caso['classi'], caso['ritardi'], os.path.join(d, 'caso.txt'))
+            programma.genera(caso['seme'], caso['classi'], caso['ritardi'], os.path.join(d, 'caso.txt'))
         except ValueError:
             return {'esito': 'non generato'}
-        p = solver.risolvi(os.path.join(d, 'caso.txt'), os.path.join(d, 'stato.json'), tempo)
+        # 2. il programma: il processo si ricorda, cosi' «Ferma» lo puo' chiudere, e lo si aspetta
+        p = programma.risolvi(os.path.join(d, 'caso.txt'), os.path.join(d, 'stato.json'), tempo)
         with _lock:
-            # il processo si ricorda, cosi' «Ferma» lo puo' chiudere
             _giro['processo'] = p
         p.wait()
         with _lock:
             _giro['processo'] = None
             if _giro['fermare']:
                 return None
+        # 3. il suo stato
         s = archivio.leggi(os.path.join(d, 'stato.json'), {})
         # il programma e' uscito senza scrivere uno stato finale: qualcosa e' andato storto
         if s.get('in_corso', 1):
@@ -120,7 +133,7 @@ def _esegui_giro(numero, tempo, elenco):
         for caso in elenco:
             # il caso che sta girando si scrive nel file del giro: la pagina lo mostra
             g['adesso'] = caso['numero']
-            archivio.scrivi(_file('giri', '%d.json' % numero), g)
+            archivio.scrivi(_file_giro(numero), g)
             r = _esegui_caso(caso, tempo)
             if r is None:
                 g['stato'] = 'fermato'
@@ -132,7 +145,7 @@ def _esegui_giro(numero, tempo, elenco):
         g['stato'] = 'errore: %s' % e
     finally:
         g.update(adesso=None, fine=time.time())
-        archivio.scrivi(_file('giri', '%d.json' % numero), g)
+        archivio.scrivi(_file_giro(numero), g)
         with _lock:
             _giro.update(numero=None, processo=None, fermare=False)
 
@@ -149,8 +162,8 @@ def avvia_giro(da_solo=False):
             raise ValueError('Non ci sono casi da eseguire.')
         # il numero del giro e il tempo di adesso; il file del giro nasce subito, «in corso»
         numero = max(archivio.numeri(_file('giri')), default=0) + 1
-        tempo = archivio.leggi(_file('impostazioni.json'), {}).get('tempo', TEMPO)
-        archivio.scrivi(_file('giri', '%d.json' % numero),
+        tempo = impostazioni()['tempo']
+        archivio.scrivi(_file_giro(numero),
                         {'numero': numero, 'inizio': time.time(), 'fine': None, 'tempo': tempo, 'stato': 'in corso',
                          'adesso': None, 'da_solo': da_solo, 'casi': len(elenco), 'risultati': {}})
         _giro.update(numero=numero, processo=None, fermare=False)
@@ -175,7 +188,7 @@ def all_avvio():
     for n in archivio.numeri(_file('giri')):
         g = giro(n)
         if g and g.get('stato') == 'in corso':
-            archivio.scrivi(_file('giri', '%d.json' % n), dict(g, stato='interrotto', adesso=None, fine=time.time()))
+            archivio.scrivi(_file_giro(n), dict(g, stato='interrotto', adesso=None, fine=time.time()))
     with _lock:
         if _orologio['partito']:
             return
@@ -204,10 +217,10 @@ CAMBIAMENTI = (('allarme', 'Allarmi'), ('risolto', 'Non risolto → Risolto'),
                ('non risolto', 'Risolto → Non risolto'), ('altro', 'Altri cambiamenti'))
 
 
-def _chiave(r, tempo):
-    """Quello che identifica un risultato: l'esito, e il tempo che il caso aveva. Due risultati con la stessa chiave
-    sono uguali."""
-    return [r.get('esito'), tempo]
+def _chiave(r):
+    """Quello che identifica un risultato (una riga di _storie): l'esito, e il tempo che il caso aveva. Due risultati
+    con la stessa chiave sono uguali."""
+    return [r.get('esito'), r['tempo']]
 
 
 def cambiamento(prima, adesso):
@@ -248,10 +261,10 @@ def situazione():
         stesse = [x for x in storia if x['tempo'] == ultimo['tempo']]   # le esecuzioni con il tempo di adesso
         visto = visti.get(str(c['numero']))
         # il riferimento: il risultato di cui si e' presa visione, se era con questo tempo; se no il primo avuto
-        riferimento = next((x for x in stesse if _chiave(x, x['tempo']) == visto), stesse[0])
-        suo = _chiave(ultimo, ultimo['tempo'])
+        riferimento = next((x for x in stesse if _chiave(x) == visto), stesse[0])
+        suo = _chiave(ultimo)
         # cambiato rispetto al riferimento; un orario che non passa la verifica si mostra anche se e' il primo
-        nuovo = _chiave(riferimento, riferimento['tempo']) != suo
+        nuovo = _chiave(riferimento) != suo
         if nuovo or (ultimo.get('verificato') is False and visto != suo):
             tabelle[cambiamento(riferimento, ultimo)].append(dict(c, ultimo=ultimo, prima=riferimento))
     return {'impostazioni': impostazioni(), 'giro': giro(giri[-1]) if giri else None, 'in_corso': in_corso(),
@@ -267,5 +280,5 @@ def visto(numeri):
         for n in numeri:
             if storie.get(n):
                 # da adesso il riferimento di questo caso e' il suo ultimo risultato
-                visti[str(n)] = _chiave(storie[n][-1], storie[n][-1]['tempo'])
+                visti[str(n)] = _chiave(storie[n][-1])
         archivio.scrivi(_file('visti.json'), visti)

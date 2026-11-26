@@ -14,7 +14,7 @@ tutto in Python», e la ricerca in C «toglila da main»). Vedi `LEGGIMI.md` e, 
   ricontrollato da capo, senza usare il metodo), `__main__.py` (i comandi `genera`, `risolvi`, `verifica`).
 - `sito/` (Flask, senza login né database): le prove (`prove.py`) e i test notturni (`notturni.py`). Mostra
   soltanto: genera i casi con `orario.genera` e lancia `python3 -m orario risolvi` in un processo a parte
-  (`solver.py`). Una cosa alla volta: una prova o un giro.
+  (`programma.py`). Una cosa alla volta: una prova o un giro.
 - `prove/prova.py`: la prova automatica (caso generato, esito e verifica su 54 casi).
 - `bf_search/`: SQL di Alb, da non toccare senza chiedere.
 

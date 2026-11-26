@@ -1,9 +1,15 @@
-"""Il sito dell'orario: le prove e i test notturni. Mostra soltanto: i casi e gli orari li fa il programma (orario/),
-che il sito lancia."""
+"""Il sito dell'orario: le pagine e i loro indirizzi. Mostra soltanto: i casi e gli orari li fa il programma
+(orario/), che il sito lancia.
+
+Ogni indirizzo qui fa poco: legge quello che arriva dal modulo della pagina, chiama prove.py o notturni.py, e torna a
+una pagina. Quando qualcosa non si puo' fare, prove.py e notturni.py lo dicono con un ValueError: il suo testo diventa
+il messaggio mostrato in cima alla pagina (flash)."""
 import datetime
 import os
 
 from flask import Flask, abort, flash, jsonify, redirect, render_template, request, url_for
+
+from orario.scuola import MAX_CLASSI
 
 from . import notturni, prove
 
@@ -36,19 +42,16 @@ def crea_app():
         tutte = prove.tutte()
         ultima = tutte[0]['info'] if tutte else {'seme': 0, 'classi': 8, 'ritardi': False}
         return render_template('indice.html', prove=tutte, ultima=ultima, in_corso=prove.in_corso(),
-                               tempo=prove.TEMPO)
+                               tempo=prove.TEMPO, max_classi=MAX_CLASSI)
 
     @app.route('/avvia', methods=['POST'])
     def avvia():
         f = request.form
         try:
-            seme, classi = int(f.get('seme') or 0), int(f.get('classi') or 0)
-            if seme < 0 or not 1 <= classi <= 120:
-                raise ValueError('Seme da 0 in su, classi da 1 a 120.')
             if notturni.in_corso() is not None:
                 raise ValueError('Sta girando un giro di test notturni: aspetta che finisca, o fermalo.')
-            # parte: da qui in poi la pagina della prova la segue
-            n = prove.avvia(seme, classi, f.get('ritardi') == 'con')
+            # (se seme o classi non vanno, o il caso non si genera, lo dice il generatore: ValueError)
+            n = prove.avvia(int(f.get('seme') or 0), int(f.get('classi') or 0), f.get('ritardi') == 'con')
         except (ValueError, RuntimeError) as e:
             flash(str(e))
             return redirect(url_for('indice'))
@@ -87,7 +90,8 @@ def crea_app():
 
     @app.route('/notturni')
     def pagina_notturni():
-        return render_template('notturni.html', n=notturni.situazione(), max_secondi=MAX_SECONDI_NOTTURNI)
+        return render_template('notturni.html', n=notturni.situazione(), max_secondi=MAX_SECONDI_NOTTURNI,
+                               max_classi=MAX_CLASSI)
 
     @app.route('/notturni/stato.json')
     def stato_notturni():
@@ -113,8 +117,9 @@ def crea_app():
                                                     for k in ('semi_da', 'semi_a', 'classi_da', 'classi_a'))
             # senza, con, o tutti e due (ogni caso due volte)
             ritardi = {'senza': (False,), 'con': (True,)}.get(f.get('ritardi'), (False, True))
-            if not (0 <= semi_da <= semi_a and 1 <= classi_da <= classi_a <= 120):
-                raise ValueError('Semi da 0 in su e classi da 1 a 120, il primo numero non più grande del secondo.')
+            if not (0 <= semi_da <= semi_a and 1 <= classi_da <= classi_a <= MAX_CLASSI):
+                raise ValueError('Semi da 0 in su e classi da 1 a %d, il primo numero non più grande del secondo.'
+                                 % MAX_CLASSI)
             # tutte le combinazioni: per ogni numero di classi, ogni seme, con e senza
             nuovi = [(s, c, r) for c in range(classi_da, classi_a + 1) for s in range(semi_da, semi_a + 1)
                      for r in ritardi]
