@@ -37,13 +37,13 @@ materia	Scienze	laboratorio
 aula	A01	normale
 aula	Lab 1	laboratorio
 docente	Sirius	0
-docente	Zelda	2
+docente	Zelda	2	5	Ven
 lezione	C01	4	Italiano	Sirius
 lezione	C01	2	Scienze	Sirius	Zelda
 ```
 
-`obbligatorie`: le prime ore di ogni giorno, che hanno sempre lezione. `docente`: il nome e l'ora (da 0) da cui è a
-scuola. `materia` e `aula`: il nome e il tipo di aula (una materia si fa nelle aule del suo tipo). `lezione`: la classe,
+`obbligatorie`: le prime ore di ogni giorno, che hanno sempre lezione. `docente`: il nome, l'ora (da 0) da cui è a
+scuola e, se servono, l'ora da cui non c'è più e il giorno libero (un giorno, `qualunque` o `nessuno`). `materia` e `aula`: il nome e il tipo di aula (una materia si fa nelle aule del suo tipo). `lezione`: la classe,
 le ore in una settimana, la materia, il docente e, se sono in due, il codocente. Più righe con la stessa classe, la
 stessa materia e gli stessi docenti si sommano.
 
@@ -59,6 +59,8 @@ stessa materia e gli stessi docenti si sommano.
 8. Dopo un'ora buca, quel giorno, la classe ha solo ore buche.
 9. Un docente ha al massimo 2 ore buche al giorno (tra la sua prima e la sua ultima lezione).
 10. Ogni lezione è in un'aula del tipo che la sua materia chiede, e in un'aula c'è una classe per volta.
+11. Un docente non insegna dalla sua ora di uscita in poi.
+12. Un docente non insegna nel suo giorno libero (un giorno preciso, o uno qualunque scelto dal programma).
 
 ## Il sito
 
@@ -69,6 +71,8 @@ python3 -m sito avvia --host 0.0.0.0 --porta 8000   # visibile dalla rete locale
 
 - **Prove**: seme, classi, ritardi, «Fai l'orario». La pagina della prova mostra l'esito (trovato, impossibile,
   limite di tempo), il tempo, la verifica regola per regola, l'orario e il caso.
+- **Scuole**: i dati di una scuola vera, scritti a mano (docenti con entrata, uscita e giorno libero; lezioni;
+  materie; aule; la settimana), e «Fai l'orario».
 - **Test notturni**: un elenco di casi rifatti tutti insieme, a mano o ogni notte; mostra che cosa è cambiato
   rispetto al giro prima.
 

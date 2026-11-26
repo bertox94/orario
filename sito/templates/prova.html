@@ -3,17 +3,27 @@
 {% block titolo %}Orario · prova {{ i.numero }}{% endblock %}
 {% block contenuto %}
 <p><a href="{{ url_for('indice') }}">← Tutte le prove</a></p>
-<h1>Prova {{ i.numero }}: seme {{ i.seme }}, {{ i.classi }} classi, {{ 'con' if i.ritardi else 'senza' }} ritardi</h1>
+{% if i.scuola is defined %}<h1>Prova {{ i.numero }}: {{ i.nome }}</h1>
+{% else %}<h1>Prova {{ i.numero }}: seme {{ i.seme }}, {{ i.classi }} classi, {{ 'con' if i.ritardi else 'senza' }} ritardi</h1>{% endif %}
 <p><span id="esito" class="esito"></span> <span id="tempo"></span></p>
 <div class="rigo">
   <form method="post" action="{{ url_for('ferma') }}" id="ferma" hidden>
     <input type="hidden" name="poi" value="{{ request.path }}"><button class="secondario">Ferma</button></form>
+  {% if i.scuola is defined %}
+  {# una prova su una scuola: si rifa' con i dati che la scuola ha adesso, e si torna ai suoi dati #}
+  {% if c_e_la_scuola %}
+  <form method="post" action="{{ url_for('orario_scuola', n=i.scuola) }}">
+    <button class="secondario" id="rifai" title="Una prova nuova, con i dati che la scuola ha adesso">Rifai</button></form>
+  <a href="{{ url_for('pagina_scuola', n=i.scuola) }}">I dati della scuola</a>
+  {% else %}<button class="secondario" id="rifai" hidden></button>{% endif %}
+  {% else %}
   <form method="post" action="{{ url_for('avvia') }}">
     <input type="hidden" name="seme" value="{{ i.seme }}"><input type="hidden" name="classi" value="{{ i.classi }}">
     <input type="hidden" name="ritardi" value="{{ 'con' if i.ritardi else 'senza' }}">
     <button class="secondario" id="rifai" title="Una prova nuova sullo stesso caso">Rifai</button></form>
   <form method="post" action="{{ url_for('notturno_da_prova') }}"><input type="hidden" name="prova" value="{{ i.numero }}">
     <button class="secondario" title="Il caso di questa prova entra tra i test notturni">Aggiungi ai notturni</button></form>
+  {% endif %}
 </div>
 <p id="messaggio" class="messaggio" hidden></p>
 <div id="verifica" class="riquadro" hidden></div>
@@ -35,7 +45,7 @@
 <script>
 const URL_STATO = '{{ url_for('stato', n=i.numero) }}';
 const tabella = document.getElementById('orario');
-// giorni, ore, classi, docenti [nome, ingresso], materie [nome, tipo di aula], aule [nome, tipo],
+// giorni, ore, classi, docenti [nome, ingresso, uscita, giorno libero (-1 nessuno, -2 uno qualunque)], materie [nome, tipo di aula], aule [nome, tipo],
 // voci [classe, docente, codocente, ore, materia]
 let scuola = null;
 let orario = null;       // l'orario trovato: una voce per cella (-1: ora buca)
@@ -91,7 +101,7 @@ function mostraVerifica(v) {
 // ogni cella la classe dove sta). In tutti e due una colonna per ogni ora della settimana.
 const NOTE = {
   classi: 'Una riga per classe, una colonna per ogni ora della settimana. In una cella la materia, chi la insegna (in due: docente e codocente) e, più chiara, l\'aula; «–» è un\'ora buca.',
-  docenti: 'Una riga per docente, una colonna per ogni ora della settimana. In una cella la classe dove insegna (e con chi, se sono in due), la materia e, più chiara, l\'aula; vuota se è libero, grigia se non è ancora entrato.',
+  docenti: 'Una riga per docente, una colonna per ogni ora della settimana. In una cella la classe dove insegna (e con chi, se sono in due), la materia e, più chiara, l\'aula; vuota se è libero, grigia se non è a scuola (prima dell\'entrata, dopo l\'uscita, nel suo giorno libero).',
 };
 
 // la griglia vuota della vista scelta: la riga dei giorni, quella delle ore, e una riga per classe o per docente
@@ -125,10 +135,11 @@ function disegnaOrario() {
     });
     return;
   }
-  // per docente: prima le ore in cui non e' ancora entrato (in ogni giorno, quelle prima del suo ingresso)...
-  scuola.docenti.forEach(([, ingresso], t) => {
+  // per docente: prima le ore in cui non e' a scuola (prima dell'ingresso, dall'uscita in poi, nel giorno libero)...
+  scuola.docenti.forEach(([, ingresso, uscita = O, libero = -1], t) => {
     for (let ora = 0; ora < scuola.giorni.length * O; ora++)
-      if (ora % O < ingresso) righe[t].cells[1 + ora].classList.add('non-entrato');
+      if (ora % O < ingresso || ora % O >= uscita || Math.floor(ora / O) === libero)
+        righe[t].cells[1 + ora].classList.add('non-entrato');
   });
   // ...poi ogni lezione va nella riga di ognuno dei suoi docenti: la classe (e, se sono in due, l'altro), la
   // materia e l'aula
@@ -154,13 +165,16 @@ function disegnaCaso() {
       return `<tr><th>${esc(k)}</th><td class="num">${sue.reduce((a, [v]) => a + v[3], 0)}</td><td>` +
         sue.map(([v, j]) => `<span class="voce">${esc([materia(j), nomi(j).join(' con ')].filter(x => x).join(': '))} <strong>${v[3]}</strong></span>`).join(' ') + '</td></tr>';
     }).join('') + '</tbody>';
-  document.getElementById('docenti').innerHTML = '<thead><tr><th>Docente</th><th class="num">Ore</th><th>Entra</th><th>Materie</th><th>Classi</th></tr></thead><tbody>' +
-    docenti.map(([nome, ingresso], t) => {
+  document.getElementById('docenti').innerHTML = '<thead><tr><th>Docente</th><th class="num">Ore</th><th>A scuola</th><th>Materie</th><th>Classi</th></tr></thead><tbody>' +
+    docenti.map(([nome, ingresso, uscita = O.length, libero = -1], t) => {
+      // quando c'e': solo quello che non e' «sempre» (entra tardi, esce presto, ha un giorno libero)
+      const quando = [ingresso ? 'dalle ' + O[ingresso] : '', uscita < O.length ? 'fino alle ' + O[uscita - 1] : '',
+        libero >= 0 ? 'libero ' + scuola.giorni[libero] : libero === -2 ? 'un giorno libero' : ''].filter(x => x);
       const sue = voci.filter(v => v[1] === t || v[2] === t), suClassi = [...new Set(sue.map(v => classi[v[0]]))];
       // le sue materie: quelle delle lezioni in cui e' il docente (da solo, o in coppia), in ordine di nome
       const sueMaterie = [...new Set(voci.map((v, j) => [v, j]).filter(([v]) => v[1] === t || v[2] === t).map(([, j]) => materia(j)))].filter(x => x).sort();
       return `<tr><th>${esc(nome)}</th><td class="num">${sue.reduce((a, v) => a + v[3], 0)}</td>` +
-        `<td>${ingresso ? `<span class="tardi">alle ${esc(O[ingresso])}</span>` : ''}</td><td>${esc(sueMaterie.join(', '))}</td>` +
+        `<td>${quando.map(q => `<span class="tardi">${esc(q)}</span>`).join(' ')}</td><td>${esc(sueMaterie.join(', '))}</td>` +
         `<td class="nota">${esc(suClassi.join(', '))}</td></tr>`;
     }).join('') + '</tbody>';
   // le aule: il tipo, e le materie che chiedono quel tipo

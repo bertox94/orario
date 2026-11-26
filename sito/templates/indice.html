@@ -15,7 +15,8 @@
 <p class="nota">Il seme decide il caso: stesso seme, stesse classi e stessa scelta sui ritardi danno sempre la stessa scuola.
   Con i ritardi alcuni docenti entrano dopo la prima ora, e un orario può non esserci. Il programma guarda tutte le
   regole di tutta la settimana insieme: dà l'orario, oppure dimostra che non esiste, di solito in pochi secondi (al
-  massimo {{ tempo }}). Una prova alla volta.
+  massimo {{ tempo }}). Una prova alla volta. Per l'orario di una scuola vera, con i suoi docenti e le sue
+  lezioni, c'è la scheda «Scuole».
   {% if in_corso %}Adesso gira la <a href="{{ url_for('prova', n=in_corso) }}">prova {{ in_corso }}</a>.{% endif %}</p>
 
 <h2>Le prove fatte</h2>
@@ -26,13 +27,14 @@
 </form>
 <div class="scorre"><table class="dati" id="storico">
   <thead><tr><th><input type="checkbox" id="tutte" aria-label="Scegli tutte le prove"></th><th class="num">Prova</th><th>Avviata</th>
-    <th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th><th>Esito</th><th class="num">Tempo</th></tr></thead>
+    <th>Caso</th><th>Esito</th><th class="num">Tempo</th></tr></thead>
   <tbody>{% for p in prove %}{% set i, s = p.info, p.stato %}
     <tr>
       <td>{% if not s.gira %}<input type="checkbox" class="scegli" value="{{ i.numero }}" aria-label="Scegli la prova {{ i.numero }}">{% endif %}</td>
       <td class="num"><a href="{{ url_for('prova', n=i.numero) }}">{{ i.numero }}</a></td>
       <td class="nota">{{ i.inizio|data }}</td>
-      <td class="num">{{ i.seme }}</td><td class="num">{{ i.classi }}</td><td>{{ 'con' if i.ritardi else 'senza' }}</td>
+      <td>{% if i.scuola is defined %}<a href="{{ url_for('pagina_scuola', n=i.scuola) }}">{{ i.nome }}</a>
+        {% else %}seme {{ i.seme }}, {{ i.classi }} classi, {{ 'con' if i.ritardi else 'senza' }} ritardi{% endif %}</td>
       <td><span class="esito esito-{{ (s.esito or 'in corso')|replace(' ', '-') }}">{{ s.esito or 'in corso' }}</span>
         {% if s.verifica and not s.verifica.ok %}<span class="nota male">non valido</span>{% endif %}</td>
       <td class="num">{{ ('%.1f s'|format(s.secondi))|replace('.', ',') if s.secondi is defined and s.secondi is not none }}</td>

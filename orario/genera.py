@@ -10,14 +10,17 @@ Le materie e le aule (dal 26 novembre 2026, richiesta di Alb) si aggiungono SOPR
 classi, docenti, lezioni e ritardi di ogni seme sono quelli di prima. Ogni docente ha una cattedra, di una o due
 materie; ogni lezione prende una delle materie del suo docente. Ogni classe ha la sua aula normale; laboratori e
 palestre sono tanti da essere occupati, in media, per ORE_AULA_SPECIALE ore la settimana: possono non bastare.
+Allo stesso modo, con altri numeri casuali a parte, i giorni liberi (in tutti i casi) e le uscite prima della fine
+(solo nei casi con i ritardi): vedi _giorni_liberi_e_uscite.
 
 ATTENZIONE: i test rigenerano i casi dai semi. Cambiare qualunque cosa qui (anche solo l'ordine in cui si chiedono i
 numeri casuali: una chiamata in piu' o in meno, o spostata) cambia tutti i casi.
 """
 from .nomi import NOMI_DOCENTI
-from .scuola import MAX_CLASSI, MAX_DOCENTI
+from .scuola import MAX_CLASSI, MAX_DOCENTI, NESSUNO, QUALUNQUE
 
 GIORNI, ORE, OBBLIGATORIE = 6, 6, 5
+NOMI_GIORNI = ('Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab')
 ORE_CLASSE_MIN, ORE_CLASSE_MAX = 30, 36    # le ore di una classe in una settimana
 ORE_DOCENTE_MIN, ORE_DOCENTE_MAX = 5, 24   # le ore di un docente in una settimana
 INGRESSO_MAX = 3                           # l'ingresso piu' tardo: la quarta ora
@@ -34,6 +37,10 @@ TIPO_AULA = {'Scienze': 'laboratorio', 'Chimica': 'laboratorio', 'Informatica': 
              'Tecnologia': 'laboratorio', 'Scienze motorie': 'palestra'}
 NOME_AULA = {'normale': 'A%02d', 'laboratorio': 'Lab %d', 'palestra': 'Palestra %d'}
 ORE_AULA_SPECIALE = 24                     # un laboratorio o una palestra ogni tante ore di lezione che li chiedono
+# giorni liberi e uscite: su cento docenti quanti hanno un giorno libero preciso, quanti uno qualunque, e (nei casi
+# con i ritardi, tra chi entra alla prima ora) quanti escono prima della fine
+CON_GIORNO_PRECISO, CON_GIORNO_QUALUNQUE, CON_USCITA = 25, 25, 30
+MARGINE = 6                                # le ore che a un docente devono avanzare, oltre alle sue, nel tempo che ha
 
 
 class _Casuale:
@@ -180,6 +187,32 @@ def _materie_e_aule(seme, caso, classi):
     return della_lezione, sorted(set(della_lezione)), aule
 
 
+def _giorni_liberi_e_uscite(seme, caso, ingresso, con_ritardi):
+    """Il giorno libero e l'ora di uscita di ogni docente, per un caso gia' fatto. Usa una serie di numeri casuali sua.
+    Un docente li ha solo se il tempo che gli resta basta con un margine: le sue ore piu' MARGINE devono stare nelle
+    ore in cui e' a scuola. Ritorna (i giorni liberi, le uscite)."""
+    c = _Casuale(seme, 0x51F15E7)
+    liberi, uscite = [], []
+    for d in range(caso.docenti):
+        # quattro numeri per docente, sempre, anche quando non servono: cosi' la serie non dipende dalle scelte
+        sorte, giorno, sorte_uscita, uscita = c.tra(1, 100), c.tra(0, GIORNI - 1), c.tra(1, 100), c.tra(4, ORE - 1)
+        al_giorno = ORE - ingresso[d]   # le ore di un giorno in cui e' a scuola
+        # il giorno libero: se le sue ore stanno, con il margine, in un giorno di meno
+        libero = NESSUNO
+        if sorte <= CON_GIORNO_PRECISO + CON_GIORNO_QUALUNQUE and \
+                caso.carico[d] + MARGINE <= al_giorno * (GIORNI - 1):
+            libero = giorno if sorte <= CON_GIORNO_PRECISO else QUALUNQUE
+        # l'uscita: solo con i ritardi, solo per chi entra alla prima ora; ritardata finche' le sue ore ci stanno
+        giorni = GIORNI - (libero != NESSUNO)
+        if not (con_ritardi and ingresso[d] == 0 and sorte_uscita <= CON_USCITA):
+            uscita = ORE
+        while uscita < ORE and caso.carico[d] + MARGINE > uscita * giorni:
+            uscita += 1
+        liberi.append(libero)
+        uscite.append(uscita)
+    return liberi, uscite
+
+
 def genera(seme, classi, con_ritardi):
     """Il testo di un caso casuale, nel formato che scuola.leggi legge. ValueError se non si riesce a generarlo: si
     tenta finche' un tentativo riesce (ogni tentativo continua con i numeri casuali dove il precedente si e'
@@ -196,11 +229,14 @@ def genera(seme, classi, con_ritardi):
         raise ValueError('Con questo seme e queste classi il caso non si riesce a generare.')
     ingresso = c.ritardi() if con_ritardi else [0] * c.docenti
     righe = ['# seme %d, %d classi, %s ritardi' % (seme, classi, 'con' if con_ritardi else 'senza'),
-             'giorni\tLun\tMar\tMer\tGio\tVen\tSab', 'ore\t08\t09\t10\t11\t12\t13', 'obbligatorie\t%d' % OBBLIGATORIE]
+             'giorni\t' + '\t'.join(NOMI_GIORNI), 'ore\t08\t09\t10\t11\t12\t13', 'obbligatorie\t%d' % OBBLIGATORIE]
     materia_di, materie, aule = _materie_e_aule(seme, c, classi)
     righe += ['materia\t%s\t%s' % (m, TIPO_AULA.get(m, 'normale')) for m in materie]
     righe += ['aula\t%s\t%s' % (nome, tipo) for nome, tipo in aule]
-    righe += ['docente\t%s\t%d' % (_nome(d), ingresso[d]) for d in range(c.docenti)]
+    liberi, uscite = _giorni_liberi_e_uscite(seme, c, ingresso, con_ritardi)
+    nome_del_giorno = {NESSUNO: 'nessuno', QUALUNQUE: 'qualunque', **dict(enumerate(NOMI_GIORNI))}
+    righe += ['docente\t%s\t%d\t%d\t%s' % (_nome(d), ingresso[d], uscite[d], nome_del_giorno[liberi[d]])
+              for d in range(c.docenti)]
     # classe per classe; di ogni lezione le ore da solo e quelle in coppia, con la sua materia
     for k in range(classi):
         for (classe, docente, ore, codocente, insieme), materia in zip(c.lezioni, materia_di):

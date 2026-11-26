@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block titolo %}Orario · scuole{% endblock %}
+{% block contenuto %}
+<h1>Scuole</h1>
+<p class="nota">I dati di una scuola vera, scritti a mano: le materie, le aule, i docenti (con l'ora di entrata, l'ora di
+  uscita e il giorno libero) e le lezioni di ogni classe. Da qui si fa fare il suo orario.</p>
+
+<h2>Una scuola nuova</h2>
+<form method="post" action="{{ url_for('nuova_scuola') }}" class="modulo riquadro">
+  <label>Nome <input name="nome" placeholder="per esempio: Liceo, anno 2026/27"></label>
+  <label>Si parte da
+    <select name="partenza" id="partenza">
+      <option value="vuota">una scuola vuota</option>
+      <option value="casuale">un caso casuale</option>
+    </select></label>
+  <label class="casuale" hidden>Seme <input type="number" name="seme" min="0" value="0"></label>
+  <label class="casuale" hidden>Classi <input type="number" name="classi" min="1" max="{{ max_classi }}" value="8"></label>
+  <label class="casuale" hidden>Ritardi
+    <select name="ritardi"><option value="senza">senza</option><option value="con">con</option></select></label>
+  <button>Crea la scuola</button>
+</form>
+
+<h2>Le scuole</h2>
+{% if scuole %}
+<div class="scorre"><table class="dati">
+  <thead><tr><th>Scuola</th><th class="num">Classi</th><th class="num">Docenti</th><th class="num">Lezioni</th><th>Modificata</th><th></th></tr></thead>
+  <tbody>{% for s in scuole %}{% set d = s.dati %}
+    <tr>
+      <td><a href="{{ url_for('pagina_scuola', n=s.numero) }}">{{ s.nome }}</a></td>
+      <td class="num">{{ d.lezioni|map(attribute=0)|unique|list|length }}</td>
+      <td class="num">{{ d.docenti|length }}</td><td class="num">{{ d.lezioni|length }}</td>
+      <td class="nota">{{ s.modificata|data }}</td>
+      <td><form method="post" action="{{ url_for('elimina_scuola', n=s.numero) }}" class="elimina" data-nome="{{ s.nome }}">
+        <button class="secondario piccolo">Elimina</button></form></td>
+    </tr>{% endfor %}
+  </tbody>
+</table></div>
+{% else %}<p class="nota">Nessuna scuola ancora.</p>{% endif %}
+{% endblock %}
+{% block script %}
+<script>
+// seme, classi e ritardi si vedono solo se si parte da un caso casuale
+const partenza = document.getElementById('partenza');
+const mostraCasuale = () => { for (const l of document.querySelectorAll('label.casuale')) l.hidden = partenza.value !== 'casuale'; };
+partenza.addEventListener('change', mostraCasuale);
+mostraCasuale();
+// prima di eliminare una scuola si chiede conferma
+for (const f of document.querySelectorAll('form.elimina'))
+  f.addEventListener('submit', e => { if (!confirm(`Eliminare «${f.dataset.nome}»? Le prove già fatte restano.`)) e.preventDefault(); });
+</script>
+{% endblock %}

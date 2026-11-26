@@ -11,8 +11,10 @@
   <header class="testata">
     <a class="nome" href="{{ url_for('indice') }}">Orario scolastico</a>
     <nav class="schede">
-      <a href="{{ url_for('indice') }}" class="{{ 'attiva' if not request.path.startswith('/notturni') }}">Prove</a>
-      <a href="{{ url_for('pagina_notturni') }}" class="{{ 'attiva' if request.path.startswith('/notturni') }}">Test notturni</a>
+      {% set dove = 'notturni' if request.path.startswith('/notturni') else 'scuole' if request.path.startswith('/scuol') else 'prove' %}
+      <a href="{{ url_for('indice') }}" class="{{ 'attiva' if dove == 'prove' }}">Prove</a>
+      <a href="{{ url_for('pagina_scuole') }}" class="{{ 'attiva' if dove == 'scuole' }}">Scuole</a>
+      <a href="{{ url_for('pagina_notturni') }}" class="{{ 'attiva' if dove == 'notturni' }}">Test notturni</a>
     </nav>
   </header>
   {% for m in get_flashed_messages() %}<p class="messaggio">{{ m }}</p>{% endfor %}

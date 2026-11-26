@@ -11,7 +11,7 @@ from flask import Flask, abort, flash, jsonify, redirect, render_template, reque
 
 from orario.scuola import MAX_CLASSI
 
-from . import notturni, prove
+from . import notturni, programma, prove, scuole
 
 MAX_SECONDI_NOTTURNI = 3600   # il tempo massimo che un caso dei test notturni puo' avere
 MAX_CASI_PER_VOLTA = 2000     # quanti casi si possono aggiungere ai test notturni in una volta
@@ -40,7 +40,8 @@ def crea_app():
     @app.route('/')
     def indice():
         tutte = prove.tutte()
-        ultima = tutte[0]['info'] if tutte else {'seme': 0, 'classi': 8, 'ritardi': False}
+        # il modulo parte dai numeri dell'ultima prova su un caso casuale
+        ultima = next((p['info'] for p in tutte if 'seme' in p['info']), {'seme': 0, 'classi': 8, 'ritardi': False})
         return render_template('indice.html', prove=tutte, ultima=ultima, in_corso=prove.in_corso(),
                                tempo=prove.TEMPO, max_classi=MAX_CLASSI)
 
@@ -51,7 +52,9 @@ def crea_app():
             if notturni.in_corso() is not None:
                 raise ValueError('Sta girando un giro di test notturni: aspetta che finisca, o fermalo.')
             # (se seme o classi non vanno, o il caso non si genera, lo dice il generatore: ValueError)
-            n = prove.avvia(int(f.get('seme') or 0), int(f.get('classi') or 0), f.get('ritardi') == 'con')
+            seme, classi, ritardi = int(f.get('seme') or 0), int(f.get('classi') or 0), f.get('ritardi') == 'con'
+            n = prove.avvia({'seme': seme, 'classi': classi, 'ritardi': ritardi},
+                            programma.genera(seme, classi, ritardi))
         except (ValueError, RuntimeError) as e:
             flash(str(e))
             return redirect(url_for('indice'))
@@ -62,7 +65,9 @@ def crea_app():
         p = prove.prova(n)
         if not p:
             abort(404)
-        return render_template('prova.html', p=p, tempo=prove.TEMPO)
+        # (per «Rifai»: una prova su una scuola si rifa' solo se la scuola c'e' ancora)
+        c_e_la_scuola = 'scuola' in p['info'] and scuole.scuola(p['info']['scuola']) is not None
+        return render_template('prova.html', p=p, tempo=prove.TEMPO, c_e_la_scuola=c_e_la_scuola)
 
     @app.route('/prova/<int:n>/stato.json')
     def stato(n):
@@ -85,6 +90,67 @@ def crea_app():
             except ValueError as e:
                 flash(str(e))
         return redirect(url_for('indice'))
+
+    # ---- le scuole scritte a mano ----
+
+    @app.route('/scuole')
+    def pagina_scuole():
+        return render_template('scuole.html', scuole=scuole.tutte(), max_classi=MAX_CLASSI)
+
+    @app.route('/scuole/nuova', methods=['POST'])
+    def nuova_scuola():
+        """Una scuola nuova: vuota, oppure con i dati di un caso casuale da cui partire."""
+        f = request.form
+        try:
+            dati = scuole.vuota()
+            if f.get('partenza') == 'casuale':
+                dati = scuole.da_testo(programma.genera(int(f.get('seme') or 0), int(f.get('classi') or 0),
+                                                        f.get('ritardi') == 'con'))
+            n = scuole.nuova(f.get('nome') or '', dati)
+        except ValueError as e:
+            flash(str(e))
+            return redirect(url_for('pagina_scuole'))
+        return redirect(url_for('pagina_scuola', n=n))
+
+    @app.route('/scuola/<int:n>')
+    def pagina_scuola(n):
+        s = scuole.scuola(n)
+        if not s:
+            abort(404)
+        return render_template('scuola.html', s=s, problemi=scuole.problemi(s['dati']), in_corso=prove.in_corso())
+
+    @app.route('/scuola/<int:n>/salva', methods=['POST'])
+    def salva_scuola(n):
+        """La pagina manda {"nome", "dati"} in JSON; torna {"problemi": [...]}, o {"errore"} se non si salva."""
+        if not scuole.scuola(n):
+            abort(404)
+        corpo = request.get_json(silent=True) or {}
+        try:
+            return jsonify(problemi=scuole.salva(n, corpo.get('nome', ''), corpo.get('dati')))
+        except ValueError as e:
+            return jsonify(errore=str(e)), 400
+
+    @app.route('/scuola/<int:n>/orario', methods=['POST'])
+    def orario_scuola(n):
+        """Fa l'orario della scuola, con i dati salvati: parte una prova."""
+        s = scuole.scuola(n)
+        if not s:
+            abort(404)
+        try:
+            if scuole.problemi(s['dati']):
+                raise ValueError('I dati hanno ancora dei problemi: sono elencati in cima alla pagina.')
+            if notturni.in_corso() is not None:
+                raise ValueError('Sta girando un giro di test notturni: aspetta che finisca, o fermalo.')
+            p = prove.avvia({'scuola': n, 'nome': s['nome']}, scuole.testo(s['dati']))
+        except ValueError as e:
+            flash(str(e))
+            return redirect(url_for('pagina_scuola', n=n))
+        return redirect(url_for('prova', n=p))
+
+    @app.route('/scuola/<int:n>/elimina', methods=['POST'])
+    def elimina_scuola(n):
+        scuole.elimina(n)
+        return redirect(url_for('pagina_scuole'))
 
     # ---- i test notturni ----
 

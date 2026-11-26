@@ -99,7 +99,8 @@ def _esegui_caso(caso, tempo):
     try:
         # 1. il caso
         try:
-            programma.genera(caso['seme'], caso['classi'], caso['ritardi'], os.path.join(d, 'caso.txt'))
+            programma.scrivi_caso(programma.genera(caso['seme'], caso['classi'], caso['ritardi']),
+                                  os.path.join(d, 'caso.txt'))
         except ValueError:
             return {'esito': 'non generato'}
         # 2. il programma: il processo si ricorda, cosi' «Ferma» lo puo' chiudere, e lo si aspetta

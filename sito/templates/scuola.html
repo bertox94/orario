@@ -1,0 +1,265 @@
+{% extends 'base.html' %}
+{% block titolo %}Orario · {{ s.nome }}{% endblock %}
+{% block contenuto %}
+<p><a href="{{ url_for('pagina_scuole') }}">← Tutte le scuole</a></p>
+<h1 id="titolo">{{ s.nome }}</h1>
+<div class="rigo">
+  <label>Nome <input id="nome" value="{{ s.nome }}"></label>
+  <button id="salva" class="secondario">Salva</button>
+  <form method="post" action="{{ url_for('orario_scuola', n=s.numero) }}" id="orario">
+    <button id="fai" {{ 'disabled' if in_corso }} title="Salva i dati e fa partire una prova">Fai l'orario</button></form>
+  <span id="stato-salvataggio"></span>
+</div>
+<div id="problemi" class="messaggio" hidden></div>
+
+<div class="rigo" id="sezioni">
+  <button class="secondario scelta" data-sezione="docenti">Docenti</button>
+  <button class="secondario scelta" data-sezione="lezioni">Lezioni</button>
+  <button class="secondario scelta" data-sezione="materie">Materie</button>
+  <button class="secondario scelta" data-sezione="aule">Aule</button>
+  <button class="secondario scelta" data-sezione="settimana">Settimana</button>
+</div>
+<p class="nota" id="spiegazione"></p>
+<div id="sezione"></div>
+<datalist id="tipi"></datalist>
+<datalist id="classi"></datalist>
+{% endblock %}
+{% block script %}
+<script>
+// ---- i dati ----
+// Quelli di sito/scuole.py, con i nomi scritti per esteso:
+//   giorni, ore, obbligatorie, materie [nome, tipo di aula], aule [nome, tipo],
+//   docenti [nome, ingresso, uscita, giorno libero], lezioni [classe, materia, docente, codocente o '', ore]
+// La pagina li tiene qui, li cambia a ogni campo modificato e li manda tutti insieme con «Salva».
+let dati = {{ s.dati|tojson }};
+let sezione = 'docenti';     // la sezione che si vede
+let classeScelta = null;     // nelle lezioni: la classe di cui si vedono le lezioni ('' = tutte)
+let daSalvare = false;       // ci sono modifiche non ancora salvate
+const URL_SALVA = '{{ url_for('salva_scuola', n=s.numero) }}';
+const box = document.getElementById('sezione');
+
+// le classi sono quelle che compaiono nelle lezioni, in ordine di nome
+const classi = () => [...new Set(dati.lezioni.map(l => l[0]).filter(x => x))].sort();
+// le ore di lezione di un docente (da solo e in coppia) e di una classe
+const oreDocente = nome => dati.lezioni.reduce((a, l) => a + (nome && (l[2] === nome || l[3] === nome) ? Number(l[4]) || 0 : 0), 0);
+const oreClasse = k => dati.lezioni.reduce((a, l) => a + (l[0] === k ? Number(l[4]) || 0 : 0), 0);
+
+// ---- i campi ----
+// Ogni campo sa a quale riga (i) e a quale colonna (c) della sezione appartiene: quando cambia, cambia quel dato.
+const campo = (i, c, valore, altro = '') => `<input data-i="${i}" data-c="${c}" value="${esc(valore)}" ${altro}>`;
+const numeroCampo = (i, c, valore, minimo = 1) => campo(i, c, valore, `type="number" min="${minimo}" step="1"`);
+// una scelta tra [valore, testo]; se il valore di adesso non e' tra le scelte (un nome tolto) si vede comunque
+function scelta(i, c, valore, opzioni) {
+  if (!opzioni.some(([v]) => v === valore)) opzioni = [[valore, valore ? valore + ' (non c\'è più)' : '– scegli –'], ...opzioni];
+  return `<select data-i="${i}" data-c="${c}">` + opzioni.map(([v, t]) =>
+    `<option value="${esc(v)}" ${v === valore ? 'selected' : ''}>${esc(t)}</option>`).join('') + '</select>';
+}
+const togli = i => `<button class="secondario piccolo" data-togli="${i}" title="Togli questa riga">Togli</button>`;
+// una tabella di campi: le intestazioni, una riga per elemento, e sotto il tasto per aggiungerne uno
+const tabella = (intestazioni, righe, aggiungi) => (righe.length ? '<div class="scorre"><table class="campi"><thead><tr>' +
+  intestazioni.map(t => `<th>${t}</th>`).join('') + '<th></th></tr></thead><tbody>' + righe.join('') + '</tbody></table></div>' : '') +
+  `<p><button class="secondario" id="aggiungi">${aggiungi}</button></p>`;
+
+// ---- le sezioni ----
+// Di ognuna: la spiegazione, le righe che modifica, la riga nuova, e come si disegna.
+const SEZIONI = {
+  docenti: {
+    spiegazione: 'Per ogni docente: da che ora è a scuola, dopo che ora esce (valgono per tutti i giorni) e il suo giorno libero. «Uno qualunque»: il giorno libero lo sceglie il programma. Le ore sono quelle delle sue lezioni (sezione «Lezioni»).',
+    righe: () => dati.docenti,
+    nuova: () => ['', 0, dati.ore.length, 'nessuno'],
+    disegna() {
+      const entra = dati.ore.map((o, h) => [h, 'dalle ' + o]);
+      const esce = dati.ore.map((o, h) => [h + 1, h + 1 === dati.ore.length ? 'alla fine' : 'dopo le ' + o]);
+      const libero = [['nessuno', 'nessuno'], ['qualunque', 'uno qualunque'], ...dati.giorni.map(g => [g, g])];
+      return tabella(['Docente', 'Entra', 'Esce', 'Giorno libero', 'Ore'], dati.docenti.map(([nome, a, b, g], i) =>
+        `<tr><td>${campo(i, 0, nome)}</td><td>${scelta(i, 1, a, entra)}</td><td>${scelta(i, 2, b, esce)}</td>` +
+        `<td>${scelta(i, 3, g, libero)}</td><td class="num" data-conto="${i}">${contoDocente(i)}</td><td>${togli(i)}</td></tr>`),
+        'Aggiungi un docente');
+    },
+  },
+  lezioni: {
+    spiegazione: 'Le lezioni di ogni classe: la materia, chi la insegna, quante ore la settimana. Con un codocente i due sono in classe insieme per quelle ore. Una classe nasce scrivendo il suo nome in una lezione.',
+    righe: () => dati.lezioni,
+    nuova: () => [classeScelta || '', '', '', '', 1],
+    disegna() {
+      const tutte = classi();
+      if (classeScelta === null || (classeScelta && !tutte.includes(classeScelta))) classeScelta = tutte[0] || '';
+      const materie = dati.materie.map(m => [m[0], m[0]]), docenti = dati.docenti.map(d => [d[0], d[0]]);
+      const righe = dati.lezioni.map((l, i) => [l, i]).filter(([l]) => !classeScelta || l[0] === classeScelta);
+      return `<div class="rigo"><label>Classe <select id="filtro"><option value="">tutte le classi</option>` +
+        tutte.map(k => `<option ${k === classeScelta ? 'selected' : ''}>${esc(k)}</option>`).join('') + '</select></label>' +
+        '<span id="conto-classe" class="nota"></span></div>' +
+        tabella(['Classe', 'Materia', 'Docente', 'Codocente', 'Ore'], righe.map(([[k, m, a, b, ore], i]) =>
+          `<tr><td>${campo(i, 0, k, 'list="classi" size="8"')}</td><td>${scelta(i, 1, m, materie)}</td><td>${scelta(i, 2, a, docenti)}</td>` +
+          `<td>${scelta(i, 3, b, [['', '–'], ...docenti])}</td><td>${numeroCampo(i, 4, ore)}</td><td>${togli(i)}</td></tr>`),
+          'Aggiungi una lezione');
+    },
+  },
+  materie: {
+    spiegazione: 'Le materie, e il tipo di aula che ognuna chiede: una lezione di quella materia si fa solo in un\'aula di quel tipo (sezione «Aule»).',
+    righe: () => dati.materie,
+    nuova: () => ['', 'normale'],
+    disegna: () => tabella(['Materia', 'Tipo di aula'], dati.materie.map(([nome, tipo], i) =>
+      `<tr><td>${campo(i, 0, nome)}</td><td>${campo(i, 1, tipo, 'list="tipi"')}</td><td>${togli(i)}</td></tr>`), 'Aggiungi una materia'),
+  },
+  aule: {
+    spiegazione: 'Tutte le aule della scuola, ognuna con il suo tipo (normale, laboratorio, palestra… un nome qualunque). In un\'aula c\'è una classe per volta: se le aule di un tipo sono poche, un orario può non esserci.',
+    righe: () => dati.aule,
+    nuova: () => ['', 'normale'],
+    disegna: () => tabella(['Aula', 'Tipo'], dati.aule.map(([nome, tipo], i) =>
+      `<tr><td>${campo(i, 0, nome)}</td><td>${campo(i, 1, tipo, 'list="tipi"')}</td><td>${togli(i)}</td></tr>`), 'Aggiungi un\'aula'),
+  },
+  settimana: {
+    spiegazione: 'I giorni e le ore della settimana, con i nomi separati da virgole, e quante prime ore di ogni giorno hanno sempre lezione in tutte le classi.',
+    disegna: () => '<div class="modulo">' +
+      `<label>Giorni <input id="giorni" size="34" value="${esc(dati.giorni.join(', '))}"></label>` +
+      `<label>Ore <input id="ore" size="34" value="${esc(dati.ore.join(', '))}"></label>` +
+      `<label>Prime ore con lezione <input id="obbligatorie" type="number" min="0" value="${dati.obbligatorie}"></label></div>`,
+  },
+};
+
+// le ore di un docente, con un avviso se non stanno nelle ore in cui e' a scuola
+function contoDocente(i) {
+  const [nome, entra, esce, libero] = dati.docenti[i], ore = oreDocente(nome);
+  const posti = (esce - entra) * (dati.giorni.length - (libero !== 'nessuno'));
+  return ore > posti ? `<span class="avviso" title="È a scuola solo per ${posti} ore la settimana">${ore} su ${posti}</span>` : String(ore);
+}
+// nelle lezioni: le ore della classe scelta, e quante devono essere
+function contoClasse() {
+  const e = document.getElementById('conto-classe');
+  if (!e) return;
+  const minimo = dati.obbligatorie * dati.giorni.length, massimo = dati.ore.length * dati.giorni.length;
+  if (!classeScelta) return void (e.textContent = `${dati.lezioni.length} lezioni in ${classi().length} classi.`);
+  const ore = oreClasse(classeScelta);
+  e.innerHTML = `${ore} ore la settimana` + (ore < minimo || ore > massimo ?
+    ` <span class="avviso">(devono essere tra ${minimo} e ${massimo})</span>` : '.');
+}
+
+function disegna() {
+  for (const b of document.querySelectorAll('#sezioni button')) b.classList.toggle('scelta-attiva', b.dataset.sezione === sezione);
+  document.getElementById('spiegazione').textContent = SEZIONI[sezione].spiegazione;
+  box.innerHTML = SEZIONI[sezione].disegna();
+  // i suggerimenti: i tipi di aula gia' scritti (e i tre soliti), e le classi
+  const tipi = new Set(['normale', 'laboratorio', 'palestra', ...dati.aule.map(a => a[1]), ...dati.materie.map(m => m[1])]);
+  document.getElementById('tipi').innerHTML = [...tipi].filter(x => x).map(t => `<option value="${esc(t)}">`).join('');
+  document.getElementById('classi').innerHTML = classi().map(k => `<option value="${esc(k)}">`).join('');
+  contoClasse();
+}
+
+// ---- le modifiche ----
+function modificato() {
+  daSalvare = true;
+  document.getElementById('stato-salvataggio').textContent = 'Modifiche non salvate.';
+}
+
+// un nome cambiato si cambia anche dove e' usato: il docente e la materia nelle lezioni, il giorno nei giorni liberi
+function rinomina(prima, dopo) {
+  if (!prima || prima === dopo) return;
+  if (sezione === 'docenti') for (const l of dati.lezioni) for (const c of [2, 3]) if (l[c] === prima) l[c] = dopo;
+  if (sezione === 'materie') for (const l of dati.lezioni) if (l[1] === prima) l[1] = dopo;
+}
+
+// un campo di una tabella e' cambiato: cambia il dato della sua riga e della sua colonna
+box.addEventListener('change', e => {
+  const t = e.target;
+  if (t.id === 'filtro') { classeScelta = t.value; return disegna(); }
+  if (sezione === 'settimana') return settimanaCambiata();
+  if (t.dataset.i === undefined) return;
+  const riga = SEZIONI[sezione].righe()[Number(t.dataset.i)], c = Number(t.dataset.c);
+  const numero = t.type === 'number' || (sezione === 'docenti' && (c === 1 || c === 2));
+  const valore = numero ? Math.round(Number(t.value)) || 0 : t.value.trim().replace(/\s+/g, ' ');
+  if (c === 0) rinomina(riga[0], valore);
+  riga[c] = valore;
+  modificato();
+  // quello che dipende dal dato cambiato: le ore del docente e quelle della classe
+  if (sezione === 'docenti') box.querySelector(`[data-conto="${t.dataset.i}"]`).innerHTML = contoDocente(Number(t.dataset.i));
+  contoClasse();
+});
+
+// la settimana: i nomi separati da virgole. Se cambiano i giorni o le ore, i docenti si adattano.
+function settimanaCambiata() {
+  const nomi = id => document.getElementById(id).value.split(',').map(x => x.trim().replace(/\s+/g, ' ')).filter(x => x);
+  const orePrima = dati.ore.length;
+  dati.giorni = nomi('giorni');
+  dati.ore = nomi('ore');
+  dati.obbligatorie = Math.max(0, Math.min(Math.round(Number(document.getElementById('obbligatorie').value)) || 0, dati.ore.length));
+  for (const d of dati.docenti) {
+    // chi usciva alla fine esce ancora alla fine; entrata e uscita restano dentro la giornata
+    if (d[2] === orePrima || d[2] > dati.ore.length) d[2] = dati.ore.length;
+    if (d[1] >= d[2]) d[1] = 0;
+    // un giorno libero che non c'e' piu' diventa «nessuno»
+    if (!['nessuno', 'qualunque', ...dati.giorni].includes(d[3])) d[3] = 'nessuno';
+  }
+  modificato();
+}
+
+// i tasti dentro la sezione: «Togli» di una riga, e «Aggiungi»
+box.addEventListener('click', e => {
+  const t = e.target.closest('button');
+  if (!t) return;
+  const righe = SEZIONI[sezione].righe();
+  if (t.id === 'aggiungi') {
+    righe.push(SEZIONI[sezione].nuova());
+    modificato();
+    disegna();
+    // si comincia a scrivere subito nella riga nuova
+    const primo = box.querySelector(`[data-i="${righe.length - 1}"]`);
+    if (primo) primo.focus();
+  } else if (t.dataset.togli !== undefined) {
+    const i = Number(t.dataset.togli), nome = righe[i][0];
+    // un docente o una materia con delle lezioni: le lezioni vanno via con lui, quindi si chiede
+    const sue = sezione === 'docenti' ? dati.lezioni.filter(l => nome && (l[2] === nome || l[3] === nome))
+              : sezione === 'materie' ? dati.lezioni.filter(l => nome && l[1] === nome) : [];
+    if (sue.length && !confirm(`${nome} ha ${sue.length} lezioni: si tolgono anche quelle. Continuare?`)) return;
+    dati.lezioni = dati.lezioni.filter(l => !sue.includes(l));
+    SEZIONI[sezione].righe().splice(sezione === 'lezioni' ? dati.lezioni.indexOf(righe[i]) : i, 1);
+    modificato();
+    disegna();
+  }
+});
+
+// i tasti in alto cambiano sezione
+for (const b of document.querySelectorAll('#sezioni button'))
+  b.addEventListener('click', () => { sezione = b.dataset.sezione; disegna(); });
+document.getElementById('nome').addEventListener('input', modificato);
+
+// ---- salvare, e fare l'orario ----
+// i problemi che i dati hanno ancora (li dice il sito a ogni salvataggio): con dei problemi l'orario non si fa
+function mostraProblemi(problemi) {
+  const p = document.getElementById('problemi');
+  p.hidden = !problemi.length;
+  p.innerHTML = 'Prima di fare l\'orario c\'è da sistemare:<ul class="problemi">' + problemi.map(x => `<li>${esc(x)}</li>`).join('') + '</ul>';
+}
+
+// manda tutti i dati al sito; ritorna i problemi rimasti, o null se non si e' riusciti a salvare
+async function salva() {
+  const stato = document.getElementById('stato-salvataggio');
+  const nome = document.getElementById('nome').value.trim();
+  try {
+    const r = await fetch(URL_SALVA, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({nome, dati})});
+    const risposta = await r.json();
+    if (!r.ok) throw new Error(risposta.errore || 'non salvato');
+    daSalvare = false;
+    stato.textContent = 'Salvato.';
+    if (nome) document.getElementById('titolo').textContent = nome;
+    mostraProblemi(risposta.problemi);
+    return risposta.problemi;
+  } catch (e) {
+    stato.textContent = 'Non salvato: ' + e.message;
+    return null;
+  }
+}
+document.getElementById('salva').addEventListener('click', salva);
+// «Fai l'orario»: prima si salva; si parte solo se i dati non hanno problemi
+document.getElementById('orario').addEventListener('submit', async e => {
+  e.preventDefault();
+  const problemi = await salva();
+  if (problemi && !problemi.length) e.target.submit();
+});
+// se si lascia la pagina con modifiche non salvate, il browser chiede conferma
+window.addEventListener('beforeunload', e => { if (daSalvare) e.preventDefault(); });
+
+mostraProblemi({{ problemi|tojson }});
+disegna();
+</script>
+{% endblock %}

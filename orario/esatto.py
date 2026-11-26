@@ -8,10 +8,9 @@ LE INCOGNITE, tutte 0 o 1:
 - x[v, g, h]      la voce v e' nell'ora h del giorno g (nella sua classe);
 - b[k, g, h]      la classe k in quell'ora ha l'ora buca;
 - c[t, k, g, h]   il docente t COMINCIA a insegnare nella classe k in quell'ora (nell'ora prima non c'era);
-- p[t, g, h]      il docente t quel giorno ha GIA' cominciato: ha lezione in quell'ora o in una prima;
-- d[t, g, h]      il docente t quel giorno DEVE ANCORA finire: ha lezione in quell'ora o in una dopo.
+- f[t, g]         il giorno g e' il giorno libero del docente t (solo per chi ne ha «uno qualunque»).
 
-LE REGOLE (le dieci di scuola.py), ognuna come una somma che deve stare tra due numeri:
+LE REGOLE (le dodici di scuola.py), ognuna come una somma che deve stare tra due numeri:
 1. ogni voce fa le sue ore: la somma delle sue x nella settimana fa le sue ore; e ogni cella ha una cosa sola: la
    somma delle x delle voci della classe, piu' b, fa 1;
 2. un docente e' in una classe per volta: la somma delle x delle sue voci, in un'ora, fa al massimo 1;
@@ -22,21 +21,24 @@ LE REGOLE (le dieci di scuola.py), ognuna come una somma che deve stare tra due 
    (in ogni classe comincia al piu' una volta, quindi contare gli inizi e' contare le classi);
 7. le prime ore hanno lezione: quelle b non possono valere 1;
 8. dopo un'ora buca solo ore buche: b dell'ora dopo >= b di quest'ora;
-9. al massimo B ore buche al giorno per un docente. Un'ora e' «dentro la sua giornata» se ha gia' cominciato e deve
-   ancora finire (p e d valgono 1 tutti e due); le ore buche sono le ore dentro la giornata meno quelle di lezione.
-   p >= lezione in quell'ora, p >= p dell'ora prima; d >= lezione in quell'ora, d >= d dell'ora dopo; e in un giorno
-   la somma di (p + d - 1 - lezione) e' al massimo B. (p e d hanno solo un minimo: possono valere 1 anche senza
-   motivo, ma questo farebbe solo contare piu' ore buche, quindi non aiuta a barare.)
+9. al massimo B ore buche al giorno per un docente. Per ogni coppia di ore a < b con in mezzo piu' di B ore: se il
+   docente ha lezione in tutte e due, in mezzo deve avere almeno (ore in mezzo - B) lezioni:
+   (lezioni in mezzo) >= (ore in mezzo - B) * (lezione in a + lezione in b - 1). Con 6 ore e B = 2 sono tre righe per
+   docente e per giorno; non servono incognite in piu';
 10. le aule: in ogni ora le lezioni che chiedono un tipo di aula sono al massimo quante le aule di quel tipo. Quale
     aula tocca a ogni lezione non serve deciderlo nei conti: se le aule bastano, in ogni ora le si distribuisce dopo
-    (_Conti.aule).
+    (_Conti.aule);
+11. non dall'uscita in poi: come la 3, quelle x non possono valere 1;
+12. il giorno libero. Un giorno preciso: le x del docente in quel giorno non possono valere 1. Uno qualunque: la
+    somma delle sue f nella settimana e' almeno 1, e in ogni ora (lezione in quell'ora) + f del giorno e' al massimo
+    1: nel giorno scelto come libero non puo' avere lezione.
 
 Non c'e' niente da rendere massimo o minimo: si cerca solo una risposta che rispetti tutto.
 
 I PASSAGGI (uno per funzione, nell'ordine in cui risolvi() li fa):
 1. _Conti.__init__    si da' un posto a ogni incognita;
 2. _Conti.regole      si scrive una riga per ogni regola;
-3. _Conti.vietate     si segnano le incognite che devono valere 0 (regole 3 e 7);
+3. _Conti.vietate     si segnano le incognite che devono valere 0 (regole 3, 7, 11 e 12);
 4. _chiedi            si da' tutto al risolutore;
 5. _Conti.orario      dalla sua risposta si legge l'orario;
 6. _Conti.aule        a ogni lezione dell'orario si da' la sua aula.
@@ -51,7 +53,7 @@ import numpy as np
 from scipy.optimize import Bounds, LinearConstraint, milp
 from scipy.sparse import coo_matrix
 
-from .scuola import BUCA, docenti_della_voce
+from .scuola import BUCA, QUALUNQUE, docenti_della_voce
 
 TROVATO, IMPOSSIBILE, LIMITE_DI_TEMPO = 'trovato', 'impossibile', 'limite di tempo'
 
@@ -60,8 +62,8 @@ class _Conti:
     """Il caso scritto come conti: il posto di ogni incognita, le righe delle regole, le incognite vietate."""
 
     def __init__(self, scuola, con_le_buche=True):
-        """PASSO 1: un posto (un numero, da 0) per ogni incognita. Prima tutte le x, poi le b, le c, le p e le d.
-        `con_le_buche`: False per lasciare fuori la regola 9 (e le sue incognite p e d): vedi risolvi()."""
+        """PASSO 1: un posto (un numero, da 0) per ogni incognita. Prima tutte le x, poi le b, le c e le f.
+        `con_le_buche`: False per lasciare fuori la regola 9: vedi risolvi()."""
         self.con_le_buche = con_le_buche
         self.scuola = scuola
         self.G, self.O, self.C = len(scuola['giorni']), len(scuola['ore']), len(scuola['classi'])
@@ -85,15 +87,17 @@ class _Conti:
         self.aule_del_tipo = {}
         for a, (_, tipo) in enumerate(scuola['aule']):
             self.aule_del_tipo.setdefault(tipo, []).append(a)
-        self.inizio_p = (self.V + self.C + len(self.coppie)) * self.H   # dove cominciano le p; le d subito dopo
-        self.incognite = self.inizio_p + (2 * self.T * self.H if con_le_buche else 0)
+        self.incognite = (self.V + self.C + len(self.coppie)) * self.H
+        # i docenti con un giorno libero qualunque, e dove cominciano le loro f (in fondo a tutte le altre)
+        self.con_un_libero = [t for t in range(self.T) if scuola['docenti'][t][3] == QUALUNQUE]
+        self.inizio_f = {t: self.incognite + i * self.G for i, t in enumerate(self.con_un_libero)}
+        self.incognite += len(self.con_un_libero) * self.G
 
     # il posto di un'incognita
     def x(self, v, g, h): return v * self.H + g * self.O + h                  # la voce v in quell'ora
     def b(self, k, g, h): return (self.V + k) * self.H + g * self.O + h       # l'ora buca della classe k
     def c(self, coppia, g, h): return self.inizio_c[coppia] + g * self.O + h  # il docente comincia nella classe
-    def p(self, t, g, h): return self.inizio_p + t * self.H + g * self.O + h  # il docente ha gia' cominciato
-    def d(self, t, g, h): return self.p(t, g, h) + self.T * self.H            # il docente deve ancora finire
+    def f(self, t, g): return self.inizio_f[t] + g                            # il giorno libero del docente
 
     def regole(self):
         """PASSO 2: le regole. Ogni regola e' una riga: una somma di incognite (ognuna con il suo coefficiente) che
@@ -107,7 +111,7 @@ class _Conti:
                 righe.append(len(minimi)), colonne.append(incognita), valori.append(coefficiente)
             minimi.append(minimo), massimi.append(massimo)
 
-        T, p, d = self.T, self.p, self.d
+        T = self.T
         voci_del_docente = [[v for v in range(self.V) if t in self.docenti_di[v]] for t in range(T)]
         # ora per ora
         for g in range(G):
@@ -143,22 +147,24 @@ class _Conti:
                 for g in range(G):
                     regola([(c(coppia, g, h), 1) for coppia in sue for h in range(O)],
                            0, self.scuola['classi_al_giorno'])
-        # regola 9: le ore buche di un docente in un giorno
+        # regola 12, per chi ha un giorno libero qualunque: almeno un giorno e' libero, e in quel giorno niente lezioni
+        for t in self.con_un_libero:
+            regola([(self.f(t, g), 1) for g in range(G)], 1, G)
+            for g in range(G):
+                for h in range(O):
+                    regola([(x(v, g, h), 1) for v in voci_del_docente[t]] + [(self.f(t, g), 1)], 0, 1)
+        # regola 9: le ore buche di un docente in un giorno. Per ogni coppia di ore a < b con in mezzo piu' ore delle
+        # buche consentite: se ha lezione in tutte e due, di quelle in mezzo ne puo' saltare al massimo `buche`, cioe'
+        # in mezzo ha almeno «troppe» lezioni. In conti: (lezioni in mezzo) >= troppe * (lezione in a + lezione in b - 1).
         buche = self.scuola['buche_al_giorno']
         for t in range(T if self.con_le_buche else 0):
             for g in range(G):
-                for h in range(O):
-                    lezione = [(x(v, g, h), -1) for v in voci_del_docente[t]]
-                    regola([(p(t, g, h), 1)] + lezione, 0, 1)      # ha gia' cominciato: se ha lezione adesso...
-                    regola([(d(t, g, h), 1)] + lezione, 0, 1)      # deve ancora finire: se ha lezione adesso...
-                    if h:
-                        regola([(p(t, g, h), 1), (p(t, g, h - 1), -1)], 0, 1)   # ...o aveva gia' cominciato prima
-                    if h + 1 < O:
-                        regola([(d(t, g, h), 1), (d(t, g, h + 1), -1)], 0, 1)   # ...o deve finire piu' tardi
-                # le ore dentro la giornata (p + d - 1) meno quelle di lezione: al massimo `buche`. Il -1 di ogni ora
-                # sta nel massimo (+ O). In un giorno senza lezioni la somma puo' scendere fino a -O.
-                regola([(q(t, g, h), 1) for h in range(O) for q in (p, d)]
-                       + [(x(v, g, h), -1) for h in range(O) for v in voci_del_docente[t]], -O, buche + O)
+                lezione = [[(x(v, g, h), 1) for v in voci_del_docente[t]] for h in range(O)]
+                for a in range(O):
+                    for b in range(a + buche + 2, O):
+                        troppe = b - a - 1 - buche
+                        in_mezzo = [termine for h in range(a + 1, b) for termine in lezione[h]]
+                        regola(in_mezzo + [(i, -troppe * k) for i, k in lezione[a] + lezione[b]], -troppe, b - a - 1)
         # regola 10: in ogni ora, per ogni tipo di aula, le lezioni che lo chiedono non sono piu' delle aule
         for tipo, quante in sorted(self.aule_del_tipo.items()):
             sue = [v for v in range(self.V) if self.tipo_della_voce[v] == tipo]
@@ -172,12 +178,16 @@ class _Conti:
     def vietate(self):
         """PASSO 3: il massimo di ogni incognita. Di solito 1; 0 dove una regola dice «qui no»."""
         massimo = np.ones(self.incognite)
-        # regola 3: nessuna voce prima dell'ingresso dei suoi docenti (per una coppia, di chi entra dopo)
+        # regole 3, 11 e 12: nessuna voce prima dell'ingresso dei suoi docenti, ne' dalla loro uscita in poi (per una
+        # coppia: di chi entra dopo, e di chi esce prima), ne' nel giorno libero di uno di loro
         for v in range(self.V):
-            ingresso = max(self.scuola['docenti'][t][1] for t in self.docenti_di[v])
+            suoi = [self.scuola['docenti'][t] for t in self.docenti_di[v]]
+            ingresso, uscita = max(d[1] for d in suoi), min(d[2] for d in suoi)
             for g in range(self.G):
-                for h in range(min(ingresso, self.O)):
-                    massimo[self.x(v, g, h)] = 0
+                libero = any(d[3] == g for d in suoi)
+                for h in range(self.O):
+                    if h < ingresso or h >= uscita or libero:
+                        massimo[self.x(v, g, h)] = 0
         # regola 7: niente ora buca nelle prime ore
         for k in range(self.C):
             for g in range(self.G):

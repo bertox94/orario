@@ -10,10 +10,14 @@ from orario import genera as _genera
 RADICE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # la cartella dove sta orario/
 
 
-def genera(seme, classi, ritardi, file):
-    """Scrive in `file` il caso casuale (seme, classi, con o senza ritardi). ValueError, con il messaggio da
-    mostrare, se i numeri non vanno o il caso non si riesce a generare."""
-    testo = _genera.genera(seme, classi, ritardi)
+def genera(seme, classi, ritardi):
+    """Il testo del caso casuale (seme, classi, con o senza ritardi). ValueError, con il messaggio da mostrare, se i
+    numeri non vanno o il caso non si riesce a generare."""
+    return _genera.genera(seme, classi, ritardi)
+
+
+def scrivi_caso(testo, file):
+    """Il testo di un caso in un file, dove il programma lo legge."""
     with open(file, 'w', encoding='utf-8') as f:
         f.write(testo)
 

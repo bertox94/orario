@@ -12,7 +12,9 @@ tutto in Python», e la ricerca in C «toglila da main»). Vedi `LEGGIMI.md` e, 
   casuali: gli stessi, carattere per carattere, del generatore in C di prima), `esatto.py` (il metodo: il caso come
   programma lineare intero, risolto con scipy/HiGHS; dà l'orario o dimostra che non esiste), `verifica.py` (l'orario
   ricontrollato da capo, senza usare il metodo), `__main__.py` (i comandi `genera`, `risolvi`, `verifica`).
-- `sito/` (Flask, senza login né database): le prove (`prove.py`) e i test notturni (`notturni.py`). Mostra
+- `sito/` (Flask, senza login né database): le prove (`prove.py`), le scuole scritte a mano (`scuole.py`: la pagina
+  dove si inseriscono docenti, entrate, uscite, giorni liberi, lezioni, materie e aule) e i test notturni
+  (`notturni.py`). Mostra
   soltanto: genera i casi con `orario.genera` e lancia `python3 -m orario risolvi` in un processo a parte
   (`programma.py`). Una cosa alla volta: una prova o un giro.
 - `prove/prova.py`: la prova automatica (caso generato, esito e verifica su 54 casi).
@@ -40,6 +42,10 @@ scelta…») non è più in `main`: l'ultima versione è in `stabile/2026-11-26`
   una, e ogni lezione occupa un'aula del tipo della sua materia (regola 10; tutte le aule sono contate). Il
   generatore le aggiunge con numeri casuali a parte: classi, docenti, lezioni e ritardi di ogni seme non sono
   cambiati, e non devono cambiare.
+- Uscita e giorno libero dei docenti (26 novembre 2026, richiesta di Alb; regole 11 e 12): il giorno libero è un
+  giorno preciso o «uno qualunque», scelto dal programma. Il generatore li crea, anche loro con numeri casuali a
+  parte. La regola 9 ora è scritta senza incognite in più (tre righe per docente e giorno): com'era prima, un caso
+  che ha un orario restava al limite di tempo.
 - `DESCRIZIONE.md` descrive tutto (regole, generatore, metodo, verifica, comandi, ogni pagina e ogni indirizzo del
   sito, i limiti) con il dettaglio per rifare il programma da zero (richiesta di Alb): ogni modifica che cambia una
   di queste cose si riporta anche lì, nello stesso commit.

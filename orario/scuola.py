@@ -11,6 +11,10 @@ LE PAROLE
 - aula: ogni lezione si fa in un'aula, del tipo che la sua materia chiede. Tutte le aule della scuola sono contate,
   anche quelle normali.
 - ingresso: l'ora (indice, da 0) da cui un docente e' a scuola; prima non puo' insegnare. Vale per tutti i giorni.
+- uscita: l'ora (indice) da cui un docente non e' piu' a scuola: insegna solo nelle ore prima. Vale per tutti i
+  giorni. Chi resta fino alla fine ha come uscita il numero delle ore.
+- giorno libero: un giorno in cui il docente non insegna. Puo' essere un giorno preciso, oppure «uno qualunque»: quale
+  sia lo sceglie il programma.
 - ore obbligatorie: le prime ore di ogni giorno, che in ogni classe hanno sempre lezione.
 
 LE REGOLE DI UN ORARIO (le controlla verifica.py; esatto.py le scrive come conti)
@@ -24,13 +28,15 @@ LE REGOLE DI UN ORARIO (le controlla verifica.py; esatto.py le scrive come conti
 8. dopo un'ora buca la classe quel giorno non ha piu' lezione;
 9. in un giorno un docente ha al massimo BUCHE_AL_GIORNO ore buche: ore senza lezione tra la sua prima e la sua ultima
    lezione di quel giorno (le ore prima della prima e dopo l'ultima non contano);
-10. ogni lezione si fa in un'aula del tipo che la sua materia chiede, e in un'aula c'e' una classe per volta.
+10. ogni lezione si fa in un'aula del tipo che la sua materia chiede, e in un'aula c'e' una classe per volta;
+11. un docente non insegna dalla sua ora di uscita in poi;
+12. un docente non insegna nel suo giorno libero; chi ne ha «uno qualunque» ha almeno un giorno senza lezioni.
 (Le regole 4 e 5 contano le ore di un docente in una classe sommando tutte le sue voci li', da solo e in coppia.)
 
 LA SCUOLA e' un dizionario:
     {"giorni": [nomi], "ore": [nomi], "classi": [nomi], "obbligatorie": N,
      "ore_di_seguito": 3, "classi_al_giorno": 3, "buche_al_giorno": 2,
-     "docenti": [[nome, ingresso], ...],
+     "docenti": [[nome, ingresso, uscita, giorno libero], ...],     giorno libero: un giorno, NESSUNO o QUALUNQUE
      "materie": [[nome, tipo di aula], ...], "aule": [[nome, tipo], ...],
      "voci": [[classe, docente, codocente o -1, ore, materia], ...]}
 Classi, docenti, materie e aule sono numerati nell'ordine in cui compaiono nel file. Le voci sono in ordine di classe,
@@ -44,7 +50,9 @@ IL FILE DI UN CASO: testo, una riga per cosa, con i campi separati da TAB (le ri
     obbligatorie  5                  quante prime ore hanno sempre lezione
     materia  NOME  TIPO              il tipo di aula che la materia chiede
     aula  NOME  TIPO
-    docente  NOME  INGRESSO          l'ingresso e' l'indice dell'ora (0: dalla prima)
+    docente  NOME  INGRESSO [USCITA [LIBERO]]
+                                     ingresso e uscita sono indici di ore (ingresso 0: dalla prima; senza uscita:
+                                     fino alla fine); LIBERO e' il nome di un giorno, «qualunque» o «nessuno»
     lezione  CLASSE  ORE  MATERIA  DOCENTE [CODOCENTE]
 Una classe nasce la prima volta che compare in una lezione; la materia e i docenti di una lezione devono essere gia'
 stati dichiarati; piu' righe con la stessa classe, la stessa materia e gli stessi docenti si sommano in una voce sola.
@@ -57,6 +65,7 @@ MAX_MATERIE, MAX_AULE = 60, 300
 # le regole della giornata di un docente: ore di seguito in una classe, classi, ore buche
 ORE_DI_SEGUITO, CLASSI_AL_GIORNO, BUCHE_AL_GIORNO = 3, 3, 2
 BUCA = -1   # in una cella dell'orario: l'ora buca
+NESSUNO, QUALUNQUE = -1, -2   # il giorno libero di un docente, quando non e' un giorno preciso
 
 
 def celle(scuola):
@@ -95,6 +104,7 @@ def leggi_testo(testo, nome='il caso'):
     """La scuola scritta in un testo (il contenuto di un file di un caso). ValueError, con il motivo, se non e'
     scritto bene; `nome` serve solo ai messaggi."""
     giorni, ore, classi, docenti, ingresso, obbligatorie = [], [], [], [], [], 0
+    uscita, libero = [], []   # (l'uscita None: fino alla fine; il giorno libero ancora come e' scritto)
     materie, tipo_materia, aule, tipo_aula = [], [], [], []
     voci = {}   # (classe, docente, codocente, materia) -> ore
 
@@ -119,12 +129,14 @@ def leggi_testo(testo, nome='il caso'):
                 ok = i >= 0 and len(campi[2].encode()) <= MAX_NOME
                 if ok:
                     tipi[i:i + 1] = [campi[2]]
-            elif cosa == 'docente' and n == 3:
-                # un docente nuovo, oppure uno gia' visto a cui si cambia l'ingresso
+            elif cosa == 'docente' and n in (3, 4, 5):
+                # un docente nuovo, oppure uno gia' visto a cui si cambiano ingresso, uscita e giorno libero
                 t = _posto(docenti, campi[1], MAX_DOCENTI, True)
                 ok = t >= 0
                 if ok:
                     ingresso[t:t + 1] = [int(campi[2])]
+                    uscita[t:t + 1] = [int(campi[3]) if n > 3 else None]
+                    libero[t:t + 1] = [campi[4] if n > 4 else 'nessuno']
             elif cosa == 'lezione' and n in (5, 6):
                 # classe, ore, materia, docente e forse codocente: i due di una coppia devono essere diversi
                 k = _posto(classi, campi[1], MAX_CLASSI, True)
@@ -153,6 +165,15 @@ def leggi_testo(testo, nome='il caso'):
     for t, docente in enumerate(docenti):
         if not 0 <= ingresso[t] < len(ore):
             raise ValueError('%s: l\'ingresso di %s non e\' un\'ora della giornata' % (nome, docente))
+        # l'uscita: dopo l'ingresso, e al piu' la fine della giornata
+        if uscita[t] is None:
+            uscita[t] = len(ore)
+        if not ingresso[t] < uscita[t] <= len(ore):
+            raise ValueError('%s: l\'uscita di %s deve venire dopo il suo ingresso' % (nome, docente))
+        # il giorno libero: dal nome al numero
+        if libero[t] not in giorni and libero[t] not in ('nessuno', 'qualunque'):
+            raise ValueError('%s: il giorno libero di %s («%s») non e\' un giorno' % (nome, docente, libero[t]))
+        libero[t] = {'nessuno': NESSUNO, 'qualunque': QUALUNQUE}.get(libero[t]) or giorni.index(libero[t])
 
     for m in sorted({m for (_, _, _, m) in voci}):
         if tipo_materia[m] not in tipo_aula:
@@ -162,6 +183,21 @@ def leggi_testo(testo, nome='il caso'):
     # PASSO 3: la scuola, con le voci in ordine di classe, docente, codocente, materia
     return {'giorni': giorni, 'ore': ore, 'classi': classi, 'obbligatorie': max(0, min(obbligatorie, len(ore))),
             'ore_di_seguito': ORE_DI_SEGUITO, 'classi_al_giorno': CLASSI_AL_GIORNO, 'buche_al_giorno': BUCHE_AL_GIORNO,
-            'docenti': [[docente, ingresso[t]] for t, docente in enumerate(docenti)],
+            'docenti': [[docente, ingresso[t], uscita[t], libero[t]] for t, docente in enumerate(docenti)],
             'materie': [list(x) for x in zip(materie, tipo_materia)], 'aule': [list(x) for x in zip(aule, tipo_aula)],
             'voci': [[k, a, b, quante, m] for (k, a, b, m), quante in sorted(voci.items())]}
+
+
+def scrivi(scuola):
+    """Il contrario di leggi_testo: il testo del caso di una scuola. Rileggendolo si ottiene la stessa scuola."""
+    giorni, docenti = scuola['giorni'], scuola['docenti']
+    righe = ['giorni\t' + '\t'.join(giorni), 'ore\t' + '\t'.join(scuola['ore']), 'obbligatorie\t%d' % scuola['obbligatorie']]
+    righe += ['materia\t%s\t%s' % tuple(m) for m in scuola['materie']]
+    righe += ['aula\t%s\t%s' % tuple(a) for a in scuola['aule']]
+    for nome, ingresso, uscita, libero in docenti:
+        giorno = {NESSUNO: 'nessuno', QUALUNQUE: 'qualunque'}.get(libero) or giorni[libero]
+        righe.append('docente\t%s\t%d\t%d\t%s' % (nome, ingresso, uscita, giorno))
+    for k, a, b, ore, m in scuola['voci']:
+        righe.append('\t'.join(['lezione', scuola['classi'][k], str(ore), scuola['materie'][m][0], docenti[a][0]]
+                               + ([docenti[b][0]] if b >= 0 else [])))
+    return '\n'.join(righe) + '\n'

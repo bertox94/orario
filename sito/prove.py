@@ -1,9 +1,10 @@
-"""Le prove: un caso, e il suo orario. Ognuna sta in lavoro/prove/<numero>/, con info.json (il caso e quando e'
+"""Le prove: un caso, e il suo orario. Il caso e' casuale (seme, classi, ritardi) oppure quello di una scuola scritta
+a mano (scuole.py). Ognuna sta in lavoro/prove/<numero>/, con info.json (di che caso si tratta e quando e'
 partita), caso.txt (il caso, come lo legge il programma) e stato.json (lo stato, scritto dal programma: orario/).
 Una alla volta.
 
 Il percorso di una prova:
-1. avvia(): si crea la cartella, si genera il caso, si lancia il programma (un processo a parte);
+1. avvia(): si crea la cartella, ci si scrive il caso, si lancia il programma (un processo a parte);
 2. il programma scrive stato.json: subito «in corso», poi il risultato;
 3. prova(): la pagina chiede lo stato ogni secondo, finche' il processo non e' finito;
 4. se il processo finisce senza un risultato la prova risulta «fermata» (da ferma()) o «interrotta»."""
@@ -35,22 +36,19 @@ def in_corso():
         return _in_corso['numero'] if programma.vivo(_in_corso['processo']) else None
 
 
-def avvia(seme, classi, ritardi):
-    """Lancia una prova e ritorna il suo numero. ValueError se un'altra sta girando o il caso non si genera."""
+def avvia(caso, testo):
+    """Lancia una prova sul caso scritto in `testo` e ritorna il suo numero. `caso` dice di che caso si tratta, e
+    finisce in info.json: {"seme", "classi", "ritardi"} per un caso casuale, {"scuola", "nome"} per una scuola.
+    ValueError se un'altra prova sta girando."""
     with _lock:
         if programma.vivo(_in_corso['processo']):
             raise ValueError('C\'è già una prova in corso: aspetta che finisca, o fermala.')
         # 1. la cartella, con il numero dopo l'ultimo
         numero = max(archivio.numeri(_cartella()), default=0) + 1
         os.makedirs(_cartella(numero))
-        # 2. il caso (se non si genera la cartella si butta, e il messaggio arriva alla pagina)
-        try:
-            programma.genera(seme, classi, ritardi, _file(numero, 'caso.txt'))
-        except ValueError:
-            shutil.rmtree(_cartella(numero), ignore_errors=True)
-            raise
-        archivio.scrivi(_file(numero, 'info.json'), {'numero': numero, 'seme': seme, 'classi': classi,
-                                                     'ritardi': ritardi, 'tempo': TEMPO, 'inizio': time.time()})
+        # 2. il caso, e di che caso si tratta
+        programma.scrivi_caso(testo, _file(numero, 'caso.txt'))
+        archivio.scrivi(_file(numero, 'info.json'), dict(caso, numero=numero, tempo=TEMPO, inizio=time.time()))
         # 3. il programma, in un processo a parte: da qui in poi lo stato lo scrive lui
         processo = programma.risolvi(_file(numero, 'caso.txt'), _file(numero, 'stato.json'), TEMPO)
         _in_corso.update(numero=numero, processo=processo)

@@ -116,3 +116,15 @@ table.orario td.non-entrato { background: var(--sfondo); }
 /* i due tasti che scelgono la vista: quello scelto e' pieno */
 button.secondario.scelta-attiva, button.secondario.scelta-attiva:hover { background: var(--lilla); border-color: var(--lilla);
   color: var(--carta); }
+
+/* ---- la pagina dei dati di una scuola ---- */
+/* le sezioni si scelgono con i tasti in alto, una alla volta; le tabelle hanno un campo per cella */
+table.campi { border-collapse: collapse; }
+table.campi th { font-size: 13px; color: var(--tenue); font-weight: 600; text-align: left; padding: 4px 8px 6px 2px; white-space: nowrap; }
+table.campi td { padding: 3px 8px 3px 0; vertical-align: middle; }
+table.campi input, table.campi select { padding: 5px 9px; }
+table.campi input[type=number] { width: 5em; }
+table.campi td.num { text-align: right; font-variant-numeric: tabular-nums; padding-right: 14px; }
+.avviso { color: var(--avviso); }
+ul.problemi { margin: 8px 0 0; padding-left: 20px; }
+#stato-salvataggio { color: var(--tenue); font-size: 13px; }
