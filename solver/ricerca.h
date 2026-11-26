@@ -10,7 +10,8 @@
 // classe non ne ha nessuna lo si scopre subito, e una classe con una scelta sola la prende prima che un'altra gliela
 // porti via. Le scelte di una classe sono le sue voci che in quell'ora si possono mettere, e l'ora buca quando e'
 // ammessa; si provano mettendo per primi i docenti che hanno meno margine (meno ore libere in piu' di quelle che
-// devono ancora fare), poi chi sta continuando le sue ore, poi le voci quasi finite. Se da un punto non esce nessun
+// devono ancora fare), poi chi sta continuando le sue ore, poi le voci quasi finite. L'ora buca e' in coda con il
+// suo margine, come un docente. Se da un punto non esce nessun
 // orario si torna indietro e si prova la scelta dopo.
 //
 // Per non perdersi in rami senza uscita, a ogni passo si guardano dei LIMITI (limiti.h): conti che devono tornare

@@ -171,12 +171,23 @@ static int scelte_della_classe(const Ricerca *r, const int giorno, const int ora
 //   interrompe oggi qui non puo' piu' tornare.
 // - A pari anche questo, prima la voce a cui restano meno ore: si chiudono le voci quasi finite, invece di lasciare
 //   un'ora qua e una la' per la fine della settimana.
-// L'ora buca viene dopo tutte le lezioni.
+// L'ora buca sta in questa coda come un docente (richiesta di Alb, 26 novembre 2026; prima veniva sempre per
+// ultima): ha anche lei un margine, i posti dove puo' ancora andare meno le buche che la classe deve ancora avere.
+// Una classe con poche buche e pochi posti dove metterle la prova presto, invece di scoprirlo a forza di ritorni.
 // I tre criteri stanno in un numero solo: il margine pesa di piu', poi chi continua, poi le ore rimaste (che sono
 // sempre meno di 1000).
 static long long quando_provarla(const Ricerca *r, const int giorno, const int ora, const int k, const int v) {
-    if (v == BUCA) return 1LL << 60;
     const Scuola *s = r->s;
+    if (v == BUCA) {
+        // Il margine della buca. I posti dove puo' andare sono le ore dopo le obbligatorie, oggi e nei giorni dopo;
+        // le buche da mettere sono le celle che restano alla classe meno le sue ore di lezione. La differenza,
+        // fatti i conti, sono le ore di lezione che restano oltre quelle che servono per le prime ore dei giorni
+        // dopo. Poi come un docente che non sta continuando, con le buche da mettere al posto delle ore rimaste.
+        const int dopo = s->giorni - 1 - giorno;
+        const int margine = r->resto_classe[k] - dopo * s->obbligatorie;
+        const int buche = dopo * s->ore + (s->ore - ora) - r->resto_classe[k];
+        return (margine * 2LL + 1) * 1000 + buche;
+    }
     const int *margine = &r->margine[(giorno * s->ore + ora) * s->docenti];  // i margini di quest'ora, per docente
     int meno_margine = 1 << 20, continua = 0;
     for (int i = 0; i < docenti_della_voce(&s->voce[v]); i++) {

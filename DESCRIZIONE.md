@@ -224,8 +224,16 @@ A ogni scelta si dà un numero, e si provano dal più basso:
 insegnato, 1 se no)) × 1000 + ore che restano alla voce`
 
 Cioè: prima il docente con meno margine; a pari margine chi sta continuando le sue ore; a pari anche questo la voce
-a cui restano meno ore. L'ora buca viene dopo tutte le lezioni. A parità completa resta l'ordine delle voci
-(ordinamento stabile, per inserimento).
+a cui restano meno ore.
+
+**L'ora buca è in questa coda come un docente** (dal 26 novembre 2026; prima veniva sempre dopo tutte le lezioni). Il
+suo numero è `(margine × 2 + 1) × 1000 + buche`, con:
+- `margine = ore di lezione che restano alla classe − dopo × obbligatorie`: sono i posti dove una buca può ancora
+  andare (le ore dopo le obbligatorie, oggi e nei giorni dopo) meno le buche da mettere;
+- `buche = dopo × ore + (ore − ora) − ore di lezione che restano alla classe`: le celle che restano meno le lezioni.
+
+A parità completa resta l'ordine delle scelte (le voci nel loro ordine, poi la buca: ordinamento stabile, per
+inserimento).
 
 Dopo aver scelto la classe si controlla anche F: un docente che `deve`, non è occupato in quest'ora, e non compare
 tra le scelte di nessuna classe non ancora decisa.
@@ -676,14 +684,20 @@ Dopo ogni modifica al solver:
 
 Misure di riferimento (limite 2 milioni di nodi; «prima» è il programma del ramo `stabile/2026-11-18`):
 
-| Casi | Orari trovati, prima | Adesso |
-|---|---|---|
-| semi 0–19, classi 3–14, senza e con ritardi (480) | 306 | 323 |
-| semi 20–39, classi 3–14 (480) | 310 | 326 |
-| semi 0–5, classi 20–25 (72) | 33 | 44 |
+| Casi | Orari trovati, prima | Riscritto (20 nov) | Con la buca in coda (26 nov) |
+|---|---|---|---|
+| semi 0–19, classi 3–14, senza e con ritardi (480) | 306 | 323 | 327 |
+| semi 20–39, classi 3–14 (480) | 310 | 326 | 336 |
+| semi 0–5, classi 20–25 (72) | 33 | 44 | 44 |
 
-Il programma di adesso trova 53 orari che quello di prima non trova e ne perde 9: (1, 14, con), (2, 21, con),
-(24, 12, con), (27, 6, senza), (27, 11, senza), (31, 9, con), (34, 11, con), (37, 11, con), (37, 13, con).
+Mettere la buca in coda ha fatto guadagnare 29 orari e perderne 15 rispetto a subito prima (nei tre gruppi: 9 e 5,
+16 e 6, 4 e 4); i nodi in tutto sono scesi da 103 a 75 milioni. I casi impossibili sono gli stessi e nessun orario
+trovato fallisce la verifica. Dei 9 casi che solo il programma di prima risolveva, adesso se ne trovano 8 (resta
+fuori seme 1, 14 classi, con ritardi), e seme 10, 3 classi, con ritardi si trova in 278 nodi.
+
+Esperimenti misurati e non entrati: le ripartenze a tentativi (330, 341, 48 sulla versione del 20 novembre) e i
+«giri» (a ogni giornata finita una ricerca a parte che tiene i giorni dal secondo in poi e butta il primo: 332, 341,
+49 sulla versione del 20 novembre).
 
 ## 20. Installazione e avvio
 

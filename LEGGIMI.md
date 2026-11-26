@@ -50,7 +50,7 @@ stessa classe e gli stessi docenti si sommano.
 
 L'orario si riempie un'ora alla volta, da lunedì alla prima ora a sabato all'ultima. In ogni ora si decide per prima
 la classe che ha meno scelte; le scelte si provano mettendo per primi i docenti con meno margine, poi chi sta
-continuando le sue ore di seguito, poi le voci quasi finite. A ogni passo si guardano i limiti: le ore di un docente
+continuando le sue ore di seguito, poi le voci quasi finite; l'ora buca è nella stessa coda, con il suo margine. A ogni passo si guardano i limiti: le ore di un docente
 in tutto e in ogni classe, le lezioni possibili nelle prime ore di una classe, chi deve insegnare per forza adesso, e
 se la classe, guardata da sola, ha ancora un orario. Quando da un punto non esce niente si torna indietro di una
 scelta e si prova la successiva. Il perché di ogni cosa è nei commenti di
@@ -96,12 +96,13 @@ Stessi casi (il generatore dà gli stessi di prima: controllato su 420), limite 
 
 | Casi | Orari trovati, prima | Orari trovati, adesso | Nodi, prima | Nodi, adesso |
 |---|---|---|---|---|
-| semi 0–19, classi 3–14 (480) | 306 | 323 | 74 milioni | 36 milioni |
-| semi 20–39, classi 3–14 (480), mai usati per la messa a punto | 310 | 326 | 87 milioni | 52 milioni |
+| semi 0–19, classi 3–14 (480) | 306 | 327 | 74 milioni | 28 milioni |
+| semi 20–39, classi 3–14 (480), mai usati per la messa a punto | 310 | 336 | 87 milioni | 33 milioni |
 | semi 0–5, classi 20–25 (72) | 33 | 44 | 37 milioni | 14 milioni |
 
-Ogni orario trovato passa la verifica, e i casi dichiarati impossibili sono gli stessi. Nei tre gruppi questo
-programma trova 53 orari che quello di prima non trova, e ne perde 9 che quello di prima trova.
+Ogni orario trovato passa la verifica, e i casi dichiarati impossibili sono gli stessi. «Adesso» è con l'ora buca in
+coda come un docente (26 novembre 2026): prima di quella modifica erano 323, 326 e 44 (i dettagli in
+`DESCRIZIONE.md`, capitolo 19).
 
 Una versione che ripartiva da capo quando si incagliava (a tentativi, con le scelte rimescolate) ne trovava di più:
 330, 341 e 48, senza perderne nessuno, e risolveva anche seme 10, 3 classi, con ritardi (406.467 nodi), che senza

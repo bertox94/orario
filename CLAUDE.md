@@ -42,6 +42,8 @@ di Alb). Il programma di prima (solver con le potature, sito con Postgres, test 
   a mano non prova le scelte che la ricerca avrebbe provato prima, quindi lì «impossibile» non è una dimostrazione.
 - I commenti sono tanti e si tengono aggiornati (richiesta di Alb): in cima a ogni file che cosa fa, e riga per riga
   nelle parti difficili.
+- Dal 26 novembre 2026 (richiesta di Alb) l'ora buca è nella coda delle scelte come un docente, con il suo margine
+  (`quando_provarla`): prima veniva sempre per ultima. Ha cambiato la ricerca e i riferimenti di `prove/attesi.json`.
 - Esperimenti sulla ricerca non entrati: le ripartenze a tentativi (tolte su richiesta di Alb, commit `8af8001`) e il
   «giro» (se la ricerca si incaglia in un giorno, tiene fermi i giorni in mezzo, libera il primo, poi i primi due...,
   e riscrive: trova qualche orario in più, ma non è nei passi né nel sito).
