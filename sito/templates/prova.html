@@ -19,9 +19,12 @@
 <div id="verifica" class="riquadro" hidden></div>
 
 <h2>L'orario</h2>
+<div class="rigo" id="viste">
+  <button class="secondario scelta" data-vista="classi">Per classe</button>
+  <button class="secondario scelta" data-vista="docenti">Per docente</button>
+</div>
 <div class="scorre"><table class="orario" id="orario"></table></div>
-<p class="nota" id="nota-orario">Una riga per classe, una colonna per ogni ora della settimana. In una cella il docente e, sotto e più
-  chiaro, il codocente; «–» è un'ora buca.</p>
+<p class="nota" id="nota-orario"></p>
 
 <h2>Il caso</h2>
 <details><summary>Le classi e le loro lezioni</summary><div class="scorre"><table class="dati" id="classi"></table></div></details>
@@ -32,7 +35,8 @@
 const URL_STATO = '{{ url_for('stato', n=i.numero) }}';
 const tabella = document.getElementById('orario');
 let scuola = null;   // giorni, ore, classi, docenti [nome, ingresso], voci [classe, docente, codocente, ore]
-let disegnato = false;   // l'orario e' gia' nella griglia
+let orario = null;       // l'orario trovato: una voce per cella (-1: ora buca)
+let vista = 'classi';    // come si guarda l'orario: una riga per classe, o una riga per docente
 // i nomi dei docenti di una voce
 const nomi = v => scuola.voci[v].slice(1, 3).filter(t => t >= 0).map(t => scuola.docenti[t][0]);
 
@@ -48,10 +52,10 @@ function mostraStato(s) {
   // la prima volta che arriva la scuola: si disegnano la griglia vuota e le tabelle del caso
   if (s.scuola && !scuola) {
     scuola = s.scuola;
-    disegnaGriglia();
+    disegnaOrario();   // (la griglia; vuota finche' l'orario non c'e')
     disegnaCaso();
   }
-  if (s.orario && scuola && !disegnato) disegnaOrario(s.orario);
+  if (s.orario && scuola && !orario) { orario = s.orario; disegnaOrario(); }
   if (s.verifica && document.getElementById('verifica').hidden) mostraVerifica(s.verifica);
   // quando un orario non c'e': perche'
   const perche = {
@@ -76,26 +80,60 @@ function mostraVerifica(v) {
 }
 
 // ---- l'orario ----
-// la griglia vuota, una volta sola: una riga per classe, una colonna per ogni ora della settimana
+// Lo stesso orario si guarda in due modi: una riga per classe (in ogni cella chi insegna), o una riga per docente (in
+// ogni cella la classe dove sta). In tutti e due una colonna per ogni ora della settimana.
+const NOTE = {
+  classi: 'Una riga per classe, una colonna per ogni ora della settimana. In una cella il docente e, sotto e più chiaro, il codocente; «–» è un\'ora buca.',
+  docenti: 'Una riga per docente, una colonna per ogni ora della settimana. In una cella la classe dove insegna e, sotto e più chiaro, con chi; vuota se è libero, grigia se non è ancora entrato.',
+};
+
+// la griglia vuota della vista scelta: la riga dei giorni, quella delle ore, e una riga per classe o per docente
 function disegnaGriglia() {
-  const {giorni, ore: O, classi} = scuola;
-  tabella.innerHTML = '<thead><tr><th rowspan="2">Classe</th>' + giorni.map(g => `<th colspan="${O.length}" class="giorno">${esc(g)}</th>`).join('') +
+  const {giorni, ore: O, classi, docenti} = scuola;
+  const righe = vista === 'classi' ? classi : docenti.map(d => d[0]);
+  tabella.className = 'orario vista-' + vista;
+  tabella.innerHTML = `<thead><tr><th rowspan="2">${vista === 'classi' ? 'Classe' : 'Docente'}</th>` +
+    giorni.map(g => `<th colspan="${O.length}" class="giorno">${esc(g)}</th>`).join('') +
     '</tr><tr>' + giorni.map(() => O.map((o, i) => `<th class="${i ? '' : 'inizio-giorno'}">${esc(o)}</th>`).join('')).join('') +
-    '</tr></thead><tbody>' + classi.map(k => `<tr><th>${esc(k)}</th>` +
+    '</tr></thead><tbody>' + righe.map(nome => `<tr><th>${esc(nome)}</th>` +
       giorni.map(() => O.map((_, i) => `<td class="${i ? '' : 'inizio-giorno'}"></td>`).join('')).join('') + '</tr>').join('') + '</tbody>';
+  document.getElementById('nota-orario').textContent = NOTE[vista];
+  for (const b of document.querySelectorAll('#viste button')) b.classList.toggle('scelta-attiva', b.dataset.vista === vista);
 }
 
-// l'orario nella griglia: ogni cella nella riga della sua classe e nella colonna della sua ora (piu' uno: la prima
-// colonna e' il nome). Le celle sono numerate un'ora dopo l'altra, e dentro l'ora una classe dopo l'altra.
-function disegnaOrario(orario) {
-  const C = scuola.classi.length, righe = tabella.tBodies[0].rows;
-  orario.forEach((v, cella) => {
-    const td = righe[cella % C].cells[1 + Math.floor(cella / C)];
-    td.innerHTML = v < 0 ? '–' : nomi(v).map((n, i) => `<span class="${i ? 'cod' : ''}">${esc(n)}</span>`).join('');
-    td.classList.toggle('buca', v < 0);
+// l'orario nella griglia. Le celle sono numerate un'ora dopo l'altra, e dentro l'ora una classe dopo l'altra: la
+// cella numero n e' della classe n % C, nell'ora della settimana n / C (la colonna, piu' uno: la prima e' il nome).
+function disegnaOrario() {
+  disegnaGriglia();
+  if (!orario) return;
+  const C = scuola.classi.length, O = scuola.ore.length, righe = tabella.tBodies[0].rows;
+  const due = (sopra, sotto) => `<span>${esc(sopra)}</span>` + (sotto ? `<span class="cod">${esc(sotto)}</span>` : '');
+  if (vista === 'classi') {
+    // per classe: in ogni cella il docente e il codocente della voce, o l'ora buca
+    orario.forEach((v, cella) => {
+      const td = righe[cella % C].cells[1 + Math.floor(cella / C)];
+      td.innerHTML = v < 0 ? '–' : due(...nomi(v));
+      td.classList.toggle('buca', v < 0);
+    });
+    return;
+  }
+  // per docente: prima le ore in cui non e' ancora entrato (in ogni giorno, quelle prima del suo ingresso)...
+  scuola.docenti.forEach(([, ingresso], t) => {
+    for (let ora = 0; ora < scuola.giorni.length * O; ora++)
+      if (ora % O < ingresso) righe[t].cells[1 + ora].classList.add('non-entrato');
   });
-  disegnato = true;
+  // ...poi ogni lezione va nella riga di ognuno dei suoi docenti: la classe e, se sono in due, l'altro
+  orario.forEach((v, cella) => {
+    if (v < 0) return;
+    const [, a, b] = scuola.voci[v];
+    for (const [t, altro] of [[a, b], [b, a]])
+      if (t >= 0) righe[t].cells[1 + Math.floor(cella / C)].innerHTML =
+        due(scuola.classi[cella % C], altro >= 0 ? 'con ' + scuola.docenti[altro][0] : '');
+  });
 }
+// i due tasti sopra l'orario cambiano la vista
+for (const b of document.querySelectorAll('#viste button'))
+  b.addEventListener('click', () => { vista = b.dataset.vista; if (scuola) disegnaOrario(); });
 
 // ---- il caso: le lezioni di ogni classe e i docenti ----
 function disegnaCaso() {

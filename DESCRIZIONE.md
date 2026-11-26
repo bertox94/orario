@@ -319,9 +319,14 @@ Dall'alto in basso.
   non si sa, per «limite di tempo»; che cosa è successo, per «fermata» e «interrotta».
 - Il riquadro della **verifica**, quando l'orario c'è: «verificato» o «non valido», e le otto regole con ✓ o ✗ e, per
   quelle non rispettate, dove.
-- **L'orario**: una riga per classe, una colonna per ogni ora della settimana, raggruppate per giorno; la colonna dei
-  nomi delle classi resta ferma mentre si scorre di lato; tutte le celle larghe uguali. In una cella il docente e,
-  sotto e più chiaro, il codocente; «–» per l'ora buca.
+- **L'orario**, con due tasti per scegliere come guardarlo (lo stesso orario; si parte da «Per classe»):
+  - **Per classe**: una riga per classe. In una cella il docente e, sotto e più chiaro, il codocente; «–» per l'ora
+    buca.
+  - **Per docente**: una riga per docente. In una cella la classe dove insegna e, sotto e più chiaro, «con» e il
+    nome dell'altro se sono in due; vuota se è libero; grigie le ore prima del suo ingresso.
+
+  In tutti e due una colonna per ogni ora della settimana, raggruppate per giorno; la colonna dei nomi resta ferma
+  mentre si scorre di lato; tutte le celle larghe uguali.
 - **Il caso** (due sezioni chiuse): le classi con le loro ore e le loro lezioni; i docenti con le ore, l'ingresso (se
   tardi) e le classi.
 

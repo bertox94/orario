@@ -109,3 +109,9 @@ table.orario td { height: 40px; line-height: 16px; overflow: hidden; white-space
 /* in una cella il docente e, sotto e piu' chiaro, il codocente; l'ora buca e' chiara anche lei */
 table.orario td span { display: block; }
 table.orario td.buca, table.orario .cod { color: var(--tenue); }
+/* per docente: la colonna dei nomi e' piu' larga; le ore prima dell'ingresso sono grigie */
+table.orario.vista-docenti tbody th { min-width: 104px; max-width: 104px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+table.orario td.non-entrato { background: var(--sfondo); }
+/* i due tasti che scelgono la vista: quello scelto e' pieno */
+button.secondario.scelta-attiva, button.secondario.scelta-attiva:hover { background: var(--lilla); border-color: var(--lilla);
+  color: var(--carta); }
