@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
-{% block titolo %}Orario · prove in tempo reale{% endblock %}
+{% block titolo %}Orario · prove{% endblock %}
 {% block contenuto %}
-<h1>Prove in tempo reale</h1>
+<h1>Prove</h1>
 <form method="post" action="{{ url_for('avvia') }}" class="modulo riquadro">
   <label>Seme <input type="number" name="seme" min="0" value="{{ ultima.seme }}"></label>
   <label>Classi <input type="number" name="classi" min="1" max="120" value="{{ ultima.classi }}"></label>
@@ -10,22 +10,12 @@
       <option value="senza">senza</option>
       <option value="con" {{ 'selected' if ultima.ritardi }}>con</option>
     </select></label>
-  <label>Metodo
-    <select name="metodo" id="metodo">
-      <option value="esatto">esatto: solo il risultato</option>
-      <option value="ricerca" {{ 'selected' if ultima.metodo == 'ricerca' }}>la ricerca, passo per passo</option>
-    </select></label>
-  <label id="campo-limite">Fermati dopo
-    <span><input type="number" name="milioni" min="0.01" max="{{ max_milioni }}" step="0.01" value="{{ '%g'|format(ultima.limite / 1000000) }}"> milioni di nodi</span></label>
-  <button {{ 'disabled' if in_corso }}>Avvia</button>
+  <button {{ 'disabled' if in_corso }}>Fai l'orario</button>
 </form>
 <p class="nota">Il seme decide il caso: stesso seme, stesse classi e stessa scelta sui ritardi danno sempre la stessa scuola.
-  Con i ritardi alcuni docenti entrano dopo la prima ora, e un orario può non esserci.
-  <strong>Il metodo esatto</strong> guarda tutte le regole di tutta la settimana insieme: dà l'orario, oppure
-  dimostra che non esiste, di solito in pochi secondi (al massimo {{ tempo_esatto }}); non ha passi da rivedere.
-  <strong>La ricerca</strong> riempie l'orario un'ora alla volta tornando indietro, e si rivede passo per passo: si ferma all'orario
-  completo, quando dimostra che non c'è, o dopo il numero di nodi scelto (al massimo {{ max_milioni|numero }} milioni). Ogni nodo si
-  registra, per rivederlo: 19 MB sul disco per ogni milione di nodi. Una prova alla volta.
+  Con i ritardi alcuni docenti entrano dopo la prima ora, e un orario può non esserci. Il programma guarda tutte le
+  regole di tutta la settimana insieme: dà l'orario, oppure dimostra che non esiste, di solito in pochi secondi (al
+  massimo {{ tempo }}). Una prova alla volta.
   {% if in_corso %}Adesso gira la <a href="{{ url_for('prova', n=in_corso) }}">prova {{ in_corso }}</a>.{% endif %}</p>
 
 <h2>Le prove fatte</h2>
@@ -36,8 +26,7 @@
 </form>
 <div class="scorre"><table class="dati" id="storico">
   <thead><tr><th><input type="checkbox" id="tutte" aria-label="Scegli tutte le prove"></th><th class="num">Prova</th><th>Avviata</th>
-    <th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th><th>Esito</th><th class="num">Nodi</th>
-    <th class="num">Celle decise</th><th class="num">Tempo</th></tr></thead>
+    <th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th><th>Esito</th><th class="num">Tempo</th></tr></thead>
   <tbody>{% for p in prove %}{% set i, s = p.info, p.stato %}
     <tr>
       <td>{% if not s.gira %}<input type="checkbox" class="scegli" value="{{ i.numero }}" aria-label="Scegli la prova {{ i.numero }}">{% endif %}</td>
@@ -45,25 +34,14 @@
       <td class="nota">{{ i.inizio|data }}</td>
       <td class="num">{{ i.seme }}</td><td class="num">{{ i.classi }}</td><td>{{ 'con' if i.ritardi else 'senza' }}</td>
       <td><span class="esito esito-{{ (s.esito or 'in corso')|replace(' ', '-') }}">{{ s.esito or 'in corso' }}</span>
-        {% if s.verifica and not s.verifica.ok %}<span class="nota male">non valido</span>{% endif %}
-        {% if i.metodo == 'esatto' %}<span class="nota">esatto</span>{% endif %}
-        {% if i.a_mano %}<span class="nota" title="Parte da una scelta fatta a mano nella prova {{ i.a_mano.prova }}">a mano, dalla {{ i.a_mano.prova }}</span>{% endif %}</td>
-      <td class="num">{{ (s.nodi or 0)|numero }}</td>
-      <td class="num">{% if s.celle %}{{ s.profondita_massima }} / {{ s.celle }}{% endif %}</td>
-      <td class="num">{{ '%.1f s'|format(s.secondi) if s.secondi is defined and s.secondi is not none }}</td>
+        {% if s.verifica and not s.verifica.ok %}<span class="nota male">non valido</span>{% endif %}</td>
+      <td class="num">{{ ('%.1f s'|format(s.secondi))|replace('.', ',') if s.secondi is defined and s.secondi is not none }}</td>
     </tr>{% endfor %}
   </tbody>
 </table></div>
 {% else %}<p class="nota">Nessuna prova ancora.</p>{% endif %}
 {% endblock %}
 {% block script %}
-<script>
-// il limite di nodi serve solo alla ricerca: con il metodo esatto il campo si nasconde
-const metodo = document.getElementById('metodo'), campoLimite = document.getElementById('campo-limite');
-const mostraLimite = () => { campoLimite.hidden = metodo.value !== 'ricerca'; };
-metodo.addEventListener('change', mostraLimite);
-mostraLimite();
-</script>
 {% if prove %}
 <script>
 // le caselle: una per prova (non per quella che gira) e quella in cima, che le sceglie tutte o nessuna

@@ -1,18 +1,14 @@
-"""Il sito dell'orario: le prove in tempo reale e i test notturni. Mostra soltanto: i casi e la ricerca sono del
-solver, che il sito compila e lancia."""
+"""Il sito dell'orario: le prove e i test notturni. Mostra soltanto: i casi e gli orari li fa il programma (orario/),
+che il sito lancia."""
 import datetime
 import os
 
 from flask import Flask, abort, flash, jsonify, redirect, render_template, request, url_for
 
-from . import notturni, passi, prove
+from . import notturni, prove
 
-MAX_MILIONI = 1000        # il limite di nodi di una prova (richiesta di Alb). Ogni nodo si registra: 19 MB per
-                          # milione, quindi 19 GB per mille milioni; prove.avvia controlla che il disco basti
-RITORNI_PER_PAGINA = 100   # quante righe per volta nella tabella di tutti i ritorni
-CONTINUA_DI = (100, 1000)  # di quanti nodi si puo' mandare avanti una prova fermata dal limite
-MAX_MILIONI_NOTTURNI = 100
-MAX_CASI_PER_VOLTA = 2000
+MAX_SECONDI_NOTTURNI = 3600   # il tempo massimo che un caso dei test notturni puo' avere
+MAX_CASI_PER_VOLTA = 2000     # quanti casi si possono aggiungere ai test notturni in una volta
 
 
 def numero(n):
@@ -33,29 +29,26 @@ def crea_app():
     app.jinja_env.filters['numero'] = numero
     app.jinja_env.filters['data'] = lambda t: datetime.datetime.fromtimestamp(t).strftime('%d/%m/%Y %H:%M')
 
-    # ---- le prove in tempo reale ----
+    # ---- le prove ----
 
     @app.route('/')
     def indice():
         tutte = prove.tutte()
-        ultima = tutte[0]['info'] if tutte else {'seme': 0, 'classi': 8, 'ritardi': False, 'limite': 1000000}
+        ultima = tutte[0]['info'] if tutte else {'seme': 0, 'classi': 8, 'ritardi': False}
         return render_template('indice.html', prove=tutte, ultima=ultima, in_corso=prove.in_corso(),
-                               max_milioni=MAX_MILIONI, tempo_esatto=prove.TEMPO_ESATTO)
+                               tempo=prove.TEMPO)
 
     @app.route('/avvia', methods=['POST'])
     def avvia():
         f = request.form
         try:
-            # i numeri del modulo; il limite arriva in milioni, anche con la virgola
             seme, classi = int(f.get('seme') or 0), int(f.get('classi') or 0)
-            milioni = float((f.get('milioni') or '1').replace(',', '.'))
-            if seme < 0 or not 1 <= classi <= 120 or not 0 < milioni <= MAX_MILIONI:
-                raise ValueError('Seme da 0 in su, classi da 1 a 120, limite di nodi fino a %d milioni.' % MAX_MILIONI)
+            if seme < 0 or not 1 <= classi <= 120:
+                raise ValueError('Seme da 0 in su, classi da 1 a 120.')
             if notturni.in_corso() is not None:
                 raise ValueError('Sta girando un giro di test notturni: aspetta che finisca, o fermalo.')
             # parte: da qui in poi la pagina della prova la segue
-            metodo = 'ricerca' if f.get('metodo') == 'ricerca' else 'esatto'
-            n = prove.avvia(seme, classi, f.get('ritardi') == 'con', int(round(milioni * 1000000)), metodo)
+            n = prove.avvia(seme, classi, f.get('ritardi') == 'con')
         except (ValueError, RuntimeError) as e:
             flash(str(e))
             return redirect(url_for('indice'))
@@ -66,7 +59,7 @@ def crea_app():
         p = prove.prova(n)
         if not p:
             abort(404)
-        return render_template('prova.html', p=p, continua_di=CONTINUA_DI, tempo_esatto=prove.TEMPO_ESATTO)
+        return render_template('prova.html', p=p, tempo=prove.TEMPO)
 
     @app.route('/prova/<int:n>/stato.json')
     def stato(n):
@@ -74,88 +67,6 @@ def crea_app():
         if not p:
             abort(404)
         return jsonify(p['stato'])
-
-    @app.route('/prova/<int:n>/passo/<int:k>')
-    def passo(n, k):
-        """Il nodo k della ricerca: l'ultima scelta, l'orario fin li' e, se da li' non si va avanti, il motivo."""
-        p = prove.prova(n)
-        x = p and passi.passo(prove.file_dei_passi(n), k, p['stato'].get('celle', 0))
-        if not x:
-            abort(404)
-        return jsonify(x)
-
-    @app.route('/prova/<int:n>/nodo/<int:k>')
-    def nodo(n, k):
-        """Quello che il solver dice del nodo k: i conti di ogni docente e, se da li' non si va avanti, il conto
-        che non torna in dettaglio e le celle di cui parla (il tasto «Mostra nell'orario»)."""
-        x = prove.nodo(n, k)
-        if not x:
-            abort(404)
-        return jsonify(x)
-
-    @app.route('/prova/<int:n>/ritorno/<int:k>/<verso>')
-    def ritorno(n, k, verso):
-        """Il primo ritorno indietro dopo il nodo k (verso «dopo») o prima: {"k": ...}, null se non c'e'. Con
-        ?cella=N solo i ritorni di quella cella; con ?almeno=N solo quelli dopo cui la ricerca torna indietro di
-        almeno N celle."""
-        if verso not in ('prima', 'dopo') or not prove.prova(n):
-            abort(404)
-        cella = request.args.get('cella', type=int)
-        almeno = max(1, request.args.get('almeno', default=1, type=int))
-        return jsonify({'k': passi.ritorno(prove.file_dei_passi(n), k, verso == 'dopo', cella, almeno)})
-
-    @app.route('/prova/<int:n>/profilo.json')
-    def profilo(n):
-        if not prove.prova(n):
-            abort(404)
-        return jsonify(passi.profilo(prove.file_dei_passi(n)))
-
-    @app.route('/prova/<int:n>/ritorni')
-    def ritorni(n):
-        """I ritorni indietro uno per riga, una pagina per volta: ?dopo=K (da dopo quel nodo; 0 dall'inizio), con
-        gli stessi ?cella= e ?almeno= dei tasti «Ritorno»."""
-        if not prove.prova(n):
-            abort(404)
-        a = request.args
-        return jsonify(passi.elenco_dei_ritorni(prove.file_dei_passi(n), max(0, a.get('dopo', default=0, type=int)),
-                                                RITORNI_PER_PAGINA, a.get('cella', type=int),
-                                                max(1, a.get('almeno', default=1, type=int))))
-
-    @app.route('/prova/<int:n>/scelte/<int:k>/<int:cella>')
-    def scelte(n, k, cella):
-        """Le scelte che la ricerca aveva per quella cella lungo la strada del passo k, e quella che c'e'."""
-        try:
-            return jsonify(prove.scelte(n, k, cella))
-        except ValueError as e:
-            return jsonify({'errore': str(e)}), 404
-
-    @app.route('/prova/<int:n>/cambia', methods=['POST'])
-    def cambia(n):
-        """Cambia a mano la scelta di una cella: una prova nuova che parte dall'orario del passo scelto fino a quella
-        cella, con la voce scelta, e da li' cerca."""
-        try:
-            passo, cella, voce = (int(request.form.get(x) or 0) for x in ('passo', 'cella', 'voce'))
-            if notturni.in_corso() is not None:
-                raise ValueError('Sta girando un giro di test notturni: aspetta che finisca, o fermalo.')
-            return redirect(url_for('prova', n=prove.cambia(n, passo, cella, voce)))
-        except (ValueError, RuntimeError) as e:
-            flash(str(e))
-            return redirect(url_for('prova', n=n))
-
-    @app.route('/prova/<int:n>/continua', methods=['POST'])
-    def continua(n):
-        """Manda avanti una prova fermata dal limite di altri 100 o 1000 nodi, e torna alla pagina, sul passo a cui
-        si era fermata: da li' si guardano i passi nuovi."""
-        try:
-            in_piu = int(request.form.get('nodi') or 0)
-            if in_piu not in CONTINUA_DI:
-                raise ValueError('Si continua di 100 o di 1000 nodi.')
-            if notturni.in_corso() is not None:
-                raise ValueError('Sta girando un giro di test notturni: aspetta che finisca, o fermalo.')
-            return redirect(url_for('prova', n=n, passo=prove.continua(n, in_piu)))
-        except (ValueError, RuntimeError) as e:
-            flash(str(e))
-            return redirect(url_for('prova', n=n))
 
     @app.route('/ferma', methods=['POST'])
     def ferma():
@@ -176,7 +87,7 @@ def crea_app():
 
     @app.route('/notturni')
     def pagina_notturni():
-        return render_template('notturni.html', n=notturni.situazione(), max_milioni=MAX_MILIONI_NOTTURNI)
+        return render_template('notturni.html', n=notturni.situazione(), max_secondi=MAX_SECONDI_NOTTURNI)
 
     @app.route('/notturni/stato.json')
     def stato_notturni():
@@ -216,7 +127,7 @@ def crea_app():
 
     @app.route('/notturni/da-prova', methods=['POST'])
     def notturno_da_prova():
-        """Il caso di una prova in tempo reale entra tra i test notturni."""
+        """Il caso di una prova entra tra i test notturni."""
         p = prove.prova(int(request.form.get('prova') or 0))
         if not p:
             abort(404)
@@ -231,15 +142,15 @@ def crea_app():
 
     @app.route('/notturni/impostazioni', methods=['POST'])
     def impostazioni_notturni():
-        """Il limite di nodi, e il giro della notte: se parte da solo e a che ora."""
+        """Il tempo di ogni caso, e il giro della notte: se parte da solo e a che ora."""
         def imposta():
             f = request.form
-            milioni = float((f.get('milioni') or '').replace(',', '.'))
+            tempo = int(f.get('secondi') or 0)
             # l'ora deve essere scritta HH:MM (se no ValueError, e il messaggio)
             ora = datetime.datetime.strptime(f.get('ora') or '', '%H:%M').strftime('%H:%M')
-            if not 0 < milioni <= MAX_MILIONI_NOTTURNI:
-                raise ValueError('Il limite di nodi va fino a %d milioni.' % MAX_MILIONI_NOTTURNI)
-            notturni.imposta(limite=int(round(milioni * 1000000)), notte=f.get('notte') == 'si', ora=ora)
+            if not 1 <= tempo <= MAX_SECONDI_NOTTURNI:
+                raise ValueError('Il tempo di un caso va da 1 a %d secondi.' % MAX_SECONDI_NOTTURNI)
+            notturni.imposta(tempo=tempo, notte=f.get('notte') == 'si', ora=ora)
         return _con_giro_fermo(imposta)
 
     @app.route('/notturni/avvia', methods=['POST'])

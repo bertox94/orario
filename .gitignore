@@ -1,8 +1,5 @@
-# i file del progetto di CLion e le cartelle di compilazione
+# i file del progetto di CLion
 .idea/
-cmake-build-*/
 # i file di lavoro del sito e di Python
 sito/lavoro/
 __pycache__/
-# il solver compilato a mano (make)
-/orario

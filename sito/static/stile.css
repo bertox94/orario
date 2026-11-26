@@ -36,7 +36,6 @@ p.nota { max-width: 86ch; }
 .male { color: var(--male); font-weight: 600; }
 .messaggio { padding: 10px 14px; border-left: 3px solid var(--male); background: var(--carta);
   border-radius: 0 var(--angolo) var(--angolo) 0; max-width: 86ch; }
-.messaggio.avviso { border-left-color: var(--avviso); background: var(--avviso-chiaro); }
 details { margin: 14px 0; }
 summary { font-size: 16px; cursor: pointer; margin-bottom: 8px; }
 /* la testata: il nome del sito a sinistra, le due schede a destra */
@@ -72,14 +71,13 @@ button.secondario { background: var(--carta); color: var(--accento-scuro); borde
 button.secondario:hover:not(:disabled) { background: var(--rosa); border-color: var(--accento); }
 button:disabled { opacity: .5; cursor: default; }
 button.piccolo { padding: 3px 12px; font-size: 13px; }
-button.salto { padding-left: 12px; padding-right: 12px; }
 
 /* ---- le etichette degli esiti ---- */
 /* un'etichetta a pillola; il colore dipende dall'esito (verde va bene, giallo attenzione, rosso non va) */
 .esito, .tardi { display: inline-block; padding: 2px 12px; border-radius: var(--pillola); font-weight: 600; white-space: nowrap;
   margin-right: 6px; background: var(--riga); }
 .esito-trovato, .esito-verificato { color: var(--ok); background: var(--ok-chiaro); }
-.esito-limite-di-nodi, .esito-limite-di-tempo, .esito-in-corso, .tardi { color: var(--avviso); background: var(--avviso-chiaro); }
+.esito-limite-di-tempo, .esito-limite-di-nodi, .esito-in-corso, .tardi { color: var(--avviso); background: var(--avviso-chiaro); }
 .esito-impossibile, .esito-non-valido, .esito-non-riuscito, .esito-non-generato, .esito-fermata, .esito-interrotta {
   color: var(--male); background: var(--male-chiaro); }
 .esito-mai-eseguito { color: var(--tenue); }
@@ -98,13 +96,8 @@ table.dati td.no { color: var(--male); font-weight: 600; }
 table.dati form { margin: 0; }
 .voce { display: inline-block; padding: 1px 9px; margin: 2px 4px 2px 0; border-radius: var(--pillola); background: var(--riga); white-space: nowrap; }
 
-/* ---- la ricerca passo per passo: i tasti con lo slider, la frase del passo, l'orario ---- */
-.passi { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.passi input[type=range] { flex: 1; min-width: 120px; }
-.testo-passo { margin: 6px 0; font-size: 16px; }
-.motivo { margin: 6px 0 10px; padding: 8px 14px; border-left: 3px solid var(--male); background: var(--male-chiaro);
-  border-radius: 0 var(--angolo) var(--angolo) 0; max-width: 100ch; }
-/* tutte le celle larghe uguali, anche quelle vuote: la tabella e' larga quanto serve e il suo riquadro scorre */
+/* ---- l'orario ---- */
+/* tutte le celle larghe uguali: la tabella e' larga quanto serve e il suo riquadro scorre di lato */
 table.orario { border-collapse: collapse; font-size: 13px; background: var(--carta); width: max-content; }
 table.orario th, table.orario td { border: 1px solid var(--riga); padding: 3px 5px; text-align: center; min-width: 88px;
   max-width: 88px; }
@@ -113,49 +106,6 @@ table.orario th.giorno, table.orario .inizio-giorno { border-left: 2px solid var
 /* il nome della classe resta fermo a sinistra mentre l'orario scorre di lato */
 table.orario tbody th { position: sticky; left: 0; min-width: 64px; max-width: 64px; background: var(--sfondo); color: var(--tenue); }
 table.orario td { height: 40px; line-height: 16px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+/* in una cella il docente e, sotto e piu' chiaro, il codocente; l'ora buca e' chiara anche lei */
 table.orario td span { display: block; }
 table.orario td.buca, table.orario .cod { color: var(--tenue); }
-table.orario td.appena { background: var(--rosa); }
-/* la classe di cui parla il conto che non torna */
-table.orario tr.in-causa th { background: var(--male-chiaro); color: var(--male); box-shadow: inset 4px 0 0 var(--male); }
-/* I segni di un conto che non torna (il tasto «Mostra nell'orario»): ben visibili, con il bordo dentro la cella e il
-   fondo chiaro dello stesso colore. Verde: gia' fatta; giallo: puo'; rosso: non puo'; lilla: va riempita. */
-.motivo button { margin-left: 8px; }
-table.orario td.segno-fatta, i.segno-fatta { background: var(--ok-chiaro); box-shadow: inset 0 0 0 2px var(--ok); }
-table.orario td.segno-puo, i.segno-puo { background: var(--avviso-chiaro); box-shadow: inset 0 0 0 2px var(--avviso); }
-table.orario td.segno-no, i.segno-no { background: var(--male-chiaro); box-shadow: inset 0 0 0 2px var(--male); }
-table.orario td.segno-serve, i.segno-serve { background: var(--lilla-chiaro); box-shadow: inset 0 0 0 2px var(--lilla); }
-/* le celle diverse dal passo guardato prima: cambiate (o messe) con il bordo lilla, tolte sbarrate e sbiadite */
-#cambiate { margin: 0 0 6px; min-height: 20px; }
-/* (con «Mostra nell'orario» acceso vincono i colori del controllo: il bordo lilla c'e' solo sulle celle senza segno) */
-table.orario td.cambiata:not(.segno) { box-shadow: inset 0 0 0 2px var(--lilla); }
-table.orario td.tolta { color: var(--tenue); text-decoration: line-through; }
-table.orario td.tolta:not(.segno) { box-shadow: inset 0 0 0 2px var(--lilla); background: var(--lilla-chiaro); }
-/* una prova fatta con il metodo esatto non ha passi: si nasconde tutto quello che serve a rivederli */
-body.esatto #parte-passi, body.esatto #parte-dopo { display: none; }
-/* la tabella di tutti i ritorni: le righe si aprono con un clic; quella di dettaglio sta sotto, rientrata */
-#tabella-ritorni tr.ritorno { cursor: pointer; }
-#tabella-ritorni tr.ritorno:hover td, #tabella-ritorni tr.ritorno:hover th { background: var(--riga); }
-#tabella-ritorni td.apri { color: var(--accento); width: 1.5em; }
-#tabella-ritorni tr.dettaglio td { background: var(--sfondo); padding-bottom: 12px; }
-#tabella-ritorni tr.dettaglio p { margin: 2px 0 6px; max-width: 110ch; }
-/* la spiegazione dei numeri dei ritorni: il nome di ogni numero e sotto, rientrato, che cosa vuol dire */
-dl.spiegazione { margin: 0; max-width: 100ch; }
-dl.spiegazione dt { font-weight: 600; margin-top: 10px; }
-dl.spiegazione dd { margin: 2px 0 0 18px; color: var(--tenue); }
-/* la cella di cui si guardano i ritorni, e la riga del docente di cui parla il controllo che non passa */
-#filtro { margin: 4px 0; min-height: 26px; }
-.filtri { justify-content: space-between; margin-bottom: 0; }
-.filtri input { width: 4.5em; padding: 3px 8px; }
-table.orario tbody td { cursor: pointer; }
-table.orario td.scelta { outline: 3px solid var(--accento); outline-offset: -3px; }
-table.dati tr.in-causa th { color: var(--male); }
-table.dati span.si { color: var(--ok); font-weight: 600; }
-table.dati span.no { color: var(--male); font-weight: 600; }
-.conto { margin: 0 0 8px; max-width: 120ch; }
-.conto .voce { font-size: 13px; }
-.legenda { margin: 0 0 10px; font-size: 13px; max-width: 120ch; }
-.voce-legenda { display: inline-block; margin: 2px 14px 2px 0; }
-.legenda i.segno { display: inline-block; width: 14px; height: 14px; margin-right: 6px; border-radius: 3px; vertical-align: -2px; }
-canvas#profilo { display: block; width: 100%; height: 120px; background: var(--carta); border: 1px solid var(--bordo);
-  border-radius: 12px; cursor: pointer; }

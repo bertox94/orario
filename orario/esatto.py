@@ -1,21 +1,25 @@
-"""Il caso scritto come conti, e la sua soluzione.
+"""Il metodo che fa l'orario: tutto il caso scritto come un sistema di conti con incognite 0/1, risolto da un risolutore
+generico di programmi lineari interi (HiGHS, dentro scipy: e' compilato, il lavoro pesante lo fa lui).
+
+Non riempie le celle una alla volta tornando indietro: guarda tutte le regole di tutta la settimana insieme. Da'
+l'orario, oppure dimostra che non esiste.
 
 LE INCOGNITE, tutte 0 o 1:
 - x[v, g, h]      la voce v e' nell'ora h del giorno g (nella sua classe);
 - b[k, g, h]      la classe k in quell'ora ha l'ora buca;
 - c[t, k, g, h]   il docente t COMINCIA a insegnare nella classe k in quell'ora (nell'ora prima non c'era).
 
-LE REGOLE (le otto di DESCRIZIONE.md, capitolo 3), ognuna come una somma che deve stare tra due numeri:
-1. ogni cella ha una cosa sola: la somma delle x delle voci della classe, piu' b, fa 1;
-2. ogni voce fa le sue ore: la somma delle sue x nella settimana fa le sue ore;
-3. un docente e' in una classe per volta: la somma delle x delle sue voci, in un'ora, fa al massimo 1;
-4. non prima dell'ingresso: quelle x non possono valere 1 (il loro massimo e' 0);
-5. al massimo N ore al giorno in una classe: la somma delle x del docente in quella classe quel giorno e' al massimo N;
-6. di seguito: c >= (c'e' adesso) - (c'era prima), e in un giorno comincia al massimo una volta;
-7. al massimo M classi al giorno: gli inizi del docente in un giorno, in tutte le classi, sono al massimo M
+LE REGOLE (le otto di scuola.py), ognuna come una somma che deve stare tra due numeri:
+1. ogni voce fa le sue ore: la somma delle sue x nella settimana fa le sue ore; e ogni cella ha una cosa sola: la
+   somma delle x delle voci della classe, piu' b, fa 1;
+2. un docente e' in una classe per volta: la somma delle x delle sue voci, in un'ora, fa al massimo 1;
+3. non prima dell'ingresso: quelle x non possono valere 1 (il loro massimo e' 0);
+4. al massimo N ore al giorno in una classe: la somma delle x del docente in quella classe quel giorno e' al massimo N;
+5. di seguito: c >= (c'e' adesso) - (c'era prima), e in un giorno comincia al massimo una volta;
+6. al massimo M classi al giorno: gli inizi del docente in un giorno, in tutte le classi, sono al massimo M
    (in ogni classe comincia al piu' una volta, quindi contare gli inizi e' contare le classi);
-8. le prime ore hanno lezione (quelle b non possono valere 1), e dopo un'ora buca solo ore buche (b dell'ora dopo >=
-   b di quest'ora).
+7. le prime ore hanno lezione: quelle b non possono valere 1;
+8. dopo un'ora buca solo ore buche: b dell'ora dopo >= b di quest'ora.
 
 Non c'e' niente da rendere massimo o minimo: si cerca solo una risposta che rispetti tutto.
 """
@@ -29,9 +33,9 @@ TROVATO, IMPOSSIBILE, LIMITE_DI_TEMPO = 'trovato', 'impossibile', 'limite di tem
 
 
 def risolvi(scuola, tempo=300):
-    """Cerca un orario per la scuola (come la scrive il programma in C: il comando «scuola»), in al massimo `tempo`
-    secondi. Ritorna (esito, orario, secondi): l'orario, se c'e', ha una voce per cella (-1: ora buca), con le celle
-    numerate come nel programma in C: (giorno * ore + ora) * classi + classe."""
+    """Cerca un orario per la scuola (scuola.py), in al massimo `tempo` secondi. Ritorna (esito, orario, secondi):
+    l'esito e' TROVATO, IMPOSSIBILE (dimostrato: un orario non esiste) o LIMITE_DI_TEMPO; l'orario, se c'e', ha una
+    voce per cella (-1: ora buca); i secondi sono quelli del risolutore."""
     G, O, C = len(scuola['giorni']), len(scuola['ore']), len(scuola['classi'])
     voci, docenti, obbligatorie = scuola['voci'], scuola['docenti'], scuola['obbligatorie']
     di_seguito, classi_al_giorno = scuola['ore_di_seguito'], scuola['classi_al_giorno']
@@ -70,22 +74,22 @@ def risolvi(scuola, tempo=300):
                 if h + 1 < O:
                     regola([(b(k, g, h + 1), 1), (b(k, g, h), -1)], 0, 1)                               # 8
             for t in range(T):
-                regola([(x(v, g, h), 1) for v in voci_del_docente[t]], 0, 1)                            # 3
+                regola([(x(v, g, h), 1) for v in voci_del_docente[t]], 0, 1)                            # 2
     for v in range(V):
-        regola([(x(v, g, h), 1) for g in range(G) for h in range(O)], voci[v][3], voci[v][3])           # 2
+        regola([(x(v, g, h), 1) for g in range(G) for h in range(O)], voci[v][3], voci[v][3])           # 1
     for coppia in coppie:
         sue = in_classe[coppia]
         for g in range(G):
-            regola([(x(v, g, h), 1) for v in sue for h in range(O)], 0, di_seguito)                     # 5
-            regola([(c(coppia, g, h), 1) for h in range(O)], 0, 1)                                      # 6
+            regola([(x(v, g, h), 1) for v in sue for h in range(O)], 0, di_seguito)                     # 4
+            regola([(c(coppia, g, h), 1) for h in range(O)], 0, 1)                                      # 5
             for h in range(O):
                 regola([(c(coppia, g, h), 1)] + [(x(v, g, h), -1) for v in sue]
-                       + ([(x(v, g, h - 1), 1) for v in sue] if h else []), 0, 1)                       # 6
+                       + ([(x(v, g, h - 1), 1) for v in sue] if h else []), 0, 1)                       # 5
     for t in range(T):
         sue = [coppia for coppia in coppie if coppia[0] == t]
         if len(sue) > classi_al_giorno:   # (se ha poche classi in tutto la regola non puo' essere violata)
             for g in range(G):
-                regola([(c(coppia, g, h), 1) for coppia in sue for h in range(O)], 0, classi_al_giorno)  # 7
+                regola([(c(coppia, g, h), 1) for coppia in sue for h in range(O)], 0, classi_al_giorno)  # 6
 
     # i massimi delle incognite: 1, oppure 0 dove la regola dice «qui no»
     massimo = np.ones(incognite)
@@ -93,11 +97,11 @@ def risolvi(scuola, tempo=300):
         ingresso = max(docenti[t][1] for t in docenti_di[v])
         for g in range(G):
             for h in range(min(ingresso, O)):
-                massimo[x(v, g, h)] = 0                                                                 # 4
+                massimo[x(v, g, h)] = 0                                                                 # 3
     for k in range(C):
         for g in range(G):
             for h in range(min(obbligatorie, O)):
-                massimo[b(k, g, h)] = 0                                                                 # 8
+                massimo[b(k, g, h)] = 0                                                                 # 7
 
     regole = coo_matrix((valori, (righe, colonne)), shape=(len(minimi), incognite)).tocsr()
     partenza = time.time()

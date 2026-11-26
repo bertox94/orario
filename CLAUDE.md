@@ -1,73 +1,57 @@
-# Orario scolastico: solver e sito
+# Orario scolastico: programma e sito
 
 Repository di Alb (bertox94/orario). Si parla in italiano e ci si rivolge a lei al femminile. Anche commenti, nomi nel
 codice e messaggi di commit sono in italiano.
 
 ## Cosa c'è
 
-Il programma riscritto da capo il 20 novembre 2026 (richiesta di Alb: «come lo faresti tu», guardando solo a
-leggibilità e prestazioni, senza vincoli sul metodo): vedi `LEGGIMI.md`. È in `main` dal 21 novembre 2026 (richiesta
-di Alb). Il programma di prima (solver con le potature, sito con Postgres, test di non regressione) è in
-`stabile/2026-11-18` e negli altri stabili.
+Dal 26 novembre 2026 `main` è tutto in Python (richiesta di Alb: «lasciare la ricerca con il solver nuovo e il resto
+tutto in Python», e la ricerca in C «toglila da main»). Vedi `LEGGIMI.md` e, per il dettaglio, `DESCRIZIONE.md`.
 
-- Il programma in C, una cartella per cosa (dal 22 novembre 2026, richiesta di Alb: «generatore non in solver»):
-  `scuola/` (i dati e la lettura di un caso), `generatore/` (i casi casuali, gli stessi di prima), `solver/`
-  (`ricerca`: un'ora alla volta, la classe con meno scelte per prima, senza ripartenze; `limiti` e `classe_sola`: i
-  conti che scartano i rami senza orario), `verifica/` (l'orario ricontrollato da capo), `passi/` (ogni nodo su
-  file), `spiegazioni/` (quello che il sito mostra di un nodo), `programma/` (`main`: i comandi; `stato`; `fine`).
-  Si compilano tutte insieme: l'elenco delle cartelle è nel `Makefile`, in `sito/solver.py` e in `prove/prova.py`.
-- `sito/` (Flask, senza login né database): prove in tempo reale (`prove.py`, `passi.py`) e test notturni
-  (`notturni.py`). Mostra soltanto: casi e ricerca sono del solver. Nella pagina della prova «Mostra nell'orario»
-  colora le celle di cui parla un limite: le calcola il solver (`orario nodo`, `spiegazioni/spiega.c`). Un
-  limite nuovo va anche lì, e nelle frasi e nella legenda di `sito/templates/prova.html` (`spiega`, `legenda`).
-- `esatto/` (Python, dal 26 novembre 2026, richiesta di Alb: «usa la nuova»): il metodo esatto, cioè il caso come
-  programma lineare intero risolto con scipy (HiGHS). Dà l'orario o dimostra che non esiste; nel sito è il metodo di
-  partenza di una prova, e nei test notturni fa da giudice accanto alla ricerca. La ricerca resta: è quella che si
-  guarda passo per passo. Chiede scuola e verifica al programma in C (`orario scuola`, `orario verifica`). Sul
-  Raspberry serve scipy (`pip install -r sito/requirements.txt`): senza, il sito va solo con la ricerca.
-- `prove/prova.py`: la prova automatica (esito, nodi e verifica su 52 casi).
+- `orario/`: il programma. `scuola.py` (i dati, le regole, la lettura di un caso), `genera.py` e `nomi.py` (i casi
+  casuali: gli stessi, carattere per carattere, del generatore in C di prima), `esatto.py` (il metodo: il caso come
+  programma lineare intero, risolto con scipy/HiGHS; dà l'orario o dimostra che non esiste), `verifica.py` (l'orario
+  ricontrollato da capo, senza usare il metodo), `__main__.py` (i comandi `genera`, `risolvi`, `verifica`).
+- `sito/` (Flask, senza login né database): le prove (`prove.py`) e i test notturni (`notturni.py`). Mostra
+  soltanto: genera i casi con `orario.genera` e lancia `python3 -m orario risolvi` in un processo a parte
+  (`solver.py`). Una cosa alla volta: una prova o un giro.
+- `prove/prova.py`: la prova automatica (caso generato, esito e verifica su 54 casi).
 - `bf_search/`: SQL di Alb, da non toccare senza chiedere.
+
+La ricerca in C (un'ora alla volta, i controlli A–G, i passi su file, i ritorni, «Continua», «Cambia questa
+scelta…») non è più in `main`: l'ultima versione è in `stabile/2026-11-26`, con il suo `DESCRIZIONE.md`.
 
 ## Regole
 
-- Qui la ricerca si può cambiare: l'obiettivo è che trovi più orari, in meno nodi, restando leggibile. Ogni modifica
-  alla ricerca si misura (orari trovati e nodi su casi fissi) e si controlla che ogni orario trovato passi la
-  verifica e che nessun caso risolvibile diventi «impossibile».
-- Prima di ogni commit che tocca il solver: `python3 prove/prova.py` deve finire con «tutto come atteso»; dopo una
-  modifica voluta alla ricerca, `--aggiorna`, e dirlo nel commit.
 - Si lavora in `main`. Prima di ogni commit: spiegare ad Alb le modifiche (cosa cambia, come è stato provato) e
   aspettare il suo «ok». Gli stabili si toccano solo quando lo chiede.
-- Continuare una ricerca (`orario risolvi --continua`, `riprendi_la_ricerca`) deve dare gli stessi file di una
-  ricerca sola con il limite nuovo: dopo una modifica alla ricerca o ai passi, ricontrollarlo (passi, istantanee,
-  profilo e stato uguali byte per byte).
-- `DESCRIZIONE.md` descrive tutto (regole, generatore, ricerca, controlli, comandi, formati dei file, ogni pagina e
-  ogni indirizzo del sito, i limiti) con il dettaglio per rifare il programma da zero (richiesta di Alb): ogni
-  modifica che cambia una di queste cose si riporta anche lì, nello stesso commit.
-- «Cambia questa scelta…» (`orario risolvi --da`, `cerca_da_una_strada`): una prova che parte da una scelta fatta
-  a mano non prova le scelte che la ricerca avrebbe provato prima, quindi lì «impossibile» non è una dimostrazione.
+- Prima di ogni commit che tocca `orario/`: `python3 prove/prova.py` deve finire con «tutto come atteso»; dopo una
+  modifica voluta, `--aggiorna`, e dirlo nel commit.
+- `genera.py` non si cambia senza chiederlo: cambierebbe i casi di tutti i semi, e i risultati dei test notturni
+  non sarebbero più confrontabili. Le impronte dei casi sono in `prove/attesi.json`.
+- Dopo una modifica a `esatto.py`: ogni orario trovato deve passare la verifica, e nessun caso deve passare da
+  «trovato» a «impossibile» o il contrario (sono risposte certe). Va rifatto su tanti casi, non solo sui 54.
+- `verifica.py` non deve usare niente di `esatto.py`: è il controllo indipendente.
+- `DESCRIZIONE.md` descrive tutto (regole, generatore, metodo, verifica, comandi, ogni pagina e ogni indirizzo del
+  sito, i limiti) con il dettaglio per rifare il programma da zero (richiesta di Alb): ogni modifica che cambia una
+  di queste cose si riporta anche lì, nello stesso commit.
 - I commenti sono tanti e si tengono aggiornati (richiesta di Alb): in cima a ogni file che cosa fa, e riga per riga
   nelle parti difficili.
-- Dal 26 novembre 2026 (richiesta di Alb) l'ora buca è nella coda delle scelte come un docente, con il suo margine
-  (`quando_provarla`): prima veniva sempre per ultima. Ha cambiato la ricerca e i riferimenti di `prove/attesi.json`.
-  Le ore buche di una classe sono le ore della sua «Buca» (`resto_buca`, `la_buca_deve`, `la_buca_puo` in
-  `solver/ricerca.h`): le regole su lezione e ora buca sono scritte così, e il controllo C si fa solo al primo nodo.
-  Questa seconda parte non ha cambiato la ricerca (stessi nodi su 1.032 casi).
-- Esperimenti sulla ricerca non entrati: le ripartenze a tentativi (tolte su richiesta di Alb, commit `8af8001`) e il
-  «giro» (se la ricerca si incaglia in un giorno, tiene fermi i giorni in mezzo, libera il primo, poi i primi due...,
-  e riscrive: trova qualche orario in più, ma non è nei passi né nel sito).
 - Su questo repository lavora anche un'altra conversazione: prima di un push controllare che il ramo non sia cambiato.
 
 ## Raspberry
 
 `raspberry@192.168.1.5`, servizio `orario-sito`, repository `~/orario`, ambiente Python `~/orario-venv`. Da qui non si
-raggiunge: i comandi li lancia Alb. Aggiornare:
-`ssh -t raspberry@192.168.1.5 'cd ~/orario && git pull && sudo systemctl restart orario-sito'`, poi Ctrl+F5.
-Il sito non usa più il database: i suoi file stanno in `sito/lavoro/`.
+raggiunge: i comandi li lancia Alb. Aggiornare (sul Pi):
+`cd ~/orario && git pull && ~/orario-venv/bin/pip install -r sito/requirements.txt && sudo systemctl restart orario-sito`,
+poi Ctrl+F5. Serve scipy (senza, le prove finiscono «interrotta»); non serve più gcc.
+Il sito non usa un database: i suoi file stanno in `sito/lavoro/`. Le prove e i giri fatti con il programma
+in C restano leggibili (esito e orario, senza i passi); i casi dei test notturni restano.
 
 ## Rami
 
-- `main`: il programma riscritto. Qui si lavora.
-- `riscrittura`: il ramo dove è nato, fermo al punto in cui è entrato in `main`.
-- `stabile/2026-11-21`: punto fermo del programma riscritto (richiesta di Alb).
-- `stabile/2026-11-11`, `-12`, `-13` e `-18`: punti fermi del programma di prima; `-18` è l'ultimo.
+- `main`: il programma in Python. Qui si lavora.
+- `stabile/2026-11-26`: l'ultima versione con la ricerca in C (e il metodo esatto accanto).
+- `stabile/2026-11-21`: la ricerca in C al 21 novembre. `riscrittura`: il ramo dove era nata.
+- `stabile/2026-11-11`, `-12`, `-13` e `-18`: punti fermi del programma ancora prima; `-18` è l'ultimo.
 - `sito/terza-versione` e `archivio/2026-11-04`: rami vecchi, non si toccano.

@@ -2,9 +2,8 @@
 {% block titolo %}Orario · test notturni{% endblock %}
 {% block contenuto %}
 <h1>Test notturni</h1>
-<p class="nota">Un elenco di casi che si rieseguono tutti insieme, in un giro, per vedere se i risultati cambiano quando
-  cambia il solver. Di ogni caso si tengono solo i numeri, non i passi. Accanto al risultato della ricerca c'è la
-  risposta del metodo esatto sullo stesso caso: dice se un orario c'è davvero.</p>
+<p class="nota">Un elenco di casi che si rifanno tutti insieme, in un giro, per vedere se i risultati cambiano quando
+  cambia il programma. Di ogni caso si tengono l'esito, il tempo e se l'orario passa la verifica.</p>
 
 <h2>Il giro</h2>
 <div class="riquadro">
@@ -14,8 +13,8 @@
     <span id="stato-giro"></span>
   </div>
   <form method="post" action="{{ url_for('impostazioni_notturni') }}" class="rigo">
-    <label>Ogni caso si ferma dopo
-      <input type="number" name="milioni" min="0.01" max="{{ max_milioni }}" step="0.01" value="{{ '%g'|format(n.impostazioni.limite / 1000000) }}"> milioni di nodi</label>
+    <label>Ogni caso ha al massimo
+      <input type="number" name="secondi" min="1" max="{{ max_secondi }}" step="1" value="{{ n.impostazioni.tempo }}"> secondi</label>
     <label><input type="checkbox" name="notte" value="si" {{ 'checked' if n.impostazioni.notte }}> ogni notte il giro parte da solo alle</label>
     <input type="time" name="ora" value="{{ n.impostazioni.ora }}" aria-label="Ora del giro della notte">
     <button class="secondario">Salva</button>
@@ -29,20 +28,16 @@
 <p class="nota">Una tabella per tipo di cambiamento. Un caso resta nella sua tabella finché non premi «Visto»; poi torna solo se il risultato cambia ancora.</p>
 {% for t in n.cambiamenti %}
 <details open>
-  <summary>{{ t.titolo }} <span class="esito esito-{{ {'risolto': 'trovato', 'meno nodi': 'trovato', 'altro': 'limite-di-nodi'}.get(t.chiave, 'impossibile') }}">{{ t.casi|length|numero }}</span></summary>
+  <summary>{{ t.titolo }} <span class="esito esito-{{ {'risolto': 'trovato', 'altro': 'limite-di-tempo'}.get(t.chiave, 'impossibile') }}">{{ t.casi|length|numero }}</span></summary>
   <div class="scorre"><table class="dati">
-    <thead><tr><th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th><th>Prima</th><th class="num">Nodi</th>
-      <th>Adesso</th><th class="num">Nodi</th><th></th>
+    <thead><tr><th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th><th>Prima</th><th>Adesso</th>
       <th><form method="post" action="{{ url_for('visto_notturni') }}"><input type="hidden" name="numeri" value="{{ t.casi|map(attribute='numero')|join(',') }}">
         <button class="piccolo secondario">{{ 'Visto' if t.casi|length == 1 else 'Visti tutti e %d'|format(t.casi|length) }}</button></form></th></tr></thead>
     <tbody>{% for c in t.casi %}
       <tr><td class="num">{{ c.seme }}</td><td class="num">{{ c.classi }}</td><td>{{ 'con' if c.ritardi else 'senza' }}</td>
         <td><span class="esito esito-{{ c.prima.esito|replace(' ', '-') }}">{{ c.prima.esito }}</span> <span class="nota">giro {{ c.prima.giro }}</span></td>
-        <td class="num">{{ c.prima.nodi|numero if c.prima.nodi is not none }}</td>
         <td><span class="esito esito-{{ c.ultimo.esito|replace(' ', '-') }}">{{ c.ultimo.esito }}</span> <span class="nota">giro {{ c.ultimo.giro }}</span>
           {% if c.ultimo.verificato is sameas false %}<span class="male">non valido</span>{% endif %}</td>
-        <td class="num">{{ c.ultimo.nodi|numero if c.ultimo.nodi is not none }}</td>
-        <td class="nota">{% if c.prima.nodi and c.ultimo.nodi and c.prima.esito == c.ultimo.esito %}{{ '%+d'|format(((c.ultimo.nodi - c.prima.nodi) / c.prima.nodi * 100)|round|int) }}%{% endif %}</td>
         <td></td></tr>{% endfor %}
     </tbody>
   </table></div>
@@ -66,8 +61,7 @@
 </form>
 <div class="scorre"><table class="dati" id="casi">
   <thead><tr><th><input type="checkbox" id="tutti" aria-label="Scegli tutti i casi"></th><th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th>
-    <th>Esito</th><th class="num">Nodi</th><th class="num">Celle decise</th><th class="num">Tempo</th><th>Rispetto al giro prima</th>
-    <th title="Lo stesso caso con il metodo esatto: dice se un orario c'è davvero">Un orario c'è?</th></tr></thead>
+    <th>Esito</th><th class="num">Tempo</th><th>Rispetto al giro prima</th></tr></thead>
   <tbody></tbody>
 </table></div>
 {% endblock %}
@@ -77,25 +71,12 @@ const URL_STATO = '{{ url_for('stato_notturni') }}';
 let ultima = {{ n|tojson }};
 const scelti = new Set();
 
-// come e' andato un caso rispetto all'esecuzione prima (con lo stesso limite): una parola e il suo colore
+// come e' andato un caso rispetto all'esecuzione prima (con lo stesso tempo a disposizione): una parola e il suo colore
 function rispetto(c) {
   const a = c.prima, b = c.ultimo;
-  if (!a || a.limite !== b.limite) return ['', ''];
+  if (!a || a.tempo !== b.tempo) return ['', ''];
   if (a.esito !== b.esito) return [`prima: ${a.esito}`, b.esito === 'trovato' ? 'si' : a.esito === 'trovato' ? 'no' : ''];
-  if (a.nodi === b.nodi || a.nodi == null || b.nodi == null) return ['uguale', ''];
-  const p = Math.round((b.nodi - a.nodi) / a.nodi * 100);
-  return [`${p > 0 ? '+' : '−'}${Math.abs(p)}% di nodi`, b.nodi < a.nodi ? 'si' : 'no'];
-}
-
-// Che cosa dice il metodo esatto dello stesso caso, accanto al risultato della ricerca: se un orario c'e' davvero.
-// In rosso quando contraddice la ricerca; in evidenza quando la ricerca si e' fermata al limite ma un orario c'e'.
-function giudice(r) {
-  if (!r.esatto) return '';
-  const parola = {trovato: 'sì', impossibile: 'no, è impossibile', 'limite di tempo': 'non si sa'}[r.esatto] || r.esatto;
-  const contrario = (r.esito === 'trovato' && r.esatto === 'impossibile') || (r.esito === 'impossibile' && r.esatto === 'trovato');
-  if (contrario) return `<span class="male">${parola}: il contrario della ricerca</span>`;
-  if (r.esito === 'limite di nodi' && r.esatto === 'trovato') return `<strong>${parola}</strong> <span class="nota">la ricerca non ci arriva</span>`;
-  return `<span class="nota">${parola}</span>`;
+  return ['uguale', ''];
 }
 
 function mostra(n) {
@@ -106,12 +87,9 @@ function mostra(n) {
     const [parola, colore] = r ? rispetto(c) : ['', ''];
     return `<tr><td><input type="checkbox" class="scegli" value="${c.numero}" ${scelti.has(c.numero) ? 'checked' : ''} ${gira ? 'disabled' : ''} aria-label="Scegli il caso"></td>` +
       `<td class="num">${c.seme}</td><td class="num">${c.classi}</td><td>${c.ritardi ? 'con' : 'senza'}</td>` +
-      (adesso ? '<td colspan="6" class="nota">sta girando…</td>' : !r ? '<td colspan="6" class="nota">mai eseguito</td>'
+      (adesso ? '<td colspan="3" class="nota">sta girando…</td>' : !r ? '<td colspan="3" class="nota">mai eseguito</td>'
         : `<td>${etichetta(r.esito)}${r.verificato === false ? '<span class="male">non valido</span>' : ''}</td>` +
-          `<td class="num">${r.nodi == null ? '' : numero(r.nodi)}</td>` +
-          `<td class="num">${r.celle ? r.profondita_massima + ' / ' + r.celle : ''}</td>` +
-          `<td class="num">${r.secondi == null ? '' : r.secondi.toFixed(1) + ' s'}</td><td class="${colore}">${esc(parola)}</td>` +
-          `<td>${giudice(r)}</td>`) + '</tr>';
+          `<td class="num">${r.secondi == null ? '' : r.secondi.toFixed(1).replace('.', ',') + ' s'}</td><td class="${colore}">${esc(parola)}</td>`) + '</tr>';
   }).join('');
   // quanti casi per esito, in alto accanto al tasto
   const esiti = {};
@@ -123,10 +101,10 @@ function mostra(n) {
   if (g) {
     const fatti = Object.keys(g.risultati).length;
     t = gira ? `Giro ${g.numero} in corso: ${numero(fatti)} casi fatti su ${numero(g.casi)}.`
-             : `Ultimo giro: il ${g.numero}, del ${quando(g.inizio)}, ${g.stato}; ${numero(fatti)} casi su ${numero(g.casi)}, limite ${numero(g.limite)} nodi` +
+             : `Ultimo giro: il ${g.numero}, del ${quando(g.inizio)}, ${g.stato}; ${numero(fatti)} casi su ${numero(g.casi)}, ${g.tempo ? 'al massimo ' + g.tempo + ' secondi per caso' : 'fatto con il programma di prima'}` +
                (g.da_solo ? ', partito da solo.' : '.');
   }
-  if (n.prova !== null && !gira) t += ' Sta girando una prova in tempo reale: il giro si può avviare quando finisce.';
+  if (n.prova !== null && !gira) t += ' Sta girando una prova: il giro si può avviare quando finisce.';
   document.getElementById('stato-giro').textContent = t;
   // i tasti: «Avvia» solo se c'e' qualcosa da fare e niente gira; «Ferma» solo mentre gira
   document.getElementById('avvia').disabled = gira || !n.casi.length || n.prova !== null;
