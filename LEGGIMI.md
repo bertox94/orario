@@ -78,7 +78,8 @@ Serve `gcc`: il sito compila il solver da solo. I suoi file stanno in `sito/lavo
   celle che il conto ha contato (già fatte, possibili, non possibili, da riempire per forza), con la legenda sopra
   l'orario: le calcola il solver (`orario nodo`), con le stesse funzioni che fanno il conto. I tasti «Ritorno» saltano da un ritorno indietro all'altro; un clic su una cella dell'orario sceglie solo
   i suoi ritorni, e dice quanti sono. Da un passo all'altro le celle cambiate sono segnate (bordo lilla; quelle tolte restano scritte, sbarrate). Accanto ai ritorni di una cella c'è quanti sono dall'ultimo passo avanti (si azzerano quando la ricerca arriva
-  più lontano di sempre): una cella superata non è più il problema. La sezione «I ritorni, per controllo e per chi» li conta per il controllo che non è passato e per il docente o
+  più lontano di sempre): una cella superata non è più il problema. «Tutti i ritorni, uno per riga» è una tabella con una riga per ritorno (cento per volta), che si apre con un
+  clic per vedere il controllo e i pezzi del suo conto. La sezione «I ritorni, per controllo e per chi» li conta per il controllo che non è passato e per il docente o
   la classe che nomina: dice chi è il problema, non in quale cella è stato visto. Di ogni ritorno si dice di quante celle la ricerca torna indietro subito dopo, e i tasti «Ritorno» possono
   saltare solo a quelli che tornano indietro di almeno un certo numero di celle. «Cambia questa scelta…», dopo un clic su una cella decisa, mostra le scelte che la ricerca aveva lì e fa
   partire una prova nuova dall'orario di quel passo con la scelta fatta a mano (`orario risolvi --da`). Ogni controllo ha una lettera (da A a G) e un nome; la sezione «I controlli,

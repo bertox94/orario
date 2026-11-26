@@ -9,6 +9,7 @@ from . import notturni, passi, prove
 
 MAX_MILIONI = 1000        # il limite di nodi di una prova (richiesta di Alb). Ogni nodo si registra: 19 MB per
                           # milione, quindi 19 GB per mille milioni; prove.avvia controlla che il disco basti
+RITORNI_PER_PAGINA = 100   # quante righe per volta nella tabella di tutti i ritorni
 CONTINUA_DI = (100, 1000)  # di quanti nodi si puo' mandare avanti una prova fermata dal limite
 MAX_MILIONI_NOTTURNI = 100
 MAX_CASI_PER_VOLTA = 2000
@@ -108,6 +109,17 @@ def crea_app():
         if not prove.prova(n):
             abort(404)
         return jsonify(passi.profilo(prove.file_dei_passi(n)))
+
+    @app.route('/prova/<int:n>/ritorni')
+    def ritorni(n):
+        """I ritorni indietro uno per riga, una pagina per volta: ?dopo=K (da dopo quel nodo; 0 dall'inizio), con
+        gli stessi ?cella= e ?almeno= dei tasti «Ritorno»."""
+        if not prove.prova(n):
+            abort(404)
+        a = request.args
+        return jsonify(passi.elenco_dei_ritorni(prove.file_dei_passi(n), max(0, a.get('dopo', default=0, type=int)),
+                                                RITORNI_PER_PAGINA, a.get('cella', type=int),
+                                                max(1, a.get('almeno', default=1, type=int))))
 
     @app.route('/prova/<int:n>/scelte/<int:k>/<int:cella>')
     def scelte(n, k, cella):

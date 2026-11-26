@@ -133,6 +133,12 @@ table.orario td.tolta { color: var(--tenue); text-decoration: line-through; }
 table.orario td.tolta:not(.segno) { box-shadow: inset 0 0 0 2px var(--lilla); background: var(--lilla-chiaro); }
 /* una prova fatta con il metodo esatto non ha passi: si nasconde tutto quello che serve a rivederli */
 body.esatto #parte-passi, body.esatto #parte-dopo { display: none; }
+/* la tabella di tutti i ritorni: le righe si aprono con un clic; quella di dettaglio sta sotto, rientrata */
+#tabella-ritorni tr.ritorno { cursor: pointer; }
+#tabella-ritorni tr.ritorno:hover td, #tabella-ritorni tr.ritorno:hover th { background: var(--riga); }
+#tabella-ritorni td.apri { color: var(--accento); width: 1.5em; }
+#tabella-ritorni tr.dettaglio td { background: var(--sfondo); padding-bottom: 12px; }
+#tabella-ritorni tr.dettaglio p { margin: 2px 0 6px; max-width: 110ch; }
 /* la spiegazione dei numeri dei ritorni: il nome di ogni numero e sotto, rientrato, che cosa vuol dire */
 dl.spiegazione { margin: 0; max-width: 100ch; }
 dl.spiegazione dt { font-weight: 600; margin-top: 10px; }

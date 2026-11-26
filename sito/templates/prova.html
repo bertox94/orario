@@ -68,6 +68,18 @@
 </div>
 <div class="scorre"><table class="orario" id="orario"></table></div>
 <div id="parte-dopo">
+<details id="elenco-ritorni"><summary>Tutti i ritorni, uno per riga</summary>
+  <p class="nota" id="nota-elenco"></p>
+  <div class="rigo">
+    <button type="button" class="secondario piccolo" id="elenco-dal-primo">Dal primo</button>
+    <button type="button" class="secondario piccolo" id="elenco-da-qui">Dal passo che sto guardando</button>
+  </div>
+  <div class="scorre"><table class="dati" id="tabella-ritorni">
+    <thead><tr><th></th><th class="num">Passo</th><th>Ultima scelta</th><th>Controllo che non passa</th><th>Per chi</th>
+      <th class="num">Servono</th><th class="num">Possibili</th><th class="num">Celle indietro</th></tr></thead>
+    <tbody></tbody></table></div>
+  <button type="button" class="secondario" id="altri-ritorni" hidden>Altri 100</button>
+</details>
 <details id="colpe"><summary>I ritorni, per controllo e per chi <span class="nota" id="colpa-maggiore"></span></summary>
   <p class="nota">Un ritorno è contato sulla cella dell'ultima scelta, che spesso non è il problema: qui sono contati
     per il controllo che non è passato e per il docente o la classe che nomina. In cima chi ne ha causati di più.</p>
@@ -96,6 +108,10 @@
     <dd>Gli stessi, contati solo da quando la ricerca è arrivata più lontano di sempre (il massimo di celle decise).
       Ogni volta che supera quel massimo ripartono tutti da zero. Una cella con tanti ritorni in tutto e zero qui è
       stata superata: non è più il problema. Dove questo numero è alto, la ricerca è ferma adesso.</dd>
+    <dt>Tutti i ritorni, uno per riga <span class="nota">(la sezione qui sopra)</span></dt>
+    <dd>Una riga per ogni ritorno, nell'ordine in cui sono avvenuti, cento per volta. Segue la cella scelta e il filtro
+      «almeno N celle». Un clic su una riga la apre: la frase del controllo, i pezzi del suo conto, e il tasto per
+      andare a quel passo.</dd>
     <dt>I ritorni, per controllo e per chi <span class="nota">(la sezione qui sopra)</span></dt>
     <dd>Gli stessi ritorni, contati invece per il controllo che non è passato e per il docente o la classe che la
       frase nomina. Dice <em>chi</em> è il problema, in qualunque cella sia comparso. La somma è il totale in cima.</dd>
@@ -124,6 +140,7 @@
 <script>
 const URL_STATO = '{{ url_for('stato', n=i.numero) }}', URL_PASSO = '{{ url_for('passo', n=i.numero, k=0)[:-1] }}';
 const URL_RITORNO = '{{ url_for('ritorno', n=i.numero, k=0, verso='dopo')[:-6] }}';  // + k + '/prima' o '/dopo'
+const URL_RITORNI = '{{ url_for('ritorni', n=i.numero) }}';
 const URL_SCELTE = '{{ url_for('scelte', n=i.numero, k=0, cella=0)[:-3] }}';   // + k + '/' + cella
 const ESATTO = {{ (i.metodo == 'esatto')|tojson }};   // la prova e' fatta con il metodo esatto: niente passi
 const A_MANO = {{ (i.a_mano or none)|tojson }};   // se la ricerca parte da una scelta fatta a mano: da dove
@@ -317,6 +334,63 @@ document.getElementById('controlli-docenti').addEventListener('toggle', e => {
   if (ultimiSegni && ultimiSegni.k === ultimoPasso.k) mostraDocenti(ultimoPasso); else chiediNodo(ultimoPasso);
 });
 
+// ---- tutti i ritorni, uno per riga ----
+// Una tabella con una riga per ritorno indietro: il passo, l'ultima scelta, il controllo, per chi, i due numeri, e di
+// quante celle la ricerca torna indietro dopo. Si riempie quando la sezione si apre, cento righe per volta («Altri
+// 100»), e rispetta la cella scelta e il filtro «almeno N celle». Un clic su una riga la espande: sotto compaiono la
+// frase del controllo e i pezzi del suo conto (chiesti al solver in quel momento), e il tasto per andare a quel passo.
+const elenco = document.getElementById('elenco-ritorni'), corpoElenco = document.querySelector('#tabella-ritorni tbody');
+let prossimoRitorno = 0, filtriElenco = '', almenoElenco = 1, cellaElenco = null;   // la pagina dopo, e i filtri con cui la tabella e' stata riempita
+const filtriDiAdesso = () => '&almeno=' + Math.max(1, Number(document.getElementById('almeno').value) || 1) + (cellaScelta === null ? '' : '&cella=' + cellaScelta);
+async function caricaRitorni(daCapo, dopo) {
+  if (!scuola) return;
+  if (daCapo) {
+    corpoElenco.innerHTML = '';
+    prossimoRitorno = dopo || 0;
+    filtriElenco = filtriDiAdesso();
+    almenoElenco = Math.max(1, Number(document.getElementById('almeno').value) || 1);
+    cellaElenco = cellaScelta;
+  }
+  const x = await (await fetch(URL_RITORNI + '?dopo=' + prossimoRitorno + filtriElenco)).json();
+  corpoElenco.insertAdjacentHTML('beforeend', x.ritorni.map(r => {
+    const m = r.motivo, chi = m.docente >= 0 ? scuola.docenti[m.docente][0] : m.classe >= 0 ? scuola.classi[m.classe] : '';
+    return `<tr class="ritorno" data-k="${r.k}" data-motivo='${esc(JSON.stringify(m))}'><td class="apri">▸</td>` +
+      `<td class="num">${numero(r.k)}</td><td>${r.cella < 0 ? '' : (r.voce < 0 ? 'ora buca' : esc(nomi(r.voce).join(' con '))) + ' in ' + esc(dove(r.cella))}</td>` +
+      `<td>${esc(CONTROLLI[m.tipo][0])} · ${esc(CONTROLLI[m.tipo][1])}</td><th>${esc(chi)}</th>` +
+      `<td class="num">${m.tipo === 'classe_senza_scelte' ? '' : m.servono}</td><td class="num">${m.tipo === 'classe_senza_scelte' || m.tipo === 'orario_della_classe' ? '' : m.possibili}</td>` +
+      `<td class="num">${r.indietro == null ? '' : r.indietro}</td></tr>`;
+  }).join(''));
+  prossimoRitorno = x.prossimo;
+  document.getElementById('altri-ritorni').hidden = x.prossimo === null;
+  const righe = corpoElenco.querySelectorAll('tr.ritorno').length;
+  document.getElementById('nota-elenco').textContent = (righe ? `${numero(righe)} righe` : 'Nessun ritorno') +
+    (cellaElenco === null ? '' : `, solo quelli di ${dove(cellaElenco)}`) +
+    (almenoElenco > 1 ? `, solo quelli che tornano indietro di almeno ${almenoElenco} celle` : '') +
+    '. Un clic su una riga la apre.';
+}
+elenco.addEventListener('toggle', () => { if (elenco.open && !corpoElenco.children.length) caricaRitorni(true, 0); });
+document.getElementById('elenco-dal-primo').addEventListener('click', () => caricaRitorni(true, 0));
+document.getElementById('elenco-da-qui').addEventListener('click', () => caricaRitorni(true, Number(slider.value) - 1));
+document.getElementById('altri-ritorni').addEventListener('click', () => caricaRitorni(false));
+document.getElementById('almeno').addEventListener('change', () => { if (elenco.open) caricaRitorni(true, 0); });
+// un clic su una riga: si apre (o si chiude) la riga di dettaglio sotto
+corpoElenco.addEventListener('click', async e => {
+  if (e.target.closest('button.vai-al-passo')) return vai(Number(e.target.closest('button').dataset.k));
+  const tr = e.target.closest('tr.ritorno');
+  if (!tr) return;
+  const sotto = tr.nextElementSibling;
+  if (sotto && sotto.classList.contains('dettaglio')) { sotto.remove(); tr.querySelector('.apri').textContent = '▸'; return; }
+  const m = JSON.parse(tr.dataset.motivo), k = Number(tr.dataset.k);
+  tr.querySelector('.apri').textContent = '▾';
+  tr.insertAdjacentHTML('afterend', `<tr class="dettaglio"><td></td><td colspan="7"><p>${esc(spiega(m))}</p><p class="conto-riga nota">…</p>` +
+    `<button type="button" class="secondario piccolo vai-al-passo" data-k="${k}">Vai a questo passo</button></td></tr>`);
+  const riga = tr.nextElementSibling.querySelector('.conto-riga'), r = await fetch(URL_NODO + k);
+  if (!r.ok) { riga.textContent = ''; return; }
+  const x = await r.json();
+  riga.classList.remove('nota');
+  riga.innerHTML = `<span class="nota">Il conto, fatto a ${esc(scuola.giorni[x.giorno])} alle ${esc(scuola.ore[x.ora])}.</span> ` + conto(m, x.conto);
+});
+
 // ---- i ritorni per controllo e per chi ----
 // Dallo stato (ritorni_per_motivo, contati dal solver): per ogni controllo e per ogni docente o classe che il motivo
 // nomina, quanti ritorni in tutto e quanti dall'ultimo passo avanti. Dal piu' grande; al massimo 40 righe.
@@ -393,6 +467,7 @@ tabella.addEventListener('click', e => {
   const cella = (td.cellIndex - 1) * scuola.classi.length + td.parentElement.sectionRowIndex;
   cellaScelta = cellaScelta === cella ? null : cella;
   mostraFiltro();
+  if (elenco.open) caricaRitorni(true, 0);   // la tabella di tutti i ritorni segue la cella scelta
 });
 
 let segniAccesi = false;    // il tasto resta acceso da un passo all'altro

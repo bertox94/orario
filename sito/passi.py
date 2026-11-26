@@ -136,6 +136,35 @@ def ritorno(file, k, avanti, cella=None, almeno=1):
     return None
 
 
+def elenco_dei_ritorni(file, dopo, righe_chieste, cella=None, almeno=1):
+    """I primi `righe_chieste` ritorni indietro dopo il nodo `dopo`, uno per riga, per la tabella del sito:
+    {"ritorni": [{"k", "profondita", "cella", "voce", "motivo": {...}, "indietro"}, ...], "prossimo": il nodo da cui
+    chiedere i successivi, o None se sono finiti}. `cella` e `almeno` scelgono come in `ritorno`. Dell'ultimo nodo
+    del file «indietro» e' None."""
+    n, pezzo, righe = quanti(file), 65536, []
+    with open(file, 'rb') as f:
+        j = dopo + 1
+        while j <= n and len(righe) < righe_chieste:
+            a = min(j + pezzo - 1, n)
+            r = _record(f, j, min(a + 1, n))   # un nodo in piu', per «indietro» dell'ultimo del pezzo
+            profondita, tipi, celle_dei_nodi = r[0::CAMPI], r[3::CAMPI], r[1::CAMPI]
+            for i in range(a - j + 1):
+                if not tipi[i] or (cella is not None and celle_dei_nodi[i] != cella):
+                    continue
+                indietro = profondita[i] - profondita[i + 1] + 1 if i + 1 < len(profondita) else None
+                if almeno > 1 and (indietro is None or indietro < almeno):
+                    continue
+                c = r[i * CAMPI:(i + 1) * CAMPI]
+                righe.append({'k': j + i, 'profondita': c[0], 'cella': c[1], 'voce': c[2], 'indietro': indietro,
+                              'motivo': {'tipo': MOTIVI[c[3]], 'docente': c[4], 'classe': c[5], 'ora': c[6],
+                                         'servono': c[7], 'possibili': c[8]}})
+                if len(righe) == righe_chieste:
+                    break
+            j = a + 1
+    # se la pagina e' piena, da dopo l'ultimo ritorno dato ce ne possono essere altri
+    return {'ritorni': righe, 'prossimo': righe[-1]['k'] if len(righe) == righe_chieste else None}
+
+
 _BLOCCO = 256    # come PASSI_BLOCCO in passi/passi.h: il profilo e' a blocchi di tanti nodi
 _profili, _lock = {}, threading.Lock()   # per ogni file, i blocchi gia' letti: (le piu' basse, le piu' alte)
 

@@ -580,6 +580,12 @@ cercare», con il controllo. Se l'orario è stato trovato: il riquadro della ver
   - il nome della classe di cui parla il controllo è segnato in rosso.
   Il riquadro scorre da solo fino all'ultima scelta.
 - Le sezioni che si aprono e si chiudono:
+  - **Tutti i ritorni, uno per riga** (chiusa; si riempie quando si apre): una tabella con una riga per ritorno,
+    nell'ordine in cui sono avvenuti: passo, ultima scelta (chi in quale cella), controllo, per chi, servono,
+    possibili, celle indietro. Cento righe per volta, con «Altri 100»; «Dal primo» e «Dal passo che sto guardando»
+    scelgono da dove cominciare. Segue la cella scelta e il filtro «almeno N celle». Un clic su una riga la apre:
+    sotto compaiono la frase del controllo, i pezzi del suo conto (chiesti in quel momento) e «Vai a questo passo»;
+    un altro clic la richiude.
   - **I ritorni, per controllo e per chi** (chiusa; nel titolo c'è già il primo): controllo, docente o classe,
     ritorni, ritorni dall'ultimo passo avanti; dal più grande, al massimo 40 righe.
   - **I controlli, docente per docente** (chiusa): a quel passo, per ogni docente, A («restano R, a scuola e libero
@@ -652,6 +658,7 @@ ha avuto con quel limite. Se è diverso il caso sta tra i cambiamenti finché no
 | `/prova/N/passo/K` | GET | Il nodo K: `k, profondita, cella, voce, motivo, orario, indietro`. |
 | `/prova/N/nodo/K` | GET | Quello che il solver dice del nodo K: segni (con i nomi `fatta, puo, no, serve`), conto, docenti. |
 | `/prova/N/ritorno/K/prima` o `/dopo` | GET | Il ritorno indietro prima o dopo il nodo K: `{"k": …}`. `?cella=C` solo quelli della cella; `?almeno=N` solo quelli che tornano indietro di almeno N celle. |
+| `/prova/N/ritorni` | GET | I ritorni uno per riga, 100 per volta: `{"ritorni": [{k, profondita, cella, voce, motivo, indietro}, …], "prossimo": K o null}`. `?dopo=K` da dopo quel nodo (0: dall'inizio); `?cella=` e `?almeno=` come sopra. |
 | `/prova/N/scelte/K/C` | GET | Le scelte per la cella C lungo la strada del nodo K: `{"scelte": […], "adesso": voce}`. |
 | `/prova/N/cambia` | POST | Una prova nuova da una scelta fatta a mano (passo, cella, voce). |
 | `/prova/N/continua` | POST | Manda avanti di 100 o 1000 nodi (nodi). |
@@ -694,6 +701,7 @@ Il ritorno «di una cella» è un nodo con un motivo il cui campo cella (l'ultim
 | Casi notturni aggiunti per volta | al massimo 2000 |
 | Aggiornamento delle pagine | prova: stato ogni 1 s, profilo ogni 4 s; notturni: ogni 2 s |
 | Righe del riepilogo dei ritorni | al massimo 40 |
+| Righe per volta nella tabella di tutti i ritorni | 100 |
 
 I numeri dei passi sono a 16 bit: la profondità e il numero di una cella arrivano al più a 7 × 10 × 120 = 8400, il
 numero di una voce a 3999.
