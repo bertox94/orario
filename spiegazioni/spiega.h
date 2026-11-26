@@ -29,4 +29,8 @@ void scrivi_il_conto(FILE *f, const Ricerca *r, int ora_della_settimana, const M
 // tornino o no. Per il sito, che li mostra docente per docente.
 void scrivi_i_docenti(FILE *f, const Ricerca *r, int ora_della_settimana);
 
+// Le ore buche di ogni classe a un nodo, in JSON su `f`: la Buca di ogni classe con le ore che le restano e i posti
+// dove puo' ancora andare (com'e' fatto e' scritto in spiega.c).
+void scrivi_le_buche(FILE *f, const Ricerca *r, int ora_della_settimana);
+
 #endif

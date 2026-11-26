@@ -44,6 +44,9 @@ di Alb). Il programma di prima (solver con le potature, sito con Postgres, test 
   nelle parti difficili.
 - Dal 26 novembre 2026 (richiesta di Alb) l'ora buca è nella coda delle scelte come un docente, con il suo margine
   (`quando_provarla`): prima veniva sempre per ultima. Ha cambiato la ricerca e i riferimenti di `prove/attesi.json`.
+  Le ore buche di una classe sono le ore della sua «Buca» (`resto_buca`, `la_buca_deve`, `la_buca_puo` in
+  `solver/ricerca.h`): le regole su lezione e ora buca sono scritte così, e il controllo C si fa solo al primo nodo.
+  Questa seconda parte non ha cambiato la ricerca (stessi nodi su 1.032 casi).
 - Esperimenti sulla ricerca non entrati: le ripartenze a tentativi (tolte su richiesta di Alb, commit `8af8001`) e il
   «giro» (se la ricerca si incaglia in un giorno, tiene fermi i giorni in mezzo, libera il primo, poi i primi due...,
   e riscrive: trova qualche orario in più, ma non è nei passi né nel sito).

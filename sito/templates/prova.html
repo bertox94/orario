@@ -65,6 +65,9 @@
 <details id="controlli-docenti"><summary>I controlli, docente per docente</summary>
   <p class="nota" id="ora-dei-controlli"></p>
   <div class="scorre"><table class="dati" id="tabella-docenti"></table></div>
+  <p class="nota">Le ore buche di una classe sono trattate come le ore di un docente tutto suo, la Buca: «entra» dopo
+    le ore obbligatorie, e quando comincia va avanti fino alla fine della giornata.</p>
+  <div class="scorre"><table class="dati" id="tabella-buche"></table></div>
 </details>
 <p class="nota">In rosa l'ultima scelta; «–» è un'ora buca. Da un passo all'altro le celle cambiate hanno il bordo
   lilla, e quelle tolte restano scritte sbarrate. Mentre la prova gira lo slider si allunga e, se è in fondo, la segue.</p>
@@ -275,6 +278,17 @@ function mostraDocenti(p) {
       `<td>${esito(restano <= libere)} restano ${restano}, a scuola e libero per ${libere}</td><td>` +
       (classi.map(([k, r, puo]) => `<span class="voce">${esito(r <= puo)} ${esc(scuola.classi[k])} ${r} / ${puo}</span>`).join(' ') ||
         '<span class="nota">ha finito</span>') + '</td></tr>').join('') + '</tbody>';
+  mostraBuche();
+}
+// Le ore buche, classe per classe: la Buca di ogni classe con le ore che le restano e i posti dove puo' ancora
+// andare (spiegazioni/spiega.c, scrivi_le_buche). Le prove fatte prima che ci fosse non la hanno.
+function mostraBuche() {
+  const tabella = document.getElementById('tabella-buche'), come = ['', '', 'oggi ha già cominciato: da qui solo ore buche', 'deve cominciare adesso'];
+  if (!ultimiSegni || !ultimiSegni.buche) { tabella.innerHTML = ''; return; }
+  tabella.innerHTML = '<thead><tr><th>Ore buche di</th><th>Restano / posti dove possono andare</th><th></th></tr></thead><tbody>' +
+    ultimiSegni.buche.map(([k, restano, posti, c]) => `<tr><th>${esc(scuola.classi[k])}</th>` +
+      `<td><span class="${restano <= posti ? 'si' : 'no'}">${restano <= posti ? '✓' : '✗'}</span> ${restano} / ${posti}</td>` +
+      `<td class="nota">${come[c]}</td></tr>`).join('') + '</tbody>';
 }
 document.getElementById('controlli-docenti').addEventListener('toggle', e => {
   if (!e.target.open || !ultimoPasso) return;

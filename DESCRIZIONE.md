@@ -178,7 +178,8 @@ Oltre all'orario si tengono, aggiornati a ogni scelta messa o tolta:
 - per ogni ora della settimana e docente: se è occupato (insegna in una classe);
 - per ogni giorno, classe e docente: quante ore ha fatto quel giorno in quella classe;
 - per ogni giorno e docente: in quante classi ha insegnato quel giorno;
-- per ogni giorno e classe: se è «chiusa» (ha già avuto un'ora buca).
+- per ogni giorno e classe: se è «chiusa» (ha già avuto un'ora buca);
+- per ogni classe: le ore buche che deve ancora avere (le ore della sua Buca, paragrafo 6.3).
 
 Mettere una scelta in una cella: se è un'ora buca, la classe quel giorno diventa chiusa; se è una voce, un'ora in
 meno per la voce, la classe e ognuno dei suoi docenti (in tutto e in quella classe), i docenti diventano occupati in
@@ -198,12 +199,26 @@ prima che un'altra le porti via il docente.
 
 Sia `dopo` il numero di giorni dopo oggi, e `obbligatoria` vero se l'ora è una delle prime.
 
-- Si può mettere una **lezione** se l'ora è obbligatoria, oppure se la classe oggi non è chiusa e le ore che le
-  restano sono più di `dopo × obbligatorie`. (Se sono di meno o uguali servono tutte per le prime ore dei giorni
-  dopo: metterne una adesso ne lascerebbe scoperta una.)
-- Si può mettere l'**ora buca** se l'ora non è obbligatoria e: la classe oggi è già chiusa, oppure le ore che le
-  restano sono al massimo `dopo × ore` (stanno tutte nei giorni dopo).
+**La Buca.** Le ore buche di una classe sono trattate come le ore di un docente tutto suo, la Buca di quella classe
+(dal 26 novembre 2026):
+- le sue ore in una settimana sono le celle della classe (`giorni × ore`) meno le ore di lezione della classe;
+- «entra» dopo le ore obbligatorie: prima non può stare;
+- quando in un giorno comincia, va avanti fino all'ultima ora (dopo un'ora buca la classe quel giorno non ha più
+  lezione); non ha il massimo di 3 ore di seguito;
+- i **posti** dove può ancora andare dall'ora `da` di oggi: `dopo × (ore − obbligatorie) + max(0, ore − max(da,
+  obbligatorie))`;
+- **deve** cominciare in quest'ora se le ore che le restano sono più dei posti dall'ora dopo;
+- **può** stare in quest'ora se l'ora non è obbligatoria e le ore che le restano sono almeno `ore − ora` (bastano
+  per arrivare alla fine della giornata).
+
+Le scelte:
+- Si può mettere una **lezione** se l'ora è obbligatoria, oppure se la Buca oggi non ha già cominciato e non deve
+  cominciare adesso.
+- Si può mettere l'**ora buca** se la Buca può stare in quest'ora.
 - Una **voce** si può mettere (quando la lezione è ammessa) se ha ancora ore e ognuno dei suoi docenti «può adesso».
+
+(Sono le stesse scelte di prima scritte in un altro modo: «la Buca deve» equivale a «le ore di lezione che restano
+sono al massimo `dopo × obbligatorie`», e «la Buca può» a «le ore di lezione che restano stanno nei giorni dopo».)
 
 Un docente **può adesso** in una classe se: è entrato (ingresso ≤ ora); in quest'ora non è occupato; e, se oggi in
 quella classe non ha ancora insegnato, oggi è in meno di 3 classi; se invece oggi lì ha già insegnato, ha fatto meno
@@ -227,10 +242,8 @@ Cioè: prima il docente con meno margine; a pari margine chi sta continuando le 
 a cui restano meno ore.
 
 **L'ora buca è in questa coda come un docente** (dal 26 novembre 2026; prima veniva sempre dopo tutte le lezioni). Il
-suo numero è `(margine × 2 + 1) × 1000 + buche`, con:
-- `margine = ore di lezione che restano alla classe − dopo × obbligatorie`: sono i posti dove una buca può ancora
-  andare (le ore dopo le obbligatorie, oggi e nei giorni dopo) meno le buche da mettere;
-- `buche = dopo × ore + (ore − ora) − ore di lezione che restano alla classe`: le celle che restano meno le lezioni.
+suo numero è quello di un docente che non sta continuando: `(margine × 2 + 1) × 1000 + ore che restano alla Buca`,
+con `margine = posti dove la Buca può ancora andare da quest'ora − ore che le restano`.
 
 A parità completa resta l'ordine delle scelte (le voci nel loro ordine, poi la buca: ordinamento stabile, per
 inserimento).
@@ -245,10 +258,10 @@ tra le scelte di nessuna classe non ancora decisa.
    ritorni).
 3. Se tutte le celle sono decise: esito «trovato».
 4. Altrimenti si guardano i controlli, in quest'ordine, fermandosi al primo che non passa:
-   - i controlli **dopo la scelta** (se c'è un'ultima scelta): C, D, B ed E per la classe appena decisa e i suoi
+   - i controlli **dopo la scelta** (se c'è un'ultima scelta): D, B ed E per la classe appena decisa e i suoi
      docenti, poi B per le altre classi dei docenti appena messi (capitolo 7);
    - se si sta cominciando un'ora (profondità multipla del numero di classi), i controlli **di inizio ora**: A per
-     tutti i docenti, poi per ogni classe C, D, B (e, solo alla primissima ora della settimana, E);
+     tutti i docenti, poi per ogni classe D, B (e, solo alla primissima ora della settimana, prima C e alla fine E);
    - la scelta della classe, con G e F.
 5. Se un controllo non è passato, il nodo è un **ritorno indietro**: si conta (in tutto, per la cella dell'ultima
    scelta, per controllo e per chi) e non ha scelte.
@@ -279,7 +292,7 @@ una classe è l'ora che si sta decidendo, o la successiva se la classe in quest'
 |---|---|---|---|---|
 | A | le ore di un docente in tutto | un docente | le ore che gli restano | `dopo × (ore − ingresso) + max(0, ore − max(ora, ingresso))` |
 | B | le ore di un docente in una classe | un docente e una classe | le ore che gli restano lì (se sono 0 non si guarda) | `dopo × min(3, ore − ingresso)` + quanto può ancora fare oggi fino all'ultima ora |
-| C | le celle di una classe | una classe | le ore che le restano | `dopo × ore` + le celle di oggi dalla prima ora libera (0 se oggi è chiusa) |
+| C | le celle di una classe (solo al primo nodo) | una classe | le ore di lezione della classe | le celle della settimana, `giorni × ore` |
 | D | le lezioni per le prime ore | una classe e un'ora obbligatoria h | le celle da riempire fino ad h: `dopo × (h + 1) + max(0, h − prima ora libera + 1)` | la somma, sulle voci della classe con ancora ore, di `min(resto della voce, oggi + dopo × al_giorno)` |
 | E | l'orario della classe, da sola | una classe | le ore che le restano | (nessun numero: si prova a costruirlo) |
 | F | un docente che deve insegnare adesso | un docente | le ore che gli restano | le ore libere dall'ora dopo |
@@ -392,6 +405,10 @@ I perché di un docente: `"non_entrato"`, `"altrove"`, `"troppe_classi"`, `"mass
 
 I **docenti**: per ognuno le ore che gli restano e le ore in cui è a scuola e libero da adesso (se in quest'ora è
 già stato messo, dall'ora dopo), e per ogni classe dove ha ancora ore il conto B.
+
+Le **buche** (`"buche": [[classe, restano, posti, come], ...]`): per ogni classe le ore che restano alla sua Buca,
+i posti dove può ancora andare dalla prima ora che la classe deve decidere, e come sta in quest'ora: 0 la classe è
+già decisa, 1 niente di particolare, 2 oggi ha già cominciato, 3 deve cominciare adesso.
 
 `scelte`: su stdin una strada (quante scelte, poi cella e voce). Scrive `{"cella": C, "scelte": [voce | -1, ...]}`.
 
@@ -560,7 +577,8 @@ cercare», con il controllo. Se l'orario è stato trovato: il riquadro della ver
     ritorni, ritorni dall'ultimo passo avanti; dal più grande, al massimo 40 righe.
   - **I controlli, docente per docente** (chiusa): a quel passo, per ogni docente, A («restano R, a scuola e libero
     per L») e B per ogni classe dove ha ancora ore («C02 4 / 3»), con ✓ o ✗; la riga del docente del controllo che
-    non passa è segnata.
+    non passa è segnata. Sotto, le ore buche classe per classe: «restano / posti dove possono andare», e se la
+    Buca oggi ha già cominciato o deve cominciare adesso.
   - **I numeri dei ritorni: che cosa vogliono dire** (aperta): una voce per ogni numero della pagina.
 - **Il profilo della ricerca**: un disegno largo quanto la pagina, alto 120 punti: da sinistra a destra tutti i
   passi (al massimo 400 tratti), in altezza quante celle sono decise (la più bassa e la più alta di ogni tratto);

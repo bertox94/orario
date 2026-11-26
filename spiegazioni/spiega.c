@@ -248,3 +248,23 @@ void scrivi_i_docenti(FILE *f, const Ricerca *r, const int ora_della_settimana) 
     }
     fputc(']', f);
 }
+
+// ---- le ore buche, classe per classe ----
+//
+// La Buca di ogni classe (solver/ricerca.h), con gli stessi numeri che si mostrano per un docente:
+//   [[classe, ore buche che le restano, posti dove puo' ancora andare, come sta in quest'ora], ...]
+// «Come sta»: 0 la classe in quest'ora e' gia' decisa; 1 niente di particolare; 2 oggi ha gia' cominciato (da qui la
+// classe ha solo ore buche); 3 deve cominciare adesso (se la classe fa lezione le buche non ci stanno piu').
+void scrivi_le_buche(FILE *f, const Ricerca *r, const int ora_della_settimana) {
+    const Scuola *s = r->s;
+    const int giorno = ora_della_settimana / s->ore, ora = ora_della_settimana % s->ore;
+    fputc('[', f);
+    for (int k = 0; k < s->classi; k++) {
+        const int decisa = r->orario[cella_di(r, giorno, ora, k)] != VUOTA;
+        // i posti dalla prima ora che la classe deve ancora decidere
+        const int da = ora + decisa;
+        const int come = decisa ? 0 : r->chiusa[giorno * s->classi + k] ? 2 : la_buca_deve(r, giorno, ora, k) ? 3 : 1;
+        fprintf(f, "%s[%d,%d,%d,%d]", k ? "," : "", k, r->resto_buca[k], posti_della_buca(r, giorno, da), come);
+    }
+    fputc(']', f);
+}

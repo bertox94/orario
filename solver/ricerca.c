@@ -30,6 +30,7 @@ Ricerca *nuova_ricerca(const Scuola *s) {
     r->ore_oggi = calloc(G * C * T, 1);
     r->classi_oggi = calloc(G * T, 1);
     r->chiusa = calloc(G * C, 1);
+    r->resto_buca = calloc(C, sizeof(int));
     r->docente_di = calloc(C * T, sizeof(int));
     r->n_docenti_di = calloc(C, sizeof(int));
     r->classe_di = calloc(T * C, sizeof(int));
@@ -45,7 +46,7 @@ Ricerca *nuova_ricerca(const Scuola *s) {
     r->ritorni_recenti_per = calloc(posti_dei_motivi(s), sizeof(long long));
     // se anche una sola manca si libera tutto (libera_ricerca accetta i puntatori vuoti)
     if (!r->orario || !r->resto_voce || !r->resto_classe || !r->resto_docente || !r->resto_in_classe || !r->occupato
-        || !r->ore_oggi || !r->classi_oggi || !r->chiusa || !r->docente_di || !r->n_docenti_di || !r->classe_di
+        || !r->ore_oggi || !r->classi_oggi || !r->chiusa || !r->resto_buca || !r->docente_di || !r->n_docenti_di || !r->classe_di
         || !r->n_classi_di || !r->deve || !r->margine || !r->visto || !r->posto || !r->ricordo || !r->ritorni_in || !r->ritorni_recenti_in || !r->ritorni_per || !r->ritorni_recenti_per) {
         libera_ricerca(r);
         return NULL;
@@ -77,13 +78,15 @@ Ricerca *nuova_ricerca(const Scuola *s) {
         // le scelte di una classe sono al massimo le sue voci, piu' l'ora buca
         r->max_scelte = MAX(r->max_scelte, s->prima_voce[k + 1] - s->prima_voce[k] + 1);
     }
+    // le ore della Buca di ogni classe: le celle della settimana meno le lezioni
+    for (int k = 0; k < C; k++) r->resto_buca[k] = G * O - r->resto_classe[k];
     return r;
 }
 
 void libera_ricerca(Ricerca *r) {
     if (!r) return;
     free(r->orario), free(r->resto_voce), free(r->resto_classe), free(r->resto_docente), free(r->resto_in_classe);
-    free(r->occupato), free(r->ore_oggi), free(r->classi_oggi), free(r->chiusa);
+    free(r->occupato), free(r->ore_oggi), free(r->classi_oggi), free(r->chiusa), free(r->resto_buca);
     free(r->docente_di), free(r->n_docenti_di), free(r->classe_di), free(r->n_classi_di);
     free(r->deve), free(r->margine), free(r->visto), free(r->posto), free(r->ricordo);
     free(r->ritorni_in), free(r->ritorni_recenti_in), free(r->ritorni_per), free(r->ritorni_recenti_per);
@@ -100,7 +103,8 @@ void segna(Ricerca *r, const int cella, const int v, const int verso) {
     const int k = cella % s->classi, ora_della_settimana = cella / s->classi, giorno = ora_della_settimana / s->ore;
     r->orario[cella] = verso > 0 ? v : VUOTA;
     if (v == BUCA) {
-        // un'ora buca non consuma ore di nessuno: chiude solo la giornata della classe
+        // un'ora buca: un'ora in meno per la Buca della classe, e la giornata della classe e' chiusa
+        r->resto_buca[k] -= verso;
         r->chiusa[giorno * s->classi + k] += verso;
         return;
     }
@@ -141,19 +145,18 @@ static int puo_adesso(const Ricerca *r, const int giorno, const int ora, const i
     return perche_non_puo(r, giorno, ora, k, t) == PUO;
 }
 
-// Le scelte della classe k in quest'ora, in `scelte`; ritorna quante sono.
-// Nelle prime ore, obbligatorie, solo lezioni. Dopo: se oggi ha gia' avuto un'ora buca, solo l'ora buca; se no la
-// lezione, purche' dopo le restino abbastanza ore per le prime ore dei giorni dopo, e l'ora buca, purche' le ore che
-// le restano stiano nei giorni dopo. Una voce si puo' mettere se ha ancora ore e i suoi docenti possono adesso.
+// Le scelte della classe k in quest'ora, in `scelte`; ritorna quante sono: le sue voci che si possono mettere, e
+// l'ora buca. Una voce si puo' mettere se ha ancora ore e i suoi docenti possono adesso. L'ora buca e' la Buca della
+// classe (ricerca.h), e le regole sono le sue:
+// - una lezione si puo' mettere se la Buca oggi non ha gia' cominciato (dopo un'ora buca la giornata e' finita) e non
+//   deve cominciare adesso; nelle ore obbligatorie la lezione c'e' sempre;
+// - l'ora buca si puo' mettere se la Buca puo' stare in quest'ora.
 static int scelte_della_classe(const Ricerca *r, const int giorno, const int ora, const int k, int *scelte) {
     const Scuola *s = r->s;
-    const int dopo = s->giorni - 1 - giorno;         // quanti giorni ci sono dopo oggi
-    const int obbligatoria = ora < s->obbligatorie;  // quest'ora ha lezione per forza
-    const int chiusa = r->chiusa[giorno * s->classi + k];
-    // si puo' mettere una lezione? (le ore che restano devono bastare a coprire le prime ore dei giorni dopo)
-    const int lezione = obbligatoria || (!chiusa && r->resto_classe[k] > dopo * s->obbligatorie);
-    // si puo' mettere l'ora buca? (le ore che restano devono starci tutte nei giorni dopo)
-    const int buca = !obbligatoria && (chiusa || r->resto_classe[k] <= dopo * s->ore);
+    const int obbligatoria = ora < s->obbligatorie;        // quest'ora ha lezione per forza
+    const int chiusa = r->chiusa[giorno * s->classi + k];  // la Buca oggi ha gia' cominciato
+    const int lezione = obbligatoria || (!chiusa && !la_buca_deve(r, giorno, ora, k));
+    const int buca = la_buca_puo(r, ora, k);
     int n = 0;
     for (int v = s->prima_voce[k]; lezione && v < s->prima_voce[k + 1]; v++) {
         const Voce *voce = &s->voce[v];
@@ -179,14 +182,10 @@ static int scelte_della_classe(const Ricerca *r, const int giorno, const int ora
 static long long quando_provarla(const Ricerca *r, const int giorno, const int ora, const int k, const int v) {
     const Scuola *s = r->s;
     if (v == BUCA) {
-        // Il margine della buca. I posti dove puo' andare sono le ore dopo le obbligatorie, oggi e nei giorni dopo;
-        // le buche da mettere sono le celle che restano alla classe meno le sue ore di lezione. La differenza,
-        // fatti i conti, sono le ore di lezione che restano oltre quelle che servono per le prime ore dei giorni
-        // dopo. Poi come un docente che non sta continuando, con le buche da mettere al posto delle ore rimaste.
-        const int dopo = s->giorni - 1 - giorno;
-        const int margine = r->resto_classe[k] - dopo * s->obbligatorie;
-        const int buche = dopo * s->ore + (s->ore - ora) - r->resto_classe[k];
-        return (margine * 2LL + 1) * 1000 + buche;
+        // Il margine della Buca, come quello di un docente: i posti dove puo' ancora andare da adesso meno le ore che
+        // le restano. Poi come un docente che non sta continuando, con le sue ore rimaste.
+        const int margine = posti_della_buca(r, giorno, ora) - r->resto_buca[k];
+        return (margine * 2LL + 1) * 1000 + r->resto_buca[k];
     }
     const int *margine = &r->margine[(giorno * s->ore + ora) * s->docenti];  // i margini di quest'ora, per docente
     int meno_margine = 1 << 20, continua = 0;

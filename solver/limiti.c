@@ -10,7 +10,7 @@
 //
 //   ORE_DOCENTE             un docente, in tutta la scuola       limiti_a_inizio_ora
 //   ORE_DOCENTE_IN_CLASSE   un docente in una classe             docente_in_classe
-//   ORE_CLASSE              una classe: le celle che le restano  classe
+//   ORE_CLASSE              una classe: le celle della settimana  classe (solo al primo nodo)
 //   PRIME_ORE               una classe: le prime ore del giorno  classe
 //   ORARIO_DELLA_CLASSE     una classe, guardata da sola         classe_sola.c
 // (gli altri due, DOCENTE_SENZA_POSTO e CLASSE_SENZA_SCELTE, li trova la ricerca mentre sceglie: ricerca.c)
@@ -84,10 +84,12 @@ static int docente_in_classe(const Ricerca *r, const int giorno, const int ora, 
 
 // Una classe: due conti.
 //
-// ORE_CLASSE. Le ore che le restano devono stare nelle celle che le restano.
-//   servono    le ore che restano alla classe
-//   possibili  le celle di oggi dalla sua prima ora libera (nessuna se oggi ha gia' avuto un'ora buca: dopo un'ora
-//              buca la giornata e' finita) piu' tutte quelle dei giorni dopo
+// ORE_CLASSE. Le ore di lezione di una classe devono stare nelle celle della settimana.
+//   servono    le ore della classe
+//   possibili  le celle della settimana
+// Si guarda solo al primo nodo: e' un controllo dei dati. Dopo non puo' piu' fallire, perche' le ore buche sono le
+// ore della Buca della classe (ricerca.h) e le scelte la mettono solo dove le sue ore bastano: le lezioni che
+// restano stanno sempre nelle celle che restano. (Prima del 26 novembre 2026 si rifaceva a ogni nodo.)
 //
 // PRIME_ORE. Le prime ore di ogni giorno hanno sempre lezione. Per ogni ora obbligatoria h si guarda la fascia dalla
 // prima ora all'ora h: tutte le celle della fascia vanno riempite, e a riempirle possono essere solo le lezioni che
@@ -120,10 +122,9 @@ int lezioni_nella_fascia(const Ricerca *r, const int giorno, const int da, const
 static int classe(const Ricerca *r, const int giorno, const int ora, const int k, Motivo *m) {
     const Scuola *s = r->s;
     const int dopo = s->giorni - 1 - giorno, da = prima_ora_libera(r, giorno, ora, k);
-    // ORE_CLASSE
-    const int oggi = r->chiusa[giorno * s->classi + k] ? 0 : s->ore - da;  // le celle di oggi che contano ancora
-    if (r->resto_classe[k] > dopo * s->ore + oggi)
-        return non_torna(m, ORE_CLASSE, -1, k, -1, r->resto_classe[k], dopo * s->ore + oggi);
+    // ORE_CLASSE: solo al primo nodo (vedi sopra)
+    if (!giorno && !ora && da == 0 && r->resto_classe[k] > s->giorni * s->ore)
+        return non_torna(m, ORE_CLASSE, -1, k, -1, r->resto_classe[k], s->giorni * s->ore);
     // PRIME_ORE, una fascia alla volta
     for (int h = 0; h < s->obbligatorie; h++) {
         const int celle = dopo * (h + 1) + MAX(0, h - da + 1);  // da riempire: nei giorni dopo, e oggi

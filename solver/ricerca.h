@@ -9,7 +9,7 @@
 // giorno) e in ogni ora una classe alla volta. In ogni ora si decide per prima la classe che ha meno scelte: se una
 // classe non ne ha nessuna lo si scopre subito, e una classe con una scelta sola la prende prima che un'altra gliela
 // porti via. Le scelte di una classe sono le sue voci che in quell'ora si possono mettere, e l'ora buca quando e'
-// ammessa; si provano mettendo per primi i docenti che hanno meno margine (meno ore libere in piu' di quelle che
+// ammessa (la Buca: piu' sotto, resto_buca); si provano mettendo per primi i docenti che hanno meno margine (meno ore libere in piu' di quelle che
 // devono ancora fare), poi chi sta continuando le sue ore, poi le voci quasi finite. L'ora buca e' in coda con il
 // suo margine, come un docente. Se da un punto non esce nessun
 // orario si torna indietro e si prova la scelta dopo.
@@ -84,6 +84,13 @@ struct Ricerca {
     unsigned char *ore_oggi;     // le ore del docente nella classe in un giorno: [(giorno * classi + k) * docenti + t]
     unsigned char *classi_oggi;  // in quante classi insegna in un giorno: [giorno * docenti + t]
     unsigned char *chiusa;       // la classe quel giorno ha gia' avuto un'ora buca: [giorno * classi + k]
+
+    // La Buca. Le ore buche di una classe si trattano come le ore di un docente tutto suo, la Buca di quella classe
+    // (richiesta di Alb, 26 novembre 2026): ha le ore che deve fare in una settimana (le celle della classe meno le
+    // sue lezioni), «entra» dopo le ore obbligatorie, e quando in un giorno comincia va avanti fino all'ultima ora.
+    // Cosi' per le ore buche valgono gli stessi conti dei docenti: i posti dove puo' ancora andare, il margine, se
+    // deve cominciare adesso (qui sotto: posti_della_buca, la_buca_deve, la_buca_puo).
+    int *resto_buca;  // le ore buche che la classe deve ancora avere: [k]
 
     // per ogni classe i suoi docenti, per ogni docente le sue classi (non cambiano)
     int *docente_di, *n_docenti_di;  // [k * docenti + i], [k]
@@ -165,6 +172,25 @@ PercheNo perche_non_puo(const Ricerca *r, int giorno, int ora, int k, int t);
 static inline int posti_dei_motivi(const Scuola *s) { return (ORARIO_DELLA_CLASSE + 1) * (s->docenti + s->classi); }
 static inline int posto_del_motivo(const Scuola *s, const Motivo *m) {
     return m->tipo * (s->docenti + s->classi) + (m->docente >= 0 ? m->docente : s->docenti + MAX(m->classe, 0));
+}
+
+// ---- la Buca di una classe (vedi sopra, resto_buca) ----
+
+// I posti dove la Buca puo' ancora andare dall'ora `da` di quel giorno alla fine della settimana: le ore dopo le
+// obbligatorie. E' lo stesso conto delle ore libere di un docente (ore_libere_da), con le obbligatorie come ingresso.
+static inline int posti_della_buca(const Ricerca *r, const int giorno, const int da) {
+    const Scuola *s = r->s;
+    return (s->giorni - 1 - giorno) * (s->ore - s->obbligatorie) + MAX(0, s->ore - MAX(da, s->obbligatorie));
+}
+// La Buca della classe k deve cominciare in quest'ora: se la classe fa lezione anche adesso, le ore buche che le
+// restano non stanno piu' nei posti dall'ora dopo in poi.
+static inline int la_buca_deve(const Ricerca *r, const int giorno, const int ora, const int k) {
+    return r->resto_buca[k] > posti_della_buca(r, giorno, ora + 1);
+}
+// La Buca della classe k puo' stare in quest'ora: e' «entrata» (non e' un'ora obbligatoria) e ha abbastanza ore per
+// arrivare alla fine della giornata, perche' dopo un'ora buca la classe quel giorno non ha piu' lezione.
+static inline int la_buca_puo(const Ricerca *r, const int ora, const int k) {
+    return ora >= r->s->obbligatorie && r->resto_buca[k] >= r->s->ore - ora;
 }
 
 // Mette nella cella la voce v o l'ora buca (verso = 1), oppure la toglie (verso = -1), e tiene tutti i conti. La usa

@@ -22,7 +22,7 @@
 //       motivo per cui da li' non si va avanti (tipo, docente, classe, ora, servono, possibili: i campi di un record
 //       dei passi; tipo 0 se si va avanti), quante celle sono decise, e per ognuna, nell'ordine in cui sono state
 //       decise, la cella e la voce (-1: ora buca). Scrive su stdout
-//       {"giorno": G, "ora": O, "segni": [[cella, segno], ...], "conto": {...}, "docenti": [...]}:
+//       {"giorno": G, "ora": O, "segni": [[cella, segno], ...], "conto": {...}, "docenti": [...], "buche": [...]}:
 //       l'ora a cui i conti sono fatti; per ogni cella di cui il motivo parla 1 fatta, 2 puo', 3 no, 4 serve
 //       (SEGNO_); il conto del motivo in dettaglio; e i conti di ogni docente (tutto in spiegazioni/spiega.h).
 //
@@ -152,6 +152,8 @@ static int nodo(const Scuola *s) {
     scrivi_il_conto(stdout, r, ora_della_settimana, &m);
     fputs(",\"docenti\":", stdout);  // e i conti di ogni docente
     scrivi_i_docenti(stdout, r, ora_della_settimana);
+    fputs(",\"buche\":", stdout);  // e le ore buche di ogni classe
+    scrivi_le_buche(stdout, r, ora_della_settimana);
     puts("}");
     free(segno);
     libera_ricerca(r);
