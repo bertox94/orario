@@ -11,7 +11,7 @@ LE INCOGNITE, tutte 0 o 1:
 - p[t, g, h]      il docente t quel giorno ha GIA' cominciato: ha lezione in quell'ora o in una prima;
 - d[t, g, h]      il docente t quel giorno DEVE ANCORA finire: ha lezione in quell'ora o in una dopo.
 
-LE REGOLE (le nove di scuola.py), ognuna come una somma che deve stare tra due numeri:
+LE REGOLE (le dieci di scuola.py), ognuna come una somma che deve stare tra due numeri:
 1. ogni voce fa le sue ore: la somma delle sue x nella settimana fa le sue ore; e ogni cella ha una cosa sola: la
    somma delle x delle voci della classe, piu' b, fa 1;
 2. un docente e' in una classe per volta: la somma delle x delle sue voci, in un'ora, fa al massimo 1;
@@ -27,6 +27,9 @@ LE REGOLE (le nove di scuola.py), ognuna come una somma che deve stare tra due n
    p >= lezione in quell'ora, p >= p dell'ora prima; d >= lezione in quell'ora, d >= d dell'ora dopo; e in un giorno
    la somma di (p + d - 1 - lezione) e' al massimo B. (p e d hanno solo un minimo: possono valere 1 anche senza
    motivo, ma questo farebbe solo contare piu' ore buche, quindi non aiuta a barare.)
+10. le aule: in ogni ora le lezioni che chiedono un tipo di aula sono al massimo quante le aule di quel tipo. Quale
+    aula tocca a ogni lezione non serve deciderlo nei conti: se le aule bastano, in ogni ora le si distribuisce dopo
+    (_Conti.aule).
 
 Non c'e' niente da rendere massimo o minimo: si cerca solo una risposta che rispetti tutto.
 
@@ -35,7 +38,8 @@ I PASSAGGI (uno per funzione, nell'ordine in cui risolvi() li fa):
 2. _Conti.regole      si scrive una riga per ogni regola;
 3. _Conti.vietate     si segnano le incognite che devono valere 0 (regole 3 e 7);
 4. _chiedi            si da' tutto al risolutore;
-5. _Conti.orario      dalla sua risposta si legge l'orario.
+5. _Conti.orario      dalla sua risposta si legge l'orario;
+6. _Conti.aule        a ogni lezione dell'orario si da' la sua aula.
 risolvi() li fa due volte, se serve: prima senza la regola 9, poi con (il perche' e' scritto li').
 
 ATTENZIONE: l'ordine delle incognite e delle righe non cambia la risposta (trovato o impossibile), ma cambia quanto
@@ -76,6 +80,11 @@ class _Conti:
         # dove cominciano le c di ogni coppia (docente, classe), e quante incognite ci sono in tutto
         self.inizio_c = {coppia: (self.V + self.C + i) * self.H for i, coppia in enumerate(self.coppie)}
         self.T = len(scuola['docenti'])
+        # il tipo di aula che ogni voce chiede (quello della sua materia), e le aule di ogni tipo
+        self.tipo_della_voce = [scuola['materie'][voce[4]][1] for voce in self.voci]
+        self.aule_del_tipo = {}
+        for a, (_, tipo) in enumerate(scuola['aule']):
+            self.aule_del_tipo.setdefault(tipo, []).append(a)
         self.inizio_p = (self.V + self.C + len(self.coppie)) * self.H   # dove cominciano le p; le d subito dopo
         self.incognite = self.inizio_p + (2 * self.T * self.H if con_le_buche else 0)
 
@@ -150,6 +159,13 @@ class _Conti:
                 # sta nel massimo (+ O). In un giorno senza lezioni la somma puo' scendere fino a -O.
                 regola([(q(t, g, h), 1) for h in range(O) for q in (p, d)]
                        + [(x(v, g, h), -1) for h in range(O) for v in voci_del_docente[t]], -O, buche + O)
+        # regola 10: in ogni ora, per ogni tipo di aula, le lezioni che lo chiedono non sono piu' delle aule
+        for tipo, quante in sorted(self.aule_del_tipo.items()):
+            sue = [v for v in range(self.V) if self.tipo_della_voce[v] == tipo]
+            if len({self.voci[v][0] for v in sue}) > len(quante):   # (se le classi che lo usano sono poche, bastano)
+                for g in range(G):
+                    for h in range(O):
+                        regola([(x(v, g, h), 1) for v in sue], 0, len(quante))
         tabella = coo_matrix((valori, (righe, colonne)), shape=(len(minimi), self.incognite)).tocsr()
         return tabella, minimi, massimi
 
@@ -180,6 +196,34 @@ class _Conti:
                     orario.append(messa[0] if messa else BUCA)
         return orario
 
+    def aule(self, orario):
+        """PASSO 6: l'aula di ogni lezione dell'orario (una per cella; -1 per l'ora buca). In ogni ora le aule di ogni
+        tipo bastano (regola 10): qui si decide solo quale tocca a chi, cercando di non far girare le classi. In
+        ordine: l'aula dove la classe era l'ora prima; la «sua» aula (quella con il numero della classe, tra le aule
+        di quel tipo); la prima libera."""
+        aule = [BUCA] * len(orario)
+        for ora in range(self.H):
+            libere = {tipo: list(sue) for tipo, sue in self.aule_del_tipo.items()}
+            da_fare = []   # le lezioni di quest'ora che non restano dov'erano: (cella, classe, tipo)
+            for k in range(self.C):
+                cella = ora * self.C + k
+                if orario[cella] == BUCA:
+                    continue
+                tipo = self.tipo_della_voce[orario[cella]]
+                prima = aule[cella - self.C] if ora % self.O else BUCA   # l'aula dell'ora prima, nello stesso giorno
+                if prima in libere[tipo]:
+                    aule[cella] = prima
+                    libere[tipo].remove(prima)
+                else:
+                    da_fare.append((cella, k, tipo))
+            for passata in (1, 2):   # prima chi trova libera la sua aula, poi gli altri
+                for cella, k, tipo in da_fare:
+                    sua = self.aule_del_tipo[tipo][k % len(self.aule_del_tipo[tipo])]
+                    if aule[cella] == BUCA and (passata == 2 or sua in libere[tipo]):
+                        aule[cella] = sua if sua in libere[tipo] else libere[tipo][0]
+                        libere[tipo].remove(aule[cella])
+        return aule
+
 
 def _chiedi(conti, tempo):
     """PASSO 4: i conti al risolutore. Niente da rendere minimo (tutti zeri), tutte le incognite intere, tra 0 e il
@@ -209,9 +253,10 @@ def _buche_a_posto(scuola, orario):
 
 
 def risolvi(scuola, tempo=300):
-    """Cerca un orario per la scuola (scuola.py), in al massimo `tempo` secondi. Ritorna (esito, orario, secondi):
-    l'esito e' TROVATO, IMPOSSIBILE (dimostrato: un orario non esiste) o LIMITE_DI_TEMPO; l'orario, se c'e', ha una
-    voce per cella (-1: ora buca); i secondi sono quelli del risolutore.
+    """Cerca un orario per la scuola (scuola.py), in al massimo `tempo` secondi. Ritorna (esito, orario, aule,
+    secondi): l'esito e' TROVATO, IMPOSSIBILE (dimostrato: un orario non esiste) o LIMITE_DI_TEMPO; l'orario, se c'e',
+    ha una voce per cella (-1: ora buca) e `aule` l'aula di ogni cella (-1: ora buca); i secondi sono quelli del
+    risolutore.
 
     In due tempi, perche' la regola 9 (le ore buche dei docenti) rende molto piu' lento dimostrare che un caso e'
     impossibile:
@@ -219,7 +264,10 @@ def risolvi(scuola, tempo=300):
        la risposta. Se l'orario trovato rispetta per caso anche la regola 9, e' gia' la risposta.
     B. altrimenti da capo, con tutte le regole."""
     partenza = time.time()
-    esito, orario = _chiedi(_Conti(scuola, con_le_buche=False), tempo)                      # A
+    conti = _Conti(scuola, con_le_buche=False)
+    esito, orario = _chiedi(conti, tempo)                                                   # A
     if esito == TROVATO and not _buche_a_posto(scuola, orario):
-        esito, orario = _chiedi(_Conti(scuola), tempo - (time.time() - partenza))           # B
-    return esito, orario, time.time() - partenza
+        conti = _Conti(scuola)
+        esito, orario = _chiedi(conti, tempo - (time.time() - partenza))                    # B
+    aule = conti.aule(orario) if orario else None                                           # passo 6
+    return esito, orario, aule, time.time() - partenza

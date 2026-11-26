@@ -36,6 +36,10 @@ scelta…») non è più in `main`: l'ultima versione è in `stabile/2026-11-26`
   `verifica.py` (e in `DESCRIZIONE.md`). Dal 26 novembre 2026 (richiesta di Alb) c'è la regola 9: un docente ha al
   massimo 2 ore buche al giorno, tra la sua prima e la sua ultima lezione. Con lei dimostrare un caso impossibile
   diventava lentissimo: per questo `esatto.risolvi` chiede prima senza la regola 9 e poi, se serve, con tutte.
+- Materie e aule (26 novembre 2026, richiesta di Alb): ogni lezione ha una materia, un docente può averne più di
+  una, e ogni lezione occupa un'aula del tipo della sua materia (regola 10; tutte le aule sono contate). Il
+  generatore le aggiunge con numeri casuali a parte: classi, docenti, lezioni e ritardi di ogni seme non sono
+  cambiati, e non devono cambiare.
 - `DESCRIZIONE.md` descrive tutto (regole, generatore, metodo, verifica, comandi, ogni pagina e ogni indirizzo del
   sito, i limiti) con il dettaglio per rifare il programma da zero (richiesta di Alb): ogni modifica che cambia una
   di queste cose si riporta anche lì, nello stesso commit.

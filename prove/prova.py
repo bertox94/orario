@@ -33,12 +33,12 @@ def esegui():
     for seme, classi, ritardi in CASI:
         testo = genera.genera(seme, classi, ritardi)             # 1. il caso
         s = scuola.leggi_testo(testo)                            # 2. la scuola
-        esito, orario, _ = esatto.risolvi(s, TEMPO)              # 3. l'orario
+        esito, orario, aule, _ = esatto.risolvi(s, TEMPO)        # 3. l'orario, con le aule
         # il nome del caso e' la chiave in attesi.json
         nome = 'seme %d, %d classi, %s ritardi' % (seme, classi, 'con' if ritardi else 'senza')
         trovati[nome] = {'caso': hashlib.sha256(testo.encode()).hexdigest()[:12], 'esito': esito}
         if orario:                                               # 4. la verifica
-            trovati[nome]['verificato'] = bool(verifica.verifica(s, orario)['ok'])
+            trovati[nome]['verificato'] = bool(verifica.verifica(s, orario, aule)['ok'])
     return trovati
 
 

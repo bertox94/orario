@@ -99,15 +99,16 @@ table.dati form { margin: 0; }
 /* ---- l'orario ---- */
 /* tutte le celle larghe uguali: la tabella e' larga quanto serve e il suo riquadro scorre di lato */
 table.orario { border-collapse: collapse; font-size: 13px; background: var(--carta); width: max-content; }
-table.orario th, table.orario td { border: 1px solid var(--riga); padding: 3px 5px; text-align: center; min-width: 88px;
-  max-width: 88px; }
+table.orario th, table.orario td { border: 1px solid var(--riga); padding: 3px 5px; text-align: center; min-width: 104px;
+  max-width: 104px; }
 table.orario thead th { color: var(--tenue); font-weight: 600; background: var(--sfondo); }
 table.orario th.giorno, table.orario .inizio-giorno { border-left: 2px solid var(--bordo); }
 /* il nome della classe resta fermo a sinistra mentre l'orario scorre di lato */
 table.orario tbody th { position: sticky; left: 0; min-width: 64px; max-width: 64px; background: var(--sfondo); color: var(--tenue); }
-table.orario td { height: 40px; line-height: 16px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-/* in una cella il docente e, sotto e piu' chiaro, il codocente; l'ora buca e' chiara anche lei */
-table.orario td span { display: block; }
+table.orario td { height: 56px; line-height: 16px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+/* in una cella tre righe (la materia, chi insegna, l'aula piu' chiara), ognuna tagliata se non ci sta; l'ora buca
+   e' chiara anche lei */
+table.orario td span { display: block; max-width: 104px; overflow: hidden; text-overflow: ellipsis; }
 table.orario td.buca, table.orario .cod { color: var(--tenue); }
 /* per docente: la colonna dei nomi e' piu' larga; le ore prima dell'ingresso sono grigie */
 table.orario.vista-docenti tbody th { min-width: 104px; max-width: 104px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

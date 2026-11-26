@@ -45,14 +45,17 @@ senza ritardi) e le stesse tre danno sempre la stessa scuola.
 | Parola | Che cosa vuol dire |
 |---|---|
 | cella | Un posto dell'orario: una classe, in un'ora, in un giorno. |
-| voce | Una lezione di una classe: un docente da solo, oppure una coppia (docente e codocente insieme), con le ore che devono fare in una settimana. |
+| voce | Una lezione di una classe: una materia, fatta da un docente da solo oppure da una coppia (docente e codocente insieme), con le ore che devono fare in una settimana. |
+| materia | Quello che si insegna in una lezione. Un docente può insegnare più materie: nella stessa classe sono voci separate. Ogni materia chiede un tipo di aula. |
+| aula | Dove si fa una lezione. Ogni aula ha un tipo (normale, laboratorio, palestra…: un nome qualunque); tutte le aule della scuola sono contate, anche quelle normali. |
 | ora buca | Una cella senza lezione. |
 | ingresso | L'ora (indice, da 0) da cui un docente è a scuola. Prima non può insegnare. Vale per tutti i giorni. |
 | ore obbligatorie | Le prime ore di ogni giorno, che in ogni classe hanno sempre lezione. |
 
 Numerazione. Giorni, ore, classi, docenti e voci sono numerati da 0. La cella di (giorno, ora, classe) ha il numero
 `(giorno × ore + ora) × classi + classe`: le celle sono in ordine di tempo, e dentro la stessa ora in ordine di
-classe. Un orario è un elenco con un numero per cella: il numero di una voce, oppure −1 per l'ora buca.
+classe. Un orario è un elenco con un numero per cella: il numero di una voce, oppure −1 per l'ora buca. Le aule
+dell'orario sono un secondo elenco, anche lui con un numero per cella: l'aula della lezione, oppure −1.
 
 ## 2. La scuola e le regole dell'orario
 
@@ -78,6 +81,11 @@ Le regole di un orario valido:
 9. In un giorno un docente ha al massimo 2 ore buche (`BUCHE_AL_GIORNO`): ore senza lezione tra la sua prima e la
    sua ultima lezione di quel giorno. Le ore prima della prima e dopo l'ultima non contano. (Dal 26 novembre 2026,
    richiesta di Alb.)
+10. Ogni lezione si fa in un'aula del tipo che la sua materia chiede, e in un'aula c'è una classe per volta. (Dal
+    26 novembre 2026, richiesta di Alb.)
+
+Le regole 4 e 5 contano le ore di un docente in una classe sommando tutte le sue voci lì: da solo, in coppia, e di
+tutte le sue materie.
 
 Le regole 4 e 5 contano le ore di un docente in una classe sommando tutte le sue voci lì (da solo e in coppia).
 
@@ -87,10 +95,12 @@ Una scuola, nel programma e nello stato, è scritta così:
 {"giorni": [nomi], "ore": [nomi], "classi": [nomi], "obbligatorie": N,
  "ore_di_seguito": 3, "classi_al_giorno": 3, "buche_al_giorno": 2,
  "docenti": [[nome, ingresso], ...],
- "voci": [[classe, docente, codocente o -1, ore], ...]}
+ "materie": [[nome, tipo di aula], ...], "aule": [[nome, tipo], ...],
+ "voci": [[classe, docente, codocente o -1, ore, materia], ...]}
 ```
 
-Classi e docenti sono numerati nell'ordine in cui compaiono nel file del caso.
+Classi, docenti, materie e aule sono numerati nell'ordine in cui compaiono nel file del caso. Le voci sono in ordine
+di classe, poi di docente, di codocente e di materia.
 
 ## 3. Il file di un caso
 
@@ -101,21 +111,27 @@ si saltano.
 giorni	Lun	Mar	Mer	Gio	Ven	Sab
 ore	08	09	10	11	12	13
 obbligatorie	5
+materia	Italiano	normale
+materia	Scienze	laboratorio
+aula	A01	normale
+aula	Lab 1	laboratorio
 docente	Sirius	0
 docente	Zelda	2
-lezione	C01	4	Sirius
-lezione	C01	2	Sirius	Zelda
+lezione	C01	4	Italiano	Sirius
+lezione	C01	2	Scienze	Sirius	Zelda
 ```
 
 - `giorni` e `ore`: i nomi, nell'ordine.
 - `obbligatorie N`: le prime N ore di ogni giorno hanno sempre lezione (ridotto tra 0 e il numero di ore).
 - `docente NOME INGRESSO`: l'ingresso è l'indice dell'ora (0 = dalla prima). Deve essere un'ora della giornata.
-- `lezione CLASSE ORE DOCENTE [CODOCENTE]`: la classe nasce la prima volta che compare; i docenti devono essere già
-  stati dichiarati; i due di una coppia devono essere diversi; le ore devono essere più di 0. Più righe con la stessa
-  classe e gli stessi docenti si sommano in una voce sola.
+- `materia NOME TIPO`: una materia e il tipo di aula che chiede. `aula NOME TIPO`: un'aula e il suo tipo. Il tipo è un
+  nome qualunque: conta solo che sia scritto uguale.
+- `lezione CLASSE ORE MATERIA DOCENTE [CODOCENTE]`: la classe nasce la prima volta che compare; la materia e i docenti
+  devono essere già stati dichiarati; i due di una coppia devono essere diversi; le ore devono essere più di 0. Più
+  righe con la stessa classe, la stessa materia e gli stessi docenti si sommano in una voce sola.
 
-Il file è rifiutato (con la riga dell'errore) se una riga non si capisce o supera i limiti, o se mancano giorni,
-ore o lezioni.
+Il file è rifiutato (con la riga dell'errore) se una riga non si capisce o supera i limiti, se mancano giorni, ore
+o lezioni, o se per una materia usata in una lezione non c'è nessuna aula del suo tipo.
 
 ## 4. Il generatore dei casi casuali
 
@@ -159,6 +175,22 @@ stanno in `(6 − ingresso) × 6`. Con i ritardi un caso può non avere nessun o
 ordine di indice con il loro ingresso; poi, classe per classe, le lezioni nell'ordine mescolato: per ognuna una riga
 con le ore da solo (`ore − insieme`, se sono più di 0) e una riga con le ore in coppia (`insieme`, se ci sono).
 
+**Le materie e le aule** si aggiungono sopra al caso, con una serie di numeri casuali a parte (stesso generatore,
+seminato con `stato = seme × 0x9E3779B97F4A7C15 + 0x7A5C3E1`): classi, docenti, lezioni e ritardi di ogni seme sono
+quelli che erano prima che materie e aule esistessero (controllato su 672 casi). Nell'ordine:
+1. per ogni docente una cattedra, a caso tra queste quattordici (alcune hanno due materie): Italiano e Storia (due
+   volte nell'elenco, quindi esce il doppio); Matematica e Fisica; Matematica; Inglese; Scienze e Chimica; Scienze
+   motorie; Informatica; Diritto ed Economia; Francese; Arte; Religione; Storia e Filosofia; Tecnologia;
+2. per ogni lezione, nell'ordine (mescolato) in cui il generatore le tiene, una materia a caso della cattedra del suo
+   docente (in coppia: del primo dei due). Le ore da solo e quelle in coppia della stessa lezione hanno la stessa
+   materia;
+3. le aule: una normale per classe (`A01`, `A02`…); poi i laboratori (`Lab 1`…, per Scienze, Chimica, Informatica,
+   Tecnologia) e le palestre (`Palestra 1`…, per Scienze motorie): tanti quante le ore di lezione la settimana che
+   li chiedono, divise per 24 e arrotondate in su.
+
+Nel file si scrivono le materie usate (in ordine di nome) e le aule, prima dei docenti. Con le aule così contate
+nessuno dei 1.032 casi di prova cambia esito: bastano sempre.
+
 **Quando non si riesce.** Con tante classi i docenti sarebbero più di 250 e il caso non si genera: in pratica fino a
 circa 70 classi si riesce, da 75 in su no. Da 84 classi in su è certo (almeno 30 ore per classe vuol dire almeno 3
 docenti per classe) e il programma lo dice subito; tra 75 e 83 fa comunque i suoi 20.000 tentativi, e ci mette una
@@ -184,7 +216,7 @@ dimostra che non esiste.
   «dentro la giornata» del docente quando p e d valgono 1 tutti e due: le ore buche sono quelle dentro la giornata
   senza lezione.
 
-**Le regole** (le nove del capitolo 2), ognuna come una somma che deve stare tra due numeri:
+**Le regole** (le dieci del capitolo 2), ognuna come una somma che deve stare tra due numeri:
 
 | Regola | Come conto |
 |---|---|
@@ -198,13 +230,20 @@ dimostra che non esiste.
 | 7. Le prime ore hanno lezione | b ha massimo 0 nelle ore obbligatorie |
 | 8. Dopo la buca solo buche | `b[h + 1] ≥ b[h]` |
 | 9. Al massimo 2 ore buche al giorno per un docente | `p[h] ≥ lezione in h`, `p[h] ≥ p[h − 1]`; `d[h] ≥ lezione in h`, `d[h] ≥ d[h + 1]`; in un giorno la somma di `p[h] + d[h] − 1 − lezione in h` è al massimo 2 (e almeno −ore, per i giorni senza lezioni). «Lezione in h» è la somma delle x delle voci del docente in quell'ora. |
+| 10. Le aule bastano | per ogni tipo di aula e ogni ora: la somma delle x delle voci che chiedono quel tipo è al massimo il numero delle aule di quel tipo. Si scrive solo se le classi che hanno voci di quel tipo sono più delle aule. |
 
 Non c'è niente da rendere massimo o minimo: si cerca una risposta qualunque che rispetti tutto. Dalla risposta
 all'orario: in ogni cella la voce la cui x vale 1, altrimenti l'ora buca.
 
 **I passaggi**, nell'ordine (`orario/esatto.py`, uno per funzione): si dà un posto a ogni incognita (prima le x, poi
 le b, le c, le p e le d); si scrive una riga per ogni regola; si segnano le incognite che devono valere 0 (regole 3 e 7); si dà
-tutto al risolutore; dalla sua risposta si legge l'orario.
+tutto al risolutore; dalla sua risposta si legge l'orario; a ogni lezione si dà la sua aula.
+
+Le aule non sono incognite: i conti chiedono solo che in ogni ora bastino. Quale aula tocca a ogni lezione si decide
+dopo, ora per ora (passaggio 6): la classe resta nell'aula dove era l'ora prima, se è del tipo giusto e libera;
+altrimenti va nella «sua» (tra le aule di quel tipo, quella con il numero della classe, ricominciando da capo se
+sono meno delle classi), se è libera; altrimenti nella prima libera. Prima si sistemano tutte le classi che restano
+dove erano, poi quelle che trovano libera la loro, poi le altre.
 
 **In due tempi.** La regola 9 rende molto più lento dimostrare che un caso è impossibile (con tutte le regole insieme
 alcuni casi impossibili passavano da pochi secondi a più di 200). Per questo il programma chiede due volte:
@@ -235,7 +274,7 @@ l'ordine in cui sono scritti i conti.
 ## 6. La verifica dell'orario trovato
 
 Quando il programma trova un orario lo ricontrolla subito una parte che **non usa niente del metodo**: legge solo la
-scuola e le celle, e controlla da capo le nove regole del capitolo 2. Per ogni regola dice se è rispettata e, se no,
+scuola e le celle, e controlla da capo le dieci regole del capitolo 2. Per ogni regola dice se è rispettata e, se no,
 il primo punto in cui non lo è (per esempio «Ven 10: Zelda e' in C01 e in C03»). Nello stato finisce sotto
 `verifica`; il sito la mostra in un riquadro. Un orario che non passa la verifica è un errore del programma, e nei
 test notturni è un allarme.
@@ -247,7 +286,7 @@ ore di ogni voce alla fine.
 
 Le regole, nell'ordine in cui compaiono nel risultato: le ore di ogni voce; una classe per volta; l'ingresso; il
 massimo di ore al giorno in una classe; di seguito; il massimo di classi al giorno; le prime ore; dopo la buca;
-le ore buche di un docente.
+le ore buche di un docente; le aule.
 
 La verifica è la stessa che c'era nel programma in C: le due sono state confrontate su 372 orari, 10 validi e 362
 rovinati apposta in vari modi, e danno lo stesso risultato regola per regola, con le stesse frasi.
@@ -264,7 +303,7 @@ python3 -m orario verifica CASO < ORARIO
 |---|---|
 | `genera` | Scrive su stdout un caso casuale (capitolo 4). RITARDI: 1 con, 0 senza. |
 | `risolvi` | Cerca un orario per il caso e scrive lo stato (capitolo 8): su stdout alla fine, oppure in FILE, subito «in corso» e poi il risultato; il file si scrive a parte (`FILE.tmp`) e poi si rinomina, così chi legge trova sempre un file intero. `--tempo`: i secondi a disposizione (300 se non c'è). |
-| `verifica` | Ricontrolla un orario fatto da altri: su stdin un numero per cella (−1: ora buca), nell'ordine delle celle. Scrive `{"orario": [...], "verifica": {...}}`. |
+| `verifica` | Ricontrolla un orario fatto da altri: su stdin un numero per cella (la voce; −1: ora buca), nell'ordine delle celle, e poi un altro numero per cella (l'aula; −1: ora buca). Scrive `{"orario": [...], "aule": [...], "verifica": {...}}`. |
 
 Escono con 0, o con 2 (e una riga su stderr) se il comando non va, il caso non si legge o non si genera, o quello che
 arriva a `verifica` non è un orario di quel caso.
@@ -278,6 +317,7 @@ arriva a `verifica` non è un orario di quel caso.
  "celle": C,
  "scuola": {...},                       come nel capitolo 2
  "orario": [voce | -1, ...],            solo con «trovato»: un numero per cella
+ "aule": [aula | -1, ...],              solo con «trovato»: l'aula di ogni cella
  "verifica": {"ok": 0 | 1, "controlli": [[regola, 0 | 1, dove], ...]}}   solo con «trovato»
 ```
 
@@ -333,18 +373,19 @@ Dall'alto in basso.
   caso entra tra i test notturni).
 - Un messaggio quando un orario non c'è: «Un orario non esiste: il programma lo dimostra…» per «impossibile»; che
   non si sa, per «limite di tempo»; che cosa è successo, per «fermata» e «interrotta».
-- Il riquadro della **verifica**, quando l'orario c'è: «verificato» o «non valido», e le nove regole con ✓ o ✗ e, per
+- Il riquadro della **verifica**, quando l'orario c'è: «verificato» o «non valido», e le dieci regole con ✓ o ✗ e, per
   quelle non rispettate, dove.
 - **L'orario**, con due tasti per scegliere come guardarlo (lo stesso orario; si parte da «Per classe»):
-  - **Per classe**: una riga per classe. In una cella il docente e, sotto e più chiaro, il codocente; «–» per l'ora
-    buca.
-  - **Per docente**: una riga per docente. In una cella la classe dove insegna e, sotto e più chiaro, «con» e il
-    nome dell'altro se sono in due; vuota se è libero; grigie le ore prima del suo ingresso.
+  - **Per classe**: una riga per classe. In una cella tre righe: la materia; chi la insegna (in due: docente e
+    codocente, separati da una virgola); più chiara, l'aula. «–» per l'ora buca.
+  - **Per docente**: una riga per docente. In una cella tre righe: la classe dove insegna e, se sono in due, «con» e
+    il nome dell'altro; la materia; più chiara, l'aula. Vuota se è libero; grigie le ore prima del suo ingresso.
 
   In tutti e due una colonna per ogni ora della settimana, raggruppate per giorno; la colonna dei nomi resta ferma
   mentre si scorre di lato; tutte le celle larghe uguali.
-- **Il caso** (due sezioni chiuse): le classi con le loro ore e le loro lezioni; i docenti con le ore, l'ingresso (se
-  tardi) e le classi.
+- **Il caso** (tre sezioni chiuse): le classi con le loro ore e le loro lezioni (materia, docenti, ore); i docenti
+  con le ore, l'ingresso (se tardi), le materie e le classi; le aule con il tipo e le materie che lo chiedono.
+  Nelle prove fatte prima che ci fossero materie e aule queste mancano, e la sezione delle aule non si vede.
 
 Mentre la prova gira la pagina chiede lo stato ogni secondo.
 
@@ -401,9 +442,11 @@ I tempi non si confrontano: cambiano da una volta all'altra.
 | Che cosa | Valore |
 |---|---|
 | Giorni, ore al giorno, classi, docenti, voci (massimi) | 7, 10, 120, 250, 4000 |
+| Materie, aule (massimi) | 60, 300 |
 | Lunghezza di un nome | al massimo 47 byte |
 | Ore di un docente in una classe in un giorno | al massimo 3, di seguito |
 | Classi di un docente in un giorno | al massimo 3 |
+| Laboratori e palestre dei casi casuali | uno ogni 24 ore di lezione la settimana che li chiedono |
 | Ore buche di un docente in un giorno | al massimo 2 |
 | Casi casuali | 6 giorni × 6 ore, 5 obbligatorie; 30–36 ore per classe; lezioni da 1 a 6 ore; 5–24 ore per docente; ingresso al più alla quarta ora |
 | Tentativi del generatore | 20.000 |

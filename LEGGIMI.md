@@ -32,15 +32,20 @@ Un caso è un file di testo, una riga per cosa, con i campi separati da TAB:
 giorni	Lun	Mar	Mer	Gio	Ven	Sab
 ore	08	09	10	11	12	13
 obbligatorie	5
+materia	Italiano	normale
+materia	Scienze	laboratorio
+aula	A01	normale
+aula	Lab 1	laboratorio
 docente	Sirius	0
 docente	Zelda	2
-lezione	C01	4	Sirius
-lezione	C01	2	Sirius	Zelda
+lezione	C01	4	Italiano	Sirius
+lezione	C01	2	Scienze	Sirius	Zelda
 ```
 
 `obbligatorie`: le prime ore di ogni giorno, che hanno sempre lezione. `docente`: il nome e l'ora (da 0) da cui è a
-scuola. `lezione`: la classe, le ore in una settimana, il docente e, se sono in due, il codocente. Più righe con la
-stessa classe e gli stessi docenti si sommano.
+scuola. `materia` e `aula`: il nome e il tipo di aula (una materia si fa nelle aule del suo tipo). `lezione`: la classe,
+le ore in una settimana, la materia, il docente e, se sono in due, il codocente. Più righe con la stessa classe, la
+stessa materia e gli stessi docenti si sommano.
 
 ## Le regole dell'orario
 
@@ -53,6 +58,7 @@ stessa classe e gli stessi docenti si sommano.
 7. Le prime ore di ogni giorno hanno lezione.
 8. Dopo un'ora buca, quel giorno, la classe ha solo ore buche.
 9. Un docente ha al massimo 2 ore buche al giorno (tra la sua prima e la sua ultima lezione).
+10. Ogni lezione è in un'aula del tipo che la sua materia chiede, e in un'aula c'è una classe per volta.
 
 ## Il sito
 

@@ -1,10 +1,15 @@
-"""La scuola: giorni, ore, classi, docenti e le lezioni da mettere in orario; e la lettura di un caso da file.
+"""La scuola: giorni, ore, classi, docenti, materie, aule e le lezioni da mettere in orario; e la lettura di un caso
+da file.
 
 LE PAROLE
 - cella: un posto dell'orario, cioe' una classe in un'ora di un giorno. Le celle sono numerate un'ora dopo l'altra, e
   dentro l'ora una classe dopo l'altra: (giorno * ore + ora) * classi + classe.
-- voce: una lezione di una classe: un docente da solo, oppure una coppia (docente e codocente insieme), con le ore che
-  devono fare in una settimana. In una cella va una voce, oppure un'ora buca.
+- voce: una lezione di una classe: una materia, fatta da un docente da solo oppure da una coppia (docente e codocente
+  insieme), con le ore che devono fare in una settimana. In una cella va una voce, oppure un'ora buca.
+- materia: quello che si insegna in una lezione. Un docente puo' insegnare piu' materie: nella stessa classe sono voci
+  separate. Ogni materia chiede un tipo di aula (normale, laboratorio, palestra...: un nome qualunque).
+- aula: ogni lezione si fa in un'aula, del tipo che la sua materia chiede. Tutte le aule della scuola sono contate,
+  anche quelle normali.
 - ingresso: l'ora (indice, da 0) da cui un docente e' a scuola; prima non puo' insegnare. Vale per tutti i giorni.
 - ore obbligatorie: le prime ore di ogni giorno, che in ogni classe hanno sempre lezione.
 
@@ -18,31 +23,37 @@ LE REGOLE DI UN ORARIO (le controlla verifica.py; esatto.py le scrive come conti
 7. in ogni classe le prime ore di ogni giorno (le obbligatorie) hanno lezione;
 8. dopo un'ora buca la classe quel giorno non ha piu' lezione;
 9. in un giorno un docente ha al massimo BUCHE_AL_GIORNO ore buche: ore senza lezione tra la sua prima e la sua ultima
-   lezione di quel giorno (le ore prima della prima e dopo l'ultima non contano).
+   lezione di quel giorno (le ore prima della prima e dopo l'ultima non contano);
+10. ogni lezione si fa in un'aula del tipo che la sua materia chiede, e in un'aula c'e' una classe per volta.
 (Le regole 4 e 5 contano le ore di un docente in una classe sommando tutte le sue voci li', da solo e in coppia.)
 
 LA SCUOLA e' un dizionario:
     {"giorni": [nomi], "ore": [nomi], "classi": [nomi], "obbligatorie": N,
      "ore_di_seguito": 3, "classi_al_giorno": 3, "buche_al_giorno": 2,
      "docenti": [[nome, ingresso], ...],
-     "voci": [[classe, docente, codocente o -1, ore], ...]}
-Classi e docenti sono numerati nell'ordine in cui compaiono nel file. Le voci sono in ordine di classe, poi di
-docente, poi di codocente; in una coppia il docente con il numero piu' basso viene per primo, cosi' la stessa coppia
-nella stessa classe e' sempre la stessa voce.
+     "materie": [[nome, tipo di aula], ...], "aule": [[nome, tipo], ...],
+     "voci": [[classe, docente, codocente o -1, ore, materia], ...]}
+Classi, docenti, materie e aule sono numerati nell'ordine in cui compaiono nel file. Le voci sono in ordine di classe,
+poi di docente, di codocente e di materia; in una coppia il docente con il numero piu' basso viene per primo, cosi' la stessa coppia
+nella stessa classe, con la stessa materia, e' sempre la stessa voce.
 
 IL FILE DI UN CASO: testo, una riga per cosa, con i campi separati da TAB (le righe vuote e quelle che cominciano con
 # si saltano):
     giorni  Lun  Mar  ...            i nomi dei giorni, nell'ordine
     ore  08  09  ...                 i nomi delle ore
     obbligatorie  5                  quante prime ore hanno sempre lezione
+    materia  NOME  TIPO              il tipo di aula che la materia chiede
+    aula  NOME  TIPO
     docente  NOME  INGRESSO          l'ingresso e' l'indice dell'ora (0: dalla prima)
-    lezione  CLASSE  ORE  DOCENTE [CODOCENTE]
-Una classe nasce la prima volta che compare in una lezione; i docenti di una lezione devono essere gia' stati
-dichiarati; piu' righe con la stessa classe e gli stessi docenti si sommano in una voce sola.
+    lezione  CLASSE  ORE  MATERIA  DOCENTE [CODOCENTE]
+Una classe nasce la prima volta che compare in una lezione; la materia e i docenti di una lezione devono essere gia'
+stati dichiarati; piu' righe con la stessa classe, la stessa materia e gli stessi docenti si sommano in una voce sola.
+Per ogni materia usata in una lezione ci deve essere almeno un'aula del suo tipo.
 """
 
 # quanto puo' essere grande una scuola: un caso che supera questi numeri viene rifiutato
 MAX_GIORNI, MAX_ORE, MAX_CLASSI, MAX_DOCENTI, MAX_VOCI, MAX_NOME = 7, 10, 120, 250, 4000, 47
+MAX_MATERIE, MAX_AULE = 60, 300
 # le regole della giornata di un docente: ore di seguito in una classe, classi, ore buche
 ORE_DI_SEGUITO, CLASSI_AL_GIORNO, BUCHE_AL_GIORNO = 3, 3, 2
 BUCA = -1   # in una cella dell'orario: l'ora buca
@@ -84,7 +95,8 @@ def leggi_testo(testo, nome='il caso'):
     """La scuola scritta in un testo (il contenuto di un file di un caso). ValueError, con il motivo, se non e'
     scritto bene; `nome` serve solo ai messaggi."""
     giorni, ore, classi, docenti, ingresso, obbligatorie = [], [], [], [], [], 0
-    voci = {}   # (classe, docente, codocente) -> ore
+    materie, tipo_materia, aule, tipo_aula = [], [], [], []
+    voci = {}   # (classe, docente, codocente, materia) -> ore
 
     # PASSO 1: una riga alla volta. La prima parola dice che cosa c'e' nella riga.
     for numero, riga in enumerate(testo.split('\n'), 1):
@@ -99,25 +111,34 @@ def leggi_testo(testo, nome='il caso'):
                 ok = all(_posto(ore, c, MAX_ORE, True) >= 0 for c in campi[1:])
             elif cosa == 'obbligatorie' and n == 2:
                 obbligatorie, ok = int(campi[1]), True
+            elif cosa in ('materia', 'aula') and n == 3:
+                # una materia o un'aula, con il suo tipo (ridichiararla cambia il tipo)
+                nomi, tipi, massimo = (materie, tipo_materia, MAX_MATERIE) if cosa == 'materia' else \
+                                      (aule, tipo_aula, MAX_AULE)
+                i = _posto(nomi, campi[1], massimo, True)
+                ok = i >= 0 and len(campi[2].encode()) <= MAX_NOME
+                if ok:
+                    tipi[i:i + 1] = [campi[2]]
             elif cosa == 'docente' and n == 3:
                 # un docente nuovo, oppure uno gia' visto a cui si cambia l'ingresso
                 t = _posto(docenti, campi[1], MAX_DOCENTI, True)
                 ok = t >= 0
                 if ok:
                     ingresso[t:t + 1] = [int(campi[2])]
-            elif cosa == 'lezione' and n in (4, 5):
-                # classe, ore, docente e forse codocente: i due di una coppia devono essere diversi
+            elif cosa == 'lezione' and n in (5, 6):
+                # classe, ore, materia, docente e forse codocente: i due di una coppia devono essere diversi
                 k = _posto(classi, campi[1], MAX_CLASSI, True)
-                a = _posto(docenti, campi[3], MAX_DOCENTI, False)
-                b = _posto(docenti, campi[4], MAX_DOCENTI, False) if n == 5 else -1
+                m = _posto(materie, campi[3], MAX_MATERIE, False)
+                a = _posto(docenti, campi[4], MAX_DOCENTI, False)
+                b = _posto(docenti, campi[5], MAX_DOCENTI, False) if n == 6 else -1
                 quante = int(campi[2])
-                ok = k >= 0 and a >= 0 and (n == 4 or (b >= 0 and b != a)) and quante > 0
+                ok = k >= 0 and m >= 0 and a >= 0 and (n == 5 or (b >= 0 and b != a)) and quante > 0
                 if ok:
                     if 0 <= b < a:   # la coppia in ordine di numero: e' sempre la stessa voce
                         a, b = b, a
-                    ok = (k, a, b) in voci or len(voci) < MAX_VOCI
+                    ok = (k, a, b, m) in voci or len(voci) < MAX_VOCI
                     if ok:
-                        voci[(k, a, b)] = voci.get((k, a, b), 0) + quante   # righe uguali si sommano
+                        voci[(k, a, b, m)] = voci.get((k, a, b, m), 0) + quante   # righe uguali si sommano
             else:
                 ok = False
         except ValueError:   # dove ci voleva un numero c'e' altro
@@ -125,15 +146,22 @@ def leggi_testo(testo, nome='il caso'):
         if not ok:
             raise ValueError('%s, riga %d: non la capisco, o supera i limiti di scuola.py' % (nome, numero))
 
-    # PASSO 2: il caso deve essere intero, e ogni ingresso deve essere un'ora della giornata
+    # PASSO 2: il caso deve essere intero, ogni ingresso deve essere un'ora della giornata, e per ogni materia che si
+    # insegna ci deve essere almeno un'aula del suo tipo
     if not giorni or not ore or not classi or not voci:
         raise ValueError('%s: mancano giorni, ore o lezioni' % nome)
     for t, docente in enumerate(docenti):
         if not 0 <= ingresso[t] < len(ore):
             raise ValueError('%s: l\'ingresso di %s non e\' un\'ora della giornata' % (nome, docente))
 
-    # PASSO 3: la scuola, con le voci in ordine di classe, docente, codocente
+    for m in sorted({m for (_, _, _, m) in voci}):
+        if tipo_materia[m] not in tipo_aula:
+            raise ValueError('%s: per %s serve un\'aula di tipo «%s», e non ce n\'e\' nessuna'
+                             % (nome, materie[m], tipo_materia[m]))
+
+    # PASSO 3: la scuola, con le voci in ordine di classe, docente, codocente, materia
     return {'giorni': giorni, 'ore': ore, 'classi': classi, 'obbligatorie': max(0, min(obbligatorie, len(ore))),
             'ore_di_seguito': ORE_DI_SEGUITO, 'classi_al_giorno': CLASSI_AL_GIORNO, 'buche_al_giorno': BUCHE_AL_GIORNO,
             'docenti': [[docente, ingresso[t]] for t, docente in enumerate(docenti)],
-            'voci': [[k, a, b, quante] for (k, a, b), quante in sorted(voci.items())]}
+            'materie': [list(x) for x in zip(materie, tipo_materia)], 'aule': [list(x) for x in zip(aule, tipo_aula)],
+            'voci': [[k, a, b, quante, m] for (k, a, b, m), quante in sorted(voci.items())]}

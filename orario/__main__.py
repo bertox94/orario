@@ -7,12 +7,13 @@
         (subito «in corso», poi il risultato; scritto a parte e poi rinominato: chi legge trova sempre un JSON intero)
     python3 -m orario verifica CASO
         ricontrolla un orario fatto da altri (verifica.py): su stdin una voce per cella (-1: ora buca), nell'ordine
-        delle celle; scrive {"orario": [...], "verifica": {...}}
+        delle celle, e poi un'aula per cella (-1: ora buca); scrive {"orario": [...], "aule": [...], "verifica": {...}}
 
 Lo stato:
     {"in_corso": 0 | 1, "esito": "in corso" | "trovato" | "impossibile" | "limite di tempo",
      "secondi": S, "celle": C, "scuola": {...}                      (scuola.py)
      "orario": [voce | -1, ...]                                     con «trovato»: una voce per cella
+     "aule": [aula | -1, ...]                                       con «trovato»: l'aula di ogni cella
      "verifica": {"ok": 0 | 1, "controlli": [[regola, 0 | 1, dove], ...]}}   con «trovato» (verifica.py)
 
 Esce con 0, o con 2 se il comando non va o il caso non si legge o non si genera.
@@ -47,22 +48,23 @@ def _risolvi(caso, file_stato, tempo):
     if file_stato:
         _scrivi(stato, file_stato)
     # 3. l'orario
-    esito, orario, _ = esatto.risolvi(s, tempo)
+    esito, orario, aule, _ = esatto.risolvi(s, tempo)
     stato.update(in_corso=0, esito=esito, secondi=round(time.time() - partenza, 2))
     # 4. l'orario trovato si ricontrolla subito, regola per regola
     if orario:
-        stato.update(orario=orario, verifica=verifica.verifica(s, orario))
+        stato.update(orario=orario, aule=aule, verifica=verifica.verifica(s, orario, aule))
     # 5. lo stato finale
     _scrivi(stato, file_stato)
 
 
 def _verifica(caso):
-    """Il comando «verifica»: l'orario arriva su stdin, un numero per cella."""
+    """Il comando «verifica»: l'orario arriva su stdin: una voce per cella, poi un'aula per cella."""
     s = scuola.leggi(caso)
-    orario = [int(x) for x in sys.stdin.read().split()]
-    if len(orario) != scuola.celle(s) or max(orario) >= len(s['voci']):
-        raise ValueError('quello che arriva non e\' un orario di questo caso')
-    _scrivi({'orario': orario, 'verifica': verifica.verifica(s, orario)})
+    numeri, n = [int(x) for x in sys.stdin.read().split()], scuola.celle(s)
+    orario, aule = numeri[:n], numeri[n:]
+    if len(numeri) != 2 * n or max(orario) >= len(s['voci']):
+        raise ValueError('quello che arriva non e\' un orario di questo caso, con le sue aule')
+    _scrivi({'orario': orario, 'aule': aule, 'verifica': verifica.verifica(s, orario, aule)})
 
 
 def main(argomenti=None):

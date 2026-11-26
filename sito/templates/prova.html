@@ -29,16 +29,23 @@
 <h2>Il caso</h2>
 <details><summary>Le classi e le loro lezioni</summary><div class="scorre"><table class="dati" id="classi"></table></div></details>
 <details><summary>I docenti</summary><div class="scorre"><table class="dati" id="docenti"></table></div></details>
+<details><summary>Le aule</summary><div class="scorre"><table class="dati" id="aule"></table></div></details>
 {% endblock %}
 {% block script %}
 <script>
 const URL_STATO = '{{ url_for('stato', n=i.numero) }}';
 const tabella = document.getElementById('orario');
-let scuola = null;   // giorni, ore, classi, docenti [nome, ingresso], voci [classe, docente, codocente, ore]
+// giorni, ore, classi, docenti [nome, ingresso], materie [nome, tipo di aula], aule [nome, tipo],
+// voci [classe, docente, codocente, ore, materia]
+let scuola = null;
 let orario = null;       // l'orario trovato: una voce per cella (-1: ora buca)
+let aule = null;         // l'aula di ogni cella dell'orario (-1: ora buca)
 let vista = 'classi';    // come si guarda l'orario: una riga per classe, o una riga per docente
 // i nomi dei docenti di una voce
 const nomi = v => scuola.voci[v].slice(1, 3).filter(t => t >= 0).map(t => scuola.docenti[t][0]);
+// la materia di una voce e l'aula di una cella (vuote nelle prove fatte prima che ci fossero materie e aule)
+const materia = v => scuola.materie && scuola.voci[v].length > 4 ? scuola.materie[scuola.voci[v][4]][0] : '';
+const aula = cella => aule && scuola.aule && aule[cella] >= 0 ? scuola.aule[aule[cella]][0] : '';
 
 // ---- lo stato: l'esito, il tempo, e quello che si sa quando il programma ha finito ----
 // (lo stato e' quello che scrive il programma, orario/__main__.py, piu' «gira» aggiunto dal sito)
@@ -55,7 +62,7 @@ function mostraStato(s) {
     disegnaOrario();   // (la griglia; vuota finche' l'orario non c'e')
     disegnaCaso();
   }
-  if (s.orario && scuola && !orario) { orario = s.orario; disegnaOrario(); }
+  if (s.orario && scuola && !orario) { orario = s.orario; aule = s.aule || null; disegnaOrario(); }
   if (s.verifica && document.getElementById('verifica').hidden) mostraVerifica(s.verifica);
   // quando un orario non c'e': perche'
   const perche = {
@@ -83,8 +90,8 @@ function mostraVerifica(v) {
 // Lo stesso orario si guarda in due modi: una riga per classe (in ogni cella chi insegna), o una riga per docente (in
 // ogni cella la classe dove sta). In tutti e due una colonna per ogni ora della settimana.
 const NOTE = {
-  classi: 'Una riga per classe, una colonna per ogni ora della settimana. In una cella il docente e, sotto e più chiaro, il codocente; «–» è un\'ora buca.',
-  docenti: 'Una riga per docente, una colonna per ogni ora della settimana. In una cella la classe dove insegna e, sotto e più chiaro, con chi; vuota se è libero, grigia se non è ancora entrato.',
+  classi: 'Una riga per classe, una colonna per ogni ora della settimana. In una cella la materia, chi la insegna (in due: docente e codocente) e, più chiara, l\'aula; «–» è un\'ora buca.',
+  docenti: 'Una riga per docente, una colonna per ogni ora della settimana. In una cella la classe dove insegna (e con chi, se sono in due), la materia e, più chiara, l\'aula; vuota se è libero, grigia se non è ancora entrato.',
 };
 
 // la griglia vuota della vista scelta: la riga dei giorni, quella delle ore, e una riga per classe o per docente
@@ -107,12 +114,13 @@ function disegnaOrario() {
   disegnaGriglia();
   if (!orario) return;
   const C = scuola.classi.length, O = scuola.ore.length, righe = tabella.tBodies[0].rows;
-  const due = (sopra, sotto) => `<span>${esc(sopra)}</span>` + (sotto ? `<span class="cod">${esc(sotto)}</span>` : '');
+  // una cella: tre righe (la terza piu' chiara); il testo intero si legge fermandosi sopra con il mouse
+  const tre = (...righe) => righe.map((r, i) => `<span class="${i === 2 ? 'cod' : ''}" title="${esc(r)}">${esc(r)}</span>`).join('');
   if (vista === 'classi') {
-    // per classe: in ogni cella il docente e il codocente della voce, o l'ora buca
+    // per classe: in ogni cella la materia, il docente e il codocente della voce, e l'aula; o l'ora buca
     orario.forEach((v, cella) => {
       const td = righe[cella % C].cells[1 + Math.floor(cella / C)];
-      td.innerHTML = v < 0 ? '–' : due(...nomi(v));
+      td.innerHTML = v < 0 ? '–' : tre(materia(v), nomi(v).join(', '), aula(cella));
       td.classList.toggle('buca', v < 0);
     });
     return;
@@ -122,20 +130,21 @@ function disegnaOrario() {
     for (let ora = 0; ora < scuola.giorni.length * O; ora++)
       if (ora % O < ingresso) righe[t].cells[1 + ora].classList.add('non-entrato');
   });
-  // ...poi ogni lezione va nella riga di ognuno dei suoi docenti: la classe e, se sono in due, l'altro
+  // ...poi ogni lezione va nella riga di ognuno dei suoi docenti: la classe (e, se sono in due, l'altro), la
+  // materia e l'aula
   orario.forEach((v, cella) => {
     if (v < 0) return;
     const [, a, b] = scuola.voci[v];
     for (const [t, altro] of [[a, b], [b, a]])
       if (t >= 0) righe[t].cells[1 + Math.floor(cella / C)].innerHTML =
-        due(scuola.classi[cella % C], altro >= 0 ? 'con ' + scuola.docenti[altro][0] : '');
+        tre(scuola.classi[cella % C] + (altro >= 0 ? ' con ' + scuola.docenti[altro][0] : ''), materia(v), aula(cella));
   });
 }
 // i due tasti sopra l'orario cambiano la vista
 for (const b of document.querySelectorAll('#viste button'))
   b.addEventListener('click', () => { vista = b.dataset.vista; if (scuola) disegnaOrario(); });
 
-// ---- il caso: le lezioni di ogni classe e i docenti ----
+// ---- il caso: le lezioni di ogni classe, i docenti e le aule ----
 function disegnaCaso() {
   const {classi, docenti, voci, ore: O} = scuola;
   document.getElementById('classi').innerHTML = '<thead><tr><th>Classe</th><th class="num">Ore</th><th>Lezioni</th></tr></thead><tbody>' +
@@ -143,14 +152,23 @@ function disegnaCaso() {
       // le voci di questa classe, con il loro numero
       const sue = voci.map((v, j) => [v, j]).filter(([v]) => v[0] === i);
       return `<tr><th>${esc(k)}</th><td class="num">${sue.reduce((a, [v]) => a + v[3], 0)}</td><td>` +
-        sue.map(([v, j]) => `<span class="voce">${esc(nomi(j).join(' con '))} <strong>${v[3]}</strong></span>`).join(' ') + '</td></tr>';
+        sue.map(([v, j]) => `<span class="voce">${esc([materia(j), nomi(j).join(' con ')].filter(x => x).join(': '))} <strong>${v[3]}</strong></span>`).join(' ') + '</td></tr>';
     }).join('') + '</tbody>';
-  document.getElementById('docenti').innerHTML = '<thead><tr><th>Docente</th><th class="num">Ore</th><th>Entra</th><th>Classi</th></tr></thead><tbody>' +
+  document.getElementById('docenti').innerHTML = '<thead><tr><th>Docente</th><th class="num">Ore</th><th>Entra</th><th>Materie</th><th>Classi</th></tr></thead><tbody>' +
     docenti.map(([nome, ingresso], t) => {
       const sue = voci.filter(v => v[1] === t || v[2] === t), suClassi = [...new Set(sue.map(v => classi[v[0]]))];
+      // le sue materie: quelle delle lezioni in cui e' il docente (da solo, o in coppia), in ordine di nome
+      const sueMaterie = [...new Set(voci.map((v, j) => [v, j]).filter(([v]) => v[1] === t || v[2] === t).map(([, j]) => materia(j)))].filter(x => x).sort();
       return `<tr><th>${esc(nome)}</th><td class="num">${sue.reduce((a, v) => a + v[3], 0)}</td>` +
-        `<td>${ingresso ? `<span class="tardi">alle ${esc(O[ingresso])}</span>` : ''}</td><td class="nota">${esc(suClassi.join(', '))}</td></tr>`;
+        `<td>${ingresso ? `<span class="tardi">alle ${esc(O[ingresso])}</span>` : ''}</td><td>${esc(sueMaterie.join(', '))}</td>` +
+        `<td class="nota">${esc(suClassi.join(', '))}</td></tr>`;
     }).join('') + '</tbody>';
+  // le aule: il tipo, e le materie che chiedono quel tipo
+  const tabellaAule = document.getElementById('aule');
+  if (!scuola.aule) { tabellaAule.closest('details').hidden = true; return; }
+  tabellaAule.innerHTML = '<thead><tr><th>Aula</th><th>Tipo</th><th>Materie che la usano</th></tr></thead><tbody>' +
+    scuola.aule.map(([nome, tipo]) => `<tr><th>${esc(nome)}</th><td>${esc(tipo)}</td><td class="nota">` +
+      `${esc(scuola.materie.filter(m => m[1] === tipo).map(m => m[0]).join(', '))}</td></tr>`).join('') + '</tbody>';
 }
 
 // ---- mentre la prova gira: lo stato ogni secondo ----
