@@ -1,0 +1,75 @@
+# I test notturni su GitHub: ogni notte i casi casuali con i due metodi insieme (HiGHS e CP-SAT), su macchine di
+# GitHub (gratis per i repository pubblici). Il riepilogo si legge nella scheda «Actions» del repository, aprendo
+# l'ultima esecuzione; i risultati per caso si scaricano da li' (risultati.json). Se un orario non passa la verifica
+# o i due metodi si contraddicono, l'esecuzione risulta fallita e GitHub manda una mail.
+# Si puo' lanciare anche a mano (tasto «Run workflow»), scegliendo semi, classi e secondi per caso.
+name: Test notturni
+
+on:
+  schedule:
+    - cron: '23 1 * * *'        # ogni notte all'1:23 UTC (le 2:23 o le 3:23 in Italia)
+  workflow_dispatch:
+    inputs:
+      semi:
+        description: 'I semi, da-a'
+        default: '0-19'
+      classi:
+        description: 'Le classi, da-a'
+        default: '3-14'
+      tempo:
+        description: 'I secondi per caso'
+        default: '60'
+
+jobs:
+  # i casi, divisi in quattro parti che girano insieme su quattro macchine
+  casi:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        parte: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install scipy ortools
+      - name: I casi della parte ${{ matrix.parte }}
+        run: >
+          python3 prove/notturno.py
+          --semi "${{ inputs.semi || '0-19' }}" --classi "${{ inputs.classi || '3-14' }}"
+          --tempo "${{ inputs.tempo || '60' }}"
+          --parti 4 --parte ${{ matrix.parte }} --esce risultati-${{ matrix.parte }}.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: parte-${{ matrix.parte }}
+          path: risultati-${{ matrix.parte }}.json
+
+  # il riepilogo: mette insieme le quattro parti
+  riepilogo:
+    needs: casi
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: parte-*
+          merge-multiple: true
+      - name: Il riepilogo
+        run: |
+          python3 - <<'PY'
+          import glob, json
+          righe = [r for f in sorted(glob.glob('risultati-*.json')) for r in json.load(open(f))]
+          json.dump(righe, open('risultati.json', 'w'))
+          PY
+          python3 prove/notturno.py --riepilogo risultati.json | tee riepilogo.md >> "$GITHUB_STEP_SUMMARY"
+          exit ${PIPESTATUS[0]}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: risultati
+          path: |
+            risultati.json
+            riepilogo.md

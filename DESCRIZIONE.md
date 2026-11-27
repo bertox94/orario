@@ -28,6 +28,7 @@ Indice
 18. Che cosa c'era prima, e dov'è
 19. Le scuole scritte a mano: le pagine «Scuole»
 20. I due metodi insieme: HiGHS e CP-SAT
+21. I test notturni su GitHub
 
 ---
 
@@ -582,6 +583,8 @@ sito/archivio.py                 la cartella di lavoro e i file JSON
 sito/templates/                  base, indice, prova, scuole, scuola, notturni (HTML, con il loro JavaScript)
 sito/static/stile.css            lo stile
 prove/prova.py, attesi.json      la prova automatica
+prove/notturno.py                i test notturni fuori dal sito (li lancia GitHub ogni notte)
+.github/workflows/notturni.yml   quando e come GitHub li lancia
 LEGGIMI.md                       la presentazione breve
 DESCRIZIONE.md                   questo documento
 CLAUDE.md                        le regole di lavoro su questo repository
@@ -702,4 +705,32 @@ una risposta certa (o che non è installato).
 Come è stato provato: CP-SAT sul Raspberry, dal ramo `prova/cp-sat` (480 casi). Il modello, con un finto risolutore
 che controlla solo le regole: su 3.600 orari rovinati dice la stessa cosa della verifica. Il girare insieme (prima
 risposta, contraddizione, arresto), con un finto OR-Tools a cui risponde HiGHS.
+
+## 21. I test notturni su GitHub
+
+Oltre ai test notturni del sito (capitolo 12), che girano sul Raspberry, ogni notte gli stessi casi girano sulle
+macchine di GitHub (GitHub Actions: gratis per i repository pubblici), anche a Raspberry spento. (Dal 27 novembre
+2026, richiesta di Alb.)
+
+**Che cosa fa** (`.github/workflows/notturni.yml`). Ogni notte all'1:23 UTC, oppure a mano dal tasto «Run workflow»
+della scheda «Actions» (scegliendo semi, classi e secondi per caso): quattro macchine installano scipy e ortools e
+fanno girare ognuna un quarto dei casi; una quinta mette insieme i risultati e scrive il riepilogo. Di norma: semi
+0–19, classi 3–14, senza e con ritardi (480 casi), 60 secondi per caso.
+
+**Lo script** (`prove/notturno.py`). Per ogni caso lancia i due metodi insieme (`orario/insieme.py`) e tiene:
+l'esito, i secondi, chi ha risposto per primo, se l'orario passa la verifica e, per ogni metodo, esito, secondi e
+verifica. `--parti N --parte I` prende un caso ogni N, partendo dall'I-esimo. `--riepilogo FILE…` mette insieme i
+risultati e scrive in Markdown: quanti casi per esito; per ogni metodo in quanti casi ha dato una risposta certa, in
+quanti è stato l'unico, quanti ne ha lasciati al limite e i secondi in tutto; gli allarmi; i casi senza risposta; i
+casi in cui ha risposto uno solo dei due.
+
+**Dove si legge.** Nella scheda «Actions» del repository, aprendo l'ultima esecuzione di «Test notturni»: il
+riepilogo è nella pagina, e in fondo si scaricano `risultati.json` e `riepilogo.md`.
+
+**Gli allarmi.** Un orario che non passa la verifica, o i due metodi che si contraddicono: l'esecuzione risulta
+fallita, e GitHub avvisa per posta.
+
+Questi risultati non compaiono nella pagina «Test notturni» del sito, che legge i file del Raspberry. GitHub
+sospende le esecuzioni a orario dopo 60 giorni senza attività nel repository: basta riattivarle dalla scheda
+«Actions».
 

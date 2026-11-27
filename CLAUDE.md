@@ -20,6 +20,9 @@ tutto in Python», e la ricerca in C «toglila da main»). Vedi `LEGGIMI.md` e, 
   soltanto: genera i casi con `orario.genera` e lancia `python3 -m orario risolvi` in un processo a parte
   (`programma.py`). Una cosa alla volta: una prova o un giro.
 - `prove/prova.py`: la prova automatica (caso generato, esito e verifica su 54 casi).
+- `prove/notturno.py` e `.github/workflows/notturni.yml` (27 novembre 2026, richiesta di Alb): ogni notte GitHub fa
+  girare 480 casi con i due metodi sulle sue macchine (gratis: il repository è pubblico) e scrive il riepilogo
+  nella scheda «Actions». È il solo posto, oltre al Raspberry, dove gira il vero CP-SAT.
 - `bf_search/`: SQL di Alb, da non toccare senza chiedere.
 
 La ricerca in C (un'ora alla volta, i controlli A–G, i passi su file, i ritorni, «Continua», «Cambia questa

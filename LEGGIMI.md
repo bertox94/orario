@@ -19,6 +19,8 @@ ogni pagina del sito, i limiti), è in `DESCRIZIONE.md`.
   - `__main__.py`: i comandi.
 - `sito/`: il sito (Flask), con le prove e i test notturni. Non calcola niente: lancia il programma e mostra.
 - `prove/prova.py`: la prova automatica.
+- `prove/notturno.py` e `.github/workflows/notturni.yml`: i test notturni che GitHub lancia ogni notte sulle sue
+  macchine, con i due metodi; il riepilogo si legge nella scheda «Actions» del repository.
 
 ## Usarlo a mano
 
