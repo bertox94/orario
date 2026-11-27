@@ -1,254 +1,248 @@
 {
  "seme 0, 3 classi, senza ritardi": {
-  "caso": "bd8415f3c365",
+  "caso": "e5d3134fa1dd",
   "esito": "trovato",
   "verificato": true
  },
  "seme 0, 3 classi, con ritardi": {
-  "caso": "cefd281f54a2",
+  "caso": "92f695ac9206",
   "esito": "trovato",
   "verificato": true
  },
  "seme 0, 5 classi, senza ritardi": {
-  "caso": "abb53ac9c771",
+  "caso": "0d5d9f41dc89",
   "esito": "trovato",
   "verificato": true
  },
  "seme 0, 5 classi, con ritardi": {
-  "caso": "e3dec98f8af9",
+  "caso": "65fd3797f004",
   "esito": "impossibile"
  },
  "seme 0, 8 classi, senza ritardi": {
-  "caso": "ecc176372ae7",
-  "esito": "trovato",
-  "verificato": true
+  "caso": "51c7649b1114",
+  "esito": "limite di tempo"
  },
  "seme 0, 8 classi, con ritardi": {
-  "caso": "8a36bb8af226",
+  "caso": "8fa2792b046d",
   "esito": "impossibile"
  },
  "seme 0, 12 classi, senza ritardi": {
-  "caso": "8a8eeb28b98c",
+  "caso": "d6e8f3391023",
   "esito": "trovato",
   "verificato": true
  },
  "seme 0, 12 classi, con ritardi": {
-  "caso": "0d0de0720e64",
+  "caso": "a06bd02e3b9b",
   "esito": "impossibile"
  },
  "seme 1, 3 classi, senza ritardi": {
-  "caso": "eb10f4f346a1",
+  "caso": "8b1a8c085f15",
   "esito": "trovato",
   "verificato": true
  },
  "seme 1, 3 classi, con ritardi": {
-  "caso": "2a6307db190f",
+  "caso": "1a0807939e62",
   "esito": "trovato",
   "verificato": true
  },
  "seme 1, 5 classi, senza ritardi": {
-  "caso": "070bb5da9a0f",
+  "caso": "4429f4b9b9d5",
   "esito": "trovato",
   "verificato": true
  },
  "seme 1, 5 classi, con ritardi": {
-  "caso": "acb5c1e4c5f0",
+  "caso": "b675efd14bf3",
   "esito": "impossibile"
  },
  "seme 1, 8 classi, senza ritardi": {
-  "caso": "59b3ee9e539d",
+  "caso": "c0f4cc22af3d",
   "esito": "trovato",
   "verificato": true
  },
  "seme 1, 8 classi, con ritardi": {
-  "caso": "aef2f9b78072",
+  "caso": "6d99f6776126",
   "esito": "impossibile"
  },
  "seme 1, 12 classi, senza ritardi": {
-  "caso": "195192efc9d9",
-  "esito": "trovato",
-  "verificato": true
+  "caso": "43a7f7d8dbbe",
+  "esito": "limite di tempo"
  },
  "seme 1, 12 classi, con ritardi": {
-  "caso": "950a1f997cdc",
+  "caso": "cdc9f5d2ff2d",
   "esito": "limite di tempo"
  },
  "seme 2, 3 classi, senza ritardi": {
-  "caso": "ae93bc2a6239",
+  "caso": "b570ff9b4d72",
   "esito": "trovato",
   "verificato": true
  },
  "seme 2, 3 classi, con ritardi": {
-  "caso": "634b19d3c985",
+  "caso": "16fd00d4012a",
   "esito": "trovato",
   "verificato": true
  },
  "seme 2, 5 classi, senza ritardi": {
-  "caso": "4f7c923eddb3",
+  "caso": "01b0f6b5cb5f",
   "esito": "trovato",
   "verificato": true
  },
  "seme 2, 5 classi, con ritardi": {
-  "caso": "8d1d71351705",
+  "caso": "a04c57256c56",
   "esito": "trovato",
   "verificato": true
  },
  "seme 2, 8 classi, senza ritardi": {
-  "caso": "2f7741fdaaec",
+  "caso": "bede09365d98",
   "esito": "trovato",
   "verificato": true
  },
  "seme 2, 8 classi, con ritardi": {
-  "caso": "0e2a57c3af51",
+  "caso": "4b27e3399cb0",
   "esito": "trovato",
   "verificato": true
  },
  "seme 2, 12 classi, senza ritardi": {
-  "caso": "113f32b422fd",
+  "caso": "eaeee98457a4",
   "esito": "trovato",
   "verificato": true
  },
  "seme 2, 12 classi, con ritardi": {
-  "caso": "ae19b09e1baf",
+  "caso": "4ceb0b70fac2",
   "esito": "impossibile"
  },
  "seme 3, 3 classi, senza ritardi": {
-  "caso": "64a8d6b509f3",
+  "caso": "5a4d3d902506",
   "esito": "trovato",
   "verificato": true
  },
  "seme 3, 3 classi, con ritardi": {
-  "caso": "20590b16aaed",
-  "esito": "trovato",
-  "verificato": true
+  "caso": "028175626228",
+  "esito": "limite di tempo"
  },
  "seme 3, 5 classi, senza ritardi": {
-  "caso": "200e580e873f",
+  "caso": "f24da505bf18",
   "esito": "trovato",
   "verificato": true
  },
  "seme 3, 5 classi, con ritardi": {
-  "caso": "c31cc0ab436e",
+  "caso": "025aad1e0e08",
   "esito": "trovato",
   "verificato": true
  },
  "seme 3, 8 classi, senza ritardi": {
-  "caso": "4c81aaa8a6f3",
+  "caso": "a9a6a1628e1e",
   "esito": "trovato",
   "verificato": true
  },
  "seme 3, 8 classi, con ritardi": {
-  "caso": "71b8886c6341",
+  "caso": "5e5e9fb4b8d6",
   "esito": "impossibile"
  },
  "seme 3, 12 classi, senza ritardi": {
-  "caso": "5dc5d4694d9b",
+  "caso": "be1e0fffcfc8",
   "esito": "limite di tempo"
  },
  "seme 3, 12 classi, con ritardi": {
-  "caso": "eec50b4c36d5",
+  "caso": "6e3ff98568c1",
   "esito": "impossibile"
  },
  "seme 4, 3 classi, senza ritardi": {
-  "caso": "69e552479066",
+  "caso": "b05d47e8d45a",
   "esito": "trovato",
   "verificato": true
  },
  "seme 4, 3 classi, con ritardi": {
-  "caso": "17f39c31886c",
+  "caso": "6aa9c8160e46",
   "esito": "impossibile"
  },
  "seme 4, 5 classi, senza ritardi": {
-  "caso": "eb350c209f3b",
+  "caso": "04ea0b6204ae",
   "esito": "trovato",
   "verificato": true
  },
  "seme 4, 5 classi, con ritardi": {
-  "caso": "99d5e09101e0",
+  "caso": "072a329e16f2",
   "esito": "impossibile"
  },
  "seme 4, 8 classi, senza ritardi": {
-  "caso": "f31597a5a453",
+  "caso": "70748941b988",
   "esito": "trovato",
   "verificato": true
  },
  "seme 4, 8 classi, con ritardi": {
-  "caso": "9b277df40250",
+  "caso": "3961aeacebb6",
   "esito": "trovato",
   "verificato": true
  },
  "seme 4, 12 classi, senza ritardi": {
-  "caso": "9c1f316600b4",
+  "caso": "8d5e17a56cdb",
   "esito": "trovato",
   "verificato": true
  },
  "seme 4, 12 classi, con ritardi": {
-  "caso": "565d6e739b9b",
+  "caso": "8148be63f872",
   "esito": "impossibile"
  },
  "seme 5, 3 classi, senza ritardi": {
-  "caso": "2bf58296fe6d",
+  "caso": "f41ba73ecd2e",
   "esito": "trovato",
   "verificato": true
  },
  "seme 5, 3 classi, con ritardi": {
-  "caso": "0d1d0eccb8f6",
+  "caso": "1746205c8118",
   "esito": "trovato",
   "verificato": true
  },
  "seme 5, 5 classi, senza ritardi": {
-  "caso": "1a81c36f3d17",
+  "caso": "03dadd32933c",
   "esito": "trovato",
   "verificato": true
  },
  "seme 5, 5 classi, con ritardi": {
-  "caso": "35a5f31d03ef",
+  "caso": "0b2ed9d4b54b",
   "esito": "impossibile"
  },
  "seme 5, 8 classi, senza ritardi": {
-  "caso": "603b45be16c7",
+  "caso": "7c2d1ceae682",
   "esito": "trovato",
   "verificato": true
  },
  "seme 5, 8 classi, con ritardi": {
-  "caso": "d6875dce1a5e",
-  "esito": "trovato",
-  "verificato": true
+  "caso": "505e2ad2b171",
+  "esito": "limite di tempo"
  },
  "seme 5, 12 classi, senza ritardi": {
-  "caso": "d76756faa4c1",
+  "caso": "ed85279343d9",
   "esito": "trovato",
   "verificato": true
  },
  "seme 5, 12 classi, con ritardi": {
-  "caso": "d93f5f534bf3",
+  "caso": "91a07afc72f3",
   "esito": "impossibile"
  },
  "seme 10, 3 classi, con ritardi": {
-  "caso": "edcc616fc861",
+  "caso": "ce124742fb59",
   "esito": "trovato",
   "verificato": true
  },
  "seme 37, 3 classi, con ritardi": {
-  "caso": "507f998d6f67",
-  "esito": "trovato",
-  "verificato": true
- },
- "seme 4, 7 classi, con ritardi": {
-  "caso": "d62494cb4249",
+  "caso": "81e0c3237b76",
   "esito": "impossibile"
  },
+ "seme 4, 7 classi, con ritardi": {
+  "caso": "a58bac1ed859",
+  "esito": "limite di tempo"
+ },
  "seme 1, 14 classi, con ritardi": {
-  "caso": "2d10b86aa668",
+  "caso": "7a55668c3e4b",
   "esito": "limite di tempo"
  },
  "seme 2, 20 classi, senza ritardi": {
-  "caso": "230cfdebe033",
-  "esito": "trovato",
-  "verificato": true
+  "caso": "95bd0e220b18",
+  "esito": "limite di tempo"
  },
  "seme 3, 30 classi, con ritardi": {
-  "caso": "a273eb46262a",
+  "caso": "3b6de73b20bf",
   "esito": "trovato",
   "verificato": true
  }

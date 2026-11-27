@@ -7,7 +7,7 @@ pagina mostra e modifica, con i nomi scritti per esteso (non i numeri che usa il
      "materie": [[nome, tipo di aula], ...], "aule": [[nome, tipo], ...],
      "docenti": [[nome, ingresso, uscita, giorno libero], ...]
          ingresso e uscita sono indici di ore (insegna nelle ore da `ingresso` a `uscita - 1`); il giorno libero e' il
-         nome di un giorno, "qualunque" (lo sceglie il programma) o "nessuno"
+         nome di un giorno, o "qualunque" (lo sceglie il programma): ogni docente ne ha uno
      "lezioni": [[classe, materia, docente, codocente o "", ore], ...]}
 
 Il percorso:
@@ -39,7 +39,7 @@ def vuota():
 def da_testo(testo):
     """I dati di una scuola dal testo di un caso (per partire da un caso casuale)."""
     s = _scuola.leggi_testo(testo)
-    giorno = {_scuola.NESSUNO: 'nessuno', _scuola.QUALUNQUE: 'qualunque', **dict(enumerate(s['giorni']))}
+    giorno = {_scuola.QUALUNQUE: 'qualunque', **dict(enumerate(s['giorni']))}
     nome = [d[0] for d in s['docenti']]
     return {'giorni': s['giorni'], 'ore': s['ore'], 'obbligatorie': s['obbligatorie'], 'materie': s['materie'],
             'aule': s['aule'], 'docenti': [[d[0], d[1], d[2], giorno[d[3]]] for d in s['docenti']],
@@ -96,7 +96,7 @@ def problemi(dati):
     for nome, entra, esce, libero in dati['docenti']:
         if not 0 <= entra < esce <= len(ore):
             p.append('%s: l\'uscita deve venire dopo l\'entrata.' % (nome or 'Un docente'))
-        if libero not in giorni and libero not in ('nessuno', 'qualunque'):
+        if libero not in giorni and libero != 'qualunque':
             p.append('%s: il giorno libero «%s» non è un giorno.' % (nome or 'Un docente', libero))
     # le lezioni: classe, materia e docenti che esistono, due docenti diversi, almeno un'ora
     materie = {m[0] for m in dati['materie']}
@@ -139,7 +139,13 @@ def testo(dati):
 
 def scuola(numero):
     """Una scuola ({"numero", "nome", "modificata", "dati"}), o None se non c'e'."""
-    return archivio.leggi(_file(numero))
+    s = archivio.leggi(_file(numero))
+    if s:
+        # una scuola salvata quando un docente poteva non avere il giorno libero: «nessuno» diventa «qualunque»
+        for docente in s['dati']['docenti']:
+            if docente[3] == 'nessuno':
+                docente[3] = 'qualunque'
+    return s
 
 
 def tutte():

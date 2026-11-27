@@ -8,7 +8,7 @@ LE INCOGNITE, tutte 0 o 1:
 - x[v, g, h]      la voce v e' nell'ora h del giorno g (nella sua classe);
 - b[k, g, h]      la classe k in quell'ora ha l'ora buca;
 - c[t, k, g, h]   il docente t COMINCIA a insegnare nella classe k in quell'ora (nell'ora prima non c'era);
-- f[t, g]         il giorno g e' il giorno libero del docente t (solo per chi ne ha «uno qualunque»).
+- f[t, g]         il giorno g e' il giorno libero del docente t (solo per chi non ne ha uno preciso).
 
 LE REGOLE (le otto di scuola.py), ognuna come somme che devono stare tra due numeri:
 1. le ore: la somma delle x di una voce nella settimana fa le sue ore; e ogni cella ha una cosa sola: la somma delle
@@ -16,8 +16,8 @@ LE REGOLE (le otto di scuola.py), ognuna come somme che devono stare tra due num
 2. una classe per volta: la somma delle x delle voci di un docente, in un'ora, fa al massimo 1;
 3. a scuola: le x di una voce prima dell'ingresso dei suoi docenti, dalla loro uscita in poi e nel loro giorno libero
    preciso non possono valere 1 (il loro massimo e' 0). Chi ha un giorno libero qualunque: la somma delle sue f nella
-   settimana e' almeno 1, e in ogni ora (lezione in quell'ora) + f del giorno e' al massimo 1: nel giorno scelto come
-   libero non puo' avere lezione;
+   settimana fa 1 (ne segna uno), e in ogni giorno (lezioni del giorno) + L * f del giorno e' al massimo L: nel
+   giorno segnato come libero non puo' avere lezione (e' la riga delle ore di lezione della regola 6, con f in piu');
 4. in una classe: la somma delle x del docente in quella classe quel giorno e' al massimo N; e sono di seguito:
    c >= (c'e' adesso) - (c'era prima), e in un giorno comincia al massimo una volta;
 5. le classi: gli inizi del docente in un giorno, in tutte le classi, sono al massimo M (in ogni classe comincia al
@@ -151,19 +151,19 @@ class _Conti:
                 for g in range(G):
                     regola([(c(coppia, g, h), 1) for coppia in sue for h in range(O)],
                            0, self.scuola['classi_al_giorno'])
-        # regola 6: le ore di lezione di un docente in un giorno, in tutte le classi (se la giornata e' piu' corta del
-        # massimo la regola non puo' essere violata)
-        if self.scuola['lezioni_al_giorno'] < O:
-            for t in range(T):
+        # regola 6, le ore di lezione di un docente in un giorno, in tutte le classi: al massimo `lezioni`. E regola 3,
+        # il giorno libero qualunque, nella stessa riga: se f dice che il giorno e' libero, le lezioni sono zero
+        # (lezioni del giorno + lezioni * f <= lezioni), e di giorni liberi il docente ne segna uno solo.
+        # (Una riga per giorno invece di una per ora: sono meno righe, e il risolutore non va peggio.)
+        lezioni = min(self.scuola['lezioni_al_giorno'], O)
+        for t in range(T):
+            libero = t in self.inizio_f
+            if lezioni < O or libero:   # (con giornate corte e senza giorno da scegliere non c'e' niente da chiedere)
                 for g in range(G):
-                    regola([(x(v, g, h), 1) for v in voci_del_docente[t] for h in range(O)],
-                           0, self.scuola['lezioni_al_giorno'])
-        # regola 3, per chi ha un giorno libero qualunque: almeno un giorno e' libero, e in quel giorno niente lezioni
-        for t in self.con_un_libero:
-            regola([(self.f(t, g), 1) for g in range(G)], 1, G)
-            for g in range(G):
-                for h in range(O):
-                    regola([(x(v, g, h), 1) for v in voci_del_docente[t]] + [(self.f(t, g), 1)], 0, 1)
+                    regola([(x(v, g, h), 1) for v in voci_del_docente[t] for h in range(O)]
+                           + ([(self.f(t, g), lezioni)] if libero else []), 0, lezioni)
+            if libero:
+                regola([(self.f(t, g), 1) for g in range(G)], 1, 1)
         # regola 6: le ore buche di un docente in un giorno. `lezione[h]` sono i termini della somma «ha lezione
         # nell'ora h». Per ogni coppia di ore a < b, due righe (vedi in cima):
         buche, minime = self.scuola['buche_al_giorno'], self.scuola['ore_per_una_buca']

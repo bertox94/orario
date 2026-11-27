@@ -22,20 +22,20 @@ sys.path.insert(0, RADICE)
 from orario import esatto, genera, scuola, verifica   # noqa: E402 (dopo aver detto dove sta il programma)
 
 ATTESI = os.path.join(RADICE, 'prove', 'attesi.json')
-TEMPO = 60    # i secondi che ogni caso ha (con --aggiorna: 300, per avere piu' risposte certe)
+TEMPO = 60    # i secondi che ogni caso ha
 # i casi: una griglia piccola (semi, classi, con e senza ritardi) e alcuni casi scelti: i due piu' grandi, due che la
 # ricerca di prima non risolveva, e uno impossibile che la ricerca di prima non riusciva a dimostrare
 CASI = [(seme, classi, ritardi) for seme in range(6) for classi in (3, 5, 8, 12) for ritardi in (0, 1)] + \
        [(10, 3, 1), (37, 3, 1), (4, 7, 1), (1, 14, 1), (2, 20, 0), (3, 30, 1)]
 
 
-def esegui(tempo):
+def esegui():
     """Per ogni caso: lo genera, lo legge, ne cerca l'orario e lo verifica. Ritorna {nome del caso: risultato}."""
     trovati = {}
     for seme, classi, ritardi in CASI:
         testo = genera.genera(seme, classi, ritardi)             # 1. il caso
         s = scuola.leggi_testo(testo)                            # 2. la scuola
-        esito, orario, aule, _ = esatto.risolvi(s, tempo)        # 3. l'orario, con le aule
+        esito, orario, aule, _ = esatto.risolvi(s, TEMPO)        # 3. l'orario, con le aule
         # il nome del caso e' la chiave in attesi.json
         nome = 'seme %d, %d classi, %s ritardi' % (seme, classi, 'con' if ritardi else 'senza')
         trovati[nome] = {'caso': hashlib.sha256(testo.encode()).hexdigest()[:12], 'esito': esito}
@@ -46,7 +46,7 @@ def esegui(tempo):
 
 def main():
     # i risultati di adesso; un orario che non passa la verifica si dice comunque
-    trovati = esegui(300 if '--aggiorna' in sys.argv else TEMPO)
+    trovati = esegui()
     non_validi = [k for k, v in trovati.items() if v.get('verificato') is False]
     for k in non_validi:
         print('NON VALIDO  %s: l\'orario trovato non passa la verifica' % k)

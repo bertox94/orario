@@ -45,7 +45,7 @@
 <script>
 const URL_STATO = '{{ url_for('stato', n=i.numero) }}';
 const tabella = document.getElementById('orario');
-// giorni, ore, classi, docenti [nome, ingresso, uscita, giorno libero (-1 nessuno, -2 uno qualunque)], materie [nome, tipo di aula], aule [nome, tipo],
+// giorni, ore, classi, docenti [nome, ingresso, uscita, giorno libero (un giorno, o -2: uno qualunque)], materie [nome, tipo di aula], aule [nome, tipo],
 // voci [classe, docente, codocente, ore, materia]
 let scuola = null;
 let orario = null;       // l'orario trovato: una voce per cella (-1: ora buca)
@@ -167,9 +167,9 @@ function disegnaCaso() {
     }).join('') + '</tbody>';
   document.getElementById('docenti').innerHTML = '<thead><tr><th>Docente</th><th class="num">Ore</th><th>A scuola</th><th>Materie</th><th>Classi</th></tr></thead><tbody>' +
     docenti.map(([nome, ingresso, uscita = O.length, libero = -1], t) => {
-      // quando c'e': solo quello che non e' «sempre» (entra tardi, esce presto, ha un giorno libero)
+      // quando c'e': solo quello che non e' «sempre» (entra tardi, esce presto, ha un giorno libero preciso)
       const quando = [ingresso ? 'dalle ' + O[ingresso] : '', uscita < O.length ? 'fino alle ' + O[uscita - 1] : '',
-        libero >= 0 ? 'libero ' + scuola.giorni[libero] : libero === -2 ? 'un giorno libero' : ''].filter(x => x);
+        libero >= 0 ? 'libero ' + scuola.giorni[libero] : ''].filter(x => x);
       const sue = voci.filter(v => v[1] === t || v[2] === t), suClassi = [...new Set(sue.map(v => classi[v[0]]))];
       // le sue materie: quelle delle lezioni in cui e' il docente (da solo, o in coppia), in ordine di nome
       const sueMaterie = [...new Set(voci.map((v, j) => [v, j]).filter(([v]) => v[1] === t || v[2] === t).map(([, j]) => materia(j)))].filter(x => x).sort();

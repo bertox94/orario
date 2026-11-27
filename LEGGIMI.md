@@ -43,7 +43,7 @@ lezione	C01	2	Scienze	Sirius	Zelda
 ```
 
 `obbligatorie`: le prime ore di ogni giorno, che hanno sempre lezione. `docente`: il nome, l'ora (da 0) da cui è a
-scuola e, se servono, l'ora da cui non c'è più e il giorno libero (un giorno, `qualunque` o `nessuno`). `materia` e `aula`: il nome e il tipo di aula (una materia si fa nelle aule del suo tipo). `lezione`: la classe,
+scuola e, se servono, l'ora da cui non c'è più e il giorno libero (un giorno, o `qualunque`: ogni docente ne ha uno). `materia` e `aula`: il nome e il tipo di aula (una materia si fa nelle aule del suo tipo). `lezione`: la classe,
 le ore in una settimana, la materia, il docente e, se sono in due, il codocente. Più righe con la stessa classe, la
 stessa materia e gli stessi docenti si sommano.
 
@@ -52,7 +52,7 @@ stessa materia e gli stessi docenti si sommano.
 1. **Le ore.** Ogni voce fa esattamente le sue ore.
 2. **Una classe per volta.** Un docente è in una classe per volta.
 3. **A scuola.** Un docente insegna solo quando è a scuola: dopo il suo ingresso, prima della sua uscita, non nel
-   suo giorno libero (un giorno preciso, o uno qualunque scelto dal programma).
+   suo giorno libero. Ogni docente ne ha uno: un giorno preciso, o uno qualunque scelto dal programma.
 4. **In una classe.** Un docente fa al massimo 3 ore al giorno nella stessa classe, e le fa di seguito.
 5. **Le classi.** Un docente va al massimo in 3 classi al giorno.
 6. **La giornata del docente.** Al massimo 5 ore di lezione al giorno. Ore buche (tra la sua prima e la sua ultima

@@ -65,13 +65,13 @@ const tabella = (intestazioni, righe, aggiungi) => (righe.length ? '<div class="
 // Di ognuna: la spiegazione, le righe che modifica, la riga nuova, e come si disegna.
 const SEZIONI = {
   docenti: {
-    spiegazione: 'Per ogni docente: da che ora è a scuola, dopo che ora esce (valgono per tutti i giorni) e il suo giorno libero. «Uno qualunque»: il giorno libero lo sceglie il programma. Le ore sono quelle delle sue lezioni (sezione «Lezioni»); un docente fa al massimo {{ lezioni_al_giorno }} ore di lezione al giorno.',
+    spiegazione: 'Per ogni docente: da che ora è a scuola, dopo che ora esce (valgono per tutti i giorni) e il suo giorno libero. Ogni docente ha un giorno libero: con «uno qualunque» lo sceglie il programma. Le ore sono quelle delle sue lezioni (sezione «Lezioni»); un docente fa al massimo {{ lezioni_al_giorno }} ore di lezione al giorno.',
     righe: () => dati.docenti,
-    nuova: () => ['', 0, dati.ore.length, 'nessuno'],
+    nuova: () => ['', 0, dati.ore.length, 'qualunque'],
     disegna() {
       const entra = dati.ore.map((o, h) => [h, 'dalle ' + o]);
       const esce = dati.ore.map((o, h) => [h + 1, h + 1 === dati.ore.length ? 'alla fine' : 'dopo le ' + o]);
-      const libero = [['nessuno', 'nessuno'], ['qualunque', 'uno qualunque'], ...dati.giorni.map(g => [g, g])];
+      const libero = [['qualunque', 'uno qualunque'], ...dati.giorni.map(g => [g, g])];
       return tabella(['Docente', 'Entra', 'Esce', 'Giorno libero', 'Ore'], dati.docenti.map(([nome, a, b, g], i) =>
         `<tr><td>${campo(i, 0, nome)}</td><td>${scelta(i, 1, a, entra)}</td><td>${scelta(i, 2, b, esce)}</td>` +
         `<td>${scelta(i, 3, g, libero)}</td><td class="num" data-conto="${i}">${contoDocente(i)}</td><td>${togli(i)}</td></tr>`),
@@ -123,7 +123,7 @@ const SEZIONI = {
 function contoDocente(i) {
   const [nome, entra, esce, libero] = dati.docenti[i], ore = oreDocente(nome);
   // le ore che puo' fare: in ogni giorno quelle in cui e' a scuola, ma non piu' del massimo di lezioni al giorno
-  const posti = Math.min(esce - entra, LEZIONI_AL_GIORNO) * (dati.giorni.length - (libero !== 'nessuno'));
+  const posti = Math.min(esce - entra, LEZIONI_AL_GIORNO) * (dati.giorni.length - 1);
   return ore > posti ? `<span class="avviso" title="Può fare al massimo ${posti} ore la settimana">${ore} su ${posti}</span>` : String(ore);
 }
 // nelle lezioni: le ore della classe scelta, e quante devono essere
@@ -189,8 +189,8 @@ function settimanaCambiata() {
     // chi usciva alla fine esce ancora alla fine; entrata e uscita restano dentro la giornata
     if (d[2] === orePrima || d[2] > dati.ore.length) d[2] = dati.ore.length;
     if (d[1] >= d[2]) d[1] = 0;
-    // un giorno libero che non c'e' piu' diventa «nessuno»
-    if (!['nessuno', 'qualunque', ...dati.giorni].includes(d[3])) d[3] = 'nessuno';
+    // un giorno libero che non c'e' piu' diventa «uno qualunque»
+    if (!['qualunque', ...dati.giorni].includes(d[3])) d[3] = 'qualunque';
   }
   modificato();
 }
