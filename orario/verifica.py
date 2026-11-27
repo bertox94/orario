@@ -6,7 +6,7 @@ una cella (prime ore, ora buca, ingresso e uscita, giorno libero preciso, una cl
 li'; quello che riguarda la giornata di un docente (le ore in una classe e se sono di seguito, le classi, le ore di
 lezione, le ore buche) alla fine di ogni giorno; il giorno libero qualunque e le ore di ogni voce alla fine.
 """
-from .scuola import QUALUNQUE, docenti_della_voce
+from .scuola import QUALUNQUE, buche_consentite, docenti_della_voce
 
 # le otto regole (scuola.py), nell'ordine in cui compaiono nel risultato
 ORE, UNA_CLASSE_PER_VOLTA, A_SCUOLA, IN_UNA_CLASSE, CLASSI, GIORNATA_DEL_DOCENTE, GIORNATA_DELLA_CLASSE, AULE = range(8)
@@ -114,11 +114,16 @@ def verifica(scuola, orario, aule):
             if len(sue_ore) > scuola['lezioni_al_giorno']:
                 non_rispettata(GIORNATA_DEL_DOCENTE, '%s, %s: %d ore di lezione, il massimo e\' %d' % (
                     docenti[t][0], giorni[g], len(sue_ore), scuola['lezioni_al_giorno']))
-            # le ore buche: tra la prima e l'ultima lezione del giorno, le ore in cui non insegna
+            # le ore buche: tra la prima e l'ultima lezione del giorno, le ore in cui non insegna. Non piu' del
+            # massimo; e chi fa il massimo delle ore deve avere la pausa
             buche = max(sue_ore) - min(sue_ore) + 1 - len(sue_ore) if sue_ore else 0
-            if buche > scuola['buche_al_giorno']:
+            poche, tante = buche_consentite(scuola, len(sue_ore))
+            if sue_ore and buche > tante:
                 non_rispettata(GIORNATA_DEL_DOCENTE, '%s, %s: %d ore buche, il massimo e\' %d' % (
-                    docenti[t][0], giorni[g], buche, scuola['buche_al_giorno']))
+                    docenti[t][0], giorni[g], buche, tante))
+            if sue_ore and buche < poche:
+                non_rispettata(GIORNATA_DEL_DOCENTE, '%s, %s: %d ore di lezione senza un\'ora buca in mezzo' % (
+                    docenti[t][0], giorni[g], len(sue_ore)))
     # PASSO 2: a settimana finita. Chi ha un giorno libero qualunque: almeno un giorno senza lezioni
     for t in range(T):
         if docenti[t][3] == QUALUNQUE and len(giorni_di[t]) == G:

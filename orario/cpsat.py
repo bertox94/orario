@@ -26,7 +26,7 @@ import time
 
 from ortools.sat.python import cp_model
 
-from .scuola import BUCA, QUALUNQUE, docenti_della_voce
+from .scuola import BUCA, QUALUNQUE, buche_consentite, docenti_della_voce
 
 TROVATO, IMPOSSIBILE, LIMITE_DI_TEMPO = 'trovato', 'impossibile', 'limite di tempo'
 
@@ -85,11 +85,13 @@ def modello(scuola, cp=cp_model):
         else:
             m.AddBoolOr([])
 
-    # ---- regola 6: le giornate che un docente puo' avere (non troppe ore, non troppe ore buche) ----
+    # ---- regola 6: le giornate che un docente puo' avere (non troppe ore, non troppe ore buche, e la pausa di chi
+    #      fa il massimo delle ore) ----
     giornate = []
     for quante in range(min(O, scuola['lezioni_al_giorno']) + 1):
         for ore in itertools.combinations(range(O), quante):
-            if not ore or ore[-1] - ore[0] + 1 - quante <= scuola['buche_al_giorno']:
+            poche, tante = buche_consentite(scuola, quante)
+            if not ore or poche <= ore[-1] - ore[0] + 1 - quante <= tante:
                 giornate.append(tuple(int(h in ore) for h in range(O)))
 
     for t in range(T):

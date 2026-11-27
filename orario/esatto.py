@@ -23,9 +23,12 @@ LE REGOLE (le otto di scuola.py), ognuna come somme che devono stare tra due num
 5. le classi: gli inizi del docente in un giorno, in tutte le classi, sono al massimo M (in ogni classe comincia al
    piu' una volta, quindi contare gli inizi e' contare le classi);
 6. la giornata del docente. Le ore di lezione: la somma delle x delle sue voci in un giorno e' al massimo L. Le ore
-   buche, al massimo B: per ogni coppia di ore a < b con in mezzo piu' di B ore, se ha lezione in tutte e due in
-   mezzo deve avere almeno (ore in mezzo - B) lezioni:
-   (lezioni in mezzo) >= (ore in mezzo - B) * (lezione in a + lezione in b - 1). Non servono incognite in piu';
+   buche: al massimo B, e chi insegna L ore deve averne B (la pausa). Due richieste:
+   a. mai piu' di B: per ogni coppia di ore a < b con in mezzo piu' di B ore, se ha lezione in tutte e due in mezzo
+      deve avere almeno (ore in mezzo - B) lezioni:
+      (lezioni in mezzo) >= (ore in mezzo - B) * (lezione in a + lezione in b - 1);
+   b. chi fa L ore ha la pausa: in L ore di seguito le lezioni sono al massimo L - 1.
+   Non servono incognite in piu';
 7. la giornata della classe: le b delle prime ore non possono valere 1; e dopo un'ora buca solo ore buche: b dell'ora
    dopo >= b di quest'ora;
 8. le aule: in ogni ora le lezioni che chiedono un tipo di aula sono al massimo quante le aule di quel tipo. Quale
@@ -53,7 +56,7 @@ import numpy as np
 from scipy.optimize import Bounds, LinearConstraint, milp
 from scipy.sparse import coo_matrix
 
-from .scuola import BUCA, QUALUNQUE, docenti_della_voce
+from .scuola import BUCA, QUALUNQUE, buche_consentite, docenti_della_voce
 
 TROVATO, IMPOSSIBILE, LIMITE_DI_TEMPO = 'trovato', 'impossibile', 'limite di tempo'
 
@@ -160,18 +163,23 @@ class _Conti:
                            + ([(self.f(t, g), lezioni)] if libero else []), 0, lezioni)
             if libero:
                 regola([(self.f(t, g), 1) for g in range(G)], 1, 1)
-        # regola 6: le ore buche di un docente in un giorno. Per ogni coppia di ore a < b con in mezzo piu' ore delle
-        # buche consentite: se ha lezione in tutte e due, di quelle in mezzo ne puo' saltare al massimo `buche`, cioe'
-        # in mezzo ha almeno «troppe» lezioni: (lezioni in mezzo) >= troppe * (lezione in a + lezione in b - 1).
-        buche = self.scuola['buche_al_giorno']
+        # regola 6: le ore buche di un docente in un giorno. `lezione[h]` sono i termini della somma «ha lezione
+        # nell'ora h». Due richieste (vedi in cima):
+        buche, massime = self.scuola['buche_al_giorno'], self.scuola['lezioni_al_giorno']
         for t in range(T if self.con_le_buche else 0):
             for g in range(G):
                 lezione = [[(x(v, g, h), 1) for v in voci_del_docente[t]] for h in range(O)]
+                # a. mai piu' di `buche` ore buche: per ogni coppia di ore a < b con in mezzo piu' ore delle buche
+                #    consentite, se ha lezione in tutte e due in mezzo ne puo' saltare solo `buche`
                 for a in range(O):
                     for b in range(a + buche + 2, O):
                         troppe = b - a - 1 - buche
                         in_mezzo = [termine for h in range(a + 1, b) for termine in lezione[h]]
                         regola(in_mezzo + [(i, -troppe * k) for i, k in lezione[a] + lezione[b]], -troppe, O)
+                # b. chi fa il massimo delle ore deve avere la pausa: mai `massime` ore tutte di seguito
+                if buche:
+                    for a in range(O - massime + 1):
+                        regola([termine for h in range(a, a + massime) for termine in lezione[h]], 0, massime - 1)
         # regola 8: in ogni ora, per ogni tipo di aula, le lezioni che lo chiedono non sono piu' delle aule
         for tipo, quante in sorted(self.aule_del_tipo.items()):
             sue = [v for v in range(self.V) if self.tipo_della_voce[v] == tipo]
@@ -259,14 +267,17 @@ def _chiedi(conti, tempo):
 
 def _buche_a_posto(scuola, orario):
     """L'orario rispetta la regola sulle ore buche dei docenti? Per ogni docente e giorno: tra la prima e l'ultima ora in cui insegna, le ore
-    senza lezione sono al massimo quelle consentite."""
+    senza lezione sono quelle consentite (non troppe, e la pausa di chi fa il massimo delle ore)."""
     G, O, C = len(scuola['giorni']), len(scuola['ore']), len(scuola['classi'])
     ore = {}   # (docente, giorno) -> le ore in cui insegna
     for cella, v in enumerate(orario):
         if v != BUCA:
             for t in docenti_della_voce(scuola['voci'][v]):
                 ore.setdefault((t, cella // C // O), set()).add(cella // C % O)
-    return all(max(sue) - min(sue) + 1 - len(sue) <= scuola['buche_al_giorno'] for sue in ore.values())
+    def a_posto(sue):
+        poche, tante = buche_consentite(scuola, len(sue))
+        return poche <= max(sue) - min(sue) + 1 - len(sue) <= tante
+    return all(a_posto(sue) for sue in ore.values())
 
 
 def risolvi(scuola, tempo=300):

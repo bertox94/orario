@@ -27,8 +27,9 @@ LE REGOLE DI UN ORARIO (le controlla verifica.py; esatto.py le scrive come conti
    buchi (contando insieme tutte le sue voci li': da solo, in coppia, di tutte le sue materie);
 5. LE CLASSI: in un giorno un docente insegna in al massimo CLASSI_AL_GIORNO classi;
 6. LA GIORNATA DEL DOCENTE: in un giorno un docente insegna al massimo LEZIONI_AL_GIORNO ore, in tutte le sue classi
-   insieme; e le sue ore buche (ore senza lezione tra la sua prima e la sua ultima lezione del giorno: quelle prima
-   della prima e dopo l'ultima non contano) sono al massimo BUCHE_AL_GIORNO;
+   insieme. Le sue ore buche (ore senza lezione tra la sua prima e la sua ultima lezione del giorno: quelle prima
+   della prima e dopo l'ultima non contano) sono al massimo BUCHE_AL_GIORNO; e se quel giorno insegna il massimo
+   delle ore (LEZIONI_AL_GIORNO) la pausa e' obbligatoria: ne ha esattamente BUCHE_AL_GIORNO (vedi buche_consentite);
 7. LA GIORNATA DELLA CLASSE: in ogni classe le prime ore di ogni giorno (le obbligatorie) hanno lezione, e dopo
    un'ora buca la classe quel giorno non ha piu' lezione;
 8. LE AULE: ogni lezione si fa in un'aula del tipo che la sua materia chiede, e in un'aula c'e' una classe per volta.
@@ -74,6 +75,14 @@ QUALUNQUE = -2   # il giorno libero di un docente, quando non e' un giorno preci
 def celle(scuola):
     """Quante celle ha l'orario della scuola."""
     return len(scuola['giorni']) * len(scuola['ore']) * len(scuola['classi'])
+
+
+def buche_consentite(scuola, ore_di_lezione):
+    """Quante ore buche puo' avere un docente in un giorno in cui insegna `ore_di_lezione` ore (regola 6): ritorna
+    (il minimo, il massimo). Di solito da nessuna al massimo consentito; chi fa il massimo delle ore deve avere la
+    pausa, quindi minimo e massimo coincidono."""
+    massimo = scuola['buche_al_giorno']
+    return (massimo if ore_di_lezione >= scuola['lezioni_al_giorno'] else 0), massimo
 
 
 def docenti_della_voce(voce):
