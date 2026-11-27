@@ -6,7 +6,8 @@
 
 Per ogni caso (seme, classi, ritardi) guarda tre cose:
 - l'impronta del caso generato: se cambia, e' cambiato il generatore (e con lui tutti i casi);
-- l'esito: «trovato» o «impossibile». Per lo stesso caso e' sempre lo stesso: se cambia, e' cambiato il metodo.
+- l'esito: «trovato» o «impossibile», dato dai due metodi insieme (orario/insieme.py: basta che uno risponda). Per
+  lo stesso caso e' sempre lo stesso: se cambia, e' cambiato un metodo.
   «Limite di tempo» invece non e' una risposta (dipende dal computer): un caso che finisce al limite, qui o nei
   risultati attesi, non si confronta, e alla fine si dice quanti sono;
 - se l'orario trovato passa la verifica.
@@ -19,7 +20,7 @@ import sys
 
 RADICE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, RADICE)
-from orario import esatto, genera, scuola, verifica   # noqa: E402 (dopo aver detto dove sta il programma)
+from orario import genera, insieme, scuola   # noqa: E402 (dopo aver detto dove sta il programma)
 
 ATTESI = os.path.join(RADICE, 'prove', 'attesi.json')
 TEMPO = 60    # i secondi che ogni caso ha
@@ -29,18 +30,27 @@ CASI = [(seme, classi, ritardi) for seme in range(6) for classi in (3, 5, 8, 12)
        [(10, 3, 1), (37, 3, 1), (4, 7, 1), (1, 14, 1), (2, 20, 0), (3, 30, 1)]
 
 
+CERTI = {}   # per ogni metodo: in quanti casi ha dato una risposta certa (None: non e' installato)
+
+
 def esegui():
     """Per ogni caso: lo genera, lo legge, ne cerca l'orario e lo verifica. Ritorna {nome del caso: risultato}."""
     trovati = {}
     for seme, classi, ritardi in CASI:
         testo = genera.genera(seme, classi, ritardi)             # 1. il caso
         s = scuola.leggi_testo(testo)                            # 2. la scuola
-        esito, orario, aule, _ = esatto.risolvi(s, TEMPO)        # 3. l'orario, con le aule
+        stato = insieme.risolvi(s, TEMPO)                        # 3. i due metodi insieme (e la verifica)
         # il nome del caso e' la chiave in attesi.json
         nome = 'seme %d, %d classi, %s ritardi' % (seme, classi, 'con' if ritardi else 'senza')
-        trovati[nome] = {'caso': hashlib.sha256(testo.encode()).hexdigest()[:12], 'esito': esito}
-        if orario:                                               # 4. la verifica
-            trovati[nome]['verificato'] = bool(verifica.verifica(s, orario, aule)['ok'])
+        trovati[nome] = {'caso': hashlib.sha256(testo.encode()).hexdigest()[:12], 'esito': stato['esito']}
+        if 'verifica' in stato:
+            trovati[nome]['verificato'] = bool(stato['verifica']['ok'])
+        # di ogni metodo si conta in quanti casi ha dato una risposta certa (non si confronta: dipende dal computer)
+        for metodo, m in stato['metodi'].items():
+            if m['esito'] == 'non installato':
+                CERTI[metodo] = None
+            else:
+                CERTI[metodo] = CERTI.get(metodo, 0) + (m['esito'] in ('trovato', 'impossibile'))
     return trovati
 
 
@@ -68,6 +78,8 @@ def main():
     diversi = [k for k in sorted(set(attesi) | set(trovati)) if attesi.get(k) != trovati.get(k)]
     for k in diversi:
         print('DIVERSO  %s\n  atteso:  %s\n  trovato: %s' % (k, attesi.get(k), trovati.get(k)))
+    for metodo, quanti in CERTI.items():
+        print('  %s: %s' % (metodo, 'non installato' if quanti is None else 'risposta certa in %d casi' % quanti))
     print('%d casi, %s%s' % (len(trovati), 'tutto come atteso' if not diversi else '%d diversi' % len(diversi),
                              ' (%d al limite di tempo, non confrontati)' % len(al_limite) if al_limite else ''))
     return 1 if diversi or non_validi else 0

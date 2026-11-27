@@ -1,3 +1,4 @@
 flask>=3.0
 waitress>=3.0
 scipy>=1.9
+ortools>=9.8

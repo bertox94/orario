@@ -78,9 +78,9 @@ button.piccolo { padding: 3px 12px; font-size: 13px; }
   margin-right: 6px; background: var(--riga); }
 .esito-trovato, .esito-verificato { color: var(--ok); background: var(--ok-chiaro); }
 .esito-limite-di-tempo, .esito-limite-di-nodi, .esito-in-corso, .tardi { color: var(--avviso); background: var(--avviso-chiaro); }
-.esito-impossibile, .esito-non-valido, .esito-non-riuscito, .esito-non-generato, .esito-fermata, .esito-interrotta {
+.esito-impossibile, .esito-contraddizione, .esito-non-valido, .esito-non-riuscito, .esito-non-generato, .esito-fermata, .esito-interrotta {
   color: var(--male); background: var(--male-chiaro); }
-.esito-mai-eseguito { color: var(--tenue); }
+.esito-mai-eseguito, .esito-non-installato { color: var(--tenue); }
 .tardi { font-weight: 400; font-size: 13px; padding: 1px 8px; }
 summary .esito { font-family: var(--scritto); font-size: 13px; padding: 1px 10px; margin-left: 6px; }
 
@@ -128,3 +128,8 @@ table.campi td.num { text-align: right; font-variant-numeric: tabular-nums; padd
 .avviso { color: var(--avviso); }
 ul.problemi { margin: 8px 0 0; padding-left: 20px; }
 #stato-salvataggio { color: var(--tenue); font-size: 13px; }
+
+/* nella pagina della prova: i due metodi, uno per riga, sotto l'esito */
+table#metodi { margin: 0 0 14px; }
+table#metodi th { font-weight: 600; color: var(--tenue); }
+table#metodi th, table#metodi td { padding: 3px 12px 3px 0; border: 0; vertical-align: middle; }

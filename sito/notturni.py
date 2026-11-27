@@ -119,6 +119,9 @@ def _esegui_caso(caso, tempo):
             return {'esito': 'non riuscito'}
         # il risultato del caso: l'esito, il tempo, e se l'orario trovato passa la verifica
         r = {k: s.get(k) for k in ('esito', 'secondi', 'celle')}
+        # di ogni metodo l'esito e i secondi (orario/insieme.py): si vede sempre come vanno tutti e due
+        if 'metodi' in s:
+            r['metodi'] = {nome: [m['esito'], m['secondi']] for nome, m in s['metodi'].items()}
         if 'verifica' in s:
             r['verificato'] = bool(s['verifica']['ok'])
         return r
@@ -226,11 +229,12 @@ def _chiave(r):
 
 def cambiamento(prima, adesso):
     """Che cosa e' cambiato tra due risultati dello stesso caso: una chiave di CAMBIAMENTI.
-    Allarme: un orario che non passa la verifica, un caso non riuscito, o trovato dove prima era impossibile (o il
-    contrario): una delle due risposte e' sbagliata."""
+    Allarme: un orario che non passa la verifica, un caso non riuscito, i due metodi che si contraddicono, o trovato
+    dove prima era impossibile (o il contrario): una delle due risposte e' sbagliata."""
     a, b = prima.get('esito'), adesso.get('esito')
     # gli allarmi vengono prima di tutto
-    if adesso.get('verificato') is False or b in ('non riuscito', 'non generato') or {a, b} == {TROVATO, IMPOSSIBILE}:
+    if adesso.get('verificato') is False or b in ('non riuscito', 'non generato', 'contraddizione') or \
+            {a, b} == {TROVATO, IMPOSSIBILE}:
         return 'allarme'
     # esito diverso: conta se si e' guadagnato o perso un orario
     return 'risolto' if b == TROVATO else 'non risolto' if a == TROVATO else 'altro'
@@ -264,9 +268,11 @@ def situazione():
         # il riferimento: il risultato di cui si e' presa visione, se era con questo tempo; se no il primo avuto
         riferimento = next((x for x in stesse if _chiave(x) == visto), stesse[0])
         suo = _chiave(ultimo)
-        # cambiato rispetto al riferimento; un orario che non passa la verifica si mostra anche se e' il primo
+        # cambiato rispetto al riferimento; un orario che non passa la verifica, o una contraddizione tra i due
+        # metodi, si mostrano anche se sono il primo risultato
         nuovo = _chiave(riferimento) != suo
-        if nuovo or (ultimo.get('verificato') is False and visto != suo):
+        subito = ultimo.get('verificato') is False or ultimo.get('esito') == 'contraddizione'
+        if nuovo or (subito and visto != suo):
             tabelle[cambiamento(riferimento, ultimo)].append(dict(c, ultimo=ultimo, prima=riferimento))
     return {'impostazioni': impostazioni(), 'giro': giro(giri[-1]) if giri else None, 'in_corso': in_corso(),
             'prova': prove.in_corso(), 'casi': elenco,

@@ -3,7 +3,8 @@
 {% block contenuto %}
 <h1>Test notturni</h1>
 <p class="nota">Un elenco di casi che si rifanno tutti insieme, in un giro, per vedere se i risultati cambiano quando
-  cambia il programma. Di ogni caso si tengono l'esito, il tempo e se l'orario passa la verifica.</p>
+  cambia il programma. Di ogni caso si tengono l'esito, il tempo, se l'orario passa la verifica, e come sono
+  andati i due metodi che lo cercano insieme (HiGHS e CP-SAT).</p>
 
 <h2>Il giro</h2>
 <div class="riquadro">
@@ -61,7 +62,7 @@
 </form>
 <div class="scorre"><table class="dati" id="casi">
   <thead><tr><th><input type="checkbox" id="tutti" aria-label="Scegli tutti i casi"></th><th class="num">Seme</th><th class="num">Classi</th><th>Ritardi</th>
-    <th>Esito</th><th class="num">Tempo</th><th>Rispetto al giro prima</th></tr></thead>
+    <th>Esito</th><th class="num">Tempo</th><th>HiGHS</th><th>CP-SAT</th><th>Rispetto al giro prima</th></tr></thead>
   <tbody></tbody>
 </table></div>
 {% endblock %}
@@ -79,6 +80,24 @@ function rispetto(c) {
   return ['uguale', ''];
 }
 
+// la cella di un metodo in un risultato: il suo esito e i suoi secondi (vuota nei giri fatti con un metodo solo)
+function metodo(r, nome) {
+  const m = r.metodi && r.metodi[nome];
+  if (!m) return '<td></td>';
+  const certo = ['trovato', 'impossibile'].includes(m[0]);
+  return `<td class="${certo ? '' : 'nota'}">${esc(m[0])}${certo ? ' ' + m[1].toFixed(1).replace('.', ',') + ' s' : ''}</td>`;
+}
+
+// quanti casi ha deciso ogni metodo (trovato o impossibile), e in quanti e' stato l'unico: il confronto tra i due
+function contoMetodi(n) {
+  const con = n.casi.filter(c => c.ultimo && c.ultimo.metodi);
+  if (!con.length) return '';
+  const certo = (c, nome) => c.ultimo.metodi[nome] && ['trovato', 'impossibile'].includes(c.ultimo.metodi[nome][0]);
+  const h = con.filter(c => certo(c, 'highs')).length, p = con.filter(c => certo(c, 'cpsat')).length;
+  const soloH = con.filter(c => certo(c, 'highs') && !certo(c, 'cpsat')).length, soloP = con.filter(c => certo(c, 'cpsat') && !certo(c, 'highs')).length;
+  return ` Con una risposta certa: HiGHS ${numero(h)} (${numero(soloH)} solo lui), CP-SAT ${numero(p)} (${numero(soloP)} solo lui).`;
+}
+
 function mostra(n) {
   // n e' la situazione (notturni.situazione): impostazioni, giro, casi, cambiamenti
   const g = n.giro, gira = n.in_corso !== null;
@@ -87,15 +106,15 @@ function mostra(n) {
     const [parola, colore] = r ? rispetto(c) : ['', ''];
     return `<tr><td><input type="checkbox" class="scegli" value="${c.numero}" ${scelti.has(c.numero) ? 'checked' : ''} ${gira ? 'disabled' : ''} aria-label="Scegli il caso"></td>` +
       `<td class="num">${c.seme}</td><td class="num">${c.classi}</td><td>${c.ritardi ? 'con' : 'senza'}</td>` +
-      (adesso ? '<td colspan="3" class="nota">sta girando…</td>' : !r ? '<td colspan="3" class="nota">mai eseguito</td>'
+      (adesso ? '<td colspan="5" class="nota">sta girando…</td>' : !r ? '<td colspan="5" class="nota">mai eseguito</td>'
         : `<td>${etichetta(r.esito)}${r.verificato === false ? '<span class="male">non valido</span>' : ''}</td>` +
-          `<td class="num">${r.secondi == null ? '' : r.secondi.toFixed(1).replace('.', ',') + ' s'}</td><td class="${colore}">${esc(parola)}</td>`) + '</tr>';
+          `<td class="num">${r.secondi == null ? '' : r.secondi.toFixed(1).replace('.', ',') + ' s'}</td>${metodo(r, 'highs')}${metodo(r, 'cpsat')}<td class="${colore}">${esc(parola)}</td>`) + '</tr>';
   }).join('');
   // quanti casi per esito, in alto accanto al tasto
   const esiti = {};
   for (const c of n.casi) { const e = c.ultimo ? c.ultimo.esito : 'mai eseguito'; esiti[e] = (esiti[e] || 0) + 1; }
   document.getElementById('conto').innerHTML = `${numero(n.casi.length)} casi: ` +
-    Object.entries(esiti).map(([e, q]) => `<span class="esito esito-${esc(e.replace(/ /g, '-'))}">${numero(q)} ${esc(e)}</span>`).join('');
+    Object.entries(esiti).map(([e, q]) => `<span class="esito esito-${esc(e.replace(/ /g, '-'))}">${numero(q)} ${esc(e)}</span>`).join('') + contoMetodi(n);
   // la frase sul giro: quello in corso, o l'ultimo
   let t = 'Nessun giro ancora.';
   if (g) {

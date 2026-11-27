@@ -9,8 +9,10 @@ Dal 26 novembre 2026 `main` è tutto in Python (richiesta di Alb: «lasciare la 
 tutto in Python», e la ricerca in C «toglila da main»). Vedi `LEGGIMI.md` e, per il dettaglio, `DESCRIZIONE.md`.
 
 - `orario/`: il programma. `scuola.py` (i dati, le regole, la lettura di un caso), `genera.py` e `nomi.py` (i casi
-  casuali: gli stessi, carattere per carattere, del generatore in C di prima), `esatto.py` (il metodo: il caso come
-  programma lineare intero, risolto con scipy/HiGHS; dà l'orario o dimostra che non esiste), `verifica.py` (l'orario
+  casuali: gli stessi, carattere per carattere, del generatore in C di prima), `esatto.py` (il primo metodo: il caso come
+  programma lineare intero, risolto con scipy/HiGHS; dà l'orario o dimostra che non esiste), `cpsat.py` (il secondo
+  metodo: CP-SAT di OR-Tools) e `insieme.py` (dal 27 novembre 2026, richiesta di Alb: i due girano insieme, basta
+  che uno risponda, e nei test del sito si vede sempre come vanno tutti e due), `verifica.py` (l'orario
   ricontrollato da capo, senza usare il metodo), `__main__.py` (i comandi `genera`, `risolvi`, `verifica`).
 - `sito/` (Flask, senza login né database): le prove (`prove.py`), le scuole scritte a mano (`scuole.py`: la pagina
   dove si inseriscono docenti, entrate, uscite, giorni liberi, lezioni, materie e aule) e i test notturni
@@ -33,7 +35,9 @@ scelta…») non è più in `main`: l'ultima versione è in `stabile/2026-11-26`
   non sarebbero più confrontabili. Le impronte dei casi sono in `prove/attesi.json`.
 - Dopo una modifica a `esatto.py`: ogni orario trovato deve passare la verifica, e nessun caso deve passare da
   «trovato» a «impossibile» o il contrario (sono risposte certe). Va rifatto su tanti casi, non solo sui 54.
-- `verifica.py` non deve usare niente di `esatto.py`: è il controllo indipendente.
+- `verifica.py` non deve usare niente di `esatto.py` né di `cpsat.py`: è il controllo indipendente.
+- Una regola che cambia va scritta in tutti e due i metodi (`esatto.py` e `cpsat.py`). Qui OR-Tools non si
+  installa: CP-SAT vero gira solo sul Raspberry; qui si prova con un finto risolutore.
 - Le regole dell'orario sono otto (elenco in `scuola.py`; fino al 27 novembre 2026 erano scritte come tredici, poi
   raggruppate su richiesta di Alb): le ore, una classe per volta, a scuola (ingresso, uscita, giorno libero: dal 27
   novembre 2026 ogni docente ne ha uno, preciso o «qualunque», cioè scelto dal programma), in una classe (3 ore, di seguito), le classi (3 al giorno), la giornata del docente (5 ore; al
@@ -60,7 +64,7 @@ scelta…») non è più in `main`: l'ultima versione è in `stabile/2026-11-26`
 `raspberry@192.168.1.5`, servizio `orario-sito`, repository `~/orario`, ambiente Python `~/orario-venv`. Da qui non si
 raggiunge: i comandi li lancia Alb. Aggiornare (sul Pi):
 `cd ~/orario && git pull && ~/orario-venv/bin/pip install -r sito/requirements.txt && sudo systemctl restart orario-sito`,
-poi Ctrl+F5. Serve scipy (senza, le prove finiscono «interrotta»); non serve più gcc.
+poi Ctrl+F5. Servono scipy (senza, le prove finiscono «interrotta») e ortools (senza, gira solo HiGHS); non serve più gcc.
 Il sito non usa un database: i suoi file stanno in `sito/lavoro/`. Le prove e i giri fatti con il programma
 in C restano leggibili (esito e orario, senza i passi); i casi dei test notturni restano.
 

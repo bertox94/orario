@@ -3,15 +3,18 @@
     python3 -m orario genera SEME CLASSI RITARDI
         scrive su stdout un caso casuale (genera.py); RITARDI: 1 con i docenti che entrano tardi, 0 senza
     python3 -m orario risolvi CASO [--stato FILE] [--tempo SECONDI]
-        cerca un orario per il caso (esatto.py) e ne scrive lo stato, in JSON: su stdout alla fine, oppure in FILE
+        cerca un orario per il caso, con i due metodi insieme (insieme.py), e ne scrive lo stato, in JSON: su stdout alla fine, oppure in FILE
         (subito «in corso», poi il risultato; scritto a parte e poi rinominato: chi legge trova sempre un JSON intero)
     python3 -m orario verifica CASO
         ricontrolla un orario fatto da altri (verifica.py): su stdin una voce per cella (-1: ora buca), nell'ordine
         delle celle, e poi un'aula per cella (-1: ora buca); scrive {"orario": [...], "aule": [...], "verifica": {...}}
 
 Lo stato:
-    {"in_corso": 0 | 1, "esito": "in corso" | "trovato" | "impossibile" | "limite di tempo",
+    {"in_corso": 0 | 1,                                             1 finche' i metodi non hanno finito tutti
+     "esito": "in corso" | "trovato" | "impossibile" | "limite di tempo" | "contraddizione",
+     "risolto_da": "highs" | "cpsat",                               chi ha dato per primo una risposta certa
      "secondi": S, "celle": C, "scuola": {...}                      (scuola.py)
+     "metodi": {"highs": {"esito", "secondi", "verificato"}, "cpsat": {...}}   (insieme.py)
      "orario": [voce | -1, ...]                                     con «trovato»: una voce per cella
      "aule": [aula | -1, ...]                                       con «trovato»: l'aula di ogni cella
      "verifica": {"ok": 0 | 1, "controlli": [[regola, 0 | 1, dove], ...]}}   con «trovato» (verifica.py)
@@ -22,7 +25,6 @@ import argparse
 import json
 import os
 import sys
-import time
 
 from . import genera, scuola, verifica
 
@@ -38,23 +40,22 @@ def _scrivi(stato, file=None):
 
 
 def _risolvi(caso, file_stato, tempo):
-    """Il comando «risolvi»: legge il caso, cerca l'orario, lo verifica, scrive lo stato."""
-    from . import esatto   # (qui, non in cima: carica scipy, che agli altri comandi non serve)
+    """Il comando «risolvi»: legge il caso, lo da' ai due metodi insieme, scrive lo stato."""
+    from . import insieme   # (qui, non in cima: carica i risolutori, che agli altri comandi non servono)
     # 1. il caso
     s = scuola.leggi(caso)
-    partenza = time.time()
     stato = {'in_corso': 1, 'esito': 'in corso', 'secondi': 0, 'celle': scuola.celle(s), 'scuola': s}
     # 2. subito uno stato «in corso»: chi guarda il file (il sito) ha gia' la scuola da mostrare
     if file_stato:
         _scrivi(stato, file_stato)
-    # 3. l'orario
-    esito, orario, aule, _ = esatto.risolvi(s, tempo)
-    stato.update(in_corso=0, esito=esito, secondi=round(time.time() - partenza, 2))
-    # 4. l'orario trovato si ricontrolla subito, regola per regola
-    if orario:
-        stato.update(orario=orario, aule=aule, verifica=verifica.verifica(s, orario, aule))
-    # 5. lo stato finale
-    _scrivi(stato, file_stato)
+    # 3. i due metodi, insieme. A ogni risposta che arriva lo stato si riscrive: la prima risposta certa si vede
+    #    subito, mentre l'altro metodo finisce (in_corso resta 1 finche' non hanno finito tutti e due)
+    def scrivi_intanto(dei_metodi):
+        if file_stato:
+            _scrivi(dict(stato, **dei_metodi), file_stato)
+    dei_metodi = insieme.risolvi(s, tempo, scrivi_intanto)
+    # 4. lo stato finale (ogni orario trovato e' gia' stato ricontrollato, regola per regola: insieme.py)
+    _scrivi(dict(stato, **dei_metodi, in_corso=0), file_stato)
 
 
 def _verifica(caso):

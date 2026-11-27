@@ -11,8 +11,10 @@ ogni pagina del sito, i limiti), è in `DESCRIZIONE.md`.
 - `orario/`: il programma.
   - `scuola.py`: i dati (giorni, ore, classi, docenti, voci), le regole e la lettura di un caso da file;
   - `genera.py`, `nomi.py`: i casi casuali, riproducibili da un seme;
-  - `esatto.py`: il metodo. Tutto il caso scritto come conti con risposte sì/no e dato a un risolutore generico
-    (HiGHS, dentro scipy): dà l'orario, oppure dimostra che non esiste;
+  - `esatto.py`: il primo metodo. Tutto il caso scritto come conti con risposte sì/no e dato a un risolutore
+    generico (HiGHS, dentro scipy): dà l'orario, oppure dimostra che non esiste;
+  - `cpsat.py`: il secondo metodo, lo stesso caso per CP-SAT (OR-Tools);
+  - `insieme.py`: i due metodi insieme: basta che uno risponda, e di ognuno si vede esito e tempo;
   - `verifica.py`: l'orario trovato, ricontrollato da capo senza usare il metodo;
   - `__main__.py`: i comandi.
 - `sito/`: il sito (Flask), con le prove e i test notturni. Non calcola niente: lancia il programma e mostra.

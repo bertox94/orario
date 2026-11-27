@@ -27,6 +27,7 @@ Indice
 17. I file del repository
 18. Che cosa c'era prima, e dov'è
 19. Le scuole scritte a mano: le pagine «Scuole»
+20. I due metodi insieme: HiGHS e CP-SAT
 
 ---
 
@@ -34,7 +35,7 @@ Indice
 
 Dato l'elenco delle lezioni di una scuola (quale docente, o quale coppia di docenti, fa quante ore in quale classe),
 il **programma** (`orario/`) trova un orario settimanale che rispetta le regole del capitolo 2, oppure dimostra che
-non esiste.
+non esiste. Lo cerca con due metodi insieme (capitoli 5 e 20).
 
 Il **sito** (`sito/`) non calcola niente: lancia il programma e ne mostra i risultati. Ha due parti: le **prove** (un
 caso e il suo orario) e i **test notturni** (un elenco di casi rifatti tutti insieme, per vedere che cosa cambia
@@ -349,11 +350,13 @@ arriva a `verifica` non è un orario di quel caso.
 ## 8. Lo stato (JSON)
 
 ```
-{"in_corso": 0 | 1,
- "esito": "in corso" | "trovato" | "impossibile" | "limite di tempo",
- "secondi": S,                          da quando il caso è stato letto
+{"in_corso": 0 | 1,                    1 finché i metodi non hanno finito tutti
+ "esito": "in corso" | "trovato" | "impossibile" | "limite di tempo" | "contraddizione",
+ "risolto_da": "highs" | "cpsat",       chi ha dato per primo una risposta certa (se c'è)
+ "secondi": S,                          quando è arrivata quella risposta (se non c'è: quando hanno finito tutti)
  "celle": C,
  "scuola": {...},                       come nel capitolo 2
+ "metodi": {"highs": {"esito", "secondi", "verificato"}, "cpsat": {...}},   capitolo 20
  "orario": [voce | -1, ...],            solo con «trovato»: un numero per cella
  "aule": [aula | -1, ...],              solo con «trovato»: l'aula di ogni cella
  "verifica": {"ok": 0 | 1, "controlli": [[regola, 0 | 1, dove], ...]}}   solo con «trovato»
@@ -532,7 +535,8 @@ Dopo ogni modifica al programma:
 
 ## 16. Installazione e avvio
 
-Servono Python 3 e i pacchetti di `sito/requirements.txt`: flask, waitress, scipy. Non serve un compilatore.
+Servono Python 3 e i pacchetti di `sito/requirements.txt`: flask, waitress, scipy, ortools. Non serve un
+compilatore. Senza ortools il programma va lo stesso, con il solo HiGHS (CP-SAT risulta «non installato»).
 
 ```
 pip install -r sito/requirements.txt
@@ -554,7 +558,9 @@ orario/__init__.py               che cos'è il programma
 orario/scuola.py                 la scuola, le regole, i limiti di grandezza, la lettura di un caso
 orario/genera.py                 il generatore dei casi casuali
 orario/nomi.py                   i nomi dei docenti dei casi casuali
-orario/esatto.py                 il metodo: il caso scritto come conti, e la sua soluzione
+orario/esatto.py                 il primo metodo (HiGHS): il caso scritto come conti, e la sua soluzione
+orario/cpsat.py                  il secondo metodo (CP-SAT di OR-Tools)
+orario/insieme.py                i due metodi insieme, ognuno in un processo suo
 orario/verifica.py               la verifica dell'orario trovato
 orario/__main__.py               i comandi
 sito/__main__.py                 l'avvio del sito
@@ -644,4 +650,47 @@ lezione. Se di questi non ce n'è nessuno il programma prova a leggere il caso (
 
 **Dall'elenco all'orario**: i dati si scrivono come file di un caso (capitolo 3) e parte una prova come le altre
 (capitoli 10 e 11); in `info.json` c'è `{"scuola": N, "nome": ...}` al posto di seme, classi e ritardi.
+
+## 20. I due metodi insieme: HiGHS e CP-SAT
+
+Dal 27 novembre 2026 (richiesta di Alb) l'orario lo cercano due metodi, nello stesso momento.
+
+- **HiGHS** (`orario/esatto.py`, capitolo 5): fa i conti su tutta la settimana insieme.
+- **CP-SAT** (`orario/cpsat.py`), il risolutore di OR-Tools: è una ricerca che fissa delle scelte, ne tira le
+  conseguenze e, quando arriva a una contraddizione, ricava quali poche scelte l'hanno causata e non le rifà più
+  insieme. Le regole sono le stesse otto, scritte in modo più diretto: «esattamente uno» (la cella), «al massimo
+  uno» (il docente in un'ora), «se questo allora quello» (dopo la buca), e la giornata del docente come **tabella**:
+  l'elenco delle giornate consentite (con 6 ore, al massimo 5 lezioni e 2 ore buche), e la sua deve essere una di
+  quelle. Le incognite che non possono valere 1 (prima dell'ingresso, dopo l'uscita, nel giorno libero preciso, l'ora
+  buca nelle prime ore) non vengono nemmeno create. Usa fino a quattro processori, lasciandone uno a HiGHS.
+
+**Perché tutti e due.** Nessuno dei due è meglio dell'altro in tutto, e inciampano su casi diversi. Sui 480 casi
+(semi 0–19, da 3 a 14 classi), con 60 secondi: HiGHS risponde in 476 (misurato su una macchina più veloce del
+Raspberry), CP-SAT in 472 (misurato sul Raspberry), almeno uno dei due in 479. Nessuna risposta dell'uno contraddice
+l'altro, e ogni orario passa la verifica.
+
+**Come girano** (`orario/insieme.py`). Un processo per metodo, ognuno con tutto il tempo. Basta che uno dia una
+risposta certa («trovato» o «impossibile») e il caso è deciso; l'altro continua fino alla sua risposta o al suo
+tempo, così di ogni caso si vede sempre come sono andati tutti e due. Con `--stato FILE` lo stato si riscrive a ogni
+risposta: la prima si vede subito, e `in_corso` resta 1 finché non hanno finito entrambi. Ogni orario trovato si
+ricontrolla con la verifica, di chiunque sia; nello stato va il primo.
+
+Per ogni metodo nello stato: `esito` («in corso», «trovato», «impossibile», «limite di tempo», «non installato» se
+manca il suo pacchetto, «errore: …»), `secondi` (da quando sono partiti), `verificato` (se ha trovato un orario).
+
+**L'esito del caso**: «trovato» se uno ha trovato; «impossibile» se uno lo ha dimostrato; «limite di tempo» se
+nessuno ha risposto; **«contraddizione»** se uno ha trovato un orario valido e l'altro dice che non esiste: uno dei
+due sbaglia, ed è un allarme.
+
+**Nel sito.** Nella pagina di una prova, sotto l'esito, una riga per metodo: esito, tempo, e «ha risposto per
+primo». Nei test notturni due colonne in più, HiGHS e CP-SAT, con esito e tempo di ognuno, e in alto il conto: in
+quanti casi ognuno ha dato una risposta certa, e in quanti è stato l'unico. Una contraddizione va tra gli allarmi,
+anche se è il primo risultato del caso. «Ferma» chiude tutti e due i processi.
+
+**La prova automatica** (`prove/prova.py`) usa i due metodi insieme e alla fine dice in quanti casi ognuno ha dato
+una risposta certa (o che non è installato).
+
+Come è stato provato: CP-SAT sul Raspberry, dal ramo `prova/cp-sat` (480 casi). Il modello, con un finto risolutore
+che controlla solo le regole: su 3.600 orari rovinati dice la stessa cosa della verifica. Il girare insieme (prima
+risposta, contraddizione, arresto), con un finto OR-Tools a cui risponde HiGHS.
 

@@ -6,6 +6,7 @@
 {% if i.scuola is defined %}<h1>Prova {{ i.numero }}: {{ i.nome }}</h1>
 {% else %}<h1>Prova {{ i.numero }}: seme {{ i.seme }}, {{ i.classi }} classi, {{ 'con' if i.ritardi else 'senza' }} ritardi</h1>{% endif %}
 <p><span id="esito" class="esito"></span> <span id="tempo"></span></p>
+<table class="dati" id="metodi" hidden></table>
 <div class="rigo">
   <form method="post" action="{{ url_for('ferma') }}" id="ferma" hidden>
     <input type="hidden" name="poi" value="{{ request.path }}"><button class="secondario">Ferma</button></form>
@@ -66,6 +67,7 @@ function mostraStato(s) {
   document.getElementById('tempo').textContent = `${(s.secondi || 0).toFixed(1).replace('.', ',')} s`;
   document.getElementById('ferma').hidden = !s.gira;
   document.getElementById('rifai').disabled = !!s.gira;
+  mostraMetodi(s);
   // la prima volta che arriva la scuola: si disegnano la griglia vuota e le tabelle del caso
   if (s.scuola && !scuola) {
     scuola = s.scuola;
@@ -76,14 +78,29 @@ function mostraStato(s) {
   if (s.verifica && document.getElementById('verifica').hidden) mostraVerifica(s.verifica);
   // quando un orario non c'e': perche'
   const perche = {
-    impossibile: 'Un orario non esiste: il programma lo dimostra, guardando tutte le regole insieme, senza provare gli orari uno per uno.',
-    'limite di tempo': 'Il programma non ha finito nel tempo che aveva ({{ tempo }} secondi): non si sa se un orario c\'è.',
+    impossibile: 'Un orario non esiste: uno dei due metodi lo ha dimostrato.',
+    contraddizione: 'I due metodi si contraddicono: uno ha trovato un orario valido e l\'altro dice che non esiste. Uno dei due sbaglia: è un errore del programma, da guardare.',
+    'limite di tempo': 'Nessuno dei due metodi ha finito nel tempo che aveva ({{ tempo }} secondi): non si sa se un orario c\'è.',
     fermata: 'La prova è stata fermata prima della fine.',
-    interrotta: 'La prova si è interrotta: il sito è stato riavviato mentre girava, oppure il programma non è partito (serve scipy: pip install -r sito/requirements.txt).',
+    interrotta: 'La prova si è interrotta: il sito è stato riavviato mentre girava, oppure il programma non è partito (servono scipy e ortools: pip install -r sito/requirements.txt).',
   }[esito];
   const box = document.getElementById('messaggio');
   box.hidden = !perche;
   if (perche) box.textContent = perche;
+}
+
+// i due metodi che cercano l'orario insieme (orario/insieme.py): di ognuno l'esito e il tempo, e chi ha risposto per
+// primo. Nelle prove fatte quando il metodo era uno solo la tabella non c'e'.
+const NOMI_METODI = {highs: 'HiGHS', cpsat: 'CP-SAT'};
+function mostraMetodi(s) {
+  const t = document.getElementById('metodi');
+  t.hidden = !s.metodi;
+  if (!s.metodi) return;
+  // (sempre nello stesso ordine: prima HiGHS, poi CP-SAT)
+  t.innerHTML = '<tbody>' + Object.keys(NOMI_METODI).filter(nome => s.metodi[nome]).map(nome => [nome, s.metodi[nome]]).map(([nome, m]) =>
+    `<tr><th>${esc(NOMI_METODI[nome] || nome)}</th><td>${etichetta(m.esito)}${m.verificato === false ? '<span class="male">non valido</span>' : ''}</td>` +
+    `<td class="num">${['in corso', 'non installato'].includes(m.esito) ? '' : m.secondi.toFixed(1).replace('.', ',') + ' s'}</td>` +
+    `<td class="nota">${s.risolto_da === nome ? 'ha risposto per primo' : ''}</td></tr>`).join('') + '</tbody>';
 }
 
 // l'orario trovato, ricontrollato regola per regola (orario/verifica.py)
