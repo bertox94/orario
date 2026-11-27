@@ -20,7 +20,8 @@
  },
  "seme 0, 8 classi, senza ritardi": {
   "caso": "51c7649b1114",
-  "esito": "limite di tempo"
+  "esito": "trovato",
+  "verificato": true
  },
  "seme 0, 8 classi, con ritardi": {
   "caso": "8fa2792b046d",
@@ -65,11 +66,13 @@
  },
  "seme 1, 12 classi, senza ritardi": {
   "caso": "43a7f7d8dbbe",
-  "esito": "limite di tempo"
+  "esito": "trovato",
+  "verificato": true
  },
  "seme 1, 12 classi, con ritardi": {
   "caso": "cdc9f5d2ff2d",
-  "esito": "limite di tempo"
+  "esito": "trovato",
+  "verificato": true
  },
  "seme 2, 3 classi, senza ritardi": {
   "caso": "b570ff9b4d72",
@@ -117,7 +120,8 @@
  },
  "seme 3, 3 classi, con ritardi": {
   "caso": "028175626228",
-  "esito": "limite di tempo"
+  "esito": "trovato",
+  "verificato": true
  },
  "seme 3, 5 classi, senza ritardi": {
   "caso": "f24da505bf18",
@@ -140,7 +144,8 @@
  },
  "seme 3, 12 classi, senza ritardi": {
   "caso": "be1e0fffcfc8",
-  "esito": "limite di tempo"
+  "esito": "trovato",
+  "verificato": true
  },
  "seme 3, 12 classi, con ritardi": {
   "caso": "6e3ff98568c1",
@@ -209,7 +214,8 @@
  },
  "seme 5, 8 classi, con ritardi": {
   "caso": "505e2ad2b171",
-  "esito": "limite di tempo"
+  "esito": "trovato",
+  "verificato": true
  },
  "seme 5, 12 classi, senza ritardi": {
   "caso": "ed85279343d9",
@@ -231,7 +237,8 @@
  },
  "seme 4, 7 classi, con ritardi": {
   "caso": "a58bac1ed859",
-  "esito": "limite di tempo"
+  "esito": "trovato",
+  "verificato": true
  },
  "seme 1, 14 classi, con ritardi": {
   "caso": "7a55668c3e4b",
@@ -239,7 +246,8 @@
  },
  "seme 2, 20 classi, senza ritardi": {
   "caso": "95bd0e220b18",
-  "esito": "limite di tempo"
+  "esito": "trovato",
+  "verificato": true
  },
  "seme 3, 30 classi, con ritardi": {
   "caso": "3b6de73b20bf",

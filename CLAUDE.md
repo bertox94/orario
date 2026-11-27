@@ -36,14 +36,14 @@ scelta…») non è più in `main`: l'ultima versione è in `stabile/2026-11-26`
 - `verifica.py` non deve usare niente di `esatto.py`: è il controllo indipendente.
 - Le regole dell'orario sono otto (elenco in `scuola.py`; fino al 27 novembre 2026 erano scritte come tredici, poi
   raggruppate su richiesta di Alb): le ore, una classe per volta, a scuola (ingresso, uscita, giorno libero: dal 27
-  novembre 2026 ogni docente ne ha uno, preciso o «qualunque», cioè scelto dal programma), in una classe (3 ore, di seguito), le classi (3 al giorno), la giornata del docente (5 ore; ore
-  buche: nessuna con 1–3 ore di lezione, al massimo 1 con 4–5), la giornata della classe (prime ore, dopo la buca),
+  novembre 2026 ogni docente ne ha uno, preciso o «qualunque», cioè scelto dal programma), in una classe (3 ore, di seguito), le classi (3 al giorno), la giornata del docente (5 ore; al
+  massimo 2 ore buche), la giornata della classe (prime ore, dopo la buca),
   le aule. Una richiesta nuova va in tre posti: l'elenco in `scuola.py`, i conti in `esatto.py`, il controllo in
   `verifica.py` (e in `DESCRIZIONE.md`).
-- Le ore buche dei docenti rendono lento il metodo: `esatto.risolvi` chiede prima senza e poi, se serve, con tutte;
-  e, da quando ogni docente ha un giorno libero, circa un caso su nove resta al limite di tempo con 60 secondi
-  (`prove/prova.py` quelli non li confronta). Quali casi, dipende da come sono scritti i conti; il totale no. Altre due scritture provate (una incognita per giornata consentita; «ha già cominciato» e «deve
-  ancora finire») erano più lente.
+- Le ore buche dei docenti rendono lento il metodo: `esatto.risolvi` chiede prima senza e poi, se serve, con tutte.
+  Con «al massimo 2 al giorno» restano al limite 4 casi su 480 con 60 secondi (`prove/prova.py` quelli non li
+  confronta). Una versione più stretta (nessuna con 1–3 ore di lezione, al massimo 1 con 4–5), provata il 27
+  novembre 2026, ne lasciava 55 su 480, e Alb l'ha tolta. CP-SAT (ramo `prova/cp-sat`) su quei 55 ne risolveva 11.
 - Materie e aule (26 novembre 2026, richiesta di Alb): ogni lezione ha una materia, un docente può averne più di
   una, e ogni lezione occupa un'aula del tipo della sua materia (tutte le aule sono contate). Uscita e giorno
   libero dei docenti: stessa data. Il generatore li aggiunge con numeri casuali a parte: classi, docenti, lezioni e

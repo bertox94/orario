@@ -28,8 +28,7 @@ LE REGOLE DI UN ORARIO (le controlla verifica.py; esatto.py le scrive come conti
 5. LE CLASSI: in un giorno un docente insegna in al massimo CLASSI_AL_GIORNO classi;
 6. LA GIORNATA DEL DOCENTE: in un giorno un docente insegna al massimo LEZIONI_AL_GIORNO ore, in tutte le sue classi
    insieme; e le sue ore buche (ore senza lezione tra la sua prima e la sua ultima lezione del giorno: quelle prima
-   della prima e dopo l'ultima non contano) sono al massimo BUCHE_AL_GIORNO, e nessuna se quel giorno insegna meno di
-   ORE_PER_UNA_BUCA ore (vedi buche_consentite);
+   della prima e dopo l'ultima non contano) sono al massimo BUCHE_AL_GIORNO;
 7. LA GIORNATA DELLA CLASSE: in ogni classe le prime ore di ogni giorno (le obbligatorie) hanno lezione, e dopo
    un'ora buca la classe quel giorno non ha piu' lezione;
 8. LE AULE: ogni lezione si fa in un'aula del tipo che la sua materia chiede, e in un'aula c'e' una classe per volta.
@@ -38,7 +37,7 @@ richiesta di Alb; gli orari non cambiano.)
 
 LA SCUOLA e' un dizionario:
     {"giorni": [nomi], "ore": [nomi], "classi": [nomi], "obbligatorie": N,
-     "ore_di_seguito": 3, "classi_al_giorno": 3, "buche_al_giorno": 1, "ore_per_una_buca": 4,
+     "ore_di_seguito": 3, "classi_al_giorno": 3, "buche_al_giorno": 2,
      "lezioni_al_giorno": 5,
      "docenti": [[nome, ingresso, uscita, giorno libero], ...],     giorno libero: un giorno, o QUALUNQUE
      "materie": [[nome, tipo di aula], ...], "aule": [[nome, tipo], ...],
@@ -66,9 +65,8 @@ Per ogni materia usata in una lezione ci deve essere almeno un'aula del suo tipo
 # quanto puo' essere grande una scuola: un caso che supera questi numeri viene rifiutato
 MAX_GIORNI, MAX_ORE, MAX_CLASSI, MAX_DOCENTI, MAX_VOCI, MAX_NOME = 7, 10, 120, 250, 4000, 47
 MAX_MATERIE, MAX_AULE = 60, 300
-# le regole della giornata di un docente: ore di seguito in una classe, classi, ore buche (al massimo una, e solo
-# nei giorni in cui insegna almeno quattro ore: con una, due o tre ore di lezione, nessuna), ore di lezione in tutto
-ORE_DI_SEGUITO, CLASSI_AL_GIORNO, BUCHE_AL_GIORNO, ORE_PER_UNA_BUCA, LEZIONI_AL_GIORNO = 3, 3, 1, 4, 5
+# le regole della giornata di un docente: ore di seguito in una classe, classi, ore buche, ore di lezione in tutto
+ORE_DI_SEGUITO, CLASSI_AL_GIORNO, BUCHE_AL_GIORNO, LEZIONI_AL_GIORNO = 3, 3, 2, 5
 BUCA = -1   # in una cella dell'orario: l'ora buca
 QUALUNQUE = -2   # il giorno libero di un docente, quando non e' un giorno preciso: lo sceglie il programma
 
@@ -76,11 +74,6 @@ QUALUNQUE = -2   # il giorno libero di un docente, quando non e' un giorno preci
 def celle(scuola):
     """Quante celle ha l'orario della scuola."""
     return len(scuola['giorni']) * len(scuola['ore']) * len(scuola['classi'])
-
-
-def buche_consentite(scuola, ore_di_lezione):
-    """Quante ore buche puo' avere un docente in un giorno in cui insegna `ore_di_lezione` ore (regola 6)."""
-    return scuola['buche_al_giorno'] if ore_di_lezione >= scuola['ore_per_una_buca'] else 0
 
 
 def docenti_della_voce(voce):
@@ -193,7 +186,7 @@ def leggi_testo(testo, nome='il caso'):
     # PASSO 3: la scuola, con le voci in ordine di classe, docente, codocente, materia
     return {'giorni': giorni, 'ore': ore, 'classi': classi, 'obbligatorie': max(0, min(obbligatorie, len(ore))),
             'ore_di_seguito': ORE_DI_SEGUITO, 'classi_al_giorno': CLASSI_AL_GIORNO, 'buche_al_giorno': BUCHE_AL_GIORNO,
-            'ore_per_una_buca': ORE_PER_UNA_BUCA, 'lezioni_al_giorno': LEZIONI_AL_GIORNO,
+            'lezioni_al_giorno': LEZIONI_AL_GIORNO,
             'docenti': [[docente, ingresso[t], uscita[t], libero[t]] for t, docente in enumerate(docenti)],
             'materie': [list(x) for x in zip(materie, tipo_materia)], 'aule': [list(x) for x in zip(aule, tipo_aula)],
             'voci': [[k, a, b, quante, m] for (k, a, b, m), quante in sorted(voci.items())]}
