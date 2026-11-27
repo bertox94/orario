@@ -43,13 +43,14 @@ scelta…») non è più in `main`: l'ultima versione è in `stabile/2026-11-26`
   installa: CP-SAT vero gira solo sul Raspberry; qui si prova con un finto risolutore.
 - Le regole dell'orario sono otto (elenco in `scuola.py`; fino al 27 novembre 2026 erano scritte come tredici, poi
   raggruppate su richiesta di Alb): le ore, una classe per volta, a scuola (ingresso, uscita, giorno libero: dal 27
-  novembre 2026 ogni docente ne ha uno, preciso o «qualunque», cioè scelto dal programma), in una classe (3 ore, di seguito), le classi (3 al giorno), la giornata del docente (5 ore; al
-  massimo 1 ora buca, obbligatoria per chi fa 5 ore), la giornata della classe (prime ore, dopo la buca),
+  novembre 2026 ogni docente ne ha uno, preciso o «qualunque», cioè scelto dal programma), in una classe (3 ore, di seguito), le classi (3 al giorno), la giornata del docente (5 ore; ore
+  buche: nessuna fino a 3 ore di lezione, una possibile con 4, una obbligatoria con 5), la giornata della classe (prime ore, dopo la buca),
   le aule. Una richiesta nuova va in tre posti: l'elenco in `scuola.py`, i conti in `esatto.py`, il controllo in
   `verifica.py` (e in `DESCRIZIONE.md`).
 - Le ore buche dei docenti rendono lento il metodo: `esatto.risolvi` chiede prima senza e poi, se serve, con tutte.
-  Con la regola dal 27 novembre 2026 sera (al massimo 1 al giorno, obbligatoria per chi fa 5 ore) restano al
-  limite, con il solo HiGHS e 60 secondi, 39 casi su 480; senza l'obbligo erano 16, con «al massimo 2» erano 4
+  Con «al massimo 1 al giorno, obbligatoria per chi fa 5 ore» restavano al
+  limite, con il solo HiGHS e 60 secondi, 39 casi su 480 (la regola di adesso, più stretta, si misura dai test
+  notturni su GitHub); senza l'obbligo erano 16, con «al massimo 2» erano 4
   (`prove/prova.py` quelli al limite non li confronta). Una versione più stretta (nessuna con 1–3 ore di lezione, al massimo 1 con 4–5), provata il 27
   novembre 2026, ne lasciava 55 su 480, e Alb l'ha tolta. CP-SAT (ramo `prova/cp-sat`) su quei 55 ne risolveva 11.
 - Materie e aule (26 novembre 2026, richiesta di Alb): ogni lezione ha una materia, un docente può averne più di

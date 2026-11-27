@@ -114,13 +114,13 @@ def verifica(scuola, orario, aule):
             if len(sue_ore) > scuola['lezioni_al_giorno']:
                 non_rispettata(GIORNATA_DEL_DOCENTE, '%s, %s: %d ore di lezione, il massimo e\' %d' % (
                     docenti[t][0], giorni[g], len(sue_ore), scuola['lezioni_al_giorno']))
-            # le ore buche: tra la prima e l'ultima lezione del giorno, le ore in cui non insegna. Non piu' del
-            # massimo; e chi fa il massimo delle ore deve avere la pausa
+            # le ore buche: tra la prima e l'ultima lezione del giorno, le ore in cui non insegna. Quante ne puo'
+            # avere dipende dalle ore che insegna quel giorno; chi fa il massimo delle ore deve avere la pausa
             buche = max(sue_ore) - min(sue_ore) + 1 - len(sue_ore) if sue_ore else 0
             poche, tante = buche_consentite(scuola, len(sue_ore))
             if sue_ore and buche > tante:
-                non_rispettata(GIORNATA_DEL_DOCENTE, '%s, %s: %d ore buche, il massimo e\' %d' % (
-                    docenti[t][0], giorni[g], buche, tante))
+                non_rispettata(GIORNATA_DEL_DOCENTE, '%s, %s: %d ore buche con %d ore di lezione, il massimo e\' %d' % (
+                    docenti[t][0], giorni[g], buche, len(sue_ore), tante))
             if sue_ore and buche < poche:
                 non_rispettata(GIORNATA_DEL_DOCENTE, '%s, %s: %d ore di lezione senza un\'ora buca in mezzo' % (
                     docenti[t][0], giorni[g], len(sue_ore)))

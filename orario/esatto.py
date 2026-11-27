@@ -23,11 +23,15 @@ LE REGOLE (le otto di scuola.py), ognuna come somme che devono stare tra due num
 5. le classi: gli inizi del docente in un giorno, in tutte le classi, sono al massimo M (in ogni classe comincia al
    piu' una volta, quindi contare gli inizi e' contare le classi);
 6. la giornata del docente. Le ore di lezione: la somma delle x delle sue voci in un giorno e' al massimo L. Le ore
-   buche: al massimo B, e chi insegna L ore deve averne B (la pausa). Due richieste:
+   buche: nessuna se insegna meno di M ore, al massimo B da M in su, esattamente B (la pausa) se ne insegna L. Tre
+   richieste:
    a. mai piu' di B: per ogni coppia di ore a < b con in mezzo piu' di B ore, se ha lezione in tutte e due in mezzo
       deve avere almeno (ore in mezzo - B) lezioni:
       (lezioni in mezzo) >= (ore in mezzo - B) * (lezione in a + lezione in b - 1);
-   b. chi fa L ore ha la pausa: in L ore di seguito le lezioni sono al massimo L - 1.
+   b. un buco solo con almeno M lezioni: per ogni coppia a < b con almeno un'ora in mezzo, se ha lezione in tutte e
+      due e in mezzo nessuna, oltre a quelle due deve avere almeno M - 2 altre lezioni:
+      (lezioni nelle altre ore) + (M - 1) * (lezioni in mezzo) >= (M - 2) * (lezione in a + lezione in b - 1);
+   c. chi fa L ore ha la pausa: in L ore di seguito le lezioni sono al massimo L - 1.
    Non servono incognite in piu';
 7. la giornata della classe: le b delle prime ore non possono valere 1; e dopo un'ora buca solo ore buche: b dell'ora
    dopo >= b di quest'ora;
@@ -164,19 +168,28 @@ class _Conti:
             if libero:
                 regola([(self.f(t, g), 1) for g in range(G)], 1, 1)
         # regola 6: le ore buche di un docente in un giorno. `lezione[h]` sono i termini della somma «ha lezione
-        # nell'ora h». Due richieste (vedi in cima):
+        # nell'ora h». Tre richieste (vedi in cima):
         buche, massime = self.scuola['buche_al_giorno'], self.scuola['lezioni_al_giorno']
+        minime = self.scuola['ore_per_una_buca']
         for t in range(T if self.con_le_buche else 0):
             for g in range(G):
                 lezione = [[(x(v, g, h), 1) for v in voci_del_docente[t]] for h in range(O)]
-                # a. mai piu' di `buche` ore buche: per ogni coppia di ore a < b con in mezzo piu' ore delle buche
-                #    consentite, se ha lezione in tutte e due in mezzo ne puo' saltare solo `buche`
                 for a in range(O):
-                    for b in range(a + buche + 2, O):
-                        troppe = b - a - 1 - buche
+                    for b in range(a + 2, O):
+                        estremi = lezione[a] + lezione[b]
                         in_mezzo = [termine for h in range(a + 1, b) for termine in lezione[h]]
-                        regola(in_mezzo + [(i, -troppe * k) for i, k in lezione[a] + lezione[b]], -troppe, O)
-                # b. chi fa il massimo delle ore deve avere la pausa: mai `massime` ore tutte di seguito
+                        fuori = [termine for h in range(O) if h < a or h > b for termine in lezione[h]]
+                        # a. mai piu' di `buche` ore buche: tra a e b ne puo' saltare solo `buche`
+                        troppe = b - a - 1 - buche
+                        if troppe > 0:
+                            regola(in_mezzo + [(i, -troppe * k) for i, k in estremi], -troppe, O)
+                        # b. un buco tra a e b solo se quel giorno le lezioni sono almeno `minime`: oltre a quelle
+                        #    due deve averne almeno `minime - 2` altre
+                        altre = minime - 2
+                        if altre > 0:
+                            regola(fuori + [(i, (altre + 1) * k) for i, k in in_mezzo]
+                                   + [(i, -altre * k) for i, k in estremi], -altre, O * (altre + 1))
+                # c. chi fa il massimo delle ore deve avere la pausa: mai `massime` ore tutte di seguito
                 if buche:
                     for a in range(O - massime + 1):
                         regola([termine for h in range(a, a + massime) for termine in lezione[h]], 0, massime - 1)

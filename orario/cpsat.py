@@ -85,8 +85,8 @@ def modello(scuola, cp=cp_model):
         else:
             m.AddBoolOr([])
 
-    # ---- regola 6: le giornate che un docente puo' avere (non troppe ore, non troppe ore buche, e la pausa di chi
-    #      fa il massimo delle ore) ----
+    # ---- regola 6: le giornate che un docente puo' avere (non troppe ore, e le ore buche che le sue ore di
+    #      lezione consentono: scuola.buche_consentite) ----
     giornate = []
     for quante in range(min(O, scuola['lezioni_al_giorno']) + 1):
         for ore in itertools.combinations(range(O), quante):

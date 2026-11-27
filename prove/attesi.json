@@ -47,8 +47,7 @@
  },
  "seme 1, 5 classi, senza ritardi": {
   "caso": "4429f4b9b9d5",
-  "esito": "trovato",
-  "verificato": true
+  "esito": "limite di tempo"
  },
  "seme 1, 5 classi, con ritardi": {
   "caso": "b675efd14bf3",
@@ -65,8 +64,7 @@
  },
  "seme 1, 12 classi, senza ritardi": {
   "caso": "43a7f7d8dbbe",
-  "esito": "trovato",
-  "verificato": true
+  "esito": "limite di tempo"
  },
  "seme 1, 12 classi, con ritardi": {
   "caso": "cdc9f5d2ff2d",
@@ -168,13 +166,11 @@
  },
  "seme 4, 8 classi, senza ritardi": {
   "caso": "70748941b988",
-  "esito": "trovato",
-  "verificato": true
+  "esito": "limite di tempo"
  },
  "seme 4, 8 classi, con ritardi": {
   "caso": "3961aeacebb6",
-  "esito": "trovato",
-  "verificato": true
+  "esito": "limite di tempo"
  },
  "seme 4, 12 classi, senza ritardi": {
   "caso": "8d5e17a56cdb",
@@ -206,13 +202,11 @@
  },
  "seme 5, 8 classi, senza ritardi": {
   "caso": "7c2d1ceae682",
-  "esito": "trovato",
-  "verificato": true
+  "esito": "limite di tempo"
  },
  "seme 5, 8 classi, con ritardi": {
   "caso": "505e2ad2b171",
-  "esito": "trovato",
-  "verificato": true
+  "esito": "limite di tempo"
  },
  "seme 5, 12 classi, senza ritardi": {
   "caso": "ed85279343d9",
@@ -234,8 +228,7 @@
  },
  "seme 4, 7 classi, con ritardi": {
   "caso": "a58bac1ed859",
-  "esito": "trovato",
-  "verificato": true
+  "esito": "limite di tempo"
  },
  "seme 1, 14 classi, con ritardi": {
   "caso": "7a55668c3e4b",
