@@ -71,8 +71,7 @@
  },
  "seme 1, 12 classi, con ritardi": {
   "caso": "cdc9f5d2ff2d",
-  "esito": "trovato",
-  "verificato": true
+  "esito": "limite di tempo"
  },
  "seme 2, 3 classi, senza ritardi": {
   "caso": "b570ff9b4d72",
@@ -144,8 +143,7 @@
  },
  "seme 3, 12 classi, senza ritardi": {
   "caso": "be1e0fffcfc8",
-  "esito": "trovato",
-  "verificato": true
+  "esito": "limite di tempo"
  },
  "seme 3, 12 classi, con ritardi": {
   "caso": "6e3ff98568c1",

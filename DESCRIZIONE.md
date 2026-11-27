@@ -84,7 +84,7 @@ Le regole di un orario valido:
 5. **Le classi.** In un giorno un docente insegna in al massimo **3** classi (`CLASSI_AL_GIORNO`).
 6. **La giornata del docente.** In un giorno un docente insegna al massimo **5** ore (`LEZIONI_AL_GIORNO`), in tutte
    le sue classi insieme. Le sue ore buche (ore senza lezione tra la sua prima e la sua ultima lezione del giorno:
-   quelle prima della prima e dopo l'ultima non contano) sono al massimo **2** (`BUCHE_AL_GIORNO`). Chi entra
+   quelle prima della prima e dopo l'ultima non contano) sono al massimo **1** (`BUCHE_AL_GIORNO`). Chi entra
    alle 10, fa due ore di seguito ed esce non ne ha nessuna.
 7. **La giornata della classe.** In ogni classe le prime ore di ogni giorno (le obbligatorie) hanno lezione, e dopo
    un'ora buca la classe quel giorno non ha più lezione.
@@ -96,13 +96,13 @@ richiesta di Alb, senza cambiare che cosa chiedono (gli orari sono gli stessi). 
 giorno libero il 26 novembre 2026; le ore buche dei docenti il 26 (al massimo 2 al giorno); il massimo di 5 ore al
 giorno e il giorno libero per ogni docente il 27. Il 27 novembre le ore buche erano diventate più strette (nessuna con
 meno di 4 ore di lezione, al massimo 1 con 4 o 5), ma così circa un caso su nove restava senza risposta, e sono
-tornate «al massimo 2 al giorno» lo stesso giorno (richiesta di Alb).
+tornate «al massimo 2 al giorno»; poi, la sera stessa, «al massimo 1 al giorno» (richieste di Alb).
 
 Una scuola, nel programma e nello stato, è scritta così:
 
 ```
 {"giorni": [nomi], "ore": [nomi], "classi": [nomi], "obbligatorie": N,
- "ore_di_seguito": 3, "classi_al_giorno": 3, "buche_al_giorno": 2,
+ "ore_di_seguito": 3, "classi_al_giorno": 3, "buche_al_giorno": 1,
  "lezioni_al_giorno": 5,
  "docenti": [[nome, ingresso, uscita, giorno libero], ...],
  "materie": [[nome, tipo di aula], ...], "aule": [[nome, tipo], ...],
@@ -251,7 +251,7 @@ dimostra che non esiste.
 | 3. A scuola | le x di una voce hanno massimo 0 prima dell'ingresso dei suoi docenti, dalla loro uscita in poi (per una coppia: l'ingresso di chi entra dopo, l'uscita di chi esce prima) e nel giorno libero preciso di uno di loro. Giorno libero qualunque: la somma delle f del docente nella settimana fa 1 (ne segna uno solo), e per ogni giorno `(lezioni del giorno) + 5 × f[t, g] ≤ 5`: è la riga delle ore di lezione della regola 6, con f in più. (Una riga per giorno invece di una per ora: sono meno righe, e su 480 casi il risolutore non va peggio: 55 al limite di tempo contro 58.) |
 | 4. In una classe | **al massimo 3 ore**: per ogni docente, classe e giorno: la somma delle x è al massimo 3. **Di seguito**: `c[h] ≥ (somma delle x in h) − (somma delle x in h − 1)`, e in un giorno la somma delle c è al massimo 1 |
 | 5. Le classi | per ogni docente e giorno: la somma delle c in tutte le classi è al massimo 3 (in ogni classe comincia al più una volta, quindi gli inizi sono le classi). Si scrive solo per i docenti che hanno più di 3 classi. |
-| 6. La giornata del docente | **al massimo 5 ore di lezione**: per ogni docente e giorno: la somma delle x delle sue voci è al massimo 5 (per chi ha un giorno libero qualunque, più `5 × f`: vedi la regola 3). **Le ore buche**: per ogni docente e giorno, e per ogni coppia di ore a < b con in mezzo più di 2 ore: `(lezioni in mezzo) ≥ (ore in mezzo − 2) × (lezione in a + lezione in b − 1)`. Se ha lezione in a e in b, di quelle in mezzo ne può saltare al massimo 2. «Lezione in h» è la somma delle x delle voci del docente in quell'ora. Con 6 ore le coppie sono tre: (prima, quinta), (seconda, sesta), (prima, sesta). Non servono incognite in più. |
+| 6. La giornata del docente | **al massimo 5 ore di lezione**: per ogni docente e giorno: la somma delle x delle sue voci è al massimo 5 (per chi ha un giorno libero qualunque, più `5 × f`: vedi la regola 3). **Le ore buche**: per ogni docente e giorno, e per ogni coppia di ore a < b con in mezzo più di 1 ora: `(lezioni in mezzo) ≥ (ore in mezzo − 1) × (lezione in a + lezione in b − 1)`. Se ha lezione in a e in b, di quelle in mezzo ne può saltare al massimo 1. «Lezione in h» è la somma delle x delle voci del docente in quell'ora. Con 6 ore le coppie sono sei. Non servono incognite in più. |
 | 7. La giornata della classe | **le prime ore hanno lezione**: b ha massimo 0 nelle ore obbligatorie. **Dopo la buca solo buche**: `b[h + 1] ≥ b[h]` |
 | 8. Le aule | per ogni tipo di aula e ogni ora: la somma delle x delle voci che chiedono quel tipo è al massimo il numero delle aule di quel tipo. Si scrive solo se le classi che hanno voci di quel tipo sono più delle aule. |
 
@@ -274,13 +274,19 @@ questo il programma chiede due volte: prima **senza le ore buche dei docenti**: 
 non esiste nemmeno con una richiesta in più, ed è la risposta; se l'orario trovato le rispetta per caso, è la
 risposta. Altrimenti chiede da capo **con tutte le regole**, nel tempo che resta.
 
-**Quasi tutti i casi hanno una risposta.** Su 480 casi (semi 0–19, da 3 a 14 classi, senza e con ritardi), con 60
-secondi l'uno: 328 trovati, 148 impossibili, 4 al limite di tempo; mediana 0,5 secondi. Quanto il risolutore ce la
-fa dipende molto da quanto sono strette le ore buche dei docenti: con la versione stretta del 27 novembre (nessuna
-con meno di 4 ore di lezione, al massimo 1 con 4 o 5) i casi al limite erano 55 su 480. Per quella versione sono
-state provate altre scritture (un'incognita per ogni giornata consentita; le incognite «ha già cominciato» e «deve
-ancora finire»; il giorno libero con una riga per ora) e un altro risolutore, CP-SAT di OR-Tools (ramo
-`prova/cp-sat`, sul Raspberry): dei 55 ne risolveva 11, e ne perdeva 5 su 24 di quelli che HiGHS risolve.
+**Quasi tutti i casi hanno una risposta.** Quanto il risolutore ce la fa dipende molto da quanto sono strette le ore
+buche dei docenti. Su 480 casi (semi 0–19, da 3 a 14 classi, senza e con ritardi), con 60 secondi l'uno e il solo
+HiGHS:
+
+| Ore buche dei docenti | Trovati | Impossibili | Al limite di tempo |
+|---|---|---|---|
+| al massimo 2 al giorno | 328 | 148 | 4 |
+| al massimo 1 al giorno (la regola di adesso) | 316 | 148 | 16 |
+| nessuna con meno di 4 ore di lezione, al massimo 1 con 4 o 5 (provata il 27 novembre) | 277 | 148 | 55 |
+
+Con i due metodi insieme (capitolo 20) i casi al limite sono meno: inciampano su casi diversi. Per la versione più
+stretta sono state provate altre scritture (un'incognita per ogni giornata consentita; le incognite «ha già
+cominciato» e «deve ancora finire»; il giorno libero con una riga per ora): nessuna andava meglio.
 
 **Che cosa fa ogni richiesta** (27 novembre 2026, su 128 casi, togliendone una alla volta; misurato con le ore buche
 nella versione stretta e prima che ogni docente avesse un giorno libero). Le regole non si
@@ -501,7 +507,7 @@ I tempi non si confrontano: cambiano da una volta all'altra.
 | Ore di un docente in una classe in un giorno | al massimo 3, di seguito |
 | Classi di un docente in un giorno | al massimo 3 |
 | Laboratori e palestre dei casi casuali | uno ogni 24 ore di lezione la settimana che li chiedono |
-| Ore buche di un docente in un giorno | al massimo 2 |
+| Ore buche di un docente in un giorno | al massimo 1 |
 | Ore di lezione di un docente in un giorno | al massimo 5 |
 | Casi casuali | 6 giorni × 6 ore, 5 obbligatorie; 30–36 ore per classe; lezioni da 1 a 6 ore; 5–24 ore per docente; ingresso al più alla quarta ora |
 | Tentativi del generatore | 20.000 |
@@ -660,7 +666,7 @@ Dal 27 novembre 2026 (richiesta di Alb) l'orario lo cercano due metodi, nello st
   conseguenze e, quando arriva a una contraddizione, ricava quali poche scelte l'hanno causata e non le rifà più
   insieme. Le regole sono le stesse otto, scritte in modo più diretto: «esattamente uno» (la cella), «al massimo
   uno» (il docente in un'ora), «se questo allora quello» (dopo la buca), e la giornata del docente come **tabella**:
-  l'elenco delle giornate consentite (con 6 ore, al massimo 5 lezioni e 2 ore buche), e la sua deve essere una di
+  l'elenco delle giornate consentite (con 6 ore, al massimo 5 lezioni e 1 ora buca), e la sua deve essere una di
   quelle. Le incognite che non possono valere 1 (prima dell'ingresso, dopo l'uscita, nel giorno libero preciso, l'ora
   buca nelle prime ore) non vengono nemmeno create. Usa fino a quattro processori, lasciandone uno a HiGHS.
 

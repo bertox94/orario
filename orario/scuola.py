@@ -37,7 +37,7 @@ richiesta di Alb; gli orari non cambiano.)
 
 LA SCUOLA e' un dizionario:
     {"giorni": [nomi], "ore": [nomi], "classi": [nomi], "obbligatorie": N,
-     "ore_di_seguito": 3, "classi_al_giorno": 3, "buche_al_giorno": 2,
+     "ore_di_seguito": 3, "classi_al_giorno": 3, "buche_al_giorno": 1,
      "lezioni_al_giorno": 5,
      "docenti": [[nome, ingresso, uscita, giorno libero], ...],     giorno libero: un giorno, o QUALUNQUE
      "materie": [[nome, tipo di aula], ...], "aule": [[nome, tipo], ...],
@@ -66,7 +66,7 @@ Per ogni materia usata in una lezione ci deve essere almeno un'aula del suo tipo
 MAX_GIORNI, MAX_ORE, MAX_CLASSI, MAX_DOCENTI, MAX_VOCI, MAX_NOME = 7, 10, 120, 250, 4000, 47
 MAX_MATERIE, MAX_AULE = 60, 300
 # le regole della giornata di un docente: ore di seguito in una classe, classi, ore buche, ore di lezione in tutto
-ORE_DI_SEGUITO, CLASSI_AL_GIORNO, BUCHE_AL_GIORNO, LEZIONI_AL_GIORNO = 3, 3, 2, 5
+ORE_DI_SEGUITO, CLASSI_AL_GIORNO, BUCHE_AL_GIORNO, LEZIONI_AL_GIORNO = 3, 3, 1, 5
 BUCA = -1   # in una cella dell'orario: l'ora buca
 QUALUNQUE = -2   # il giorno libero di un docente, quando non e' un giorno preciso: lo sceglie il programma
 

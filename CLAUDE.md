@@ -41,12 +41,12 @@ scelta…») non è più in `main`: l'ultima versione è in `stabile/2026-11-26`
 - Le regole dell'orario sono otto (elenco in `scuola.py`; fino al 27 novembre 2026 erano scritte come tredici, poi
   raggruppate su richiesta di Alb): le ore, una classe per volta, a scuola (ingresso, uscita, giorno libero: dal 27
   novembre 2026 ogni docente ne ha uno, preciso o «qualunque», cioè scelto dal programma), in una classe (3 ore, di seguito), le classi (3 al giorno), la giornata del docente (5 ore; al
-  massimo 2 ore buche), la giornata della classe (prime ore, dopo la buca),
+  massimo 1 ora buca), la giornata della classe (prime ore, dopo la buca),
   le aule. Una richiesta nuova va in tre posti: l'elenco in `scuola.py`, i conti in `esatto.py`, il controllo in
   `verifica.py` (e in `DESCRIZIONE.md`).
 - Le ore buche dei docenti rendono lento il metodo: `esatto.risolvi` chiede prima senza e poi, se serve, con tutte.
-  Con «al massimo 2 al giorno» restano al limite 4 casi su 480 con 60 secondi (`prove/prova.py` quelli non li
-  confronta). Una versione più stretta (nessuna con 1–3 ore di lezione, al massimo 1 con 4–5), provata il 27
+  Con «al massimo 1 al giorno» (la regola dal 27 novembre 2026 sera) restano al limite, con il solo HiGHS e 60
+  secondi, 16 casi su 480; con «al massimo 2» erano 4 (`prove/prova.py` quelli al limite non li confronta). Una versione più stretta (nessuna con 1–3 ore di lezione, al massimo 1 con 4–5), provata il 27
   novembre 2026, ne lasciava 55 su 480, e Alb l'ha tolta. CP-SAT (ramo `prova/cp-sat`) su quei 55 ne risolveva 11.
 - Materie e aule (26 novembre 2026, richiesta di Alb): ogni lezione ha una materia, un docente può averne più di
   una, e ogni lezione occupa un'aula del tipo della sua materia (tutte le aule sono contate). Uscita e giorno

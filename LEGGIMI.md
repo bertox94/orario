@@ -58,7 +58,7 @@ stessa materia e gli stessi docenti si sommano.
 4. **In una classe.** Un docente fa al massimo 3 ore al giorno nella stessa classe, e le fa di seguito.
 5. **Le classi.** Un docente va al massimo in 3 classi al giorno.
 6. **La giornata del docente.** Al massimo 5 ore di lezione al giorno. Ore buche (tra la sua prima e la sua ultima
-   lezione del giorno): al massimo 2.
+   lezione del giorno): al massimo 1.
 7. **La giornata della classe.** Le prime ore di ogni giorno hanno lezione, e dopo un'ora buca la classe ha solo ore
    buche.
 8. **Le aule.** Ogni lezione è in un'aula del tipo che la sua materia chiede, e in un'aula c'è una classe per volta.
