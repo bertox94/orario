@@ -34,21 +34,20 @@ scelta…») non è più in `main`: l'ultima versione è in `stabile/2026-11-26`
 - Dopo una modifica a `esatto.py`: ogni orario trovato deve passare la verifica, e nessun caso deve passare da
   «trovato» a «impossibile» o il contrario (sono risposte certe). Va rifatto su tanti casi, non solo sui 54.
 - `verifica.py` non deve usare niente di `esatto.py`: è il controllo indipendente.
-- Una regola nuova dell'orario va in tre posti: l'elenco in `scuola.py`, i conti in `esatto.py`, il controllo in
-  `verifica.py` (e in `DESCRIZIONE.md`). Dal 26 novembre 2026 (richiesta di Alb) c'è la regola 9, sulle ore buche
-  di un docente (tra la sua prima e la sua ultima lezione del giorno); dal 27 novembre dice: nessuna nei giorni in
-  cui insegna da 1 a 3 ore, al massimo 1 se ne insegna 4 o 5 (prima: al massimo 2); e c'è la regola 13: al massimo
-  5 ore di lezione al giorno. Con queste regole alcuni casi restano al limite di tempo (3 dei 54 della prova
-  automatica): `prove/prova.py` quelli non li confronta. Con lei dimostrare un caso impossibile
-  diventava lentissimo: per questo `esatto.risolvi` chiede prima senza la regola 9 e poi, se serve, con tutte.
+- Le regole dell'orario sono otto (elenco in `scuola.py`; fino al 27 novembre 2026 erano scritte come tredici, poi
+  raggruppate su richiesta di Alb): le ore, una classe per volta, a scuola (ingresso, uscita, giorno libero preciso
+  o «qualunque»), in una classe (3 ore, di seguito), le classi (3 al giorno), la giornata del docente (5 ore; ore
+  buche: nessuna con 1–3 ore di lezione, al massimo 1 con 4–5), la giornata della classe (prime ore, dopo la buca),
+  le aule. Una richiesta nuova va in tre posti: l'elenco in `scuola.py`, i conti in `esatto.py`, il controllo in
+  `verifica.py` (e in `DESCRIZIONE.md`).
+- Le ore buche dei docenti rendono lento il metodo: `esatto.risolvi` chiede prima senza e poi, se serve, con tutte;
+  e alcuni casi restano al limite di tempo (3 dei 54 della prova automatica: `prove/prova.py` quelli non li
+  confronta). Altre due scritture provate (una incognita per giornata consentita; «ha già cominciato» e «deve
+  ancora finire») erano più lente.
 - Materie e aule (26 novembre 2026, richiesta di Alb): ogni lezione ha una materia, un docente può averne più di
-  una, e ogni lezione occupa un'aula del tipo della sua materia (regola 10; tutte le aule sono contate). Il
-  generatore le aggiunge con numeri casuali a parte: classi, docenti, lezioni e ritardi di ogni seme non sono
-  cambiati, e non devono cambiare.
-- Uscita e giorno libero dei docenti (26 novembre 2026, richiesta di Alb; regole 11 e 12): il giorno libero è un
-  giorno preciso o «uno qualunque», scelto dal programma. Il generatore li crea, anche loro con numeri casuali a
-  parte. La regola 9 ora è scritta senza incognite in più (tre righe per docente e giorno): com'era prima, un caso
-  che ha un orario restava al limite di tempo.
+  una, e ogni lezione occupa un'aula del tipo della sua materia (tutte le aule sono contate). Uscita e giorno
+  libero dei docenti: stessa data. Il generatore li aggiunge con numeri casuali a parte: classi, docenti, lezioni e
+  ritardi di ogni seme non sono cambiati, e non devono cambiare.
 - `DESCRIZIONE.md` descrive tutto (regole, generatore, metodo, verifica, comandi, ogni pagina e ogni indirizzo del
   sito, i limiti) con il dettaglio per rifare il programma da zero (richiesta di Alb): ogni modifica che cambia una
   di queste cose si riporta anche lì, nello stesso commit.

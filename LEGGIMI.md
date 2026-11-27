@@ -49,20 +49,17 @@ stessa materia e gli stessi docenti si sommano.
 
 ## Le regole dell'orario
 
-1. Ogni voce fa esattamente le sue ore.
-2. Un docente è in una classe per volta.
-3. Un docente non insegna prima del suo ingresso.
-4. Un docente fa al massimo 3 ore al giorno nella stessa classe,
-5. e le fa di seguito.
-6. Un docente va al massimo in 3 classi al giorno.
-7. Le prime ore di ogni giorno hanno lezione.
-8. Dopo un'ora buca, quel giorno, la classe ha solo ore buche.
-9. Le ore buche di un docente (tra la sua prima e la sua ultima lezione del giorno): nessuna nei giorni in cui
-   insegna da 1 a 3 ore, al massimo 1 nei giorni in cui ne insegna 4 o 5.
-10. Ogni lezione è in un'aula del tipo che la sua materia chiede, e in un'aula c'è una classe per volta.
-11. Un docente non insegna dalla sua ora di uscita in poi.
-12. Un docente non insegna nel suo giorno libero (un giorno preciso, o uno qualunque scelto dal programma).
-13. Un docente fa al massimo 5 ore di lezione al giorno.
+1. **Le ore.** Ogni voce fa esattamente le sue ore.
+2. **Una classe per volta.** Un docente è in una classe per volta.
+3. **A scuola.** Un docente insegna solo quando è a scuola: dopo il suo ingresso, prima della sua uscita, non nel
+   suo giorno libero (un giorno preciso, o uno qualunque scelto dal programma).
+4. **In una classe.** Un docente fa al massimo 3 ore al giorno nella stessa classe, e le fa di seguito.
+5. **Le classi.** Un docente va al massimo in 3 classi al giorno.
+6. **La giornata del docente.** Al massimo 5 ore di lezione al giorno. Ore buche (tra la sua prima e la sua ultima
+   lezione del giorno): nessuna nei giorni in cui insegna da 1 a 3 ore, al massimo 1 se ne insegna 4 o 5.
+7. **La giornata della classe.** Le prime ore di ogni giorno hanno lezione, e dopo un'ora buca la classe ha solo ore
+   buche.
+8. **Le aule.** Ogni lezione è in un'aula del tipo che la sua materia chiede, e in un'aula c'è una classe per volta.
 
 ## Il sito
 

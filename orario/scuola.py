@@ -17,23 +17,23 @@ LE PAROLE
   sia lo sceglie il programma.
 - ore obbligatorie: le prime ore di ogni giorno, che in ogni classe hanno sempre lezione.
 
-LE REGOLE DI UN ORARIO (le controlla verifica.py; esatto.py le scrive come conti)
-1. ogni voce fa esattamente le sue ore, nella sua classe;
-2. un docente e' in una sola classe per volta;
-3. un docente non insegna prima della sua ora di ingresso;
-4. in una classe, in un giorno, un docente fa al massimo ORE_DI_SEGUITO ore;
-5. e le fa di seguito, senza buchi;
-6. in un giorno un docente insegna in al massimo CLASSI_AL_GIORNO classi;
-7. in ogni classe le prime ore di ogni giorno (le obbligatorie) hanno lezione;
-8. dopo un'ora buca la classe quel giorno non ha piu' lezione;
-9. le ore buche di un docente: ore senza lezione tra la sua prima e la sua ultima lezione di un giorno (le ore prima
-   della prima e dopo l'ultima non contano). In un giorno in cui insegna meno di ORE_PER_UNA_BUCA ore non ne ha
-   nessuna; se ne insegna di piu', al massimo BUCHE_AL_GIORNO (vedi buche_consentite);
-10. ogni lezione si fa in un'aula del tipo che la sua materia chiede, e in un'aula c'e' una classe per volta;
-11. un docente non insegna dalla sua ora di uscita in poi;
-12. un docente non insegna nel suo giorno libero; chi ne ha «uno qualunque» ha almeno un giorno senza lezioni;
-13. in un giorno un docente insegna al massimo LEZIONI_AL_GIORNO ore, in tutte le sue classi insieme.
-(Le regole 4 e 5 contano le ore di un docente in una classe sommando tutte le sue voci li', da solo e in coppia.)
+LE REGOLE DI UN ORARIO (le controlla verifica.py; esatto.py le scrive come conti). Sono otto:
+1. LE ORE: ogni voce fa esattamente le sue ore, nella sua classe;
+2. UNA CLASSE PER VOLTA: un docente e' in una sola classe per volta;
+3. A SCUOLA: un docente insegna solo quando e' a scuola: non prima della sua ora di ingresso, non dalla sua ora di
+   uscita in poi, non nel suo giorno libero; chi ha un giorno libero «qualunque» ha almeno un giorno senza lezioni;
+4. IN UNA CLASSE: in una classe, in un giorno, un docente fa al massimo ORE_DI_SEGUITO ore, e le fa di seguito, senza
+   buchi (contando insieme tutte le sue voci li': da solo, in coppia, di tutte le sue materie);
+5. LE CLASSI: in un giorno un docente insegna in al massimo CLASSI_AL_GIORNO classi;
+6. LA GIORNATA DEL DOCENTE: in un giorno un docente insegna al massimo LEZIONI_AL_GIORNO ore, in tutte le sue classi
+   insieme; e le sue ore buche (ore senza lezione tra la sua prima e la sua ultima lezione del giorno: quelle prima
+   della prima e dopo l'ultima non contano) sono al massimo BUCHE_AL_GIORNO, e nessuna se quel giorno insegna meno di
+   ORE_PER_UNA_BUCA ore (vedi buche_consentite);
+7. LA GIORNATA DELLA CLASSE: in ogni classe le prime ore di ogni giorno (le obbligatorie) hanno lezione, e dopo
+   un'ora buca la classe quel giorno non ha piu' lezione;
+8. LE AULE: ogni lezione si fa in un'aula del tipo che la sua materia chiede, e in un'aula c'e' una classe per volta.
+(Fino al 27 novembre 2026 erano scritte come tredici regole: le stesse, una per frase. Sono state raggruppate su
+richiesta di Alb; gli orari non cambiano.)
 
 LA SCUOLA e' un dizionario:
     {"giorni": [nomi], "ore": [nomi], "classi": [nomi], "obbligatorie": N,
@@ -78,7 +78,7 @@ def celle(scuola):
 
 
 def buche_consentite(scuola, ore_di_lezione):
-    """Quante ore buche puo' avere un docente in un giorno in cui insegna `ore_di_lezione` ore (regola 9)."""
+    """Quante ore buche puo' avere un docente in un giorno in cui insegna `ore_di_lezione` ore (regola 6)."""
     return scuola['buche_al_giorno'] if ore_di_lezione >= scuola['ore_per_una_buca'] else 0
 
 
