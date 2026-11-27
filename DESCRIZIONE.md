@@ -81,14 +81,17 @@ Le regole di un orario valido:
 6. In un giorno un docente insegna in al massimo **3** classi (`CLASSI_AL_GIORNO`).
 7. In ogni classe le prime ore di ogni giorno (le obbligatorie) hanno lezione.
 8. Dopo un'ora buca, la classe quel giorno non ha più lezione.
-9. In un giorno un docente ha al massimo 2 ore buche (`BUCHE_AL_GIORNO`): ore senza lezione tra la sua prima e la
-   sua ultima lezione di quel giorno. Le ore prima della prima e dopo l'ultima non contano. (Dal 26 novembre 2026,
-   richiesta di Alb.)
+9. Le ore buche di un docente: ore senza lezione tra la sua prima e la sua ultima lezione di un giorno (le ore
+   prima della prima e dopo l'ultima non contano). In un giorno in cui insegna 1, 2 o 3 ore non ne ha nessuna; in un
+   giorno in cui ne insegna 4 o 5, al massimo 1 (`BUCHE_AL_GIORNO` = 1, `ORE_PER_UNA_BUCA` = 4). (Dal 27 novembre
+   2026, richiesta di Alb; il 26 novembre la regola era nata come «al massimo 2 ore buche al giorno».)
 10. Ogni lezione si fa in un'aula del tipo che la sua materia chiede, e in un'aula c'è una classe per volta. (Dal
     26 novembre 2026, richiesta di Alb.)
 11. Un docente non insegna dalla sua ora di uscita in poi.
 12. Un docente non insegna nel suo giorno libero; chi ne ha «uno qualunque» ha almeno un giorno senza lezioni.
     (Le regole 11 e 12: dal 26 novembre 2026, richiesta di Alb.)
+13. In un giorno un docente insegna al massimo 5 ore (`LEZIONI_AL_GIORNO`), in tutte le sue classi insieme. (Dal
+    27 novembre 2026, richiesta di Alb.)
 
 Le regole 4 e 5 contano le ore di un docente in una classe sommando tutte le sue voci lì: da solo, in coppia, e di
 tutte le sue materie.
@@ -99,7 +102,8 @@ Una scuola, nel programma e nello stato, è scritta così:
 
 ```
 {"giorni": [nomi], "ore": [nomi], "classi": [nomi], "obbligatorie": N,
- "ore_di_seguito": 3, "classi_al_giorno": 3, "buche_al_giorno": 2,
+ "ore_di_seguito": 3, "classi_al_giorno": 3, "buche_al_giorno": 1, "ore_per_una_buca": 4,
+ "lezioni_al_giorno": 5,
  "docenti": [[nome, ingresso, uscita, giorno libero], ...],
  "materie": [[nome, tipo di aula], ...], "aule": [[nome, tipo], ...],
  "voci": [[classe, docente, codocente o -1, ore, materia], ...]}
@@ -207,10 +211,10 @@ docente, nell'ordine, si chiedono sempre quattro numeri, anche quando non servon
 0 e 5, `sorte dell'uscita` tra 1 e 100, `uscita` tra 4 e 5.
 - **Il giorno libero**, in tutti i casi: con `sorte` fino a 25 il giorno preciso `giorno`; da 26 a 50 «uno
   qualunque»; oltre, nessuno. Ma solo se le sue ore più 6 (il margine) stanno nelle ore in cui è a scuola in cinque
-  giorni: `ore + 6 ≤ (6 − ingresso) × 5`; se no, nessuno.
+  giorni: `ore + 6 ≤ min(6 − ingresso, 5) × 5` (in un giorno fa al massimo 5 ore); se no, nessuno.
 - **L'uscita**, solo nei casi con i ritardi e solo per chi entra alla prima ora, con `sorte dell'uscita` fino a 30:
-  esce dopo la quarta o la quinta ora (`uscita`), ritardata di un'ora alla volta finché `ore + 6 > uscita × giorni
-  in cui c'è`. Tutti gli altri restano fino alla fine.
+  esce dopo la quarta o la quinta ora (`uscita`), ritardata di un'ora alla volta finché `ore + 6 > min(uscita, 5) ×
+  giorni in cui c'è`. Tutti gli altri restano fino alla fine.
 
 Con giorni liberi e uscite 14 dei 1.032 casi di prova passano da «trovato» a «impossibile».
 
@@ -237,7 +241,7 @@ dimostra che non esiste.
 - `f[t, g]`: il giorno g è il giorno libero del docente t. Ci sono solo per i docenti che hanno un giorno libero
   «qualunque».
 
-**Le regole** (le dodici del capitolo 2), ognuna come una somma che deve stare tra due numeri:
+**Le regole** (le tredici del capitolo 2), ognuna come una somma che deve stare tra due numeri:
 
 | Regola | Come conto |
 |---|---|
@@ -250,10 +254,11 @@ dimostra che non esiste.
 | 6. Al massimo 3 classi al giorno | per ogni docente e giorno: la somma delle c in tutte le classi è al massimo 3 (in ogni classe comincia al più una volta, quindi gli inizi sono le classi). Si scrive solo per i docenti che hanno più di 3 classi. |
 | 7. Le prime ore hanno lezione | b ha massimo 0 nelle ore obbligatorie |
 | 8. Dopo la buca solo buche | `b[h + 1] ≥ b[h]` |
-| 9. Al massimo 2 ore buche al giorno per un docente | per ogni docente e giorno, e per ogni coppia di ore a < b con in mezzo più di 2 ore: `(lezioni in mezzo) ≥ (ore in mezzo − 2) × (lezione in a + lezione in b − 1)`. Se ha lezione in a e in b, di quelle in mezzo ne può saltare al massimo 2. «Lezione in h» è la somma delle x delle voci del docente in quell'ora. Con 6 ore le coppie sono tre: (prima, quinta), (seconda, sesta), (prima, sesta). Non servono incognite in più. |
+| 9. Le ore buche di un docente | per ogni docente e giorno, e per ogni coppia di ore a < b con almeno un'ora in mezzo, due righe. **Al massimo 1 ora buca** (solo se in mezzo ci sono almeno 2 ore): `(lezioni in mezzo) ≥ (ore in mezzo − 1) × (lezione in a + lezione in b − 1)`. **Nessuna con meno di 4 ore di lezione**: `(lezioni nelle ore fuori da a…b) + 3 × (lezioni in mezzo) ≥ 2 × (lezione in a + lezione in b − 1)`, cioè: se ha lezione in a e in b e in mezzo nessuna, quel giorno deve averne almeno altre due. «Lezione in h» è la somma delle x delle voci del docente in quell'ora. Con 6 ore sono 16 righe per docente e giorno; non servono incognite in più. Controllato su tutte le giornate possibili (da 4 a 8 ore): le righe delle regole 9 e 13 accettano esattamente quelle consentite. |
 | 10. Le aule bastano | per ogni tipo di aula e ogni ora: la somma delle x delle voci che chiedono quel tipo è al massimo il numero delle aule di quel tipo. Si scrive solo se le classi che hanno voci di quel tipo sono più delle aule. |
 | 11. Non dall'uscita in poi | quelle x hanno massimo 0 (per una coppia, l'uscita di chi esce prima) |
 | 12. Il giorno libero | un giorno preciso: le x delle voci del docente in quel giorno hanno massimo 0. Uno qualunque: la somma delle sue f nella settimana è almeno 1, e per ogni giorno e ora `(lezione in quell'ora) + f[t, g] ≤ 1` |
+| 13. Al massimo 5 ore di lezione al giorno | per ogni docente e giorno: la somma delle x delle sue voci è al massimo 5 (si scrive solo se la giornata ha più di 5 ore) |
 
 Non c'è niente da rendere massimo o minimo: si cerca una risposta qualunque che rispetti tutto. Dalla risposta
 all'orario: in ogni cella la voce la cui x vale 1, altrimenti l'ora buca.
@@ -273,9 +278,21 @@ dove erano, poi quelle che trovano libera la loro, poi le altre.
 alcuni casi impossibili passano da pochi secondi a più di 200). Per questo il programma chiede due volte:
 prima **senza la regola 9**: se già così un orario non esiste, non esiste nemmeno con una regola in più, ed è la
 risposta; se l'orario trovato rispetta per caso anche la regola 9, è la risposta. Altrimenti chiede da capo **con
-tutte le regole**, nel tempo che resta. Sui 1.032 casi, con tutte e dodici le regole: 726 trovati, 306 impossibili,
-nessuno al limite di tempo; mediana 0,4 secondi. Il più lento è seme 24, 7 classi, con ritardi: circa 160 secondi
-(88 per il primo orario, 70 per il secondo).
+tutte le regole**, nel tempo che resta.
+
+**Con le tredici regole non tutti i casi hanno una risposta.** La regola 9 com'è dal 27 novembre (nessuna ora buca
+con meno di 4 ore di lezione) è molto più stretta, e il secondo tempo a volte non finisce. Su 480 casi (semi 0–19,
+da 3 a 14 classi, senza e con ritardi), con 60 secondi l'uno: 316 trovati, 147 impossibili, 17 al limite di tempo;
+mediana 0,8 secondi. Dei 54 casi della prova automatica, con 300 secondi, 3 restano al limite. Sono state provate
+altre due scritture della regola (un'incognita per ogni giornata consentita; le incognite «ha già cominciato» e
+«deve ancora finire»): tutte e due più lente di questa.
+
+**Che cosa fa ogni regola** (27 novembre 2026, su 128 casi, togliendone una alla volta). Le regole non si
+contraddicono: 87 casi su 128 hanno un orario che le rispetta tutte. E nessuna è di troppo: tolta una regola, tra gli
+orari trovati quelli che la violano sono, per la 3, 62 su 125; per la 4, 88 su 88; per la 6, 51 su 87; per la 7, 85
+su 90; per la 9, 88 su 88; per la 10, 40 su 85; per la 11, 22 su 88; per la 12, 88 su 89; per la 13, 46 su 87.
+L'unica che le altre garantiscono già è la 8, e solo nelle scuole dove le ore non obbligatorie sono al più una per
+giorno (come nei casi casuali: 5 obbligatorie su 6): lì l'unica ora buca possibile è l'ultima.
 
 **Come ragiona il risolutore**, in breve. Prima tira tutte le conseguenze obbligate delle regole (chi ha tante ore
 quanti posti è fisso; e così via, a catena). Poi fa finta che le risposte possano essere «a metà»: così il problema
@@ -299,7 +316,7 @@ l'ordine in cui sono scritti i conti.
 ## 6. La verifica dell'orario trovato
 
 Quando il programma trova un orario lo ricontrolla subito una parte che **non usa niente del metodo**: legge solo la
-scuola e le celle, e controlla da capo le dodici regole del capitolo 2. Per ogni regola dice se è rispettata e, se no,
+scuola e le celle, e controlla da capo le tredici regole del capitolo 2. Per ogni regola dice se è rispettata e, se no,
 il primo punto in cui non lo è (per esempio «Ven 10: Zelda e' in C01 e in C03»). Nello stato finisce sotto
 `verifica`; il sito la mostra in un riquadro. Un orario che non passa la verifica è un errore del programma, e nei
 test notturni è un allarme.
@@ -311,7 +328,7 @@ ore di ogni voce alla fine.
 
 Le regole, nell'ordine in cui compaiono nel risultato: le ore di ogni voce; una classe per volta; l'ingresso; il
 massimo di ore al giorno in una classe; di seguito; il massimo di classi al giorno; le prime ore; dopo la buca;
-le ore buche di un docente; le aule; l'uscita; il giorno libero.
+le ore buche di un docente; le aule; l'uscita; il giorno libero; le ore di lezione al giorno.
 
 La verifica è la stessa che c'era nel programma in C: le due sono state confrontate su 372 orari, 10 validi e 362
 rovinati apposta in vari modi, e danno lo stesso risultato regola per regola, con le stesse frasi.
@@ -403,7 +420,7 @@ Dall'alto in basso.
   eliminata non c'è nessuno dei due.
 - Un messaggio quando un orario non c'è: «Un orario non esiste: il programma lo dimostra…» per «impossibile»; che
   non si sa, per «limite di tempo»; che cosa è successo, per «fermata» e «interrotta».
-- Il riquadro della **verifica**, quando l'orario c'è: «verificato» o «non valido», e le dodici regole con ✓ o ✗ e, per
+- Il riquadro della **verifica**, quando l'orario c'è: «verificato» o «non valido», e le tredici regole con ✓ o ✗ e, per
   quelle non rispettate, dove.
 - **L'orario**, con due tasti per scegliere come guardarlo (lo stesso orario; si parte da «Per classe»):
   - **Per classe**: una riga per classe. In una cella tre righe: la materia; chi la insegna (in due: docente e
@@ -485,7 +502,8 @@ I tempi non si confrontano: cambiano da una volta all'altra.
 | Ore di un docente in una classe in un giorno | al massimo 3, di seguito |
 | Classi di un docente in un giorno | al massimo 3 |
 | Laboratori e palestre dei casi casuali | uno ogni 24 ore di lezione la settimana che li chiedono |
-| Ore buche di un docente in un giorno | al massimo 2 |
+| Ore buche di un docente in un giorno | nessuna se insegna 1, 2 o 3 ore; al massimo 1 se ne insegna 4 o 5 |
+| Ore di lezione di un docente in un giorno | al massimo 5 |
 | Casi casuali | 6 giorni × 6 ore, 5 obbligatorie; 30–36 ore per classe; lezioni da 1 a 6 ore; 5–24 ore per docente; ingresso al più alla quarta ora |
 | Tentativi del generatore | 20.000 |
 | Classi di un caso casuale | in pratica fino a circa 70; da 84 in su mai |
@@ -498,14 +516,17 @@ Il programma non ha un limite di «nodi»: l'unico limite è il tempo.
 
 ## 15. La prova automatica e le verifiche da rifare dopo una modifica
 
-`python3 prove/prova.py` genera **54 casi** e ne cerca l'orario: semi da 0 a 5 × classi 3, 5, 8, 12 × senza e con
-ritardi, più (10, 3, con), (37, 3, con), (4, 7, con), (1, 14, con), (2, 20, senza), (3, 30, con). Di ognuno confronta
-con `prove/attesi.json` tre cose: l'impronta del caso generato (i primi 12 caratteri dello SHA-256 del testo:
-se cambia, è cambiato il generatore), l'esito, e se l'orario passa la verifica. Oggi: 39 trovati, 15 impossibili. I
-tempi non si confrontano. Con `--aggiorna` riscrive il file: solo dopo una modifica voluta.
+`python3 prove/prova.py` genera **54 casi** e ne cerca l'orario, con 60 secondi l'uno: semi da 0 a 5 × classi 3, 5,
+8, 12 × senza e con ritardi, più (10, 3, con), (37, 3, con), (4, 7, con), (1, 14, con), (2, 20, senza), (3, 30,
+con). Di ognuno confronta con `prove/attesi.json` tre cose: l'impronta del caso generato (i primi 12 caratteri dello
+SHA-256 del testo: se cambia, è cambiato il generatore), l'esito, e se l'orario passa la verifica. «Limite di tempo»
+non è una risposta (dipende dal computer): un caso che finisce al limite, nella prova o nei risultati attesi, si
+confronta solo per l'impronta, e alla fine si dice quanti sono. Oggi: 37 trovati, 14 impossibili, 3 al limite. I
+tempi non si confrontano. Con `--aggiorna` riscrive il file, dando a ogni caso 300 secondi: solo dopo una modifica
+voluta.
 
 Dopo ogni modifica al programma:
-1. `prove/prova.py` deve dire «tutto come atteso».
+1. `prove/prova.py` deve dire «tutto come atteso» (ci mette qualche minuto).
 2. Se si tocca `genera.py`: i casi non devono cambiare (le impronte in `attesi.json`), a meno che non sia voluto. Se
    è voluto, cambiano tutti i casi di tutti i semi, e i risultati dei test notturni non sono più confrontabili.
 3. Se si tocca `esatto.py`: ogni orario trovato deve passare la verifica, e nessun caso deve passare da «trovato» a
@@ -604,7 +625,7 @@ scelgono la sezione, una alla volta (si parte da «Docenti»):
 
 - **Docenti**: una riga per docente: nome; «Entra» (dalle…, una scelta per ora); «Esce» (dopo le…, oppure «alla
   fine»); «Giorno libero» (nessuno, uno qualunque, o un giorno); le sue ore di lezione, contate dalle lezioni. Se le
-  ore sono più di quelle in cui è a scuola, `(uscita − ingresso) × giorni in cui c'è`, si vedono come «22 su 20».
+  ore sono più di quelle che può fare, `min(uscita − ingresso, 5) × giorni in cui c'è`, si vedono come «22 su 20».
 - **Lezioni**: in cima la scelta della classe (o tutte) e le ore della classe scelta, con un avviso se non stanno tra
   `prime ore × giorni` e `ore × giorni`. Una riga per lezione: classe (un campo: scrivendo un nome nuovo nasce una
   classe), materia, docente, codocente (o «–»), ore.

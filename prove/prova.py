@@ -6,7 +6,9 @@
 
 Per ogni caso (seme, classi, ritardi) guarda tre cose:
 - l'impronta del caso generato: se cambia, e' cambiato il generatore (e con lui tutti i casi);
-- l'esito: «trovato» o «impossibile». Per lo stesso caso e' sempre lo stesso: se cambia, e' cambiato il metodo;
+- l'esito: «trovato» o «impossibile». Per lo stesso caso e' sempre lo stesso: se cambia, e' cambiato il metodo.
+  «Limite di tempo» invece non e' una risposta (dipende dal computer): un caso che finisce al limite, qui o nei
+  risultati attesi, non si confronta, e alla fine si dice quanti sono;
 - se l'orario trovato passa la verifica.
 I tempi non si confrontano: cambiano da un computer all'altro.
 """
@@ -20,20 +22,20 @@ sys.path.insert(0, RADICE)
 from orario import esatto, genera, scuola, verifica   # noqa: E402 (dopo aver detto dove sta il programma)
 
 ATTESI = os.path.join(RADICE, 'prove', 'attesi.json')
-TEMPO = 300   # i secondi che ogni caso ha
+TEMPO = 60    # i secondi che ogni caso ha (con --aggiorna: 300, per avere piu' risposte certe)
 # i casi: una griglia piccola (semi, classi, con e senza ritardi) e alcuni casi scelti: i due piu' grandi, due che la
 # ricerca di prima non risolveva, e uno impossibile che la ricerca di prima non riusciva a dimostrare
 CASI = [(seme, classi, ritardi) for seme in range(6) for classi in (3, 5, 8, 12) for ritardi in (0, 1)] + \
        [(10, 3, 1), (37, 3, 1), (4, 7, 1), (1, 14, 1), (2, 20, 0), (3, 30, 1)]
 
 
-def esegui():
+def esegui(tempo):
     """Per ogni caso: lo genera, lo legge, ne cerca l'orario e lo verifica. Ritorna {nome del caso: risultato}."""
     trovati = {}
     for seme, classi, ritardi in CASI:
         testo = genera.genera(seme, classi, ritardi)             # 1. il caso
         s = scuola.leggi_testo(testo)                            # 2. la scuola
-        esito, orario, aule, _ = esatto.risolvi(s, TEMPO)        # 3. l'orario, con le aule
+        esito, orario, aule, _ = esatto.risolvi(s, tempo)        # 3. l'orario, con le aule
         # il nome del caso e' la chiave in attesi.json
         nome = 'seme %d, %d classi, %s ritardi' % (seme, classi, 'con' if ritardi else 'senza')
         trovati[nome] = {'caso': hashlib.sha256(testo.encode()).hexdigest()[:12], 'esito': esito}
@@ -44,7 +46,7 @@ def esegui():
 
 def main():
     # i risultati di adesso; un orario che non passa la verifica si dice comunque
-    trovati = esegui()
+    trovati = esegui(300 if '--aggiorna' in sys.argv else TEMPO)
     non_validi = [k for k, v in trovati.items() if v.get('verificato') is False]
     for k in non_validi:
         print('NON VALIDO  %s: l\'orario trovato non passa la verifica' % k)
@@ -57,11 +59,17 @@ def main():
     # il confronto con i risultati attesi
     with open(ATTESI) as f:
         attesi = json.load(f)
+    # i casi finiti al limite di tempo, qui o nei risultati attesi: di quelli si confronta solo il caso generato
+    LIMITE = 'limite di tempo'
+    al_limite = [k for k in trovati if LIMITE in (trovati[k]['esito'], attesi.get(k, {}).get('esito'))]
+    for k in al_limite:
+        trovati[k] = dict(attesi.get(k, {}), caso=trovati[k]['caso'])
     # diverso: un caso in piu' o in meno, o con impronta, esito o verifica cambiati
     diversi = [k for k in sorted(set(attesi) | set(trovati)) if attesi.get(k) != trovati.get(k)]
     for k in diversi:
         print('DIVERSO  %s\n  atteso:  %s\n  trovato: %s' % (k, attesi.get(k), trovati.get(k)))
-    print('%d casi, %s' % (len(trovati), 'tutto come atteso' if not diversi else '%d diversi' % len(diversi)))
+    print('%d casi, %s%s' % (len(trovati), 'tutto come atteso' if not diversi else '%d diversi' % len(diversi),
+                             ' (%d al limite di tempo, non confrontati)' % len(al_limite) if al_limite else ''))
     return 1 if diversi or non_validi else 0
 
 

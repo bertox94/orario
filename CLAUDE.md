@@ -35,8 +35,11 @@ scelta…») non è più in `main`: l'ultima versione è in `stabile/2026-11-26`
   «trovato» a «impossibile» o il contrario (sono risposte certe). Va rifatto su tanti casi, non solo sui 54.
 - `verifica.py` non deve usare niente di `esatto.py`: è il controllo indipendente.
 - Una regola nuova dell'orario va in tre posti: l'elenco in `scuola.py`, i conti in `esatto.py`, il controllo in
-  `verifica.py` (e in `DESCRIZIONE.md`). Dal 26 novembre 2026 (richiesta di Alb) c'è la regola 9: un docente ha al
-  massimo 2 ore buche al giorno, tra la sua prima e la sua ultima lezione. Con lei dimostrare un caso impossibile
+  `verifica.py` (e in `DESCRIZIONE.md`). Dal 26 novembre 2026 (richiesta di Alb) c'è la regola 9, sulle ore buche
+  di un docente (tra la sua prima e la sua ultima lezione del giorno); dal 27 novembre dice: nessuna nei giorni in
+  cui insegna da 1 a 3 ore, al massimo 1 se ne insegna 4 o 5 (prima: al massimo 2); e c'è la regola 13: al massimo
+  5 ore di lezione al giorno. Con queste regole alcuni casi restano al limite di tempo (3 dei 54 della prova
+  automatica): `prove/prova.py` quelli non li confronta. Con lei dimostrare un caso impossibile
   diventava lentissimo: per questo `esatto.risolvi` chiede prima senza la regola 9 e poi, se serve, con tutte.
 - Materie e aule (26 novembre 2026, richiesta di Alb): ogni lezione ha una materia, un docente può averne più di
   una, e ogni lezione occupa un'aula del tipo della sua materia (regola 10; tutte le aule sono contate). Il

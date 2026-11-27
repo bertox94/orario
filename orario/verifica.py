@@ -3,13 +3,13 @@ ricontrolla da capo ogni regola di scuola.py. Se il metodo sbagliasse, qui si ve
 
 Come guarda: un giorno alla volta, e dentro il giorno un'ora alla volta e una classe alla volta. Le regole che
 riguardano una cella (prime ore, ora buca, ingresso, una classe per volta, l'aula) si controllano li'; quelle sulla giornata
-di un docente (ore al giorno, di seguito, classi al giorno, ore buche) alla fine di ogni giorno; le ore di ogni voce alla fine.
+di un docente (ore al giorno, di seguito, classi al giorno, ore buche, ore di lezione) alla fine di ogni giorno; le ore di ogni voce alla fine.
 """
-from .scuola import QUALUNQUE, docenti_della_voce
+from .scuola import QUALUNQUE, buche_consentite, docenti_della_voce
 
 # le regole, nell'ordine in cui compaiono nel risultato
 (ORE_GIUSTE, UNA_CLASSE_PER_VOLTA, DOPO_L_INGRESSO, ORE_AL_GIORNO, DI_SEGUITO, CLASSI_AL_GIORNO, PRIME_ORE_PIENE,
- DOPO_LA_BUCA, BUCHE_DEL_DOCENTE, AULE, PRIMA_DELL_USCITA, GIORNO_LIBERO) = range(12)
+ DOPO_LA_BUCA, BUCHE_DEL_DOCENTE, AULE, PRIMA_DELL_USCITA, GIORNO_LIBERO, LEZIONI_AL_GIORNO) = range(13)
 REGOLE = ('ogni docente e ogni coppia fanno in ogni classe le loro ore',
           'un docente e\' in una sola classe per volta',
           'nessuna lezione prima dell\'ingresso del docente',
@@ -21,7 +21,8 @@ REGOLE = ('ogni docente e ogni coppia fanno in ogni classe le loro ore',
           'un docente ha al massimo le ore buche consentite al giorno',
           'ogni lezione e\' in un\'aula del tipo giusto, e in un\'aula c\'e\' una classe per volta',
           'nessuna lezione dall\'ora di uscita del docente in poi',
-          'ogni docente ha il suo giorno libero')
+          'ogni docente ha il suo giorno libero',
+          'un docente fa al massimo le ore di lezione consentite al giorno')
 
 
 def verifica(scuola, orario, aule):
@@ -115,11 +116,15 @@ def verifica(scuola, orario, aule):
             if quante_classi > scuola['classi_al_giorno']:
                 non_rispettata(CLASSI_AL_GIORNO, '%s, %s: %d classi, il massimo e\' %d' % (
                     docenti[t][0], giorni[g], quante_classi, scuola['classi_al_giorno']))
-            # le ore buche: tra la prima e l'ultima lezione del giorno, le ore in cui non insegna
+            if len(sue_ore) > scuola['lezioni_al_giorno']:
+                non_rispettata(LEZIONI_AL_GIORNO, '%s, %s: %d ore di lezione, il massimo e\' %d' % (
+                    docenti[t][0], giorni[g], len(sue_ore), scuola['lezioni_al_giorno']))
+            # le ore buche: tra la prima e l'ultima lezione del giorno, le ore in cui non insegna. Quante ne puo' avere
+            # dipende da quante ore insegna quel giorno
             buche = max(sue_ore) - min(sue_ore) + 1 - len(sue_ore) if sue_ore else 0
-            if buche > scuola['buche_al_giorno']:
-                non_rispettata(BUCHE_DEL_DOCENTE, '%s, %s: %d ore buche, il massimo e\' %d' % (
-                    docenti[t][0], giorni[g], buche, scuola['buche_al_giorno']))
+            if buche > buche_consentite(scuola, len(sue_ore)):
+                non_rispettata(BUCHE_DEL_DOCENTE, '%s, %s: %d ore buche con %d ore di lezione, il massimo e\' %d' % (
+                    docenti[t][0], giorni[g], buche, len(sue_ore), buche_consentite(scuola, len(sue_ore))))
     # PASSO 2: a settimana finita. Chi ha un giorno libero qualunque: almeno un giorno senza lezioni
     for t in range(T):
         if docenti[t][3] == QUALUNQUE and len(giorni_di[t]) == G:

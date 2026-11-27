@@ -17,7 +17,7 @@ ATTENZIONE: i test rigenerano i casi dai semi. Cambiare qualunque cosa qui (anch
 numeri casuali: una chiamata in piu' o in meno, o spostata) cambia tutti i casi.
 """
 from .nomi import NOMI_DOCENTI
-from .scuola import MAX_CLASSI, MAX_DOCENTI, NESSUNO, QUALUNQUE
+from .scuola import LEZIONI_AL_GIORNO, MAX_CLASSI, MAX_DOCENTI, NESSUNO, QUALUNQUE
 
 GIORNI, ORE, OBBLIGATORIE = 6, 6, 5
 NOMI_GIORNI = ('Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab')
@@ -196,7 +196,8 @@ def _giorni_liberi_e_uscite(seme, caso, ingresso, con_ritardi):
     for d in range(caso.docenti):
         # quattro numeri per docente, sempre, anche quando non servono: cosi' la serie non dipende dalle scelte
         sorte, giorno, sorte_uscita, uscita = c.tra(1, 100), c.tra(0, GIORNI - 1), c.tra(1, 100), c.tra(4, ORE - 1)
-        al_giorno = ORE - ingresso[d]   # le ore di un giorno in cui e' a scuola
+        # le ore che puo' fare in un giorno: quelle in cui e' a scuola, e mai piu' del massimo di lezioni al giorno
+        al_giorno = min(ORE - ingresso[d], LEZIONI_AL_GIORNO)
         # il giorno libero: se le sue ore stanno, con il margine, in un giorno di meno
         libero = NESSUNO
         if sorte <= CON_GIORNO_PRECISO + CON_GIORNO_QUALUNQUE and \
@@ -206,7 +207,7 @@ def _giorni_liberi_e_uscite(seme, caso, ingresso, con_ritardi):
         giorni = GIORNI - (libero != NESSUNO)
         if not (con_ritardi and ingresso[d] == 0 and sorte_uscita <= CON_USCITA):
             uscita = ORE
-        while uscita < ORE and caso.carico[d] + MARGINE > uscita * giorni:
+        while uscita < ORE and caso.carico[d] + MARGINE > min(uscita, LEZIONI_AL_GIORNO) * giorni:
             uscita += 1
         liberi.append(libero)
         uscite.append(uscita)

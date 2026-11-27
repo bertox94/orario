@@ -57,10 +57,12 @@ stessa materia e gli stessi docenti si sommano.
 6. Un docente va al massimo in 3 classi al giorno.
 7. Le prime ore di ogni giorno hanno lezione.
 8. Dopo un'ora buca, quel giorno, la classe ha solo ore buche.
-9. Un docente ha al massimo 2 ore buche al giorno (tra la sua prima e la sua ultima lezione).
+9. Le ore buche di un docente (tra la sua prima e la sua ultima lezione del giorno): nessuna nei giorni in cui
+   insegna da 1 a 3 ore, al massimo 1 nei giorni in cui ne insegna 4 o 5.
 10. Ogni lezione è in un'aula del tipo che la sua materia chiede, e in un'aula c'è una classe per volta.
 11. Un docente non insegna dalla sua ora di uscita in poi.
 12. Un docente non insegna nel suo giorno libero (un giorno preciso, o uno qualunque scelto dal programma).
+13. Un docente fa al massimo 5 ore di lezione al giorno.
 
 ## Il sito
 

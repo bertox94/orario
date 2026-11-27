@@ -35,6 +35,7 @@ let dati = {{ s.dati|tojson }};
 let sezione = 'docenti';     // la sezione che si vede
 let classeScelta = null;     // nelle lezioni: la classe di cui si vedono le lezioni ('' = tutte)
 let daSalvare = false;       // ci sono modifiche non ancora salvate
+const LEZIONI_AL_GIORNO = {{ lezioni_al_giorno }};   // le ore di lezione che un docente puo' fare in un giorno
 const URL_SALVA = '{{ url_for('salva_scuola', n=s.numero) }}';
 const box = document.getElementById('sezione');
 
@@ -64,7 +65,7 @@ const tabella = (intestazioni, righe, aggiungi) => (righe.length ? '<div class="
 // Di ognuna: la spiegazione, le righe che modifica, la riga nuova, e come si disegna.
 const SEZIONI = {
   docenti: {
-    spiegazione: 'Per ogni docente: da che ora è a scuola, dopo che ora esce (valgono per tutti i giorni) e il suo giorno libero. «Uno qualunque»: il giorno libero lo sceglie il programma. Le ore sono quelle delle sue lezioni (sezione «Lezioni»).',
+    spiegazione: 'Per ogni docente: da che ora è a scuola, dopo che ora esce (valgono per tutti i giorni) e il suo giorno libero. «Uno qualunque»: il giorno libero lo sceglie il programma. Le ore sono quelle delle sue lezioni (sezione «Lezioni»); un docente fa al massimo {{ lezioni_al_giorno }} ore di lezione al giorno.',
     righe: () => dati.docenti,
     nuova: () => ['', 0, dati.ore.length, 'nessuno'],
     disegna() {
@@ -121,8 +122,9 @@ const SEZIONI = {
 // le ore di un docente, con un avviso se non stanno nelle ore in cui e' a scuola
 function contoDocente(i) {
   const [nome, entra, esce, libero] = dati.docenti[i], ore = oreDocente(nome);
-  const posti = (esce - entra) * (dati.giorni.length - (libero !== 'nessuno'));
-  return ore > posti ? `<span class="avviso" title="È a scuola solo per ${posti} ore la settimana">${ore} su ${posti}</span>` : String(ore);
+  // le ore che puo' fare: in ogni giorno quelle in cui e' a scuola, ma non piu' del massimo di lezioni al giorno
+  const posti = Math.min(esce - entra, LEZIONI_AL_GIORNO) * (dati.giorni.length - (libero !== 'nessuno'));
+  return ore > posti ? `<span class="avviso" title="Può fare al massimo ${posti} ore la settimana">${ore} su ${posti}</span>` : String(ore);
 }
 // nelle lezioni: le ore della classe scelta, e quante devono essere
 function contoClasse() {

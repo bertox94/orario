@@ -9,7 +9,7 @@ import os
 
 from flask import Flask, abort, flash, jsonify, redirect, render_template, request, url_for
 
-from orario.scuola import MAX_CLASSI
+from orario.scuola import LEZIONI_AL_GIORNO, MAX_CLASSI
 
 from . import notturni, programma, prove, scuole
 
@@ -117,7 +117,8 @@ def crea_app():
         s = scuole.scuola(n)
         if not s:
             abort(404)
-        return render_template('scuola.html', s=s, problemi=scuole.problemi(s['dati']), in_corso=prove.in_corso())
+        return render_template('scuola.html', s=s, problemi=scuole.problemi(s['dati']), in_corso=prove.in_corso(),
+                               lezioni_al_giorno=LEZIONI_AL_GIORNO)
 
     @app.route('/scuola/<int:n>/salva', methods=['POST'])
     def salva_scuola(n):
